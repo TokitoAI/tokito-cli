@@ -49,6 +49,33 @@ fn svg_refuses_a_closed_but_self_crossing_physical_board() {
     );
 }
 
+#[test]
+fn near_parallel_closed_contours_are_rejected_as_ambiguous() {
+    let gap = JOIN_TOLERANCE_MM * 1.5;
+    let outline = format!(
+        r#"
+        (gr_rect (start 0 0) (end 10 10) (layer Edge.Cuts) (uuid outer))
+        (gr_rect (start {gap:.9} 2) (end 2 4) (layer Edge.Cuts) (uuid near-cutout))
+    "#
+    );
+    let board = board_with_outline(&outline);
+    let report = board.outline();
+    assert!(
+        !report.is_valid(),
+        "A 1.5-tolerance near-parallel boundary must not be certified: {:?}",
+        report.diagnostics
+    );
+    assert!(
+        report
+            .diagnostics
+            .iter()
+            .any(|diagnostic| diagnostic.code == OutlineDiagnosticCode::AmbiguousJoin),
+        "Expected an explicit ambiguity diagnostic: {:?}",
+        report.diagnostics
+    );
+    assert!(board.svg(SvgSide::Top, None).is_err());
+}
+
 fn fixture(relative: &str) -> PhysicalBoardDocument {
     tokito_cli::load_kicad_board(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
