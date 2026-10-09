@@ -143,9 +143,11 @@ This execution advances C-06 with secure offline model capture, CLI inventory, a
 | C-06e transforms | Main + research | Independent asymmetric oracle / mount planes | ☐ | Source archaeology only; renderer equivalence unverified |
 | C-06f selectable nodes | Main | C-06e | ☐ | No component meshes emitted to GLB yet |
 | C-06g partial rules | Main | Existing shell | ✅ | Default refusal and explicit --allow-partial preserved; model lookup does not alter export |
-| C-06h full QA / delivery | Main + reviewer | Integrated files | ✅ QA / 🔄 delivery | Nine-gate/90-test receipt above; independent reviews pass. Source and binary fingerprints independently match the nine-gate receipt; current narrative documentation reviewed. Delivery is authorized on PR #11 after final remote-head check, with no Actions or main push. |
+| C-06h full QA / delivery | Main + reviewer | Integrated files | ✅ QA / ✅ PR delivered | Nine-gate/90-test receipt above; independent reviews pass. Source commit 5db49481ce62e859d13cf0504c75f6f6d1124add pushed to PR #11; actual remote head verified. PR remains open; merge pending. No Actions or main push. |
 
 ## 14. Significant transitions
+
+- 2026-10-10: pushed reviewed source commit `5db49481ce62e859d13cf0504c75f6f6d1124add` to PR #11; verified its actual remote head and empty hosted-check list. Updated CLI issues #2/#4/#5/#12/#13 and verified the CLI-specific Project statuses. Main remained `17f74a3f94cf6b901ef4329cbcc3322fae6cadbb`; no merge, Actions or sibling changes. This later narrative delivery record does not change tested source.
 
 - 2026-10-10: refreshed native App/API sources read-only, documented the mobile importer gap and project/design context-revision conditions, and checked newer Ultimainboard sample metadata. No device/deployed API test or CAD binary rehash was performed. All source/build/test receipt inputs and the delivered binary independently matched before feature PR delivery; only narrative documentation changed after the nine-gate run.
 

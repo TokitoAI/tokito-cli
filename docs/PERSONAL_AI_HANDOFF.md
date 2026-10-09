@@ -33,7 +33,10 @@ and a dedicated importer remain owner inputs. See
 [App/API audit](APP_API_BRIDGE_AUDIT.md) for the pinned native/FFI call chain.
 
 The owner authorized CLI issues/Project updates and a feature-branch PR push
-after full current local QA and independent review. Actions/binary delivery stay
+after full current local QA and independent review. Reviewed source commit
+`5db49481ce62e859d13cf0504c75f6f6d1124add` was delivered to
+[PR #11](https://github.com/TokitoAI/tokito-cli/pull/11), which remains open.
+The tested source is unchanged by this subsequent delivery documentation. Actions/binary delivery stay
 local; no direct main push. Issues #12 (resolver) and #13 (KiCad parity) track the
 new work. Historical milestone letters D–H remain unchanged. See
 [team requests](TEAM_HANDOFF.md), [model profile and gates](MODEL_RESOLUTION.md)
