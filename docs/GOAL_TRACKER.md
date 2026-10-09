@@ -1,6 +1,6 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
-Goal ID: TOKITO-PCB-ENGINE-001. Current execution: Milestones A and B are complete for their declared scope after the fail-closed audit fix.
+Goal ID: TOKITO-PCB-ENGINE-001. Current execution: Milestones A and B are complete for their declared scope. Milestone C's board-shell-only GLB slice is implemented and locally verified; component model resolution and selectable full-board output remain in progress.
 
 ## 1. Product goal
 
@@ -8,7 +8,7 @@ Build an original, pure-Rust, offline-first, Windows-first engine that imports s
 
 ## 2. Current stage and progress
 
-Milestones A and B are complete for their stated scope. B implements supported physical Edge.Cuts topology, contained cutout classification, historical v0.1 output compatibility, and pinned board/Gerber comparisons. Independent review found a fail-closed gap for near-parallel contours; it is fixed and covered by a public regression. The full current-source Windows verification gate passes after the correction and status-document updates.
+Milestones A and B are complete for their stated scope. B implements supported physical Edge.Cuts topology, contained cutout classification, historical v0.1 output compatibility, and pinned board/Gerber comparisons. Independent review found a fail-closed gap for near-parallel contours; it is fixed and covered by a public regression. Milestone C now triangulates/extrudes the validated board shell into GLB, while refusing by default unless the caller opts into partial output. Component models, transforms and selectors are still absent. The current full-source Windows verification gate passes for this shell-only slice.
 
 A+B task progress: 14 of 14 scoped tasks verified. This is not engineering completeness of the final digital-twin product. Milestone readiness: A and B complete; C through H planned.
 
@@ -27,7 +27,7 @@ Historical failures stay in the register even after resolution. Current status i
 |---|---|---|---|
 | A | Canonical Rust PCB engine and public API | ✅ | Broaden normalized interpretation only with evidence |
 | B | Contours, topology and SVG accuracy | ✅ | Extend format coverage only with supported fixtures |
-| C | Exact model resolution and selectable GLB | ☐ | Requires validated topology, sourced dimensions/models, UUID selectors |
+| C | Exact model resolution and selectable GLB | 🔄 | Board-shell-only GLB locally verified; real model resolution/transforms, UUID selectors and complete component coverage remain |
 | D | Versioned native Tokito physical-board package | ☐ | Preserve v0.1 compatibility; do not claim mobile readiness early |
 | E | Desktop and MCP integration | ☐ | Confirm actual contracts and obtain separate sibling-repository write scope |
 | F | tokito-app offline import and AR | ☐ | Needs stable package contract and real Android/iQOO device journey |
@@ -47,7 +47,19 @@ Historical failures stay in the register even after resolution. Current status i
 | B-07 | v0.1 compatibility | ✅ | Five historical package fixtures; exact inspect, CSV, top/bottom SVG bytes and tamper checks |
 | B-08 | Full local verification and independent review | ✅ | Current-source formatting, 58 Rust tests, Clippy, release build, four-board E2E, geometry/Gerber E2E, compatibility E2E, and independent source/evidence review pass |
 
-## 6. Ownership and delivery
+## 6. Milestone C first slice
+
+| ID | Task | Status | Acceptance evidence |
+|---|---|---|---|
+| C-01 | Triangulate validated outside contour and cutouts | ✅ | Pure-Rust Earcut output has valid indices, non-degenerate faces, centroid/material checks, and polygonized/analytic area checks |
+| C-02 | Extrude sourced board thickness and transform to GLB frame | ✅ | Metres, right-handed Y-up, board on XZ plane, mid-plane centered; f32 quantization and collapsed-face checks enforced |
+| C-03 | Require explicit consent for board-shell-only output | ✅ | Default CLI/API refusal; `--allow-partial` creates a shell labelled partial even with no components |
+| C-04 | Report unresolved component/model coverage | ✅ | Bounded report includes component ref/UUID/source identity and model paths; absolute paths are redacted |
+| C-05 | Real-board GLB subprocess journey and local receipt | ✅ | Porcupine curves + five cutouts, independent container/accessor/mesh/closed-edge checks, deterministic output, package input, invalid-outline and no-overwrite checks |
+| C-06 | Resolve actual component meshes and stable selection IDs | ☐ | Needs a pinned model corpus and independently validated transforms/coverage/selectors |
+| C-07 | Independently reviewed current-source local gate | ✅ | Read-only geometry review found no new concrete defect; current full local gate passed with the GLB source/tests fingerprinted |
+
+## 7. Ownership and delivery
 
 Main owns requirements, integration, tracker, and final QA. The implementation and review agents were limited to scoped CLI work; they shared the checkout and preserved existing edits. Sibling repositories remain read-only.
 
@@ -55,7 +67,7 @@ The user requests a feature-branch push and PR for review, with `main` left unto
 
 The replacement private repository is TokitoAI/tokito-cli. PR #8 has been merged to `main`; its current remote head was read as `102e4adb069779ae4a4cc70f4dc8713b34688400`. NAVANEETHVVINOD was verified to have Admin access; no invitation was sent. The CLI-specific roadmap at https://github.com/TokitoAI/tokito-cli/projects is now linked to this repository; the organization-wide Tokito ecosystem project remains untouched. The CLI roadmap tracks issues #1-#7 and the new near-parallel topology follow-up #9. This next delivery belongs on a new feature branch based on current `main`, followed by a PR for the user's review. The older local branch and working files remain preserved.
 
-## 7. Milestone B acceptance
+## 8. Milestone B acceptance
 
 - The physical outline report uses source millimetres and Y-down coordinates, centerlines rather than stroke/margins, and source locators/UUIDs.
 - Join tolerances and work limits are bounded and declared.
@@ -65,15 +77,15 @@ The replacement private repository is TokitoAI/tokito-cli. PR #8 has been merged
 - Independent Gerber comparisons and full current-source local verification pass.
 - GLB or solids are not generated before this topology gate.
 
-## 8. Current verification
+## 9. Current verification
 
 The release gate is scripts/verify-local.ps1. It uses target/local-verification and writes a tested executable plus verification.json under target/delivery/local/. Use the newest timestamped receipt.
 
-The latest full local Windows x64 run passed formatting, 40 library unit tests, eight engine API tests, ten topology API tests, Clippy with warnings denied, release build, four-board CLI subprocess E2E, geometry/SVG/Gerber E2E, and five v0.1 compatibility packages with exact historical inspect/CSV/top/bottom SVG outputs. The newest receipt records toolchain versions, source-input hashes, tested binary hash, and platform under target/delivery/local/.
+The current full local Windows x64 run passed formatting, 50 library unit tests, eight engine API tests, one public GLB API test, ten topology API tests, Clippy with warnings denied, release build, four-board CLI subprocess E2E, geometry/SVG/Gerber E2E, GLB E2E, and five v0.1 compatibility packages with exact historical inspect/CSV/top/bottom SVG outputs. The newest receipt under `target/delivery/local/` fingerprints the GLB implementation and tests and records the tested release binary hash.
 
-This local Windows evidence does not establish Linux/MSRV, hosted CI, full KiCad plot/DRC conformance, fabrication validity, GLB/STEP generation, Desktop/MCP integration, phone import, or AR/device accuracy.
+This local Windows evidence does not establish Linux/MSRV, hosted CI, full KiCad plot/DRC conformance, fabrication validity, component models/selectors, STEP, Desktop/MCP integration, phone import, or AR/device accuracy.
 
-## 9. Error and blocker register
+## 10. Error and blocker register
 
 | ID | Failure | Cause | Resolution |
 |---|---|---|---|
@@ -91,30 +103,31 @@ This local Windows evidence does not establish Linux/MSRV, hosted CI, full KiCad
 | B-ERR-012 | Final verifier test link hit LNK1104 in target/verified | That target repeatedly failed to link while a new isolated target compiled; exact OS cause is unknown | ✅ Runner uses target/local-verification; complete current-source gate passed |
 | B-ERR-013 | Two closed contours with a 1.5× join-tolerance parallel gap could be certified | Ambiguous parallel contacts carried no point and the validator repeated the point-only predicate | ✅ Validator rejects ambiguous contacts with no allowed point; focused public regression and full local gate pass |
 
-## 10. Implementation evidence
+## 11. Implementation evidence
 
-Key CLI files include src/document.rs, src/lib.rs, src/cli.rs, src/geometry.rs, and src/topology.rs. Tests include tests/engine_api.rs, tests/topology_api.rs, tests/geometry_e2e.py, tests/compat_v0.py, and tests/e2e_cli.py. Source and reference fixture provenance is in docs/PCB_FIXTURE_CORPUS.md; API and topology limits are in docs/CANONICAL_ENGINE.md and docs/PCB_TOPOLOGY.md.
+Key CLI files include src/document.rs, src/lib.rs, src/cli.rs, src/geometry.rs, src/topology.rs, and src/glb.rs. Tests include tests/engine_api.rs, tests/glb_api.rs, tests/topology_api.rs, tests/geometry_e2e.py, tests/glb_e2e.py, tests/compat_v0.py, and tests/e2e_cli.py. Source and reference fixture provenance is in docs/PCB_FIXTURE_CORPUS.md; API, topology and GLB limits are in docs/CANONICAL_ENGINE.md, docs/PCB_TOPOLOGY.md, and docs/GLB_EXPORT_ARCHITECTURE.md.
 
 The current reader is bounded and partial. Unknown or unsupported outline features must remain diagnostic and block certification; no API field means complete KiCad interpretation or fabrication readiness.
 
-## 11. Completed milestone history
+## 12. Completed milestone history
 
 Milestone A delivered the importer, UUID-backed inventory, partial SVG, Tokito package v0.1, public canonical model, and local verification. Milestone B delivered supported physical outline validation, topology and cutout classification, exact SVG compatibility, pinned reference comparisons, and the current-source local gate.
 
 The earlier-repository recovery bundle remains under target/recovery/github-before-recreation-20261009T150910Z. Old PR #9 and its failed artifact upload are historical; they are not current checks in the replacement repository.
 
-## 12. Next work
+## 13. Next work
 
-Follow issues in the private CLI roadmap. First implement C: triangulate validated boundaries with cutouts, source thickness and models, verify metre/Y-up transforms, winding/normals/bounds, and UUID selection in GLB. Then define D's versioned native Tokito geometry/model package. E requires confirmed Desktop schemas and separate permission before sibling changes. F requires app permission and a real offline Android/iQOO import, selection, and AR journey. G is a separate pure-Rust STEP feasibility study. H defines the required physical placement/routing handoff from schematic generation.
+Follow issues in the private CLI roadmap. Finish C by adding validated local component-model resolution, source hashes, model-unit/offset/rotation/side transforms, stable UUID selectors and a real model corpus; reject partial component conversions with diagnostics. Then define D's versioned native Tokito geometry/model package. E requires confirmed Desktop schemas and separate permission before sibling changes. F requires app permission and a real offline Android/iQOO import, selection, and AR journey. G is a separate pure-Rust STEP feasibility study. H defines the required physical placement/routing handoff from schematic generation.
 
 Do not silently replace missing models with boxes, treat a schematic as a physical layout, label hashes as signatures, or claim complete support from inventory counts.
 
-## 13. Significant transitions
+## 14. Significant transitions
 
 - 2026-10-09 22:26 IST: goal created; Milestone A baseline rerun passed.
 - 2026-10-09 22:31 IST: geometry audit and public regression completed.
 - 2026-10-09 23:08 IST: independent review drove the stable arc and unsupported module-outline fixes.
 - 2026-10-09 23:20 IST: archived SVG goldens, analytic geometry checks, and the full local gate passed.
+- 2026-10-10: the board-shell-only GLB slice passed the current local Windows gate; the receipt records the new GLB E2E and input hashes. Component models/selectors and complete Milestone C remain open.
 - 2026-10-09: private replacement repository and collaborator access verified; PR #8 merged; CLI roadmap linked to the repository Projects tab; issue #9 tracks the audited topology fix. The organization-wide ecosystem project remains unchanged. The user requests the next delivery on a feature branch and PR, with Actions disabled and main unchanged until their merge.
 
-Last updated: 2026-10-09. The latest verification timestamp is in the newest local receipt under target/delivery/local/.
+Last updated: 2026-10-10. The latest verification receipt is `target/delivery/local/20261009T192346Z-d03a981b61b341579c2bc03636153fef/verification.json`.

@@ -79,6 +79,7 @@ try {
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
         @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) }
     )
     $results = @()
@@ -133,7 +134,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'No KiCad visual oracle, phone/AR E2E, GLB/STEP or desktop integration acceptance.')
+        limitations = @('Local platform/toolchain only.', 'Board-shell-only GLB was independently parsed and mesh-checked; component model resolution/selection, STEP, phone/AR, and Desktop integration acceptance remain unverified.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"

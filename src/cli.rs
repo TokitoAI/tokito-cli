@@ -10,6 +10,7 @@ fn print_help() {
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
+         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
          \n\
@@ -17,8 +18,9 @@ fn print_help() {
          \tInspect board metadata and component placements.\n\
          \tExport placement rows in the source board coordinate frame.\n\
          \tExport partial physical-scale SVG views from supported geometry.\n\
+         \tExport a board-shell-only GLB; unresolved component models require --allow-partial.\n\
          \tBuild a source-and-placement Tokito package (not mobile importable).\n\
-         \tGLB, STEP, and schematic-to-PCB are not implemented."
+         \tComponent 3D models, STEP, and schematic-to-PCB are not implemented."
     );
 }
 
@@ -89,7 +91,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             for diagnostic in board.geometry.diagnostics() {
                 println!("  - {diagnostic}");
             }
-            println!("Geometry exports: partial SVG only; GLB and STEP are not implemented");
+            println!(
+                "Geometry exports: partial SVG and explicit board-shell-only GLB; component models and STEP are not implemented"
+            );
         }
         return Ok(());
     }
@@ -200,6 +204,67 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             if svg.warnings.len() > 10 {
                 eprintln!("  - additional diagnostics are available via inspect --json");
             }
+        }
+        return Ok(());
+    }
+    if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
+        if args.len() < 5 {
+            return Err(CliError::new(
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--allow-partial] [--json-report]",
+            ));
+        }
+        let mut output_path = None;
+        let mut allow_partial = false;
+        let mut json_report = false;
+        let mut index = 3;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--output" if index + 1 < args.len() && output_path.is_none() => {
+                    output_path = Some(PathBuf::from(&args[index + 1]));
+                    index += 2;
+                }
+                "--allow-partial" if !allow_partial => {
+                    allow_partial = true;
+                    index += 1;
+                }
+                "--json-report" if !json_report => {
+                    json_report = true;
+                    index += 1;
+                }
+                option => {
+                    return Err(CliError::new(format!(
+                        "unknown, duplicate, or incomplete GLB option: {option}"
+                    )));
+                }
+            }
+        }
+        let output_path =
+            output_path.ok_or_else(|| CliError::new("GLB export requires --output <FILE.glb>"))?;
+        if !output_path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("glb"))
+        {
+            return Err(CliError::new("GLB output path must use a .glb extension"));
+        }
+        let board = load_board_input(Path::new(&args[2]))?;
+        let export = board.export_glb(GlbExportOptions { allow_partial })?;
+        write_new_file(&output_path, &export.bytes)?;
+        if json_report {
+            print!("{}", export.report.report_json());
+        } else {
+            println!(
+                "Wrote {} GLB ({} of {} component models emitted; {} unresolved) to {}",
+                if export.report.partial_export {
+                    "explicit partial board-shell-only"
+                } else {
+                    "board-shell-only"
+                },
+                export.report.component_models_emitted,
+                export.report.component_count,
+                export.report.component_models_unresolved,
+                output_path.display()
+            );
         }
         return Ok(());
     }

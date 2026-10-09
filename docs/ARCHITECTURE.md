@@ -1,6 +1,6 @@
 # Tokito CLI architecture and roadmap
 
-Date: 2026-10-09. Status: v0.1 CLI implements bounded KiCad PCB inspection, placement inventory, partial layer-aware SVG, source-and-inventory package output, and validated native package intake. See [native format contracts and GLB plan](NATIVE_FORMAT_ARCHITECTURE.md) for current source evidence; the canonical geometry-complete board model and reusable public engine API remain future work.
+Date: 2026-10-10. Status: Milestones A and B provide the reusable canonical Rust PCB document and fail-closed physical outline/topology API. Milestone C is active on `codex/milestone-c-selectable-glb`; its first slice builds a board shell only and must not claim component selection. See [native format contracts](NATIVE_FORMAT_ARCHITECTURE.md) and [GLB export architecture](GLB_EXPORT_ARCHITECTURE.md) for current input, frame, coverage, and model-resolution decisions. The desktop, MCP, phone, and AR integrations remain later work.
 
 ## Confirmed scope
 
@@ -101,13 +101,13 @@ Placement output must declare units, origin, axis directions, side and rotation 
 
 ### GLB
 
-Produce real board geometry from outline/cutouts/thickness and real admitted component meshes/models with their imported transforms. GLB is the phone render artifact; STEP is the engineering solid interchange artifact. They are separate representations.
+The first implementation produces a board-shell-only GLB from validated outline/cutout geometry and authored board thickness. It is always labelled partial and requires explicit `--allow-partial`, including boards with zero footprints. GLB is the phone render artifact; STEP is the engineering solid interchange artifact. They are separate representations.
 
 Normalize GLB to the existing app convention: metres, right-handed Y-up, board plane XZ/height Y. Store the exact board-to-GLB matrix in the package and test it. Never apply mm-to-metre scale twice.
 
-Keep one stable semantic component identity even when a component has several mesh nodes. Every renderable selector maps to its component ID. Initially support the current `componentNodePrefix + refdes` consumer through a validated adapter; migrate Android to explicit component-ID selectors before relying on UUID names.
+The shell-only slice has no component selectors. Its JSON coverage report lists unresolved source components and their raw model-reference paths with explicit truncation status. The next model phase must keep one stable semantic component identity even when a component has several mesh nodes. Every renderable selector must map to its component ID. Initially support the current `componentNodePrefix + refdes` consumer through a validated adapter; migrate Android to explicit component-ID selectors before relying on UUID names.
 
-Missing component models must be visible in a coverage report. A board-only or partial model can be deliberately exported and labelled partial; it must not become an apparently complete twin or a fabricated replacement component. Initially exclude unsupported mesh compression/extensions rather than introduce a hidden native decoder.
+Missing component models must be visible in a coverage report. The current shell output is partial by definition; later assembled export must fail by default when any component body is unresolved. Any future partial assembly also requires explicit opt-in and remains labelled partial. It must not become an apparently complete twin or a fabricated replacement component. Initially exclude unsupported mesh compression/extensions rather than introduce a hidden native decoder.
 
 ### STEP
 

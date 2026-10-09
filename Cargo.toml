@@ -10,5 +10,7 @@ name = "tokito-cli"
 path = "src/main.rs"
 
 [dependencies]
+earcut = "=0.4.11"
+gltf = { version = "=1.4.1", default-features = false }
 serde = "=1.0.229"
 serde_json = "=1.0.151"

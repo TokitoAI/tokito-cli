@@ -41,10 +41,12 @@ outline gate to pass, uses physical Edge.Cuts arc math and centerline view bound
 and leaves non-Edge.Cuts drawing projection and v0.1 inventory bytes compatible.
 The SVG viewport includes rendered outline stroke and its existing display
 margin; centerline-only physical bounds are reported separately by the API.
-It does not perform DRC, copper connectivity, fabrication validation, hole
-triangulation, board extrusion, 3D model resolution or GLB/STEP export. Source
-inventory and v0.1 packages with a physically invalid outline can still be
-imported and integrity-verified; their SVG export is refused.
+The topology API itself does not perform DRC, copper connectivity, fabrication
+validation, triangulation, or 3D model resolution. A separate opt-in GLB exporter
+uses a valid report to triangulate/extrude a board shell; it does not add component
+models. STEP is unimplemented. Source inventory and v0.1 packages with a
+physically invalid outline can still be imported and integrity-verified; their
+SVG and GLB exports are refused.
 
 ## Evidence
 
