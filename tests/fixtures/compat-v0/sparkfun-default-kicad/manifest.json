@@ -1,0 +1,12 @@
+{
+  "schema": "https://tokito.ai/schemas/board-package.schema.json",
+  "schemaVersion": "0.1.0",
+  "packageId": "kicad-4ab99cd7db06be8e",
+  "packageLevel": "source-and-placement-inventory",
+  "mobileImportReady": false,
+  "source": {"path": "source/board.kicad_pcb", "format": "kicad_pcb", "formatVersion": 20241229, "bytes": 192490, "sha256": "sha256:4ab99cd7db06be8e91e119a950a9ecc1f69bfd0d9a2ed975c5e57a0e319c8a83"},
+  "artifacts": {"inspection": {"path": "derived/inspection.json", "schema": "tokito.board-inspection.v0", "sha256": "sha256:d6f53397a8e1be2e662e163212f05a23540d7cf166e1aed56f8df8a8348ff011"}, "placements": {"path": "derived/placements.csv", "rows": 20, "sha256": "sha256:5a43532bb0aa6e53d3ad8bd855502b8debb6966e74ba60dc9ad8deb93746ad33"}},
+  "capabilities": {"sourcePreserved": true, "placementInventory": true, "boardGeometryComplete": false, "svg": false, "glb": false, "step": false},
+  "limitations": ["Inventory fields describe only the subset parsed by this Tokito CLI version.", "This package is not accepted by the Tokito App digital-twin runtime.", "No board mesh, component mesh, SVG, GLB, or STEP geometry is included.", "Source-adjacent license and provenance files are not discovered or copied automatically."],
+  "producer": {"name": "tokito-cli", "version": "0.1.0"}
+}

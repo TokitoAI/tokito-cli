@@ -1,0 +1,57 @@
+reference,reference_is_placeholder,value,library_id,side,x_mm,y_mm,rotation_deg,uuid,pad_count,model_count,dnp,excluded_from_pos_files
+"Y2",false,"LFXTAL003240BULK","Crystal:Crystal_HC49-4H_Vertical","front",135.5741,105.5116,180,"02a0b5ad-7bc9-4f11-a70f-bd997d76cd04",2,1,false,false
+"U3",false,"ATMEGA16U2-MU","Package_DFN_QFN:VQFN-32-1EP_5x5mm_P0.5mm_EP3.1x3.1mm","front",134.1501,97.0026,90,"0929dcb5-c6d1-4e46-811d-6e19f361d6d3",37,1,false,false
+"Y1",false,"CSTNE16M0V530000R0","Crystal:Resonator_SMD_Murata_CSTxExxV-3Pin_3.0x1.1mm","front",155.4861,106.7816,0,"0a90d8d5-c132-40cd-af12-878601fd857f",3,1,false,false
+"C9",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",142.1511,100.1776,0,"0b7eaf61-17a9-4342-b23f-a152b44bc5ce",2,1,false,false
+"J4",false,"PPTC101LFBN-RC","Connector_PinSocket_2.54mm:PinSocket_1x10_P2.54mm_Vertical","front",155.8671,80.8736,-90,"0cb73a11-4e00-4d6c-ba2d-24204f42313a",10,1,false,false
+"C1",false,"47u","Arduino UNO:CAP_EEHZA1E470P","front",132.6261,122.5296,-90,"1ad04047-6418-4d6c-9feb-36a8e509e67f",2,1,false,false
+"D2",false,"CD1206-S01575","Diode_SMD:D_1206_3216Metric","front",173.6471,103.7336,-90,"1c251df4-53ce-4710-b981-40876eabb9e3",2,1,false,false
+"C11",false,"22p","Capacitor_SMD:C_0603_1608Metric","front",130.2131,102.0826,180,"2a2568f8-e259-4df9-a08a-ee22a28fc9d8",2,1,false,false
+"C3",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",132.6261,116.3066,-90,"31e7522d-8b6d-419e-a824-ac5bd69c610e",2,1,false,false
+"FB1",false,"1kΩ@100MHz","Inductor_SMD:L_0805_2012Metric","front",121.8311,86.995,0,"35011c6a-e179-4373-bfea-ffe5b93601d9",2,1,false,false
+"C4",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",126.2761,101.8286,0,"35f994f8-e37b-4b4a-9252-0792db7d353d",2,1,false,false
+"U4",false,"ATMEGA328P-PU","Package_DIP:DIP-28_W7.62mm_Socket","front",177.0761,111.4806,-90,"3820f7fe-ddea-45ae-9794-dfbe6a4fc3f7",28,2,false,false
+"D4",false,"YELLOW","LED_SMD:LED_0805_2012Metric","front",142.1511,89.408,180,"3bba1dbe-c262-43f8-a512-5d8d976e3648",2,1,false,false
+"C6",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",142.1511,87.2236,0,"442031da-4003-40f1-b3b1-106d6c208801",2,1,false,false
+"C12",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",158.5341,121.412,0,"472060d6-a682-409e-9510-6c7eaeae444f",2,1,false,false
+"C7",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",142.1511,101.8286,0,"4da69ef6-e886-4392-9a49-c26640622714",2,1,false,false
+"J8",false,"USB_C_Receptacle_USB2.0_16P","Connector_USB:USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal","front",117.85,93.5736,-90,"4f1f3033-1be5-4b0c-9d34-3ffef1b4af85",22,1,false,false
+"U2",false,"LP2985-3.3","Package_TO_SOT_SMD:SOT-23-5","front",136.1821,116.4336,0,"52180ce0-3bf1-4fc9-b1da-f70d4f24f7db",5,1,false,false
+"D1",false,"CGRB307-G","Diode_SMD:D_SMB","front",135.8011,129.159,180,"53539a3b-9c1a-4416-8303-dd31ad63a534",2,1,false,false
+"C10",false,"1u","Capacitor_SMD:C_0603_1608Metric","front",126.9111,89.7636,0,"547711f9-4dab-41d4-b75c-b8c26464c39e",2,1,false,false
+"S1",false,"TS06-667-30-BK-100-G-SMT-TR","Arduino UNO:SW_TS06-667-30-BK-100-G-SMT-TR","front",120.5611,82.2706,0,"560963e3-5414-4579-898a-7023f16d0439",5,1,false,false
+"C13",false,"22p","Capacitor_SMD:C_0603_1608Metric","front",136.4361,102.0826,0,"5fba61f3-782d-4ea0-ae2f-3253d9e33fa4",2,1,false,false
+"J6",false,"PPTC061LFBN-RC","Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical","front",165.011,129.1336,90,"62099c16-5041-4c51-abff-965f5355b473",6,1,false,false
+"U5",false,"LMV358IDGKR","Package_SO:MSOP-8_3x3mm_P0.65mm","front",133.2611,111.3536,180,"677da91c-0e3e-4142-96a2-b4774e6a5354",8,1,false,false
+"JP1",false,"SolderJumper_2_Open","Jumper:SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm","front",142.1511,104.3686,0,"6d85c5c9-d0d7-41a6-903c-40977d3a2b94",2,0,false,true
+"FID1",false,"Fiducial","Fiducial:Fiducial_1mm_Mask3mm","front",120.5611,81.7626,0,"7322321a-ec59-4d5c-9e61-bf559b23ce8b",1,0,false,false
+"J7",false,"PPTC081LFBN-RC","Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical","front",142.1511,129.1336,90,"76349ead-9837-4194-9d5f-cf937ea4d5d6",8,1,false,false
+"U1",false,"NCP1117-5.0_SOT223","Package_TO_SOT_SMD:SOT-223-3_TabPin2","front",121.9581,114.2746,180,"7649dd0d-69d6-48fd-87f6-4fdd3c357b08",4,1,false,false
+"Z1",false,"5pF@1MHz","Resistor_SMD:R_0603_1608Metric","front",126.9111,92.0336,180,"7a62b757-c45b-420b-b4f3-adc03673448c",2,1,false,false
+"R3",false,"5k1","Resistor_SMD:R_0603_1608Metric","front",123.698,91.4908,90,"7d8c3853-2827-404e-8217-6528e67cb136",2,1,false,false
+"J2",false,"M20-9980245","Arduino UNO:CONN_M20-9980245_HRW","front",135.039,91.796,90,"7ff9bb50-ee54-4450-ba1f-b148058966a9",4,0,false,false
+"RN2",false,"1k","Resistor_SMD:R_Array_Convex_4x0603","front",142.1511,92.3036,0,"8457af2f-e5b6-4301-803d-5f582ccd1be0",8,1,false,false
+"R4",false,"5k1","Resistor_SMD:R_0603_1608Metric","front",123.698,96.1136,-90,"84b20dab-7df5-473f-92e4-57cdfd5b03bd",2,1,false,false
+"R2",false,"1M","Resistor_SMD:R_0603_1608Metric","front",155.4861,108.9406,0,"8878ab11-af30-4722-9ed3-3a565d8a412d",2,1,true,false
+"FID3",false,"Fiducial","Fiducial:Fiducial_1mm_Mask3mm","front",117.9411,128.2636,0,"8a582f98-78ee-45e9-b5c8-7183d81b28f6",1,0,false,false
+"J9",false,"PJ-102AH","Connector_BarrelJack:BarrelJack_Kycon_KLDX-0202-xC_Horizontal","front",126.12,123.36,0,"99a7b1db-7118-42c8-82ad-33f7db5b603d",3,1,false,false
+"D5",false,"YELLOW","LED_SMD:LED_0805_2012Metric","front",142.1384,95.1484,0,"a7749caf-1e48-4556-8155-05615f7c883e",2,1,false,false
+"RN1",false,"10k","Resistor_SMD:R_Array_Convex_4x0603","front",142.1511,107.7976,180,"aa886b12-95f7-4713-b634-244f7c130735",8,1,false,false
+"RN3",false,"22R","Resistor_SMD:R_Array_Convex_4x0603","front",127.0381,94.8436,180,"aecc9b56-4786-47df-acc2-3bc86ccab78c",8,1,false,false
+"FB2",false,"10uH","Inductor_SMD:L_0805_2012Metric","front",153.3271,123.5456,0,"b2c02b47-e87c-48e6-8357-614e953bcb80",2,1,false,false
+"RN4",false,"1k","Resistor_SMD:R_Array_Convex_4x0603","front",172.6311,97.8916,180,"ba6e2ddd-32ab-4587-881f-156179f445a0",8,1,false,false
+"F2",false,"MF-MSMF050-2","Fuse:Fuse_1812_4532Metric_Pad1.30x3.40mm_HandSolder","front",118.2116,105.1306,-90,"bf773c6b-d47b-4c1d-bd59-00a51ff26e67",2,1,false,false
+"J5",false,"PPTC081LFBN-RC","Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical","front",177.7111,80.8736,-90,"c0eaba59-caa9-4fd1-9ccd-f0cff1c1afb0",8,1,false,false
+"C5",false,"1u","Capacitor_SMD:C_0603_1608Metric","front",139.7381,116.3066,90,"c1ed24c9-7246-42d4-b9c3-036c89516d14",2,1,false,false
+"FID2",false,"Fiducial","Fiducial:Fiducial_1mm_Mask3mm","front",168.0511,114.9326,0,"c40f65fc-88af-4dbb-9ed9-2518ee140022",1,0,false,false
+"Z2",false,"5pF@1MHz","Resistor_SMD:R_0603_1608Metric","front",126.9111,98.0186,180,"c8277ca4-16aa-4ccf-ab4b-7b301829ce64",2,1,false,false
+"R1",false,"1M","Resistor_SMD:R_0603_1608Metric","front",133.2611,102.0826,180,"cbbb58dd-f952-4350-ab10-a1b8cb654b1c",2,1,true,false
+"D3",false,"CD1206-S01575","Diode_SMD:D_1206_3216Metric","front",127.2921,85.4456,90,"dfd48313-7c9d-47ce-bbdd-b31761c5b6c0",2,1,false,false
+"C2",false,"47u","Arduino UNO:CAP_EEHZA1E470P","front",139.7381,122.5296,-90,"e3ea6f58-038e-4726-970f-a913ad7653ef",2,1,false,false
+"D7",false,"GREEN","LED_SMD:LED_0805_2012Metric","front",172.6184,95.0468,180,"e6663303-63cd-4071-82a4-ef87dd2ed67a",2,1,false,false
+"J1",false,"M20-9980345","Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical","front",135.0391,84.1756,-90,"f6dbbb5a-4ec2-41de-aca1-4a1ba30c5a88",6,1,false,false
+"C8",false,"100n","Capacitor_SMD:C_0603_1608Metric","front",159.9311,108.8136,0,"f86cb0cb-36e3-46b2-885e-fd029bdea931",2,1,false,false
+"Q1",false,"FDN340P","Package_TO_SOT_SMD:SC-59","front",122.4104,105.1306,180,"f8bb56a2-9315-4719-a325-7285909ed478",3,1,false,false
+"J3",false,"M20-9980345","Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical","front",177.8381,101.1936,0,"f90cc000-a09f-4592-9734-e72eb4eaab9e",6,1,false,false
+"D6",false,"YELLOW","LED_SMD:LED_0805_2012Metric","front",142.1511,97.3836,0,"fbbdcd72-2cd1-4d50-85f5-8eabc6aefbaf",2,1,false,false
+"JP2",false,"SolderJumper_2_Open","Jumper:SolderJumper-2_P1.3mm_Open_Pad1.0x1.5mm","back",125.6411,91.0336,180,"365385a1-05c8-4022-9f18-65557edc7ab1",2,0,false,true

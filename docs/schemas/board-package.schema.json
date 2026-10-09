@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tokito.ai/schemas/board-package.schema.json",
+  "title": "Tokito board source-and-inventory package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "schemaVersion",
+    "packageId",
+    "packageLevel",
+    "mobileImportReady",
+    "source",
+    "artifacts",
+    "capabilities",
+    "limitations",
+    "producer"
+  ],
+  "properties": {
+    "schema": { "const": "https://tokito.ai/schemas/board-package.schema.json" },
+    "schemaVersion": { "const": "0.1.0" },
+    "packageId": { "type": "string", "pattern": "^kicad-[0-9a-f]{16}$" },
+    "packageLevel": { "const": "source-and-placement-inventory" },
+    "mobileImportReady": { "const": false },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "format", "formatVersion", "bytes", "sha256"],
+      "properties": {
+        "path": { "const": "source/board.kicad_pcb" },
+        "format": { "const": "kicad_pcb" },
+        "formatVersion": { "type": "integer", "minimum": 20211014, "maximum": 20260206 },
+        "bytes": { "type": "integer", "minimum": 1, "maximum": 268435456 },
+        "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["inspection", "placements"],
+      "properties": {
+        "inspection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "schema", "sha256"],
+          "properties": {
+            "path": { "const": "derived/inspection.json" },
+            "schema": { "const": "tokito.board-inspection.v0" },
+            "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+          }
+        },
+        "placements": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "rows", "sha256"],
+          "properties": {
+            "path": { "const": "derived/placements.csv" },
+            "rows": { "type": "integer", "minimum": 0 },
+            "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+          }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourcePreserved", "placementInventory", "boardGeometryComplete", "svg", "glb", "step"],
+      "properties": {
+        "sourcePreserved": { "const": true },
+        "placementInventory": { "const": true },
+        "boardGeometryComplete": { "const": false },
+        "svg": { "const": false },
+        "glb": { "const": false },
+        "step": { "const": false }
+      }
+    },
+    "limitations": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": { "const": "tokito-cli" },
+        "version": { "const": "0.1.0" }
+      }
+    }
+  }
+}
