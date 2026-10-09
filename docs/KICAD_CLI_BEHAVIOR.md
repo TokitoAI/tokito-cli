@@ -1,10 +1,10 @@
 # KiCad CLI behavior analysis
 
-Status: behavior research and independent partial implementation. KiCad CLI was not executed. No KiCad implementation code has been copied or translated. Current geometry/package behavior and exact transform evidence are recorded in [native architecture](NATIVE_FORMAT_ARCHITECTURE.md); full CLI/CAD feature parity is not claimed.
+Status: behavior research and independent partial implementation. KiCad CLI was not executed. No KiCad implementation code has been copied or translated. Current geometry/package behavior and exact transform evidence are recorded in [native architecture](NATIVE_FORMAT_ARCHITECTURE.md); full CLI/CAD feature parity is not claimed. See the [command-by-command compatibility matrix](KICAD_CLI_PARITY_MATRIX.md) for the current Tokito surface, target baseline proposal, and implementation order.
 
 ## Observed command model
 
-The current official KiCad 10.0 CLI exposes command groups including `pcb`, `sch`, `fp`, `sym`, `jobset`, and `version`. A PCB export command is a front-end for a typed operation: it parses a command-specific option set, fills an export-job description, and dispatches that job into KiCad's shared application processing path. This keeps file loading and export work out of the argument parser.
+The official [KiCad 10.0 CLI manual](https://docs.kicad.org/10.0/en/cli/cli.html) lists exactly six top-level groups: `fp`, `jobset`, `pcb`, `sch`, `sym`, and `version`. The manual is based on KiCad 10.0.7. The command implementation references below pin source snapshots at 10.0.0, so they are architectural observations rather than a version-matched proof of 10.0.7 behavior. A PCB export command is a front-end for a typed operation: it parses a command-specific option set, fills an export-job description, and dispatches that job into KiCad's shared application processing path. This keeps file loading and export work out of the argument parser.
 
 The useful design lesson for Tokito is to keep the terminal interface thin. Parse a typed request, validate it, invoke one shared board-engine operation, and return a structured result. Desktop, CLI, and a future local MCP adapter should call that same engine rather than each reimplementing the format logic.
 

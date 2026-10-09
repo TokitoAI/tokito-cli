@@ -60,7 +60,10 @@ function Get-InputFingerprints {
 Push-Location -LiteralPath $projectRoot
 try {
     $env:RUSTC = $rustcCommand.Source
-    $env:CARGO_TARGET_DIR = Join-Path $projectRoot 'target/local-verification'
+    # Fresh outputs avoid replacing Windows test executables that may be locked.
+    # Each run remains isolated inside this checkout; previous evidence is retained.
+    $verificationRun = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N')
+    $env:CARGO_TARGET_DIR = Join-Path $projectRoot "target/local-verification/$verificationRun"
     Assert-LocalOutputPath $env:CARGO_TARGET_DIR
     if (Test-Path -LiteralPath $env:CARGO_TARGET_DIR) {
         foreach ($item in (Get-ChildItem -LiteralPath $env:CARGO_TARGET_DIR -Recurse -Force)) {
@@ -80,6 +83,7 @@ try {
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
         @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) }
     )
     $results = @()
@@ -134,7 +138,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'Board-shell-only GLB was independently parsed and mesh-checked; component model resolution/selection, STEP, phone/AR, and Desktop integration acceptance remain unverified.')
+        limitations = @('Local platform/toolchain only.', 'Offline model capture and a declared flat-triangle VRML profile are checked; GLB remains board-shell-only. Component world transforms/selection, general VRML/STEP, phone/AR and Desktop acceptance remain unverified.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"

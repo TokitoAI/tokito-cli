@@ -8,6 +8,8 @@ fn print_help() {
          USAGE:\n\
          \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
+         \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\n\
+         \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
          \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--allow-partial] [--json-report]\n\
@@ -18,7 +20,7 @@ fn print_help() {
          \tInspect board metadata and component placements.\n\
          \tExport placement rows in the source board coordinate frame.\n\
          \tExport partial physical-scale SVG views from supported geometry.\n\
-         \tExport a board-shell-only GLB; unresolved component models require --allow-partial.\n\
+         \tExport a board-shell-only GLB; this always requires explicit --allow-partial.\n\
          \tBuild a source-and-placement Tokito package (not mobile importable).\n\
          \tComponent 3D models, STEP, and schematic-to-PCB are not implemented."
     );
@@ -32,6 +34,12 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "--version" || args[0] == "-V" {
         println!("tokito-cli 0.1.0");
         return Ok(());
+    }
+    if args[0] == "resolve" && args.get(1).is_some_and(|value| value == "models") {
+        return resolve_models(args);
+    }
+    if args[0] == "model" && args.get(1).is_some_and(|value| value == "inspect") {
+        return inspect_model(args);
     }
     if args[0] == "inspect" {
         if args.len() < 2 || args.len() > 3 || (args.len() == 3 && args[2] != "--json") {
@@ -321,4 +329,214 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     }
     print_help();
     Err(CliError::new("unknown command"))
+}
+
+/// Asset inventory only: successful lookup never certifies model geometry.
+fn resolve_models(args: &[String]) -> Result<(), CliError> {
+    use crate::model_resolver::{ModelResolutionStatus, ModelResolver, ModelResolverConfig};
+    const MAX_REFERENCES: usize = 1024;
+    const MAX_CAPTURED_BYTES: usize = 256 * 1024 * 1024;
+    let usage = "usage: tokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]";
+    if args.len() < 5 || args.len() > 265 {
+        return Err(CliError::new(usage));
+    }
+    let mut project_root = None;
+    let mut roots = Vec::new();
+    let mut variables = std::collections::BTreeMap::new();
+    let mut json = false;
+    let mut file_budget = None;
+    let mut batch_budget = None;
+    let mut index = 3;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--project-root" if index + 1 < args.len() && project_root.is_none() => {
+                project_root = Some(PathBuf::from(&args[index + 1]));
+                index += 2;
+            }
+            "--library-root" if index + 1 < args.len() && roots.len() < 63 => {
+                roots.push(PathBuf::from(&args[index + 1]));
+                index += 2;
+            }
+            "--model-var" if index + 1 < args.len() && variables.len() < 64 => {
+                let (name, path) = args[index + 1]
+                    .split_once('=')
+                    .ok_or_else(|| CliError::new(usage))?;
+                if path.is_empty()
+                    || variables
+                        .insert(name.to_owned(), PathBuf::from(path))
+                        .is_some()
+                {
+                    return Err(CliError::new("Empty or duplicate model directory variable"));
+                }
+                index += 2;
+            }
+            "--json" if !json => {
+                json = true;
+                index += 1;
+            }
+            "--max-model-bytes" if index + 1 < args.len() && file_budget.is_none() => {
+                file_budget = Some(model_byte_budget(&args[index + 1], 64 * 1024 * 1024)?);
+                index += 2;
+            }
+            "--max-batch-bytes" if index + 1 < args.len() && batch_budget.is_none() => {
+                batch_budget = Some(model_byte_budget(&args[index + 1], MAX_CAPTURED_BYTES)?);
+                index += 2;
+            }
+            _ => return Err(CliError::new(usage)),
+        }
+    }
+    let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| CliError::new(usage))?);
+    config.library_roots = roots;
+    config.directory_variables = variables;
+    let file_budget = file_budget.unwrap_or(64 * 1024 * 1024);
+    let batch_budget = batch_budget.unwrap_or(MAX_CAPTURED_BYTES);
+    config.max_file_bytes = file_budget as u64;
+    let resolver = ModelResolver::new(config)?;
+    let board = load_board_input(Path::new(&args[2]))?;
+    let models = &board.engineering().models;
+    if models.len() > MAX_REFERENCES {
+        return Err(CliError::new("Model reference batch exceeds 1024 entries"));
+    }
+    let mut captured_bytes = 0usize;
+    let mut resolved = 0usize;
+    let mut reports = Vec::with_capacity(models.len());
+    for model in models {
+        let resolution = resolver.resolve(model);
+        if let Some(asset) = &resolution.asset {
+            captured_bytes += asset.bytes().len();
+            if captured_bytes > batch_budget {
+                return Err(CliError::new("Model batch exceeds captured-byte budget"));
+            }
+        }
+        resolved += usize::from(resolution.status == ModelResolutionStatus::Resolved);
+        reports.push(resolution.shared_projection());
+    }
+    let report = serde_json::json!({
+        "schemaVersion":"1.0.0", "scope":"offline-model-asset-resolution",
+        "sourceSha256":board.source().sha256,
+        "modelReferences":models.len(), "resolvedAssets":resolved,
+        "unresolvedReferences":models.len()-resolved, "capturedBytes":captured_bytes,
+        "geometryValidated":false, "componentSelectionReady":false, "mobileImportReady":false,
+        "models":reports,
+        "limits":{"maxReferences":MAX_REFERENCES,"maxBatchCapturedBytes":batch_budget,
+                  "maxFileBytes":file_budget},
+    });
+    if json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| CliError::new("Cannot serialize model report"))?
+        );
+    } else {
+        println!(
+            "Resolved {resolved}/{} model assets ({captured_bytes} bytes); geometry and component selection remain unverified",
+            models.len()
+        );
+        for model in reports {
+            println!(
+                "{}",
+                serde_json::to_string(&model)
+                    .map_err(|_| CliError::new("Cannot serialize model diagnostic"))?
+            );
+        }
+    }
+    Ok(())
+}
+
+fn model_byte_budget(value: &str, maximum: usize) -> Result<usize, CliError> {
+    value
+        .parse::<usize>()
+        .ok()
+        .filter(|n| *n > 0 && *n <= maximum)
+        .ok_or_else(|| {
+            CliError::new("Model byte budget must be a positive integer within the hard limit")
+        })
+}
+
+fn inspect_model(args: &[String]) -> Result<(), CliError> {
+    use crate::document::{ModelReference, SourceLocator};
+    use crate::model_mesh::{MeshLimits, ModelUnits, parse_vrml_mesh};
+    use crate::model_resolver::{ModelAssetFormat, ModelResolver, ModelResolverConfig};
+    if !(args.len() == 5 || args.len() == 6 && args[5] == "--json") || args[3] != "--units" {
+        return Err(CliError::new(
+            "usage: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]",
+        ));
+    }
+    let units = match args[4].as_str() {
+        "millimetres" => ModelUnits::Millimetres,
+        "kicad-wrl" => ModelUnits::KiCadLegacyWrlDeciinch,
+        _ => {
+            return Err(CliError::new(
+                "Model units must be explicit: millimetres or kicad-wrl",
+            ));
+        }
+    };
+    let input = PathBuf::from(&args[2]);
+    let input = if input.is_absolute() {
+        input
+    } else {
+        std::env::current_dir()
+            .map_err(|_| CliError::new("Cannot resolve selected model directory"))?
+            .join(input)
+    };
+    let root = input
+        .parent()
+        .ok_or_else(|| CliError::new("Model file needs a local parent directory"))?;
+    let mut config = ModelResolverConfig::new(root);
+    config.max_file_bytes = MeshLimits::default().max_bytes as u64;
+    let resolver = ModelResolver::new(config)?;
+    let model = ModelReference {
+        source: SourceLocator {
+            kind: "selected-model".into(),
+            ordinal: 0,
+            component_ordinal: None,
+            source_uuid: None,
+            source_path: vec![],
+        },
+        path: input.to_str().map(str::to_owned),
+        offset: None,
+        legacy_at: None,
+        rotation_deg: None,
+        scale: None,
+        hidden: false,
+    };
+    let resolved = resolver.resolve(&model);
+    let asset = resolved.asset.ok_or_else(|| {
+        CliError::new(
+            resolved
+                .diagnostic
+                .unwrap_or("Model asset resolution failed"),
+        )
+    })?;
+    if asset.format() != ModelAssetFormat::Wrl {
+        return Err(CliError::new(
+            "Only the declared flat triangle VRML97 profile is supported",
+        ));
+    }
+    let mesh = parse_vrml_mesh(asset.bytes(), units, MeshLimits::default())?;
+    let mut min = [f64::INFINITY; 3];
+    let mut max = [f64::NEG_INFINITY; 3];
+    for point in mesh.parts.iter().flat_map(|part| &part.positions_mm) {
+        for axis in 0..3 {
+            min[axis] = min[axis].min(point[axis]);
+            max[axis] = max[axis].max(point[axis]);
+        }
+    }
+    let report = serde_json::json!({
+        "schemaVersion":"1.0.0", "scope":"flat-triangle-vrml97-local-mesh",
+        "sourceSha256":asset.sha256(), "sourceBytes":asset.bytes().len(),
+        "sourceUnitProfile":args[4], "outputUnits":"millimetres",
+        "rootShapes":mesh.root_shape_count, "meshParts":mesh.parts.len(),
+        "vertices":mesh.parts.iter().map(|p| p.positions_mm.len()).sum::<usize>(),
+        "triangles":mesh.parts.iter().map(|p| p.triangles.len()).sum::<usize>(),
+        "materialDefinitions":mesh.material_definitions.len(), "localBoundsMm":{"min":min,"max":max},
+        "diagnostics":mesh.diagnostics, "boardTransformsVerified":false,
+        "componentSelectionReady":false,"mobileImportReady":false,
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report)
+            .map_err(|_| CliError::new("Cannot serialize model mesh report"))?
+    );
+    Ok(())
 }

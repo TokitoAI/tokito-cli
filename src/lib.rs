@@ -9,6 +9,8 @@ mod cli;
 pub mod document;
 mod geometry;
 mod glb;
+pub mod model_mesh;
+pub mod model_resolver;
 mod package_input;
 mod strict_json;
 pub mod topology;

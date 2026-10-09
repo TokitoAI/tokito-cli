@@ -37,20 +37,21 @@ def circle(start, mid, end):
             start[1] + (ax * bb - bx * aa) / det)
 
 
-def gerber(path):
+def gerber(path, *, expected_entities=None, expected_arcs=None, expected_circles=0):
     content = path.read_text(encoding="utf-8")
     assert "%FSLAX46Y46*%" in content and "%MOMM*%" in content
     assert "%TF.SameCoordinates,Original*%" in content
     mode, current, entities, ended = "G01", None, [], False
     allowed_meta = ("%TF.", "%TA.", "%TD*%", "%TO.", "%FSLAX46Y46*%",
-                    "%MOMM*%", "%LPD*%", "%ADD10C,0.050000*%")
+                    "%MOMM*%", "%LPD*%")
     for line in content.splitlines():
-        if not line or line.startswith("G04") or line.startswith(allowed_meta):
+        if (not line or line.startswith("G04") or line.startswith(allowed_meta)
+                or line.startswith("%ADD")):
             continue
         if line in ("G01*", "G02*", "G03*"):
             mode = line[:-1]
             continue
-        if line in ("D10*", "G75*"):
+        if re.fullmatch(r"D\d+\*", line) or line == "G75*":
             continue
         if line == "M02*":
             ended = True
@@ -68,21 +69,47 @@ def gerber(path):
                 entities.append({"kind": "line", "start": current, "end": end})
             else:
                 assert i is not None and j is not None
-                entities.append({"kind": "arc", "start": current, "end": end,
-                                 "center": (current[0] + int(i) / 1e6,
-                                            current[1] - int(j) / 1e6),
-                                 "positive": mode == "G02"})
+                center = (current[0] + int(i) / 1e6, current[1] - int(j) / 1e6)
+                if end == current:
+                    radius = math.dist(current, center)
+                    assert radius > 0, "full-circle Gerber arc has a zero radius"
+                    entities.append({"kind": "circle", "center": center, "radiusMm": radius})
+                else:
+                    entities.append({"kind": "arc", "start": current, "end": end,
+                                     "center": center, "positive": mode == "G02"})
         current = end
-    assert ended and len(entities) == 22
-    assert sum(e["kind"] == "arc" for e in entities) == 12
+    assert ended
+    if expected_entities is not None:
+        assert len(entities) == expected_entities
+    if expected_arcs is not None:
+        assert sum(e["kind"] == "arc" for e in entities) == expected_arcs
+    assert sum(e["kind"] == "circle" for e in entities) == expected_circles
     return entities
 
 
-def compare_reference(report, reference):
+def compare_reference(report, reference, *, expected_valid, expected_entities,
+                      expected_arcs, expected_circles=0):
+    assert len(report["primitives"]) == len(reference) == expected_entities
+    assert sum(p["shape"]["kind"] == "arc" for p in report["primitives"]) == expected_arcs
+    assert sum(p["shape"]["kind"] == "circle" for p in report["primitives"]) == expected_circles
     pending = list(reference)
     max_endpoint, max_center = 0.0, 0.0
     for primitive in report["primitives"]:
         shape = primitive["shape"]
+        if shape["kind"] == "circle":
+            matches = []
+            for index, entry in enumerate(pending):
+                if entry["kind"] != "circle":
+                    continue
+                center_error = math.dist(shape["center"], entry["center"])
+                radius_error = abs(shape["radiusMm"] - entry["radiusMm"])
+                if center_error <= 5e-6 and radius_error <= 5e-6:
+                    matches.append((index, center_error))
+            assert len(matches) == 1, "Each sourced circle must match exactly one full-circle reference arc"
+            index, center_error = matches[0]
+            pending.pop(index)
+            max_center = max(max_center, center_error)
+            continue
         assert shape["kind"] in ("line", "arc")
         matches = []
         for index, entry in enumerate(pending):
@@ -103,18 +130,22 @@ def compare_reference(report, reference):
             center_error = math.dist(center, entry["center"])
             max_center = max(max_center, center_error)
             assert center_error <= 5e-6, "Gerber IJ rounding tolerance exceeded"
-            assert abs(shape["circle"]["radiusMm"] - math.dist(entry["center"],entry["start"])) <= 5e-6
+            assert abs(shape["circle"]["radiusMm"] - math.dist(entry["center"], entry["start"])) <= 5e-6
             angle = lambda p: math.atan2(p[1] - entry["center"][1], p[0] - entry["center"][0])
             first, finish, middle = angle(entry["start"]), angle(entry["end"]), angle(shape["mid"])
             direction = 1 if entry["positive"] else -1
             span = (direction * (finish - first)) % TAU
             assert (direction * (middle - first)) % TAU <= span + 5e-5, "Midpoint/sweep differs from exported arc"
     assert not pending
-    # This reference is open, so it must not receive certified board bounds.
-    assert report["bounds"] is None and not report["valid"]
-    return {"entities": 22, "arcEntities": 12, "maxEndpointErrorMm": max_endpoint,
-            "maxCenterErrorMm": max_center, "endpointToleranceMm": 1e-6,
-            "centerAndRadiusToleranceMm": 5e-6}
+    assert bool(report["valid"]) is expected_valid
+    if expected_valid:
+        assert report["bounds"] is not None
+    else:
+        assert report["bounds"] is None
+    return {"entities": len(reference), "arcEntities": expected_arcs,
+            "circleEntities": expected_circles,
+            "maxEndpointErrorMm": max_endpoint, "maxCenterErrorMm": max_center,
+            "endpointToleranceMm": 1e-6, "centerAndRadiusToleranceMm": 5e-6}
 
 
 def main():
@@ -131,7 +162,73 @@ def main():
         report = json.loads(run(binary, "validate", "outline", nfc, "--json", valid=False))
         assert not report["valid"] and report["units"] == "mm"
         assert any(d["code"] == "OpenContour" for d in report["diagnostics"])
-        comparison = compare_reference(report, gerber(reference))
+        comparison = compare_reference(
+            report, gerber(reference, expected_entities=22, expected_arcs=12),
+            expected_valid=False, expected_entities=22, expected_arcs=12)
+        rp2040 = FIXTURES / "rp2040-game-con/rp2040_game_con.kicad_pcb"
+        rp2040_profile = rp2040.with_name("rp2040_game_con-Edge_Cuts.gm1")
+        assert hashlib.sha256(rp2040.read_bytes()).hexdigest() == "359ab533c810a2e5ee4881d7578e6e1d33beb55c8003f3a4dad792b6f00d23bd"
+        assert hashlib.sha256(rp2040_profile.read_bytes()).hexdigest() == "b823eb715f230855a4d86945391a17ccd822e00bce498a09381d1cac91808e7f"
+        rp2040_report = json.loads(run(binary, "validate", "outline", rp2040, "--json"))
+        assert rp2040_report["sourceSha256"] == "359ab533c810a2e5ee4881d7578e6e1d33beb55c8003f3a4dad792b6f00d23bd"
+        assert len(rp2040_report["primitives"]) == 644
+        assert sorted(c["role"] for c in rp2040_report["contours"]) == ["cutout"] * 4 + ["outer"]
+        rp2040_comparison = compare_reference(
+            rp2040_report, gerber(rp2040_profile, expected_entities=644, expected_arcs=0),
+            expected_valid=True, expected_entities=644, expected_arcs=0)
+        lumenpnp = FIXTURES / "lumenpnp-vac-interposer/vac-adapter_profile.kicad_pcb"
+        lumenpnp_profile = lumenpnp.with_name("vac-adapter-Edge_Cuts.gbr")
+        assert hashlib.sha256(lumenpnp.read_bytes()).hexdigest() == "dfa1ab6a4facd19542629b2a16c3296a3e6910fe1f624055dce15ce11bb8c174"
+        assert hashlib.sha256(lumenpnp_profile.read_bytes()).hexdigest() == "698d1cad11241bf7f225e8fa9a631fbbc7f5a74b995151b5ad328e52ad2785e1"
+        lumenpnp_report = json.loads(run(binary, "validate", "outline", lumenpnp, "--json"))
+        assert lumenpnp_report["valid"] and len(lumenpnp_report["primitives"]) == 8
+        assert sorted(c["role"] for c in lumenpnp_report["contours"]) == ["cutout", "cutout", "outer"]
+        lumenpnp_ids = {p["source"]["uuid"] for p in lumenpnp_report["primitives"]}
+        assert lumenpnp_ids == {
+            "173757fd-c4d7-4804-add6-ce7c15e60c10",
+            "41dfc15b-3765-4d10-88e8-72c043d00ea1",
+            "59b706ba-da59-4f96-8360-f8e5bcc11efb",
+            "9578fb6a-c825-470c-8a7a-229030955fe4",
+            "cd4ef0b5-2dc4-4b63-94eb-71625dcda556",
+            "d7d4f837-0db1-4f3e-b556-d65b7de7e620",
+            "15cef0c4-75f7-4294-bc4e-e717462bc021",
+            "fcb4c6b1-4e0b-49ae-a4be-e4853ff3b06b",
+        }
+        footprint_id = json.loads(run(binary, "inspect", lumenpnp, "--json"))["footprints"][0]["uuid"]
+        assert footprint_id == "aa130053-a451-4f12-97f7-3d4d891a5f83"
+        expected_fp_circles = {
+            "15cef0c4-75f7-4294-bc4e-e717462bc021": ((121.0, 74.4), 0.5),
+            "fcb4c6b1-4e0b-49ae-a4be-e4853ff3b06b": ((127.0, 80.4), 0.5),
+        }
+        fp_circles = [p for p in lumenpnp_report["primitives"]
+                      if p["source"]["uuid"] in expected_fp_circles]
+        assert len(fp_circles) == 2
+        for primitive in fp_circles:
+            source = primitive["source"]
+            shape = primitive["shape"]
+            center, radius = expected_fp_circles[source["uuid"]]
+            assert source["kind"] == "fp_circle" and source["componentOrdinal"] is not None
+            assert math.dist(shape["center"], center) <= 1e-9
+            assert abs(shape["radiusMm"] - radius) <= 1e-9
+        lumenpnp_comparison = compare_reference(
+            lumenpnp_report,
+            gerber(lumenpnp_profile, expected_entities=8, expected_arcs=2, expected_circles=2),
+            expected_valid=True, expected_entities=8, expected_arcs=2, expected_circles=2)
+        lumenpnp_svg = output / "lumenpnp-profile.svg"
+        run(binary, "export", "svg", lumenpnp, "--output", lumenpnp_svg)
+        lumenpnp_root = ET.parse(lumenpnp_svg).getroot()
+        lumenpnp_edges = [e for e in lumenpnp_root.iter()
+                          if e.attrib.get("data-layer") == "Edge.Cuts"]
+        assert {e.attrib.get("data-id") for e in lumenpnp_edges} == lumenpnp_ids
+        lumenpnp_svg_circles = {e.attrib["data-id"]: e for e in lumenpnp_edges
+                                if e.tag == NS + "circle"}
+        assert set(lumenpnp_svg_circles) == set(expected_fp_circles)
+        for source_id, (center, radius) in expected_fp_circles.items():
+            element = lumenpnp_svg_circles[source_id]
+            assert element.attrib["data-component-id"] == footprint_id
+            assert max(abs(float(element.attrib["cx"]) - center[0]),
+                       abs(float(element.attrib["cy"]) - center[1]),
+                       abs(float(element.attrib["r"]) - radius)) <= 5.1e-7
         refused = output / "refused.svg"
         run(binary, "export", "svg", nfc, "--output", refused, valid=False)
         assert not refused.exists()
@@ -207,6 +304,8 @@ def main():
             assert svg.read_bytes() == repeated.read_bytes()
         print("PASS geometry E2E: real cutouts, routed arcs, SVG identities/views, invalid-source refusal and inventory packages")
         print("PASS pinned independent Edge.Cuts Gerber reference: " + json.dumps(comparison, sort_keys=True))
+        print("PASS valid RP2040 board Gerber reference: " + json.dumps(rp2040_comparison, sort_keys=True))
+        print("PASS reduced LumenPnP curved-profile Gerber reference and footprint cutouts: " + json.dumps(lumenpnp_comparison, sort_keys=True))
 
 
 if __name__ == "__main__":

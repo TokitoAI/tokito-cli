@@ -28,7 +28,7 @@ Status: Milestone C is active. The initial implementation slice is a board-shell
 
 ## Component model phase
 
-The canonical importer currently preserves raw model references and transform fields, but it does not resolve paths, load component meshes, establish source-file provenance, or validate model transforms. KiCad board files show model references with path, position/offset, scale, and rotation fields; the presence of those fields is not proof that a file exists or that its transform has been correctly interpreted ([KiCad board file format](https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/)). The KiCad 9 PCB Editor manual documents STEP, VRML, and IDF model inputs, path variables such as `${KIPRJMOD}` and `${KICAD9_3DMODEL_DIR}`, optional model embedding, and that some standard footprints intentionally reference model files that do not exist yet ([KiCad 9 PCB Editor manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
+The canonical importer preserves raw model references and transform fields. Separate reusable resolver and flat-triangle WRL adapter APIs now capture real local assets and validate a declared local mesh profile; neither is yet connected to GLB scene assembly. See [model resolution/profile and transform gates](MODEL_RESOLUTION.md). KiCad board files show path, position/offset, scale and rotation fields; those fields do not establish correct world placement ([KiCad board file format](https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/)). The KiCad 9 PCB Editor manual documents STEP, VRML and IDF inputs, `${KIPRJMOD}`/versioned model-root variables, optional embedding and intentionally missing standard models ([manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
 
 Before component GLB nodes are added, the engine must:
 
@@ -39,7 +39,7 @@ Before component GLB nodes are added, the engine must:
 - require stable, unique footprint UUIDs before assigning selector IDs, and emit a deterministic UUID-to-node map;
 - validate assembled component bounds and placement without changing the authored board placement.
 
-No STEP/WRL conversion, model download, KiCad CLI invocation, or model transform inference is part of the board-shell slice. STEP, WRL, and other CAD formats remain separate adapters until independently validated. Phone import, mobile rendering, registration, AR picking, and Tokito Desktop/MCP integration remain later milestones.
+No model decoding, download, KiCad invocation or transform inference occurs in the board-shell export. The separate WRL inspection profile operates offline with explicitly supplied units and rejects scene Transform/Inline nodes. STEP and general WRL remain unimplemented. Phone import, mobile rendering, registration, AR picking and Desktop/MCP integration remain later milestones.
 
 The six current open-source board fixtures contain 206 external model references (120 `.step`, 19 `.stp`, and 67 `.wrl`) but no model files in the fixture corpus. They can exercise missing-model reporting, not successful component coverage. Full selectable export therefore needs a separately pinned, provenance-recorded model corpus before it can pass the complete-coverage gate. The KiCad 9 manual confirms STEP and VRML as footprint model inputs; it notes that a missing model path can be intentional, so a raw reference alone cannot count as resolved ([KiCad 9 PCB Editor manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
 
