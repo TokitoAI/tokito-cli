@@ -1,0 +1,56 @@
+# KiCad CLI behavior analysis
+
+Status: behavior research and independent partial implementation. KiCad CLI was not executed. No KiCad implementation code has been copied or translated. Current geometry/package behavior and exact transform evidence are recorded in [native architecture](NATIVE_FORMAT_ARCHITECTURE.md); full CLI/CAD feature parity is not claimed.
+
+## Observed command model
+
+The current official KiCad 10.0 CLI exposes command groups including `pcb`, `sch`, `fp`, `sym`, `jobset`, and `version`. A PCB export command is a front-end for a typed operation: it parses a command-specific option set, fills an export-job description, and dispatches that job into KiCad's shared application processing path. This keeps file loading and export work out of the argument parser.
+
+The useful design lesson for Tokito is to keep the terminal interface thin. Parse a typed request, validate it, invoke one shared board-engine operation, and return a structured result. Desktop, CLI, and a future local MCP adapter should call that same engine rather than each reimplementing the format logic.
+
+## PCB operations and semantics
+
+The documented PCB interface covers more than one generic export:
+
+| Operation | Observable behavior relevant to Tokito |
+|---|---|
+| Position export | Select front/back/both; choose ASCII, CSV, or Gerber; select units and placement origin; control bottom-side X mirroring and exclusions. A placement file is a manufacturing/export view, so Tokito should separately preserve raw board coordinates and clearly name any transformed convention. |
+| SVG export | Select layers and common layers; choose one-file or multi-file output; mirror, theme, scale, page fit, drawing sheet, zone checks, and DNP presentation can change output. SVG therefore needs an explicit layer list and coordinate frame in its job record. |
+| GLB and mesh export | Generate a 3D representation with switches for board body, components, variants, model substitution, origin, tracks, pads, zones, silkscreen and soldermask. Component filters and missing model handling affect coverage. |
+| STEP export | Shares many 3D inclusion/origin options, with STEP-specific optimization and point-merging tolerance. This is a CAD solid export, with a different completeness bar from a lightweight mobile mesh. |
+| Other outputs | Drill, Gerber, PDF, DXF, IPC-2581, ODB++, BOM/netlist and statistics are distinct operations with different output shapes and validation needs. They are not initial Tokito scope. |
+
+KiCad 10.0 documents overwrite behavior, variants, coordinate origins, units, and filtering as explicit command options. Tokito should likewise make destructive overwrite opt-in, record option values in a job/result manifest, and never silently change the board origin or component selection.
+
+The official 10.0 manual marks `pcb export hpgl` as nonfunctional. This is a useful reminder that command presence does not prove capability. Tokito must report only operations that are actually implemented and verified.
+
+## Independent Tokito architecture
+
+1. Bounded format reader: accept the reviewed KiCad PCB format-date range `20211014` through `20260206`; reject missing, pre-v6, and newer versions until their structure is reviewed. Read at most 256 MiB from disk, and apply token, node-count, and nesting limits. The byte ceiling does not bound total parser memory.
+2. Canonical physical-board model: retain source identity, units, axes/handedness, outline and cutouts, component/pad identities, layers, nets, source locations, model transforms, and import diagnostics.
+3. Capability-checked operation: validate required geometry/model coverage before selecting SVG, placement, GLB, or STEP output.
+4. Deterministic artifact writer: stage outputs, validate them, then publish atomically; include source digest, engine version, option values, artifact digests, and completeness findings.
+5. Adapters: expose the same typed operations to the CLI first, then Desktop and local MCP as separate front ends.
+
+The import reader must distinguish “syntax parsed” from “geometry understood.” Unknown syntax may be preserved for provenance, but it cannot silently count as converted geometry. Each export should say which board objects were represented, omitted, approximated, or unsupported.
+
+## Feasibility and capability gates
+
+- Placement export is a good first operation because component anchors and identities are explicit in a PCB file, but front/back coordinate conventions still require fixture-based verification.
+- The current CSV is explicitly a raw inventory. It preserves each footprint's source-frame anchor and reports `exclude_from_pos_files`; it does not transform origins, filter excluded footprints, or claim manufacturing-position semantics.
+- Partial SVG is implemented for supported outlines/graphics/pads/tracks/vias/stored zone fills, with tested layer/side selection, exact footprint transforms and source identity metadata. It does not implement KiCad's full font/layout/plot semantics or complex pads; export completeness stays partial.
+- GLB can be a later mesh capability using tessellated board and sourced component models. A generated board-only mesh must not imply component-level twin coverage.
+- STEP is a separate research gate. A pure-Rust library candidate exists, but previous source review found cases where conversion can omit geometry while still returning success, and STEP input unit normalization needs proof. Do not advertise STEP until completeness, units, assemblies, and unsupported entities are checked against real fixtures.
+
+## Primary references
+
+- [KiCad 10.0 CLI manual](https://docs.kicad.org/10.0/en/cli/cli.html)
+- [Official PCB S-expression file format](https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/)
+- [KiCad 10.0.7 reviewed PCB format version](https://gitlab.com/kicad/code/kicad/-/blob/10.0.7/pcbnew/pcb_io/kicad_sexpr/pcb_io_kicad_sexpr.h)
+- [Official S-expression syntax](https://dev-docs.kicad.org/en/file-formats/sexpr-intro/)
+- [KiCad CLI command registration source, 10.0.0](https://gitlab.com/kicad/code/kicad/-/blob/10.0.0/kicad/kicad_cli.cpp)
+- [KiCad 3D export command source, 10.0.0](https://gitlab.com/kicad/code/kicad/-/blob/10.0.0/kicad/cli/command_pcb_export_3d.cpp)
+- [KiCad SVG export command source, 10.0.0](https://gitlab.com/kicad/code/kicad/-/blob/10.0.0/kicad/cli/command_pcb_export_svg.cpp)
+- [KiCad placement export command source, 10.0.0](https://gitlab.com/kicad/code/kicad/-/blob/10.0.0/kicad/cli/command_pcb_export_pos.cpp)
+
+KiCad source is GPL-3.0-or-later. The sources above were consulted only to understand externally visible command behavior and option semantics. No source text or implementation is included in this project.

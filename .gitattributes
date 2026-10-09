@@ -1,0 +1,12 @@
+*.rs text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+Cargo.toml text eol=lf
+Cargo.lock text eol=lf
+# Preserve byte-identical upstream fixtures, including original whitespace/notices.
+tests/fixtures/open-source/** -text -whitespace
+# Historical compatibility snapshots are compared byte-for-byte; preserve their
+# working-tree bytes on Windows as well as on Unix-like systems.
+tests/fixtures/compat-v0/** -text -whitespace

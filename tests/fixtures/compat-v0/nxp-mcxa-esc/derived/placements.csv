@@ -1,0 +1,98 @@
+reference,reference_is_placeholder,value,library_id,side,x_mm,y_mm,rotation_deg,uuid,pad_count,model_count,dnp,excluded_from_pos_files
+"U3",false,"MCXA133VFM","Package_DFN_QFN:HVQFN-32-1EP_5x5mm_P0.5mm_EP3.1x3.1mm","front",155.2625,108.3,-90,"02d18225-2736-47b0-8ece-c9644b85b632",42,1,false,false
+"C23",false,"1uF 10V","Capacitor_SMD:C_0402_1005Metric","front",151.975,113.75,180,"0b1d4415-1564-4f1f-a875-b289310fa495",2,1,false,false
+"C22",false,"100nF 50V","Capacitor_SMD:C_0402_1005Metric","front",150.1375,113.75,0,"0b361f50-672a-42f3-955d-9b82cb56ae2c",2,1,false,false
+"R7",false,"20","Resistor_SMD:R_0402_1005Metric","front",167.7,124.1,0,"0c63c4f3-4d86-4d7a-bc5f-8d7d75863b4c",2,1,false,false
+"C25",false,"100nF 16V","Capacitor_SMD:C_0402_1005Metric","front",161.5925,112.3,-90,"10906e65-be41-4267-88aa-bd41d5f99e28",2,1,false,false
+"TP5",false,"BEMFA","TestPoint:TestPoint_Pad_D1.0mm","front",160.1,111.8,0,"180735d3-672a-4b97-a4c4-754f16413c43",1,0,false,true
+"R15",false,"1k","Resistor_SMD:R_0402_1005Metric","front",165.67703,117.7,0,"19443314-99b5-4b88-ac41-cc84d5a5163f",2,1,false,false
+"TP9",false,"GLB","TestPoint:TestPoint_Pad_D1.0mm","front",167.9,120.95,0,"1e8377c0-e2fc-43bb-bfd4-de8f900eb37d",1,0,false,true
+"R25",false,"100R","Resistor_SMD:R_0402_1005Metric","front",150.95,120.15,0,"1ee9cac6-2f09-4462-814c-524c1311ebbb",2,1,false,false
+"C17",false,"1uF 50V","Capacitor_SMD:C_0603_1608Metric","front",157.75,114.55,0,"21496bdc-ca40-4b6a-902c-fae8b599b9eb",2,1,false,false
+"J13",false,"DEBUG","Connector_JST:JST_SH_BM06B-SRSS-TB_1x06-1MP_P1.00mm_Vertical","front",153.25,123.3,180,"233eb31a-f3da-43ce-9a79-4d8744550122",8,1,false,false
+"R17",false,"20","Resistor_SMD:R_0402_1005Metric","front",169,111,90,"246a4e27-d592-4c80-af5f-c48691259f3c",2,1,false,false
+"R24",false,"10k 0.1%","Resistor_SMD:R_0402_1005Metric","front",146.85,108.55,-90,"252534a6-693f-4ec4-be34-6543a9eb7137",2,1,false,false
+"TP11",false,"CURRENT","TestPoint:TestPoint_Pad_D1.0mm","front",151.05,106.6,-90,"2bb6ca51-4146-42bf-aac3-f6d991d7e99f",1,0,false,true
+"C12",false,"1uF 10V","Capacitor_SMD:C_0402_1005Metric","front",153.05,104.2,90,"3b0444ab-1bd8-4ac6-82bd-084ff254e7e6",2,1,false,false
+"J11",false,"ENC_I","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",143.25,124.7,0,"3c436e2e-0e62-4541-9b45-d9f01ff57c24",1,0,false,true
+"TP12",false,"VOLTSENSE","TestPoint:TestPoint_Pad_D1.0mm","front",147.375,106.8,0,"3d424adf-f3f8-4a25-9047-08129872ca7f",1,0,false,true
+"R23",false,"2.2k","Resistor_SMD:R_0402_1005Metric","front",146.45,112.65,90,"4555cb65-bdb3-4fd0-bc7a-8625076a9d17",2,1,false,false
+"J15",false,"SPI_SCK","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",144.65,119.6,0,"4c1d62f7-1c82-43eb-a83f-f27ec966d394",1,0,false,true
+"R22",false,"1k","Resistor_SMD:R_0402_1005Metric","front",161.5925,110.4,-90,"5227ceac-41f3-4584-a7c4-90fa800f83eb",2,1,false,false
+"U1",false,"TPS7B92033DBVR","Package_TO_SOT_SMD:SOT-23-5","front",149,111.1875,0,"5301e615-3195-4dbb-881b-567ce909805f",5,1,false,false
+"U6",false,"INA180B1","Package_TO_SOT_SMD:SOT-23-5","front",164.18,111.15,180,"5947ab52-4fb8-473d-a11f-e646468f03e3",5,1,false,false
+"TP8",false,"GLA","TestPoint:TestPoint_Pad_D1.0mm","front",169,113,0,"5a2d245e-d157-453e-9416-18203af8f336",1,0,false,true
+"D1",false,"1N4148WT","Diode_SMD:D_SOD-523","front",158.011761,113.108249,0,"5a4163e7-58ff-44bc-8a34-51dceb93af0e",2,1,false,false
+"TP4",false,"GHC","TestPoint:TestPoint_Pad_D1.0mm","front",165.7,123,0,"5a6a8669-f272-4eb0-b5f2-962f3ab678ea",1,0,false,true
+"C13",false,"100nF 16V","Capacitor_SMD:C_0402_1005Metric","front",157.6625,111.93,0,"6552e37a-2249-4365-8807-8b0f3637eae9",2,1,false,false
+"TP1",false,"BEMF_COMMON","TestPoint:TestPoint_Pad_D1.0mm","front",165.4,108.45,-90,"6a7d9adc-5ad1-4ccf-8f7e-17a013cebec5",1,0,false,true
+"D3",false,"1N4148WT","Diode_SMD:D_SOD-523","front",162.35,118.8,0,"6ac061c7-cd4b-44da-9362-fd90b0740aa7",2,1,false,false
+"J6",false,"TX","Connector_Wire:SolderWire-0.5sqmm_1x01_D0.9mm_OD2.1mm","front",139.65,117,180,"6bb753a5-77d7-4a9b-a469-03f0285f4b1e",1,1,false,true
+"TP10",false,"GLC","TestPoint:TestPoint_Pad_D1.0mm","front",165.75,125.05,0,"711d27bf-7e05-41f4-ac82-ba46eb8d9a65",1,0,false,true
+"R1",false,"10k","Resistor_SMD:R_0402_1005Metric","front",155.4,104.65,0,"7287294e-4157-4482-96bd-f011faf11416",2,1,false,false
+"J16",false,"GND","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",147.5,119.6,0,"7768bed7-99a7-43e4-bcd8-492ab3c9cd0a",1,0,false,true
+"R20",false,"100k 0.1%","Resistor_SMD:R_0402_1005Metric","front",147.8,108.55,90,"7d60cf76-cdbd-420b-b480-2ebde715deda",2,1,false,false
+"R19",false,"20","Resistor_SMD:R_0402_1005Metric","front",167.7,125.2,0,"7dea6947-f4bb-4c4c-b06b-0aa96fe8e742",2,1,false,false
+"R12",false,"10k","Resistor_SMD:R_0402_1005Metric","front",164.27703,117.2,90,"81244cc2-ac73-4c69-bbf4-17b6038590c7",2,1,false,false
+"R11",false,"10k","Resistor_SMD:R_0402_1005Metric","front",160,113.95,-90,"84f81ad2-6ed9-4b64-b615-79a2a139c374",2,1,false,false
+"R18",false,"20","Resistor_SMD:R_0402_1005Metric","front",168.7,119.2,90,"8a9aa140-ff80-4033-836f-a24ac2e5b820",2,1,false,false
+"SW1",false,"ISPMODE","Switches:TS2306A","front",145.275,107.875,-90,"9c62605a-c6c5-4d40-8c46-9d6549c18931",2,1,false,false
+"C11",false,"470uF 35V","Capacitor_THT:C_Axial_L3.8mm_D2.6mm_P12.50mm_Horizontal","front",140.5,120.5,90,"9c80f6c7-5e5b-4a7e-b4aa-6ce7b7f83834",2,1,false,true
+"R3",false,"10k","Resistor_SMD:R_0402_1005Metric","front",149.25,109,0,"9ef3d025-8198-4af4-8054-5c3d5a122bb9",2,1,false,false
+"R10",false,"10k","Resistor_SMD:R_0402_1005Metric","front",161.9,108.5,90,"9f0563f5-cceb-411b-bf1a-8396fff6d056",2,1,false,false
+"TP7",false,"BEMFC","TestPoint:TestPoint_Pad_D1.0mm","front",159.4,106.55,0,"9fbadcdc-398d-4f8c-a3e9-0f0d7ec08854",1,0,false,true
+"C24",false,"100nF 16V","Capacitor_SMD:C_0402_1005Metric","front",163.38,113.35,0,"a1a250b4-2101-4fa9-b241-5ac12bb33f35",2,1,false,false
+"C14",false,"100nF 16V","Capacitor_SMD:C_0402_1005Metric","front",154,104.2,90,"a35032a6-e067-4714-b1c0-2dddb5388b0b",2,1,false,false
+"D2",false,"1N4148WT","Diode_SMD:D_SOD-523","front",162.35,117.35,0,"a44618aa-8529-4d4b-b6f2-584a6330cd38",2,1,false,false
+"TP3",false,"GHB","TestPoint:TestPoint_Pad_D1.0mm","front",167.25,115.1,0,"a4a6500c-a025-439b-a629-613cc8b05e65",1,0,false,true
+"J12",false,"GND","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",147.5,124.7,0,"a5285ed0-7d59-4517-a1e2-a37502120a20",1,0,false,true
+"J14",false,"SPI_SDO","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",146.06,119.6,0,"a614fdd5-8b4a-4f7e-b10a-267a58ad409c",1,0,false,true
+"R5",false,"20","Resistor_SMD:R_0402_1005Metric","front",168.05,111,90,"a6f36c47-21b7-4b59-bfa4-a68da3f0c65b",2,1,false,false
+"U4",false,"TPS7B92050DBVR","Package_TO_SOT_SMD:SOT-23-5","front",151.0625,115.925,0,"aa46574e-7af0-4584-9faf-7933275e4fd2",5,1,false,false
+"C15",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","front",150.2,118.65,180,"accc9f4a-fdd9-4777-bda7-dd2d79970517",2,1,false,false
+"R13",false,"10k","Resistor_SMD:R_0402_1005Metric","front",164.27703,119.55,-90,"ad778a27-aee7-449c-9881-6767ec14f8b2",2,1,false,false
+"TP13",false,"GND","TestPoint:TestPoint_THTPad_D2.0mm_Drill1.0mm","front",159.125,104.1,-90,"ae1e69ae-fdd5-4507-9ee2-f21ab11971fc",1,0,true,true
+"U2",false,"DRV8300N or FD6288 or equivalent","Package_DFN_QFN:VQFN-24-1EP_4x4mm_P0.5mm_EP2.45x2.45mm","front",156.48,118.03,0,"aee78bd8-3ab8-4d94-be75-086cadb62ac0",34,1,false,false
+"R14",false,"1k","Resistor_SMD:R_0402_1005Metric","front",161.45,113.8,0,"af5424f3-3d7f-4fb8-b85e-12549afe1623",2,1,false,false
+"J7",false,"SIGNAL_INPUT","Connector_Wire:SolderWire-0.5sqmm_1x01_D0.9mm_OD2.1mm","front",139.65,113.9,180,"b745e8aa-50da-42ad-b3a6-d5df1570cac7",1,1,false,true
+"C20",false,"1uF 50V","Capacitor_SMD:C_0603_1608Metric","front",160.3,117.05,-90,"b7c7f805-2b17-4931-8ad2-fb3f9c51bc3e",2,1,false,false
+"C16",false,"100nF 16V","Capacitor_SMD:C_0402_1005Metric","front",153.38,118.905,-90,"bb34b0ee-01a2-4a4d-9b72-5d1df1cf073c",2,1,false,false
+"D4",false,"LED GREEN","LED_SMD:LED_0402_1005Metric","front",147.8675,113.4,0,"c1e9dfb9-0185-46f5-a513-ef8e07473d82",2,1,false,false
+"TP2",false,"GHA","TestPoint:TestPoint_Pad_D1.0mm","front",166.95,113.05,0,"c2ea8ef1-d3be-4c14-8479-bc848957c1ab",1,0,false,true
+"R8",false,"10k","Resistor_SMD:R_0402_1005Metric","front",159.9,108.5,90,"c5171403-169d-48fe-9572-436758fc3194",2,1,false,false
+"U5",false,"BB-2020BGR-TRB","RGB_LED:BB-2020BGR-TRB","front",147.1,116.95,90,"c87ff51a-99d4-4fc4-ba6d-325e730d2af6",6,1,false,false
+"R6",false,"20","Resistor_SMD:R_0402_1005Metric","front",167.8,116.4,0,"ca36cf62-6ea9-4409-b7ee-3ce612bc0d00",2,1,false,false
+"C19",false,"1uF 10V","Capacitor_SMD:C_0402_1005Metric","front",151.55,110.7625,-90,"ca52a638-44e8-4680-b1e1-e8a0044dfa67",2,1,false,false
+"R4",false,"100k","Resistor_SMD:R_0402_1005Metric","front",156.2,112.8,90,"ce1cbcd1-82a6-4be4-b461-801777e4b00c",2,1,true,false
+"C18",false,"100nF 50V","Capacitor_SMD:C_0402_1005Metric","front",146.45,110.75,-90,"d7fb62df-80d8-4646-80b2-ee1e73329927",2,1,false,false
+"J9",false,"ENC_A","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",146.1,124.7,0,"dac3eba5-54c3-4e0d-b352-900c8d931927",1,0,false,true
+"R16",false,"1k","Resistor_SMD:R_0402_1005Metric","front",165.72703,119.1,0,"dd7f09da-ef7a-4436-9e48-c2297f96d826",2,1,false,false
+"R9",false,"10k","Resistor_SMD:R_0402_1005Metric","front",160.9,108.5,90,"e34b0dc2-e205-429d-a36f-e7fd31433923",2,1,false,false
+"R2",false,"0R","Resistor_SMD:R_0402_1005Metric","front",152.4,118.9,-90,"ed2af712-7e00-41ef-8f8d-3db07ca4a497",2,1,true,false
+"R21",false,"1m 3W","Current_sense_resistor:WSK1216","front",167.25,108.325,90,"f26373ed-883d-457f-9b7a-981845b60008",4,1,false,false
+"C21",false,"1uF 50V","Capacitor_SMD:C_0603_1608Metric","front",160.3,120.05,-90,"f5111dc0-1bf1-488f-be61-e30e26ddb4ac",2,1,false,false
+"J10",false,"ENC_B","Connector_Wire:SolderWirePad_1x01_SMD_1x2mm","front",144.69,124.7,0,"f97af0a9-ea9c-4199-b05a-edb9d00b0985",1,0,false,true
+"J8",false,"GND","Connector_Wire:SolderWire-0.5sqmm_1x01_D0.9mm_OD2.1mm","front",139.65,110.8,180,"fa07cc69-e853-4cdc-87bf-058d5c5c87e8",1,1,false,true
+"TP6",false,"BEMFB","TestPoint:TestPoint_Pad_D1.0mm","front",163.4,108.45,0,"fbf2e0be-5e3d-44b9-b6ad-fa291975a888",1,0,false,true
+"Q1",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",165.465,106.719148,180,"01562e71-9f19-4fca-a564-64beb052b1e5",18,1,false,false
+"Q6",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",171.865,122.219148,90,"10f51229-4a59-475d-912b-935f256f50a1",18,1,false,false
+"C6",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",142.85,115.8,0,"18b4d508-abaa-4653-9c95-645f6b92b9c2",2,1,false,false
+"C4",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,105.8,180,"28b56c68-47ad-47b9-8010-763315fac849",2,1,false,false
+"C3",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,107.8,180,"3bfb6a0e-b0bc-4344-a076-4534e129d0c3",2,1,false,false
+"C1",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,111.8,180,"43a48e16-c4d9-42aa-9f71-ff730f8ec0f2",2,1,false,false
+"J2",false,"V-","TestPoint:TestPoint_Pad_4.0x4.0mm","back",140.615,104.9,0,"43f8793e-b4f6-44b1-8098-faa037d9aec0",1,0,false,true
+"Q3",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",165.465,122.219148,180,"5306a569-ab4f-4c1d-b671-d1dd4d8211b8",18,1,false,false
+"J18",false,"MOTORB","TestPoint:TestPoint_Pad_4.0x4.0mm","back",177.965,113.219148,0,"6be9a080-a66e-47a2-ac38-09d41d9dded7",1,0,false,true
+"Q4",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",171.855,106.719148,90,"77021b98-da7f-4e90-b0df-15805e016f93",18,1,false,false
+"C5",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,103.8,180,"7af62f9d-520c-4547-b790-72a7e445b56b",2,1,false,false
+"G***",true,"LOGO","LOGO","back",153.575214,114.248156,-90,"7afe56c9-6f8f-4406-91ee-9f174f5b9e3d",0,0,false,true
+"C9",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,115.8,180,"8717b09e-fe08-4370-b164-b83e4db0ef80",2,1,false,false
+"C8",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",142.85,117.8,0,"a147375e-569c-4c6c-8960-2f1c12986148",2,1,false,false
+"Q2",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",165.465,114.469148,180,"a60d50f8-5dd2-4f9e-9f71-30d550d5e7a2",18,1,false,false
+"C7",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",142.85,113.8,0,"b84c5e37-12dd-40b8-9924-28abde2670a9",2,1,false,false
+"J17",false,"MOTORA","TestPoint:TestPoint_Pad_4.0x4.0mm","back",177.965,105.469148,0,"c0da0dba-6600-46f5-bf2f-e8d57bc9b17a",1,0,false,true
+"J1",false,"V+","TestPoint:TestPoint_Pad_4.0x4.0mm","back",140.615,123.6,0,"c47f9d2e-3a9a-4b80-a70f-59b5499b236b",1,0,false,true
+"C10",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,113.8,180,"d00fa868-6966-410a-9a2c-7594ea70a58d",2,1,false,false
+"Q5",false,"PSMN3R3-80YSFX","Package_TO_SOT_SMD:LFPAK56","back",171.865,114.469148,90,"d3ab194e-82ab-4230-af0b-130869267193",18,1,false,false
+"J19",false,"MOTORC","TestPoint:TestPoint_Pad_4.0x4.0mm","back",177.965,120.969148,0,"dfdf4025-5fdb-4c0f-9870-1884a0d9b2b5",1,0,false,true
+"C2",false,"10uF 35V","Capacitor_SMD:C_0805_2012Metric","back",146.25,109.8,180,"f5cf8115-8bcf-4537-a49d-674b71050f67",2,1,false,false
