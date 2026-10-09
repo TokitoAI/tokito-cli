@@ -11,6 +11,6 @@ Each verification.json records the local Windows architecture, actual Rust/Cargo
 
 The local run does not prove Linux/MSRV, hosted CI, complete KiCad conformance, manufacturing validity, GLB/STEP generation, Desktop/MCP integration, app import, or AR/device behavior. Hashes establish integrity, not publisher identity.
 
-The recreated private TokitoAI/tokito-cli repository receives source through a feature branch and pull request; application code is not pushed directly to main. The PR remains open for owner approval. The dedicated private roadmap is https://github.com/orgs/TokitoAI/projects/2. Hosted CI, release, and binary upload are out of scope.
+The recreated private TokitoAI/tokito-cli repository receives source through a feature branch and pull request; application code is not pushed directly to main. The user reviews and merges the PR. No hosted workflow runs on pushes or pull requests. The CLI-specific roadmap is linked from the repository's Projects tab at https://github.com/TokitoAI/tokito-cli/projects; the organization-wide ecosystem project remains separate and unchanged. Hosted CI, release, and binary upload are out of scope.
 
 The former repository's PR #9, CI logs, issues, branches, and Git bundle remain under target/recovery/github-before-recreation-20261009T150910Z. They are historical recovery records, not live checks or pull requests on the recreated repository.

@@ -22,7 +22,7 @@ Pico/UNO add real graphical/footprint arcs; NXP exercises custom-pad omission. T
 
 Porcupine supplies a valid curved outline with 32 outer-contour line/arc edges and five explicit 2.05 mm circular Edge.Cuts cutouts. Its 607 root copper arcs are routed track objects, distinct from the 17 outline arcs. The actual CLI classifies one outer contour and five cutouts and exports both partial SVG views. Root/footprint source zone counts report present data only, not proof that every stored copper fill or design rule was understood.
 
-These two designs replace the earlier gap in real routed-arc and cutout coverage. SVG remains partial: this corpus does not establish full KiCad parity, DRC, manufacturability, GLB/STEP correctness, Tokito target-board support, or device AR acceptance.
+Together, the fixtures provide real routed-copper-arc and cutout source coverage. The NFC Gerber is an independent reference for its 22 source outline entities, but that board is intentionally rejected because its outline is open. For valid Porcupine, E2E checks SVG paths, arc parameters, circles, and UUIDs against the canonical report and independent geometry calculations, and checks that the viewport encloses the reported bounds. No independent KiCad plot exists for a valid outline, so this is not an external SVG fidelity oracle. SVG remains partial; this corpus does not establish full KiCad parity, DRC, manufacturability, GLB/STEP correctness, Tokito target-board support, or device AR acceptance.
 
 The subagent also identified [PMW3360 breakout](https://github.com/jfedor2/pmw3360-breakout/tree/13738eece595fefb1246524429a3c1d3ba7e6ebf), CC0, with legacy KiCad 5 Edge.Cuts arcs and cutouts. It was not downloaded into the supported corpus because format 20171130 is outside the current adapter's declared range. Legacy module and arc syntax needs its own adapter work.
 
@@ -37,4 +37,4 @@ Source audit: format 20241229, six copper layers, 1.6 mm thickness, 116 footprin
 
 ## Remaining coverage
 
-No independent KiCad-export visual oracle, true routed-arc real fixture, full outline topology/intersection proof, manufacturer-model fidelity, GLB picking, or device AR registration has passed. Exported SVGs remain explicitly partial.
+There is no independent KiCad-export visual oracle for a valid outline. The NFC Gerber comparison validates source outline geometry on a deliberately invalid board; Porcupine's valid-board SVG is checked against the canonical report and independent geometry math, not an external plot. Topology support is a bounded subset, not full KiCad semantic or manufacturing certification. Manufacturer-model fidelity, GLB picking, STEP, and device AR registration remain unverified. Exported SVGs remain explicitly partial.

@@ -764,17 +764,19 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
                     Some(&source),
                     "Outline primitives overlap or duplicate a positive-length boundary.",
                 );
+            } else if contact.ambiguous
+                && (contact.points.is_empty() || contact.points.iter().any(|q| !allowed(*q)))
+            {
+                report.fail(
+                    OutlineDiagnosticCode::AmbiguousJoin,
+                    Some(&source),
+                    "Near-tangent outline contact is ambiguous.",
+                );
             } else if contact.points.iter().any(|q| !allowed(*q)) {
                 report.fail(
                     OutlineDiagnosticCode::Intersection,
                     Some(&source),
                     "Outline primitives cross or touch outside a unique shared endpoint.",
-                );
-            } else if contact.ambiguous && contact.points.iter().any(|q| !allowed(*q)) {
-                report.fail(
-                    OutlineDiagnosticCode::AmbiguousJoin,
-                    Some(&source),
-                    "Near-tangent outline contact is ambiguous.",
                 );
             }
         }
