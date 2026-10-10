@@ -11,6 +11,7 @@ mod cli;
 pub mod component_forge;
 pub mod component_pose;
 pub mod dataset;
+pub mod dataset_external;
 pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
@@ -21,8 +22,10 @@ pub mod model_assignments;
 pub mod model_mesh;
 pub mod model_resolver;
 mod package_input;
+pub mod source_candidate;
 mod strict_json;
 pub mod topology;
+pub mod twin_viewer;
 
 const MAX_INPUT_BYTES: usize = 256 * 1024 * 1024;
 const MIN_REVIEWED_BOARD_FORMAT_VERSION: u64 = 20211014;

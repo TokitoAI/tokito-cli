@@ -10,7 +10,8 @@ param(
     [string]$DatasetTwinGlb = '',
     [string]$DatasetTwinComponentMap = '',
     [string]$DatasetTwinManifest = '',
-    [string]$DatasetTwinProvenance = ''
+    [string]$DatasetTwinProvenance = '',
+    [string]$SourceCandidateRoot = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -196,6 +197,18 @@ try {
                 '--provenance', $DatasetTwinProvenance, '--output-dir', $datasetTwinOutputPath,
                 '--output-root', $targetParent, '--binary', $binaryPath
             )
+        }
+        if (-not [string]::IsNullOrWhiteSpace($DatasetRepo)) {
+            $checks[-1].arguments += @('--dataset-repo', $DatasetRepo)
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SourceCandidateRoot)) {
+        Assert-NoLinkedPath $SourceCandidateRoot
+        $checks += @{
+            name = 'source-candidate-e2e'
+            command = $pythonCommand.Source
+            arguments = @('tests/source_candidate_e2e.py', '--binary', $binaryPath,
+                '--source-root', $SourceCandidateRoot, '--output-dir', (Join-Path $targetParent "source-candidate-e2e/verification-$verificationRun"))
         }
     }
     $datasetTwinHashesBefore = $null

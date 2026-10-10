@@ -24,6 +24,76 @@ def inventory(binary, root, revision, succeeds=True):
     return json.loads(result.stdout) if succeeds else result.stderr
 
 
+def external_binding(binary):
+    # Fixture is content identity only: format/geometry remain explicitly unqualified.
+    with tempfile.TemporaryDirectory(prefix="external-binding-", dir=ROOT / "target") as temp:
+        root = Path(temp)
+        git(root, "init", "--quiet")
+        for key, value in [("user.name", "Tokito fixture"), ("user.email", "fixture@example.invalid"), ("core.autocrlf", "false")]:
+            git(root, "config", "--local", key, value)
+        stage = root / "staged"
+        stage.mkdir()
+        payload = (ROOT / "tests/fixtures/assembly-e2e/single-resistor.kicad_pcb").read_bytes()
+        artifact = stage / "candidate.cad"
+        artifact.write_bytes(payload)
+        claim = {"sha256": hashlib.sha256(payload).hexdigest(), "bytes": len(payload), "url": "https://example.invalid/candidate.cad"}
+        descriptor = {"schema_version": "1.0", "model/body": dict(claim)}
+        source = root / "provenance.json"
+        request_path = root / "request.json"
+        request = {"schema": "tokito.dataset-external-request.v1", "repository": "https://github.com/TokitoAI/tokito-app-dataset",
+                   "revision": "", "assets": [{"boardId": "fixture", "role": "model", "path": "candidate.cad",
+                                                  "provenancePath": "provenance.json", "claimPointer": "/model~1body"}]}
+        sequence = 0
+        def pin():
+            source.write_text(json.dumps(descriptor), encoding="utf-8")
+            git(root, "add", "--", "provenance.json")
+            git(root, "commit", "--quiet", "--allow-empty", "-m", "Explicit reference fixture")
+            request["revision"] = git(root, "rev-parse", "HEAD").decode().strip()
+            (stage / "provenance.json").write_bytes(source.read_bytes())
+        def bind(succeeds):
+            nonlocal sequence
+            sequence += 1
+            output = root / f"receipt-{sequence}.json"
+            request_path.write_text(json.dumps(request), encoding="utf-8")
+            proc = subprocess.run([str(binary), "dataset", "bind-external", str(root), "--assets-root", str(stage),
+                                   "--request", str(request_path), "--output", str(output)], capture_output=True, text=True, encoding="utf-8")
+            assert proc.returncode == (0 if succeeds else 2), proc.stderr
+            if not succeeds:
+                assert not output.exists()
+                return
+            receipt = json.loads(proc.stdout)
+            assert receipt["sourceBinding"]["commit"] == request["revision"]
+            assert receipt["externalAssets"][0]["sha256"] == claim["sha256"]
+            assert receipt["externalAssets"][0]["bytes"] == len(payload)
+            for flag in ["publisherAuthenticated", "urlOriginVerified", "externalUrlFetched", "geometryQualified", "componentCrosswalkVerified", "physicalFitVerified", "appAdmissionAuthorized"]:
+                assert receipt[flag] is False
+            original = output.read_bytes()
+            again = subprocess.run([str(binary), "dataset", "bind-external", str(root), "--assets-root", str(stage),
+                                    "--request", str(request_path), "--output", str(output)], capture_output=True)
+            assert again.returncode == 2 and output.read_bytes() == original
+        pin(); bind(True)
+        artifact.write_bytes(payload + b"altered"); bind(False)
+        artifact.write_bytes(b"version https://git-lfs.github.com/spec/v1\noid sha256:" + b"0" * 64 + b"\nsize 1\n"); bind(False)
+        artifact.unlink(); bind(False)
+        artifact.write_bytes(payload)
+        (stage / "provenance.json").write_text(json.dumps({**descriptor, "changed": True}), encoding="utf-8"); bind(False)
+        (stage / "provenance.json").write_bytes(source.read_bytes())
+        request["assets"][0]["claimPointer"] = "/model~2body"; bind(False)
+        request["assets"][0]["claimPointer"] = "/absent"; bind(False)
+        request["assets"][0]["claimPointer"] = "/model~1body"
+        request["assets"].append(dict(request["assets"][0])); bind(False)
+        request["assets"].pop()
+        for bad in [{"bytes": 1.5}, {"bytes": 256 * 1024 * 1024 + 1}, {"sha256": "bad"}, {"url": "file:///outside"}]:
+            descriptor["model/body"] = {**claim, **bad}
+            pin(); bind(False)
+        descriptor["model/body"] = {"repository": "https://example.invalid/models", "tree_sha": "0" * 40}
+        pin(); bind(False)
+        descriptor["model/body"] = dict(claim)
+        descriptor["schema_version"] = "2.0"
+        pin(); bind(False)
+    print("PASS external binding E2E: source-pinned descriptor and selected payload identity; changed/missing/pointer/locator-only/unsupported claims refuse")
+
+
 def run(binary):
     with tempfile.TemporaryDirectory(prefix="dataset-git-", dir=ROOT / "target") as temp:
         root = Path(temp)
@@ -192,6 +262,7 @@ def run(binary):
         assert inventory(binary, root, extended_revision)["materializationCounts"]["unsupported_source_pointer"] == 1
         assert (root / "untracked-user.txt").read_text() == "preserve"
     print("PASS Git inventory E2E: immutable commit/tree/blob oracle, LFS payloads, partial checkout, mutation/missing/corruption, packed objects and isolated environment")
+    external_binding(binary)
 
 
 if __name__ == "__main__":

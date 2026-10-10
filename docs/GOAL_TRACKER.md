@@ -4,13 +4,13 @@
 
 The active goal remains **TOKITO-PCB-ENGINE-002**; it is not complete. The user now requires the dataset pipeline to be implemented and tested before connecting Tokito App. App, API and dataset source remain read-only. Model accuracy requires geometric evidence, not a texture-resolution label.
 
-Delivery baseline: [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25), head `3ac40c3ba0ef964543b19a70743cf10c18abb24f`, depends on PR #21 and remains open. All 22 local verification gates passed before that push. Receipt: `F:\TokitoCliDelivery\20261010T111555Z-db7afdf431b3400d862e84c072e02311\verification.json`. The new detached candidate/source-binding changes below require their own current-source verification before delivery; the earlier receipt does not qualify them.
+Delivery baseline: PR #21 and [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25) are merged; main merge `49edb46e2173deb626cd875712cc197861acd546` has the exact tested tree of head `6620e9730388b603c4821ac18f0878e42ea04326`. All 22 local gates passed at `F:\TokitoCliDelivery\20261010T120942Z-a2b01b60e3574d0aa28c46c193666782\verification.json`; independent review found no blocker. PR #27 is closed as a same-head duplicate. New external-binding and offline selectable-prototype work is local and requires its own verification before delivery. See [prototype](SELECTABLE_PROTOTYPE.md).
 
 | Order | Task and owner | State | Evidence / next gate |
 |---|---|---|---|
 | 1 | CLI + evidence review: audit dataset main and open PRs | Complete for inspected pins | Main `257ea7e6`, PR #6 `5283bc0`, PR #7 `ae27af8`, PR #4 `ca65648`; refresh before adopting later updates |
 | 2 | Rust CLI: prepare selectable dataset twin | Passed for pinned NXP asset | 354 isolated selectable component meshes; geometry payload and transforms preserved; one unmapped mesh reported |
-| 3 | CLI: candidate staging, source lock and offline asset verification | Content lock/inventory delivered; selected binding final gate pending | Separate staged roots and immutable source-object binding now implemented. Three PR6 metadata files staged/bound locally; external GLB needs its own provenance adapter. Automatic materialization/admission remain open |
+| 3 | CLI: candidate staging, source lock and offline asset verification | Content lock/inventory/selected binding delivered; external binding final gate pending | External hash-reference adapter and real NXP E2E implemented. ESP8266 reference source: 130 staged/bound files and 17 experimental STEP decodes. Automatic materialization/admission remain open |
 | 4 | CLI: all-board file/feature inventory | Git metadata primitive delivered; qualification open | Explicit commit/tree/blob hashes, LFS payload comparisons, tracked-only source inventory and missing/pointer/mismatch states. Physical board identity, complete assets and per-format qualification remain open; see DATASET_GIT_INVENTORY.md |
 | 5 | CLI + dataset evidence: component crosswalk and model qualification | Open / evidence blocked | Exact board revision, PCB hash, UUID/refdes, MPN, units, transforms and quality; NXP photographed B versus design C remains unresolved |
 | 6 | Rust CLI: qualified admission and accepted-update comparison | Open | After qualification, compare staged pinned inputs against accepted lock; report changes without silently replacing accepted data |
@@ -26,6 +26,8 @@ GitHub tasks: [dataset pipeline #26](https://github.com/TokitoAI/tokito-cli/issu
 Error resolved: the first full verification encountered a temporary BOM fixture filename collision. An atomic sequence fixes unique naming; the subsequent full run passed. Remaining blockers are missing engineering/registration evidence, not a demonstrated failure of the tested selector preparation.
 
 ### Ordered CLI flow
+
+The user requires full implemented/comparison-backed #13 and #24 coverage, accurate component bodies/terminals/pads and component UUID/refdes selection. [Completion gates](KICAD_COMPLETION_GATES.md) define these requirements and separate 4K visualization from CAD accuracy. ESP8266 is the next priority; [intake evidence](ESP8266_SOURCE_INTAKE.md) distinguishes the published reference corpus from an unverified photographed variant and unproven assembly.
 
 Dataset snapshot → verified materialized inventory/source lock → exact board/component crosswalk → geometry/unit/transform qualification → existing PCB exports or `twin inspect` / `twin prepare` / `twin select` → all-board E2E and independent review → qualified handoff → separately authorized App integration.
 
@@ -324,3 +326,17 @@ The preceding component-envelope source passed 19 local gates in the F: delivery
 | App colour selection and import bridge | App owner | Open | Scoped App edits need permission; per-entity material restoration and device acceptance |
 
 See [the complete CLI flow, evidence and staged AR plan](DIGITAL_TWIN_SELECTION.md). Footprint generation, exact component CAD, complete KiCad parity, App import and registered physical guidance remain unfinished.
+
+## Deadline prototype delivery (2026-10-10)
+
+| Task | Owner | State | Evidence / next action |
+|---|---|---|---|
+| Immutable Ultimaker intake | Main | Done | Dataset PR #13 `aa9db20` hash-checked GLB/map/index; coverage origin remains a source claim |
+| Source adapter and multi-mesh ownership | Rust workers + main | Source E2E passed | 574 references, 310 body groups, 94 multi-mesh groups; original JSON precision retained |
+| Offline selectable inspection demo | Viewer worker + main | Browser acceptance in progress | Component highlights, picking, orbit/zoom, missing-body reporting, 4K output |
+| Independent review | Read-only reviewer | No code blocker found | Final acceptance requires current verification receipts |
+| Full current-source verification | Main | Required before push | Fresh 23-gate local receipt plus both browser journeys |
+| PR/issues/CLI Project update | Main | Depends on verified source | Feature branch only; no Actions or direct main push |
+| Complete KiCad/footprint parity and physical App acceptance | CLI/App owners | Open | Issues #13/#24 incomplete; prototype reuses candidate source bodies without certifying physical alignment |
+
+Build and delivery folders were moved intact under this checkout: `target/builds` and `target/delivery/imported-f-drive`. Previous receipts retain historical execution paths; [output mapping](LOCAL_OUTPUT_LOCATIONS.md) documents their new locations. No sibling repository was edited.

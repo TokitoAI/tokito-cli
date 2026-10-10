@@ -2,6 +2,23 @@ use super::*;
 
 fn dataset_command(args: &[String]) -> Result<(), CliError> {
     let value = match args.get(1).map(String::as_str) {
+        Some("bind-external")
+            if args.len() == 9
+                && args[3] == "--assets-root"
+                && args[5] == "--request"
+                && args[7] == "--output" =>
+        {
+            let request = dataset::load_json(Path::new(&args[6]))?;
+            let binding = dataset_external::bind_external(
+                Path::new(&args[2]),
+                Path::new(&args[4]),
+                &request,
+            )?;
+            let bytes =
+                serde_json::to_vec_pretty(&binding).map_err(|e| CliError::new(e.to_string()))?;
+            write_new_file(Path::new(&args[8]), &bytes)?;
+            binding
+        }
         Some("inventory") if args.len() == 5 && args[3] == "--revision" => {
             dataset_git::inventory(Path::new(&args[2]), &args[4])?
         }
@@ -51,9 +68,51 @@ fn dataset_command(args: &[String]) -> Result<(), CliError> {
 }
 
 fn twin_command(args: &[String]) -> Result<(), CliError> {
+    if args.get(1).map(String::as_str) == Some("adapt-source") {
+        if args.len() != 17
+            || args[3] != "--component-map"
+            || args[5] != "--geometry-index"
+            || args[7] != "--provenance"
+            || args[9] != "--coverage"
+            || args[11] != "--board-id"
+            || args[13] != "--board-revision"
+            || args[15] != "--output"
+        {
+            return Err(CliError::new("use tokito-cli help twin adapt-source"));
+        }
+        let candidate = source_candidate::load(
+            Path::new(&args[2]),
+            Path::new(&args[4]),
+            Path::new(&args[6]),
+            Path::new(&args[8]),
+            Path::new(&args[10]),
+            &args[12],
+            &args[14],
+        )?;
+        let output = Path::new(&args[16]);
+        fs::create_dir(output)
+            .map_err(|e| CliError::new(format!("cannot create new candidate directory: {e}")))?;
+        write_new_file(&output.join("active.digital-twin.glb"), &candidate.glb)?;
+        for (name, value) in [
+            ("active.digital-twin.json", &candidate.manifest),
+            ("component-map.json", &candidate.map),
+            ("adaptation-report.json", &candidate.report),
+        ] {
+            write_new_file(
+                &output.join(name),
+                &serde_json::to_vec_pretty(value).map_err(|e| CliError::new(e.to_string()))?,
+            )?;
+        }
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&candidate.report)
+                .map_err(|e| CliError::new(e.to_string()))?
+        );
+        return Ok(());
+    }
     if args.len() < 7 || args[3] != "--component-map" || args[5] != "--manifest" {
         return Err(CliError::new(
-            "usage: twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <AUTHORED_LABEL>]",
+            "usage: twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <AUTHORED_LABEL>]",
         ));
     }
     let twin = digital_twin::ValidatedTwin::load(
@@ -79,11 +138,16 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
             };
             println!("{}", String::from_utf8(json_bytes(&result)?).unwrap());
         }
-        "prepare"
+        "prepare" | "prototype"
             if (args.len() == 9 || args.len() == 10 && args[9] == "--allow-partial")
                 && args[7] == "--output" =>
         {
             let prepared = twin.prepare(args.len() == 10)?;
+            let viewer = if args[1] == "prototype" {
+                Some(twin_viewer::generate(&prepared.glb, &prepared.index).map_err(CliError::new)?)
+            } else {
+                None
+            };
             let output = Path::new(&args[8]);
             // Exclusive creation prevents reuse or replacement of a user's folder.
             fs::create_dir(output).map_err(|e| {
@@ -97,6 +161,9 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
                 ("prepare-report.json", &prepared.report),
             ] {
                 write_new_file(&output.join(name), &json_bytes(value)?)?;
+            }
+            if let Some(viewer) = viewer {
+                write_new_file(&output.join("index.html"), viewer.as_bytes())?;
             }
             println!(
                 "{}",
@@ -269,7 +336,7 @@ fn print_help() {
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
-         \ttokito-cli twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
+         \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
          \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
@@ -352,14 +419,20 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["dataset"]
         | ["dataset", "inventory"]
         | ["dataset", "bind"]
+        | ["dataset", "bind-external"]
         | ["dataset", "lock"]
         | ["dataset", "verify"] => {
             println!(
-                "USAGE: tokito-cli dataset inventory <GIT_ROOT> --revision <FULL_COMMIT> [--assets-root <ROOT>]\n       tokito-cli dataset bind <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nInventory/bind verify local immutable source object and payload identities; lock/verify retain a caller-declared revision. None authenticate publishers, qualify CAD geometry or admit an App package."
+                "USAGE: tokito-cli dataset inventory <GIT_ROOT> --revision <FULL_COMMIT> [--assets-root <ROOT>]\n       tokito-cli dataset bind <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset bind-external <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nInventory/bind verify local immutable source object and payload identities. bind-external checks a local payload against source-pinned provenance hash/size claims, without fetching URLs. lock/verify retain a caller-declared revision. None authenticate publishers, qualify CAD geometry or admit an App package."
             )
         }
-        ["twin"] | ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "select"] => println!(
-            "USAGE: tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nMoves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+        ["twin"]
+        | ["twin", "inspect"]
+        | ["twin", "prepare"]
+        | ["twin", "prototype"]
+        | ["twin", "adapt-source"]
+        | ["twin", "select"] => println!(
+            "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
         ),
         ["model"] | ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
