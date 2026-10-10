@@ -51,6 +51,7 @@ The dataset provides candidate engineering and photo assets; the CLI does not au
 
 ## Research
 
+- [KiCad-quality 3D gates and actual dataset comparison](docs/KICAD_3D_QUALITY_GATES.md)
 - [KiCad CLI behavior analysis](docs/KICAD_CLI_BEHAVIOR.md)
 - [KiCad CLI compatibility matrix](docs/KICAD_CLI_PARITY_MATRIX.md) (10.0.7 is proposed as the behavior baseline pending confirmation)
 - [Tokito ecosystem integration boundaries](docs/ECOSYSTEM_INTEGRATION.md)

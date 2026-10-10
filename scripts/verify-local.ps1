@@ -40,12 +40,13 @@ function Get-InputFingerprints {
     foreach ($optionalRootFile in @('AGENTS.md')) {
         if (Test-Path -LiteralPath (Join-Path $projectRoot $optionalRootFile)) { $paths += $optionalRootFile }
     }
-    foreach ($directory in @('src', 'tests', 'examples', 'docs', '.github')) {
+    foreach ($directory in @('src', 'tests', 'examples', 'experiments', 'docs', '.github')) {
         $inputDirectory = Join-Path $projectRoot $directory
         if (Test-Path -LiteralPath $inputDirectory) {
             $paths += Get-ChildItem -LiteralPath $inputDirectory -Recurse -File |
                 Where-Object {
                     $_.FullName -notmatch '(?i)(^|[\\/])__pycache__([\\/]|$)' -and
+                    $_.FullName -notmatch '(?i)(^|[\\/])target([\\/]|$)' -and
                     $_.Extension -notin @('.pyc', '.pyo')
                 } |
                 ForEach-Object { [System.IO.Path]::GetRelativePath($projectRoot, $_.FullName) }
@@ -89,7 +90,10 @@ try {
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
         @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
-        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) }
+        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) },
+        @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
+        @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') }
     )
     $results = @()
     $testedBinaryHash = $null

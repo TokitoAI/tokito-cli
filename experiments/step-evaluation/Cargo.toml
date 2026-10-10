@@ -1,0 +1,12 @@
+[package]
+name = "tokito-step-evaluation"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+oxideav-step = { version = "=0.0.1", default-features = false }
+serde_json = "=1.0.151"
+sha2 = "=0.10.9"

@@ -4,6 +4,25 @@ Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is com
 
 ## 1. Product goal
 
+Current continuation: the verified foundation is now delivered as open
+[PR #17](https://github.com/TokitoAI/tokito-cli/pull/17), head
+`1efe33eb4695fa0b188c4a89385dcb01eea1dddc`; PR #11 and #16 are historical merges.
+Dataset qualification uses main at `257ea7e68ee2e700522bd1b19ad9cbf1c0c3980a`
+and [issue #18](https://github.com/TokitoAI/tokito-cli/issues/18). The latest
+local continuation adds an isolated STEP evaluation crate and three new local
+verification gates, so the earlier ten-gate receipt does not qualify these new
+files. The current thirteen-gate run passed at `target/delivery/local/20261010T032444Z-5c932454a5f241ba94d9deae388ea88f/verification.json`; independent review found no admission blocker. Two reproducible negative executable tests now cover malformed STEP and unmaterialized LFS pointers; final verification includes both before delivery.
+See [KiCad-quality 3D gates](KICAD_3D_QUALITY_GATES.md) for the actual ESP32
+comparison and the remaining geometry/pose/material acceptance requirements.
+
+| Current task | Owner | Dependency | State | Evidence / next action |
+| --- | --- | --- | --- | --- |
+| Foundation delivery | Main + independent reviewer | Ten local gates | PR open | #17 matches tested implementation; no Actions or upload |
+| Dataset target audit | Main + read-only reviewer | Current dataset main | Partial | ESP32 source hash checked; inventory imports, strict topology refuses six joins; LFS intake is live |
+| Outline behavior comparison | Main + read-only researcher | Same ESP32 bytes | Evidence captured | Two KiCad 10.0.5 GLBs; 10.0.7 source explains derived-contour/inference paths, not complete parity |
+| Pure-Rust STEP evaluation | Scoped worker + Main | Pinned reader and real model corpus | Local implementation | Disabled production admission; test strict limits/reports, then qualify materialized dataset STEP |
+| Current-source QA/review | Main + independent reviewer | Frozen experiment and docs | Thirteen gates passed | 109 engine tests, three probe unit tests, two executable rejection tests and subprocess E2E; final snapshot verification required before push |
+
 Build an original, pure-Rust, offline-first, Windows-first engine that imports supported PCB documents, validates physical geometry, renders usable 2D/3D views, and preserves component identity for selection. KiCad is not a normal-runtime dependency. STEP and schematic-to-PCB remain later work.
 
 ## 2. Current stage and progress
