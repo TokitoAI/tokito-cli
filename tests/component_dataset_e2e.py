@@ -157,9 +157,47 @@ def run(binary: Path, dataset_repo: Path, bom_report: Path, out_dir: Path, outpu
     doc, _ = parse_glb(glb_path)
     assert [node.get("name") for node in doc["nodes"]] == ["Board shell"]
 
+    # A real multi-board source-lock journey. Git/LFS identity is independently
+    # checked by this test, not inferred from the CLI's caller-declared revision.
+    source_request = {
+        "schema": "tokito.dataset-source-request.v1",
+        "repository": "https://github.com/TokitoAI/tokito-app-dataset",
+        "revision": head,
+        "assets": [],
+    }
+    source_payload_hashes = {}
+    for board_id, relative in [
+        ("esp32-devkit-30pin", "data/board-sources/esp32-devkit-30pin/community-clone/generated-kicad/ESP32-Dev-Kit.clone.kicad_pcb"),
+        ("nxp-frdm-mcxn236", "data/board-sources/nxp-frdm-mcxn236/generated-kicad/FRDM-MCXN236.imported.kicad_pcb"),
+        ("ultimainboard-2.1.4", "data/board-sources/ultimainboard-2.1.4/generated-kicad/Ultimainboard-2.1.4.imported.kicad_pcb"),
+    ]:
+        git_payload = subprocess.run(["git", "-C", str(dataset_repo), "show", f"{head}:{relative}"], capture_output=True, check=True).stdout
+        payload = (dataset_repo / relative).read_bytes()
+        assert not payload.startswith(b"version https://git-lfs.github.com/spec/v1")
+        digest = hashlib.sha256(payload).hexdigest()
+        if git_payload.startswith(b"version https://git-lfs.github.com/spec/v1"):
+            claims = git_payload.decode("ascii").splitlines()
+            assert f"oid sha256:{digest}" in claims and f"size {len(payload)}" in claims
+        else:
+            assert payload == git_payload
+        source_payload_hashes[relative] = digest
+        source_request["assets"].append({"boardId": board_id, "role": "pcb", "path": relative, "provenance": f"Git/LFS content checked at {head}; imported reference, physical fit unverified"})
+    request_path = out_dir / "dataset-source-request.json"
+    request_path.write_text(json.dumps(source_request, indent=2), encoding="utf-8")
+    lock_path = out_dir / "dataset-source-lock.json"
+    lock = json.loads(invoke(binary, "dataset", "lock", dataset_repo, "--request", request_path, "--output", lock_path).stdout)
+    verification = json.loads(invoke(binary, "dataset", "verify", dataset_repo, "--lock", lock_path).stdout)
+    assert verification["status"] == "passed" and verification["assetCount"] == 3
+    assert verification["revisionAuthenticated"] is False
+    assert len(verification["inventory"]) == 3
+    for asset in lock["assets"]:
+        assert asset["sha256"] == source_payload_hashes[asset["path"]]
+    (out_dir / "dataset-source-verification.json").write_text(json.dumps(verification, indent=2), encoding="utf-8")
+
     result = {
         "schema": "tokito.component-dataset-e2e.v1",
         "datasetCommit": head,
+        "datasetSourceLock": {"assetCount": 3, "boardCount": 3, "sourceGitLfsIdentityCheckedByTest": True, "verified": True, "sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()},
         "boardFileSha256": manifest["sourceBoardSha256"],
         "bomReportPath": bom_report_label,
         "bomReportFileSha256": bom_report_file_sha256,

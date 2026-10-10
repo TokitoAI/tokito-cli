@@ -1,5 +1,38 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Current priority — dataset pipeline before App integration (2026-10-10)
+
+The active goal remains **TOKITO-PCB-ENGINE-002**; it is not complete. The user now requires the dataset pipeline to be implemented and tested before connecting Tokito App. App, API and dataset source remain read-only. Model accuracy requires geometric evidence, not a texture-resolution label.
+
+Delivery baseline: [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25), head `22357de169f1b4b32dd3e75e371cde399282377b`, depends on PR #21 and remains open. All 20 local verification gates passed before that push. Receipt: `F:\TokitoCliDelivery\20261010T100246Z-2020d1be95e94cb09a0f48a427d3bac4\verification.json`. This subsequent narrative update is not included in that receipt's source fingerprints; rerun verification before the next code delivery.
+
+| Order | Task and owner | State | Evidence / next gate |
+|---|---|---|---|
+| 1 | CLI + evidence review: audit dataset main and open PRs | Complete for inspected pins | Main `257ea7e6`, PR #6 `5283bc0`, PR #7 `ae27af8`; refresh before adopting later updates |
+| 2 | Rust CLI: prepare selectable dataset twin | Passed for pinned NXP asset | 354 isolated selectable component meshes; geometry payload and transforms preserved; one unmapped mesh reported |
+| 3 | CLI: candidate staging, source lock and offline asset verification | Content-lock primitive implemented; full gate pending | Focused CLI tests and three materialized PCB files pass. Production Git/LFS identity resolver and candidate materialization remain open; revision is caller-declared |
+| 4 | CLI: all-board file/feature inventory | Open | Schematic, PCB, Gerber, BOM, photographs, CAD/models, identity maps and registration evidence |
+| 5 | CLI + dataset evidence: component crosswalk and model qualification | Open / evidence blocked | Exact board revision, PCB hash, UUID/refdes, MPN, units, transforms and quality; NXP photographed B versus design C remains unresolved |
+| 6 | Rust CLI: qualified admission and accepted-update comparison | Open | After qualification, compare staged pinned inputs against accepted lock; report changes without silently replacing accepted data |
+| 7 | CLI QA + independent reviewer: all-board actual subprocess E2E | Open | Per-board passed/failed/unsupported/unverified results; missing input is not success |
+| 8 | CLI release: review and merge qualified pipeline PR | Open | Current-source local checks, independent review and approved dependency sequence; no hosted Actions |
+| 9 | Rust Component Forge: qualified footprint generator | Open | Separate missing footprint from missing body model; manufacturer land-pattern evidence, pads/numbering/layers and independent comparisons |
+| 9a | CLI behavior researcher + Rust engine: KiCad CLI export parity | Ongoing / incomplete | Study pinned command/option behavior and source boundaries; reproduce selected SVG/placement/GLB semantics in Rust and independently compare outputs. Local KiCad 10.0.5 is reconnaissance, not 10.0.7 parity |
+| 9b | Component Forge researcher + Rust generator: KiCad Library Tools workflow | Architectural assessment complete; generator families open | Pin Library Tools/KicadModTree references, study package parameters, geometry/node/serialization stages, then implement and verify each Rust footprint/body family independently |
+| 10 | App owner: import, colour highlighting, dialogue and registration | Deferred | Start only after dataset qualification and separate sibling-write authorization; physical device gates remain mandatory |
+
+GitHub tasks: [dataset pipeline #26](https://github.com/TokitoAI/tokito-cli/issues/26), [selection/handoff #23](https://github.com/TokitoAI/tokito-cli/issues/23), [footprint generator #24](https://github.com/TokitoAI/tokito-cli/issues/24), and [envelope slice #22](https://github.com/TokitoAI/tokito-cli/issues/22). They are tracked in the CLI-specific Project 2, not the overall ecosystem project. Completed implementation items remain distinct from unresolved physical accuracy and admission.
+
+Error resolved: the first full verification encountered a temporary BOM fixture filename collision. An atomic sequence fixes unique naming; the subsequent full run passed. Remaining blockers are missing engineering/registration evidence, not a demonstrated failure of the tested selector preparation.
+
+### Ordered CLI flow
+
+Dataset snapshot → verified materialized inventory/source lock → exact board/component crosswalk → geometry/unit/transform qualification → existing PCB exports or `twin inspect` / `twin prepare` / `twin select` → all-board E2E and independent review → qualified handoff → separately authorized App integration.
+
+The existing twin commands, earlier PCB exporters, and new offline `dataset lock` / `dataset verify` content primitives are implemented. Production Git/LFS resolution, automated candidate materialization, admission and update comparison remain planned work; this flow does not invent working commands. Vision detections are observations and do not establish hidden pad geometry or physical part identity. See [source-lock boundaries and commands](DATASET_SOURCE_LOCK.md).
+
+## Earlier goal history
+
 Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is complete; this active goal advances the evidence-gated path to selectable assembled 3D and a clearly documented Tokito CLI. The current working tree adds a pure-Rust bounded VRML assembly path with strict stackup-plane and unique-UUID gates, an implemented-command help tree, and one mesh-bearing `ref:<refdes>` GLB node per component. The frozen implementation passed all ten local gates and independent static review; the post-run narrative update is recorded below. Complete model coverage, independent generated-export comparison, App import/device acceptance, and schematic-to-physical-layout conversion remain open. Use the newest `verification.json` under `target/delivery/local/` only after confirming its source fingerprints match. Milestones A and B remain complete for their declared scope. Only CLI source is writable; App/API/dataset repositories are inspected read-only. GitHub Actions remain disabled and direct main push is prohibited.
 
 ## 1. Product goal

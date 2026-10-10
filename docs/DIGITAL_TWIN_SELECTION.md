@@ -68,7 +68,7 @@ The CLI owns asset preparation and diagnostics. Dataset owns sourced design iden
 | Exact ref/class candidate query | CLI | Implemented | Portable subprocess E2E; ambiguity/missing-model states |
 | Move selectors onto isolated renderable meshes | CLI | Implemented | E2E compares binary payload and transform values independently |
 | Portable and actual NXP rewrite E2E | CLI QA | Implemented gate | Local verifier runs fixture journey and optional 354-component dataset journey |
-| Current-source full verification | CLI QA | Release gate | 18 default gates, 20 with both dataset profiles; authoritative matching receipt in selected delivery base |
+| Current-source full verification | CLI QA | Release gate | 19 default gates, 21 with both dataset profiles; authoritative matching receipt in selected delivery base |
 | Reviewed board-reference digest and source PCB crosswalk | CLI + dataset | Open | Exact board/revision/context, reviewed targets, source hashes and UUID/refdes join |
 | Decoded geometry-bounds/reference comparisons | CLI + App | Open | App performs an additional bounds acceptance check; CLI currently reports it unverified |
 | Desktop/mobile import bridge | App/Desktop | Open | Scoped sibling changes need user authorization; no bridge verified |

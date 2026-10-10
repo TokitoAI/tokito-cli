@@ -10,6 +10,7 @@ pub mod bom;
 mod cli;
 pub mod component_forge;
 pub mod component_pose;
+pub mod dataset;
 pub mod digital_twin;
 pub mod document;
 mod geometry;
