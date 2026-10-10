@@ -91,6 +91,7 @@ try {
         @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
         @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
         @{ name = 'bom-e2e'; command = $pythonCommand.Source; arguments = @('tests/bom_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) },
         @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },

@@ -206,6 +206,14 @@ impl ModelResolver {
         }
     }
 
+    /// Capture an explicitly selected asset without inventing a PCB source node.
+    pub fn resolve_selected_path(&self, path: &str) -> Result<ResolvedModelAsset, EngineError> {
+        self.resolve_asset(Some(path))
+            .map_err(|(status, diagnostic)| {
+                EngineError::new(format!("{}: {diagnostic}", status.as_str()))
+            })
+    }
+
     fn resolve_asset(&self, raw: Option<&str>) -> Result<ResolvedModelAsset, LookupError> {
         let raw = raw.ok_or((ModelResolutionStatus::MissingPath, "Model path is absent"))?;
         validate_text_path(raw)?;

@@ -38,6 +38,13 @@ pub struct GlbExport {
     pub report: GlbCoverageReport,
 }
 
+/// Explicit assigned-body export; assignments do not certify engineering fit.
+#[derive(Clone, Debug)]
+pub struct AssignedGlbExport {
+    pub bytes: Vec<u8>,
+    pub report: Value,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlbCoverageReport {
     pub scope: &'static str,
@@ -368,6 +375,123 @@ pub(crate) fn export_board_assembly(
     Ok(GlbExport { bytes, report })
 }
 
+pub(crate) fn export_assigned_board_assembly(
+    board: &PhysicalBoardDocument,
+    assignments: &crate::model_assignments::ValidatedModelAssignments,
+    allow_partial: bool,
+) -> Result<AssignedGlbExport, EngineError> {
+    if !allow_partial {
+        return Err(EngineError::new(
+            "assigned-model export is unqualified and requires explicit allow_partial=true",
+        ));
+    }
+    // Reuse the validated shell metrics, never silently repair invalid contours.
+    let mut report = export_board_shell(board, true)?.report;
+    let assembly = crate::assigned_assembly::assemble_assigned_models(board, assignments)?;
+    let mut components = Vec::new();
+    let mut emitted = std::collections::BTreeSet::new();
+    for item in &assembly.emitted {
+        for part in &item.mesh.parts {
+            components.push(ComponentMesh {
+                mesh: mesh_from_component_part(part)?,
+                reference: item.component_reference.clone(),
+                uuid: item.component_uuid.clone(),
+                source_ordinal: item.component_source.ordinal,
+                source_asset_sha256: item.source_asset_sha256.clone(),
+                model_source_ordinal: item.manifest_entry_index,
+                assignment_origin: Some((
+                    assignments.manifest_sha256().to_owned(),
+                    item.manifest_entry_index,
+                )),
+                part_ordinal: part.source_shape_ordinal,
+            });
+        }
+        emitted.insert(item.component_source.ordinal);
+    }
+    components.sort_by_key(|item| {
+        (
+            item.source_ordinal,
+            item.model_source_ordinal,
+            item.part_ordinal,
+        )
+    });
+    let incomplete = board
+        .engineering()
+        .components
+        .iter()
+        .filter(|c| !emitted.contains(&c.source.ordinal))
+        .map(|c| c.source.ordinal)
+        .collect();
+    let (unresolved, truncated) = unresolved_component_coverage_for(
+        board,
+        Some(&incomplete),
+        "component_body_not_emitted_by_assignment_export",
+    );
+    report.scope = "board_shell_and_explicitly_assigned_wrl_models";
+    report.component_models_emitted = emitted.len();
+    report.component_models_unresolved = report.component_count - emitted.len();
+    report.unresolved_components = unresolved;
+    report.unresolved_components_total = report.component_models_unresolved;
+    report.unresolved_components_truncated = truncated;
+    // Authored source references were deliberately not attempted in this mode.
+    for item in &mut report.unresolved_models {
+        item.status = "not_attempted_assignment_only_mode".into();
+    }
+    let rings = polygonize_outline(board)?;
+    let triangles = triangulate(&rings, board)?;
+    let shell = extrude_shell(
+        &rings,
+        &triangles.points,
+        &triangles.triangles,
+        report.thickness_mm,
+        board,
+    )?;
+    let bounds = board
+        .outline
+        .bounds
+        .ok_or_else(|| EngineError::new("missing outline bounds"))?;
+    let origin = (
+        (bounds.min_x + bounds.max_x) / 2.0,
+        (bounds.min_y + bounds.max_y) / 2.0,
+    );
+    let mut document = gltf_assembly_document(&shell, &components, &report, board, origin)?;
+    document["asset"]["extras"]["tokito"]["format"] =
+        json!("tokito.assigned-board-assembly.glb.v1");
+    document["asset"]["extras"]["tokito"]["coverage"]["componentModelCoverageComplete"] =
+        json!(false);
+    document["asset"]["extras"]["tokito"]["assignments"] = assembly.report.clone();
+    let json_bytes = serde_json::to_vec(&document)
+        .map_err(|error| EngineError::new(format!("cannot encode assignment GLB JSON: {error}")))?;
+    let bin = combined_bin(&shell, &components)?;
+    let total_len = container_len(json_bytes.len(), bin.len())?;
+    if total_len > MAX_GLB_BYTES {
+        return Err(EngineError::new("assigned GLB exceeds export budget"));
+    }
+    let bytes = Glb {
+        header: Header {
+            magic: *b"glTF",
+            version: 2,
+            length: total_len as u32,
+        },
+        json: Cow::Owned(json_bytes),
+        bin: Some(Cow::Owned(bin)),
+    }
+    .to_vec()
+    .map_err(|error| EngineError::new(format!("cannot encode assigned GLB: {error}")))?;
+    gltf::Gltf::from_slice(&bytes)
+        .map_err(|error| EngineError::new(format!("assigned GLB failed validation: {error}")))?;
+    let mut report_json: Value = serde_json::from_str(&report.report_json())
+        .map_err(|_| EngineError::new("cannot encode assignment receipt"))?;
+    report_json["assignments"] = assembly.report;
+    report_json["geometryVerified"] = json!(false);
+    report_json["placementVerified"] = json!(false);
+    report_json["authoredReferencesAttempted"] = json!(false);
+    Ok(AssignedGlbExport {
+        bytes,
+        report: report_json,
+    })
+}
+
 #[derive(Clone, Debug)]
 struct ComponentMesh {
     mesh: Mesh,
@@ -376,6 +500,7 @@ struct ComponentMesh {
     source_ordinal: usize,
     source_asset_sha256: String,
     model_source_ordinal: usize,
+    assignment_origin: Option<(String, usize)>,
     part_ordinal: usize,
 }
 
@@ -393,6 +518,7 @@ fn component_meshes(
                 source_ordinal: emitted.component_source.ordinal,
                 source_asset_sha256: emitted.source_asset_sha256.clone(),
                 model_source_ordinal: emitted.model_source.ordinal,
+                assignment_origin: None,
                 part_ordinal: part.source_shape_ordinal,
             });
         }
@@ -1456,15 +1582,7 @@ fn gltf_assembly_document(
             primitives.push(append_gltf_primitive(
                 &component.mesh,
                 1,
-                Some(json!({ "tokito": {
-                    "componentReference": component.reference,
-                    "componentUuid": component.uuid,
-                    "componentSourceOrdinal": component.source_ordinal,
-                    "modelSourceOrdinal": component.model_source_ordinal,
-                    "sourceAssetSha256": component.source_asset_sha256,
-                    "partOrdinal": component.part_ordinal,
-                    "selectable": false
-                }})),
+                Some(component_primitive_provenance(component)),
                 &mut buffer_views,
                 &mut accessors,
                 &mut byte_offset,
@@ -1540,6 +1658,25 @@ fn gltf_assembly_document(
         "bufferViews": buffer_views,
         "accessors": accessors
     }))
+}
+
+fn component_primitive_provenance(component: &ComponentMesh) -> Value {
+    let mut value = json!({ "tokito": {
+        "componentReference": component.reference,
+        "componentUuid": component.uuid,
+        "componentSourceOrdinal": component.source_ordinal,
+        "sourceAssetSha256": component.source_asset_sha256,
+        "partOrdinal": component.part_ordinal,
+        "selectable": false
+    }});
+    if let Some((manifest, index)) = &component.assignment_origin {
+        value["tokito"]["manifestSha256"] = json!(manifest);
+        value["tokito"]["manifestEntryIndex"] = json!(index);
+        value["tokito"]["modelOrigin"] = json!("explicit_assignment");
+    } else {
+        value["tokito"]["modelSourceOrdinal"] = json!(component.model_source_ordinal);
+    }
+    value
 }
 
 fn append_gltf_shell_mesh(

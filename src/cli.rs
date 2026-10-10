@@ -30,6 +30,47 @@ fn reconcile_bom(args: &[String]) -> Result<(), CliError> {
     Ok(())
 }
 
+fn model_assignments_command(args: &[String]) -> Result<(), CliError> {
+    use crate::model_assignments::{
+        assignment_template, load_model_assignments, validate_model_assignments,
+    };
+    use crate::model_resolver::{ModelResolver, ModelResolverConfig};
+    match args.get(2).map(String::as_str) {
+        Some("template") if args.len() == 6 && args[4] == "--output" => {
+            let board = load_board_input(Path::new(&args[3]))?;
+            let template = assignment_template(&board)?;
+            let bytes = serde_json::to_vec_pretty(&template)
+                .map_err(|_| CliError::new("cannot encode assignment template"))?;
+            write_new_file(Path::new(&args[5]), &bytes)?;
+            println!(
+                "Wrote {} unassigned component records to {}",
+                board.engineering().components.len(),
+                args[5]
+            );
+            Ok(())
+        }
+        Some("verify")
+            if (args.len() == 8 || args.len() == 9 && args[8] == "--json")
+                && args[4] == "--manifest"
+                && args[6] == "--project-root" =>
+        {
+            let board = load_board_input(Path::new(&args[3]))?;
+            let manifest = load_model_assignments(Path::new(&args[5]))?;
+            let resolver = ModelResolver::new(ModelResolverConfig::new(PathBuf::from(&args[7])))?;
+            let validated = validate_model_assignments(&board, &manifest, &resolver)?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&validated.report())
+                    .map_err(|_| CliError::new("cannot encode assignment report"))?
+            );
+            Ok(())
+        }
+        _ => Err(CliError::new(
+            "usage: model assignments template <BOARD> --output <JSON> | verify <BOARD> --manifest <JSON> --project-root <DIR> [--json]",
+        )),
+    }
+}
+
 fn print_help() {
     println!(
         "Tokito CLI 0.1.0\n\
@@ -46,9 +87,11 @@ fn print_help() {
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\n\
          \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
+         \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
+         \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
-         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]\n\
+         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
          \n\
@@ -114,6 +157,11 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["resolve"] | ["resolve", "models"] => println!(
             "USAGE: tokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\nCaptures local model assets under caller-approved roots; it does not decode them."
         ),
+        ["model", "assignments"]
+        | ["model", "assignments", "template"]
+        | ["model", "assignments", "verify"] => println!(
+            "USAGE: tokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n       tokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\nAssigned bodies: export glb <BOARD> --model-assignments <FILE.json> --project-root <DIR> --output <FILE.glb> --allow-partial --json-report\nAssignment and rendered coverage do not certify part identity, pose or geometry."
+        ),
         ["model"] | ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
         ),
@@ -124,7 +172,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\nWrites a partial SVG view from supported board geometry."
         ),
         ["export", "glb"] => println!(
-            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. Partial output requires explicit --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
         ["package"] | ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
@@ -213,6 +261,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     }
     if args[0] == "bom" && args.get(1).is_some_and(|value| value == "reconcile") {
         return reconcile_bom(args);
+    }
+    if args[0] == "model" && args.get(1).is_some_and(|value| value == "assignments") {
+        return model_assignments_command(args);
     }
     if args[0] == "model" && args.get(1).is_some_and(|value| value == "inspect") {
         return inspect_model(args);
@@ -394,13 +445,14 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]",
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
             ));
         }
         let mut output_path = None;
         let mut allow_partial = false;
         let mut json_report = false;
         let mut assemble_wrl = false;
+        let mut assignments_path = None;
         let mut project_root = None;
         let mut library_roots = Vec::new();
         let mut variables = std::collections::BTreeMap::new();
@@ -422,6 +474,10 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 "--assemble-wrl" if !assemble_wrl => {
                     assemble_wrl = true;
                     index += 1;
+                }
+                "--model-assignments" if index + 1 < args.len() && assignments_path.is_none() => {
+                    assignments_path = Some(PathBuf::from(&args[index + 1]));
+                    index += 2;
                 }
                 "--project-root" if index + 1 < args.len() && project_root.is_none() => {
                     project_root = Some(PathBuf::from(&args[index + 1]));
@@ -464,6 +520,39 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             return Err(CliError::new("GLB output path must use a .glb extension"));
         }
         let board = load_board_input(Path::new(&args[2]))?;
+        if let Some(path) = assignments_path {
+            if assemble_wrl {
+                return Err(CliError::new(
+                    "--model-assignments and --assemble-wrl are separate export modes",
+                ));
+            }
+            use crate::model_resolver::{ModelResolver, ModelResolverConfig};
+            let mut config = ModelResolverConfig::new(
+                project_root.ok_or_else(|| CliError::new("assignments require --project-root"))?,
+            );
+            config.library_roots = library_roots;
+            config.directory_variables = variables;
+            let resolver = ModelResolver::new(config)?;
+            let manifest = crate::model_assignments::load_model_assignments(&path)?;
+            let validated =
+                crate::model_assignments::validate_model_assignments(&board, &manifest, &resolver)?;
+            let export = board
+                .export_glb_with_assignments(&validated, GlbExportOptions { allow_partial })?;
+            write_new_file(&output_path, &export.bytes)?;
+            if json_report {
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(&export.report)
+                        .map_err(|_| CliError::new("cannot serialize assigned export receipt"))?
+                );
+            } else {
+                println!(
+                    "Wrote explicit partial assigned-body GLB to {}; physical geometry and placement remain unverified",
+                    output_path.display()
+                );
+            }
+            return Ok(());
+        }
         let export = if assemble_wrl {
             use crate::model_resolver::{ModelResolver, ModelResolverConfig};
             let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {
