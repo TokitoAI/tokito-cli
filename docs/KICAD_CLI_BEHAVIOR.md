@@ -1,6 +1,6 @@
 # KiCad CLI behavior analysis
 
-Status: behavior research and independent partial implementation. KiCad CLI was not executed. No KiCad implementation code has been copied or translated. Current geometry/package behavior and exact transform evidence are recorded in [native architecture](NATIVE_FORMAT_ARCHITECTURE.md); full CLI/CAD feature parity is not claimed. See the [command-by-command compatibility matrix](KICAD_CLI_PARITY_MATRIX.md) for the current Tokito surface, target baseline proposal, and implementation order.
+Status: behavior research and independent partial implementation. On 2026-10-10, the locally installed KiCad CLI was queried only for `version` and help text; it reports 10.0.5, while the proposed reference baseline is 10.0.7. No board export was invoked and this is not behavioral or artifact parity. No KiCad implementation code has been copied or translated. Current geometry/package behavior and exact transform evidence are recorded in [native architecture](NATIVE_FORMAT_ARCHITECTURE.md); full CLI/CAD feature parity is not claimed. See the [command-by-command compatibility matrix](KICAD_CLI_PARITY_MATRIX.md) for the current Tokito surface, target baseline proposal, and implementation order.
 
 ## Observed command model
 

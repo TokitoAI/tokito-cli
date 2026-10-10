@@ -36,7 +36,7 @@ function Assert-LocalOutputPath([string]$Path) {
 }
 
 function Get-InputFingerprints {
-    $paths = @('Cargo.toml', 'Cargo.lock', 'scripts/verify-local.ps1', 'README.md')
+    $paths = @('Cargo.toml', 'Cargo.lock', 'scripts/verify-local.ps1', 'scripts/real-cli-e2e.ps1', 'README.md')
     foreach ($optionalRootFile in @('AGENTS.md')) {
         if (Test-Path -LiteralPath (Join-Path $projectRoot $optionalRootFile)) { $paths += $optionalRootFile }
     }
@@ -44,6 +44,10 @@ function Get-InputFingerprints {
         $inputDirectory = Join-Path $projectRoot $directory
         if (Test-Path -LiteralPath $inputDirectory) {
             $paths += Get-ChildItem -LiteralPath $inputDirectory -Recurse -File |
+                Where-Object {
+                    $_.FullName -notmatch '(?i)(^|[\\/])__pycache__([\\/]|$)' -and
+                    $_.Extension -notin @('.pyc', '.pyo')
+                } |
                 ForEach-Object { [System.IO.Path]::GetRelativePath($projectRoot, $_.FullName) }
         }
     }
@@ -84,7 +88,8 @@ try {
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) }
+        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
+        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) }
     )
     $results = @()
     $testedBinaryHash = $null

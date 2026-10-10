@@ -36,6 +36,18 @@ keep CLI `mobileImportReady` false until the App owner confirms the route,
 canonical context/GLB pair, and signing/verification owner. Sibling repositories
 were inspected read-only and not edited.
 
+The later Desktop read-only snapshot is `TokitoAI/tokito` master
+`34a5f55c8425ff7ef53efd33bc6b6e36d0e877f5`, which pins
+`tokito-schematic-core` v0.4.4 at `445c05e90aaad8b1433e053f0f72aec83250ed2c`.
+It provides stable schematic symbol UUIDs, pin keys, net membership and optional
+footprint identifiers. These can form a versioned `SchematicToPhysicalHandoff`,
+but schematic symbol positions and rotations are canvas data. They cannot
+establish a board outline, routing, stackup, footprint centroid, side, 3D model,
+or AR registration. The App has a consumer schema for an authored assembly
+context and GLB manifest but no defined Desktop-to-App board-layout resource or
+mobile importer. Keep schematic-to-physical conversion outside the CLI's
+completed claims until an authored physical-layout stage exists.
+
 API source `e52c0d87f053611ed831fb74ffa186c06d28dc0e` documents structured
 `physical_sessions` and generic project-artifact upload/download capped at
 16 MiB per artifact. The inspected contract has no typed board/GLB validation,
@@ -90,12 +102,14 @@ The committed real-source fixtures include SparkFun Basic, community Pico and UN
 
 ## Latest local verification
 
-The latest full local Windows x64 verification receipt is the newest timestamped
-`verification.json` under `target/delivery/local/`; its recorded versions,
-source fingerprints, test counts, gate results, and binary hash are authoritative.
-The nine local stages cover formatting, Rust tests, Clippy with warnings denied,
+The latest full local Windows x64 verification receipt is the newest
+`verification.json` under `target/delivery/local/`. Its recorded versions, source
+fingerprints, test counts, gate results, and binary hash are authoritative. It
+passed ten stages: formatting, Rust tests, Clippy with warnings denied,
 release build, four-board CLI subprocess E2E, geometry/SVG/Gerber reference E2E,
-board-shell GLB E2E, model-resolution E2E, and historical v0.1 compatibility.
+board-shell GLB E2E, model-resolution E2E, historical v0.1 compatibility, and a
+release-binary acceptance journey that preserves a local machine-readable receipt
+under `target/real-cli-e2e/`.
 There are 101 Rust tests, including nine focused placement tests. No hosted
 workflow is run. The verifier writes a timestamped receipt in that directory;
 the newest receipt records the current source fingerprints and actual results.

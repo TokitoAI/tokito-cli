@@ -1,6 +1,6 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
-Goal ID: TOKITO-PCB-ENGINE-001. Current continuation extends Milestone C with a pure-Rust parsed-mesh placement helper based on pinned KiCad 10.0.7 STEP behavior. Point and mesh placement now have asymmetric front/back, winding, and normal tests; GLB scene assembly, stackup-plane extraction, selectable nodes, and complete model coverage remain open. The latest full Windows local verifier passed 101 Rust tests and all nine gates. Earlier C-06 and PR history below is preserved. Milestones A and B remain complete for their declared scope. Only CLI source is writable; App/API/dataset repositories are inspected read-only. The owner authorized CLI issue/Project updates and an update to PR #11 after current-source local verification and independent review pass. GitHub Actions remain disabled; no main push or merge is authorized by this update.
+Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is complete; this active delivery goal audits the current CLI, records reproducible end-to-end evidence, reconciles PR #11 with current local source, and advances the evidence-gated path to selectable assembled 3D. The current code has pure-Rust parsed-mesh placement helpers based on pinned KiCad 10.0.7 STEP behavior. GLB scene assembly, stackup-plane extraction, selectable nodes, complete model coverage, and schematic-to-physical-layout conversion remain open. The full Windows local verifier passes 101 Rust tests and ten gates, including release-binary acceptance; use the newest `verification.json` under `target/delivery/local/` for the exact current receipt. Earlier C-06 and PR history below is preserved. Milestones A and B remain complete for their declared scope. Only CLI source is writable; App/API/dataset repositories are inspected read-only. The owner authorized CLI issue/Project updates, a normal feature-branch PR push, and later review-based merge; GitHub Actions remain disabled and direct main push is prohibited.
 
 ## 1. Product goal
 
@@ -156,7 +156,38 @@ This execution advances C-06 with secure offline model capture, CLI inventory, a
 | C-06g partial rules | Main | Existing shell | ✅ | Default refusal and explicit --allow-partial preserved; model lookup does not alter export |
 | C-06h full QA / delivery | Main + reviewer | Integrated files | ✅ QA / ✅ PR delivered | Nine-gate/90-test receipt above; independent reviews pass. Source commit 5db49481ce62e859d13cf0504c75f6f6d1124add pushed to PR #11; actual remote head verified. PR remains open; merge pending. No Actions or main push. |
 
-## 14. Significant transitions
+## 14. Active delivery board — TOKITO-PCB-ENGINE-002
+
+This table is the current work plan. Completed means evidence has been inspected;
+it does not extend the scope of a milestone or prove an untested integration.
+
+| ID | Work item | State | Evidence, dependency, or next acceptance gate |
+|---|---|---|---|
+| G-01 | Verify the existing goal claim | ✅ | Goal 001/Milestone B was attained only for its declared canonical-engine and topology scope. The complete selectable 3D, Desktop, App, and schematic-to-layout goal is not attained. |
+| G-02 | Correct local verification provenance | ✅ | The verifier excludes ignored Python bytecode, fingerprints the acceptance runner, and passes all ten gates. The newest receipt under `target/delivery/local/` is authoritative. |
+| G-03 | Exercise the release executable through real local subprocesses | ✅ | `scripts/real-cli-e2e.ps1` passes through the freshly built executable and saves its receipt under `target/real-cli-e2e/`. GUI/CAD-viewer/phone testing remains blocked by unavailable control/device capability. |
+| G-04 | Update PR #11 to current local source | 🔄 | Current-source local verification and independent review pass. Commit and push this branch, then update the PR body with the actual ten-gate receipt and limits. No Actions run. |
+| G-05 | Obtain current-head review and merge decision | ☐ | PR #11 has no review or hosted checks. The owner must review the pushed current head before merge; do not bypass unverified branch protection. |
+| K-01 | KiCad CLI behavior reconnaissance | ✅ limited | Local KiCad CLI reports 10.0.5. Version/help was inspected for SVG, GLB, and POS only; no board export was run. This documents syntax, not 10.0.7 behavior or artifact parity. |
+| K-02 | Pin and differentially test 10.0.7 behavior | ❌ blocked | Requires a designated 10.0.7 executable and pinned reference fixtures. Start with a bounded POS or SVG option subset, then compare parsed output, errors, units, origin, and side transforms. |
+| C-08 | Parse declared stackup and derive outer-copper planes | ☐ | Add typed source records, explicit diagnostics/refusal for incomplete or inconsistent stacks, source fixtures, and numerical mounting-plane tests. This unblocks use of the existing placement helper; it does not assemble component meshes. |
+| C-09 | Validate transforms against an independent mechanical/KiCad export oracle | ☐ | Requires an asymmetric board plus accepted model and a 10.0.7 or reviewed mechanical reference. Do not claim from source archaeology alone. |
+| C-10 | Assemble qualified component mesh geometry into GLB | ☐ | Depends on C-08/C-09 and a pinned mesh corpus. Preserve explicit partial export for any missing/unsupported model. |
+| C-11 | Emit deterministic UUID/refdes node and selector metadata | ☐ | Depends on C-10 and App's accepted identity contract. Node selection must not depend only on mutable refdes. |
+| H-01 | Define schematic-to-physical handoff | ✅ design evidence | Desktop snapshot `34a5f55c8425ff7ef53efd33bc6b6e36d0e877f5` provides stable symbol UUIDs, PinKey identities, connectivity and optional footprint references. Its schematic coordinates are not physical layout coordinates. |
+| H-02 | Implement or import an authored physical layout | ☐ | Requires outline, layers/stackup, placed footprints, side/rotation, routing and provenance. A schematic-only input must be rejected for physical 3D. |
+| E/F-01 | Agree Desktop-to-App package transport and import contract | ❌ blocked | The App snapshot accepts a completed assembly context and GLB manifest but has no board-layout resource/import bridge. Owners must reconcile authorized Cloud transport with optional local immutable-bundle language. |
+
+### Current error and blocker register
+
+| ID | State | Meaning and resolution path |
+|---|---|---|
+| ERR-005 | Active limitation | No callable GUI Computer Use or Android/ADB target is available in this session. Direct CLI subprocess E2E is run; CAD-viewer, Desktop, phone, AR, and visual overlay acceptance are not claimed. |
+| ERR-006 | Active limitation | Installed KiCad CLI is 10.0.5, not the proposed 10.0.7 baseline. Its help output is useful syntax evidence only. Install or nominate 10.0.7 before a parity claim. |
+| ERR-007 | Active delivery blocker | PR #11's remote head and body are stale. Fresh local verification, a normal branch push, honest PR update, and current-head review are required before merge. |
+| ERR-008 | Product blocker | The Desktop schematic and App assembly-context contracts are not a physical-layout handoff. Define and validate that separate contract before promising schematic-to-3D conversion. |
+
+## 15. Significant transitions
 
 - 2026-10-10: this local continuation is progress: acquired verified unchanged official curved reference files, reproduced two B public failures, fixed finite-segment ambiguity and invalid derived geometry, obtained independent source/evidence review, and passed all nine current-source gates with 92 Rust tests. All 105 receipt fingerprints matched before later narrative records. No push/PR/release/Actions/settings/sibling operation occurred in this continuation.
 
