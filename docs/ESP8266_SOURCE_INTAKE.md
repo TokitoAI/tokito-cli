@@ -21,3 +21,27 @@ The PR6 subtree `data/board-sources/esp8266-nodemcu-reference/` is materialized 
 Ignored local evidence: `target/github-delivery/esp8266-pr6-materialization-receipt.json`, source request/binding JSON, and `esp8266-step-preflight/` Rust/FreeCAD reports. Source records use mil placements and native Altium UNIQUEID strings, not KiCad footprint UUIDs. Do not transfer refdes/poses between the photographed clone and reference design without an exact crosswalk.
 
 The experimental reader exits 2 for every model because units, face completeness and assembly pose are not independently admitted. Mesh output and a valid external B-rep are observations, not proof that a complete model/board can ship. Follow [completion gates](KICAD_COMPLETION_GATES.md): reconcile unit contexts and native model/body associations, independently compare evaluated geometry, recover contour/pad/placement data, then export individually selectable entities with explicit identities and omission diagnostics. Production STEP/native Altium adapters and 4K renderer acceptance remain open.
+
+## Reproduced evaluated-reference comparison (2026-10-11)
+
+`scripts/evaluate-step-reference.py` is off-device FreeCAD/OCCT QA tooling, not
+a CLI runtime dependency. It imports materialized source STEP files, checks
+B-rep validity, evaluates triangle vertices at an explicit deflection, and
+records evaluated bounds separately from `Shape.BoundBox`. Each row binds the
+source bytes and evaluator version. It refuses an existing output, invalid
+geometry, nonfinite coordinates, and changed input bytes. The native evaluator
+allocation occurs before the post-tessellation mesh budget check; run it as an
+isolated, time-bounded QA process, not in the application hot path.
+
+A fresh 0.01 mm FreeCAD evaluation and the existing Rust candidate-mesh journey
+compared all 17 actual dataset files. All 17 normalized bounds differences were
+zero, including `11.step`. This replaces the old control-pole-envelope mismatch
+as the current evaluated-bounds observation; it does not certify corresponding
+surfaces, trim fidelity, Altium body transforms or the assembled board. All
+geometry/placement admission flags remain false.
+
+Local evidence is under `D:/TokitoCliBuilds/model-integration/evidence/`:
+`freecad-evaluated-reference.json`, `step-candidates/receipt.json`, and
+`associations/receipt.json`. The source body journey also reproduced all 34
+component identities and 62 body associations. Thirty header body instances
+are bottom-side candidates; do not apply top-side transforms to them.
