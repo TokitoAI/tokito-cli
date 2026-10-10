@@ -257,11 +257,141 @@ pub struct ModelReference {
     pub hidden: bool,
 }
 
+/// One physical-stackup record exactly as declared by the source board.
+/// This is distinct from the drawing-layer table: its order is physical.
+#[derive(Clone, Debug, PartialEq)]
+pub struct StackupLayer {
+    pub source: SourceLocator,
+    pub name: Option<String>,
+    pub kind: Option<String>,
+    pub thickness_mm: Option<f64>,
+}
+
+/// The optional KiCad physical stackup. It retains source order and does not
+/// silently substitute the board's nominal thickness for missing materials.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Stackup {
+    pub source: SourceLocator,
+    pub layers: Vec<StackupLayer>,
+}
+
+/// Outer copper surfaces in Tokito's board-body-centred placement frame.
+/// KiCad STEP itself uses a B.Cu-based origin; callers that need raw STEP
+/// coordinates must preserve a separate conversion rather than relabelling
+/// these centred values.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct OuterCopperPlanesMm {
+    pub front_copper_surface_z_mm: f64,
+    pub back_copper_surface_z_mm: f64,
+}
+
+impl Stackup {
+    /// Derive the two mounting surfaces using the pinned KiCad STEP walk: it
+    /// starts at B.Cu, walks the declared physical stack upward, and treats
+    /// only copper, core and prepreg records as board material. Missing or
+    /// unsupported records refuse rather than fabricate a placement plane.
+    pub fn outer_copper_planes_mm(&self) -> Result<OuterCopperPlanesMm, crate::EngineError> {
+        fn thickness(layer: &StackupLayer) -> Result<f64, crate::EngineError> {
+            let value = layer.thickness_mm.ok_or_else(|| {
+                crate::EngineError::new(
+                    "stackup copper or dielectric layer has no finite thickness",
+                )
+            })?;
+            if !value.is_finite() || value <= 0.0 {
+                return Err(crate::EngineError::new(
+                    "stackup copper or dielectric thickness must be positive",
+                ));
+            }
+            Ok(value)
+        }
+
+        fn copper_position(
+            layers: &[StackupLayer],
+            target: &str,
+        ) -> Result<(f64, f64), crate::EngineError> {
+            let mut z = 0.0;
+            let mut was_prepreg = false;
+            for layer in layers.iter().rev() {
+                let kind = layer.kind.as_deref().unwrap_or("").to_ascii_lowercase();
+                let name = layer.name.as_deref().unwrap_or("");
+                match kind.as_str() {
+                    "copper" => {
+                        let value = thickness(layer)?;
+                        if target == "B.Cu" && name == "B.Cu" {
+                            return Ok((z, -value));
+                        }
+                        let signed = if was_prepreg && name != "F.Cu" {
+                            z += value;
+                            -value
+                        } else {
+                            value
+                        };
+                        if name == target {
+                            return Ok((z, signed));
+                        }
+                        if !was_prepreg && name != "B.Cu" {
+                            z += value;
+                        }
+                    }
+                    "core" | "prepreg" => {
+                        z += thickness(layer)?;
+                        was_prepreg = kind == "prepreg";
+                    }
+                    _ if name == "F.Cu" || name == "B.Cu" => {
+                        return Err(crate::EngineError::new(
+                            "outer stackup layer is not declared as copper",
+                        ));
+                    }
+                    _ if layer.thickness_mm.is_some() && !is_technical_layer(name) => {
+                        return Err(crate::EngineError::new(
+                            "stackup contains an unsupported physical material layer",
+                        ));
+                    }
+                    _ => {}
+                }
+            }
+            Err(crate::EngineError::new(
+                "stackup does not contain the requested outer copper layer",
+            ))
+        }
+
+        let (front_position, front_thickness) = copper_position(&self.layers, "F.Cu")?;
+        let (back_position, back_thickness) = copper_position(&self.layers, "B.Cu")?;
+        let body_top = front_position.min(front_position + front_thickness);
+        let body_bottom = back_position.max(back_position + back_thickness);
+        if !body_top.is_finite() || !body_bottom.is_finite() || body_top <= body_bottom {
+            return Err(crate::EngineError::new(
+                "stackup cannot establish a positive board body between outer copper layers",
+            ));
+        }
+        let center = (body_top + body_bottom) / 2.0;
+        let front = front_position.max(front_position + front_thickness) - center;
+        let back = back_position.min(back_position + back_thickness) - center;
+        if !front.is_finite() || !back.is_finite() || front <= back {
+            return Err(crate::EngineError::new(
+                "stackup cannot establish ordered outer copper surfaces",
+            ));
+        }
+        Ok(OuterCopperPlanesMm {
+            front_copper_surface_z_mm: front,
+            back_copper_surface_z_mm: back,
+        })
+    }
+}
+
+fn is_technical_layer(name: &str) -> bool {
+    matches!(
+        name,
+        "F.SilkS" | "B.SilkS" | "F.Paste" | "B.Paste" | "F.Mask" | "B.Mask" | "F.Adhes" | "B.Adhes"
+    )
+}
+
 /// Typed source inventory shared by Rust consumers. Geometry remains explicitly
 /// partial: this record is not a DRC, a contour solver or a model resolver.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EngineeringData {
     pub layers: Vec<Layer>,
+    pub stackup: Option<Stackup>,
     pub nets: Vec<Net>,
     pub components: Vec<Component>,
     pub pads: Vec<Pad>,
@@ -1105,6 +1235,33 @@ impl EngineeringData {
                 importer.data.layers.push(layer);
             }
         }
+        if let Some((setup_ordinal, setup)) =
+            children(root).find(|(_, node)| node.head() == Some("setup"))
+        {
+            let setup_source = source_locator(setup, setup_ordinal, None);
+            if let Some((stackup_ordinal, stackup)) =
+                children(setup).find(|(_, node)| node.head() == Some("stackup"))
+            {
+                let stackup_source = child_locator(stackup, stackup_ordinal, &setup_source);
+                let mut stackup_layers = Vec::new();
+                for (ordinal, node) in children(stackup) {
+                    if node.head() != Some("layer") {
+                        continue;
+                    }
+                    let source = child_locator(node, ordinal, &stackup_source);
+                    stackup_layers.push(StackupLayer {
+                        name: node.value_at(1).map(str::to_owned),
+                        kind: text(node, "type", 1),
+                        thickness_mm: importer.dimension(node, "thickness", &source, false),
+                        source,
+                    });
+                }
+                importer.data.stackup = Some(Stackup {
+                    source: stackup_source,
+                    layers: stackup_layers,
+                });
+            }
+        }
         for (ordinal, node) in children(root) {
             let source = source_locator(node, ordinal, None);
             match node.head() {
@@ -1385,5 +1542,110 @@ mod tests {
         ));
         assert_eq!(component_id.as_ref(), long_uuid);
         assert_eq!(duplicate.raw_value, None);
+    }
+
+    #[test]
+    fn stackup_preserves_source_order_and_derives_centred_outer_copper_planes() {
+        let data = source(
+            "(kicad_pcb (setup (stackup
+                (layer \"F.Mask\" (type \"Top Solder Mask\") (thickness 0.01))
+                (layer \"F.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 1\" (type \"core\") (thickness 1.51))
+                (layer \"B.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"B.Mask\" (type \"Bottom Solder Mask\") (thickness 0.01)))))",
+        );
+        let stackup = data.stackup.as_ref().expect("declared stackup");
+        assert_eq!(stackup.layers.len(), 5);
+        assert_eq!(stackup.layers[1].name.as_deref(), Some("F.Cu"));
+        assert_eq!(stackup.layers[3].name.as_deref(), Some("B.Cu"));
+        let planes = stackup
+            .outer_copper_planes_mm()
+            .expect("outer copper planes");
+        assert!((planes.front_copper_surface_z_mm - 0.79).abs() < 1e-12);
+        assert!((planes.back_copper_surface_z_mm + 0.79).abs() < 1e-12);
+    }
+
+    #[test]
+    fn incomplete_outer_copper_stackup_refuses_mounting_planes() {
+        let data = source(
+            "(kicad_pcb (setup (stackup
+                (layer \"F.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 1\" (type \"core\") (thickness 1.51)))))",
+        );
+        let error = data
+            .stackup
+            .as_ref()
+            .unwrap()
+            .outer_copper_planes_mm()
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("requested outer copper"));
+    }
+
+    #[test]
+    fn four_layer_prepreg_walk_matches_the_pinned_step_ordering() {
+        let data = source(
+            "(kicad_pcb (setup (stackup
+                (layer \"F.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 1\" (type \"prepreg\") (thickness 0.1))
+                (layer \"In1.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 2\" (type \"core\") (thickness 1.4))
+                (layer \"In2.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 3\" (type \"prepreg\") (thickness 0.1))
+                (layer \"B.Cu\" (type \"copper\") (thickness 0.035)))))",
+        );
+        let planes = data
+            .stackup
+            .as_ref()
+            .unwrap()
+            .outer_copper_planes_mm()
+            .unwrap();
+        assert!((planes.front_copper_surface_z_mm - 0.87).abs() < 1e-12);
+        assert!((planes.back_copper_surface_z_mm + 0.87).abs() < 1e-12);
+    }
+
+    #[test]
+    fn unknown_thick_stackup_material_fails_closed() {
+        let data = source(
+            "(kicad_pcb (setup (stackup
+                (layer \"F.Cu\" (type \"copper\") (thickness 0.035))
+                (layer \"dielectric 1\" (type \"mystery\") (thickness 1.51))
+                (layer \"B.Cu\" (type \"copper\") (thickness 0.035)))))",
+        );
+        let error = data
+            .stackup
+            .as_ref()
+            .unwrap()
+            .outer_copper_planes_mm()
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("unsupported physical material"));
+    }
+
+    #[test]
+    fn public_stackup_api_rejects_nonfinite_and_nonpositive_thicknesses() {
+        let layer = |name: &str, kind: &str, thickness_mm: f64| StackupLayer {
+            source: SourceLocator {
+                kind: "layer".to_owned(),
+                ordinal: 0,
+                component_ordinal: None,
+                source_uuid: None,
+                source_path: vec![],
+            },
+            name: Some(name.to_owned()),
+            kind: Some(kind.to_owned()),
+            thickness_mm: Some(thickness_mm),
+        };
+        for invalid in [f64::NAN, f64::INFINITY, 0.0, -0.035] {
+            let stackup = Stackup {
+                source: layer("stackup", "metadata", 1.0).source,
+                layers: vec![
+                    layer("F.Cu", "copper", invalid),
+                    layer("dielectric 1", "core", 1.51),
+                    layer("B.Cu", "copper", 0.035),
+                ],
+            };
+            assert!(stackup.outer_copper_planes_mm().is_err());
+        }
     }
 }

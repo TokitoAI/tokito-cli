@@ -6,7 +6,7 @@
 - The old physical checkout contains an Allegro `.brd` source and supporting NXP files, but it is a separate ignored local dataset with source/licensing/provenance constraints. It is not an accepted KiCad parser fixture.
 - `devboard_ar_dataset` has no actual PCB, photo, or label samples; its GLBs are placeholders.
 
-The implemented outline validator is documented in [PCB_TOPOLOGY.md](PCB_TOPOLOGY.md). It is an analytic, bounded topology check for a supported subset, not full CAD/DRC conformance. Custom-pad rendering, source-derived placement helpers are not a substitute for stackup-derived component placement, GLB scene assembly/selection, and manufacturer validation, which remain future work; the existing partial board-shell triangulation is separately gated.
+The implemented outline validator is documented in [PCB_TOPOLOGY.md](PCB_TOPOLOGY.md). It is an analytic, bounded topology check for a supported subset, not full CAD/DRC conformance. The canonical import now retains a physical stackup and can strictly derive centred outer-copper planes for supported `core`/`prepreg` stacks. It refuses incomplete or inconsistent stacks. Those planes are not yet wired into GLB component assembly or selection; custom-pad rendering and manufacturer validation also remain future work. The existing partial board-shell triangulation is separately gated.
 
 ## Current executable slice
 

@@ -19,9 +19,10 @@ layout and one independently inventoried local mesh (29 root Shapes, 26 meshes,
 triangle-mesh placement APIs based on the pinned KiCad 10.0.7 STEP exporter
 behavior. Nine focused tests cover asymmetric front/back poses, frame reflection,
 signed scale parity, triangle winding, and recomputed normals. Both APIs require
-explicit front/back copper-plane inputs; stackup extraction, GLB scene assembly,
-component UUID/refdes nodes, and independent comparison with a generated CAD
-export remain open. The board-shell GLB remains partial and requires
+explicit front/back copper-plane inputs; the canonical source parser now derives
+supported copper/core/prepreg stackup planes, but GLB scene assembly, component
+UUID/refdes nodes, and independent comparison with a generated CAD export remain
+open. The board-shell GLB remains partial and requires
 `--allow-partial`.
 
 Read-only remote snapshots are App `780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50`
@@ -110,7 +111,7 @@ release build, four-board CLI subprocess E2E, geometry/SVG/Gerber reference E2E,
 board-shell GLB E2E, model-resolution E2E, historical v0.1 compatibility, and a
 release-binary acceptance journey that preserves a local machine-readable receipt
 under `target/real-cli-e2e/`.
-There are 101 Rust tests, including nine focused placement tests. No hosted
+There are 106 Rust tests, including nine focused placement tests. No hosted
 workflow is run. The verifier writes a timestamped receipt in that directory;
 the newest receipt records the current source fingerprints and actual results.
 Check that receipt before delivery instead of relying on older narrative counts.
@@ -146,7 +147,7 @@ Desktop schematic coordinates use a project-specific unit system. The reviewed M
 
 ## What remains
 
-Milestones A and B are complete locally for the limited supported scope. The near-parallel ambiguity defect was reproduced, fixed, independently reviewed, and covered by a public regression. Milestone C is active: the shell-only GLB slice, bounded offline model capture, strict WRL profile, and source-derived point/mesh placement helpers pass local tests. Stackup extraction and copper-plane derivation, per-component mesh integration and provenance, UUID/refdes nodes, and full-coverage exports remain next. Then version the native Tokito geometry/model package. Desktop and MCP connection follows after confirming actual desktop formats and separately granting sibling-repository write access. tokito-app import and AR follow the versioned package contract and require a real Android/iQOO device journey. Pure-Rust STEP support is a feasibility study after selectable GLB. Schematic-to-PCB needs a separate layout/placement/routing stage; the engine must not invent it.
+Milestones A and B are complete locally for the limited supported scope. The near-parallel ambiguity defect was reproduced, fixed, independently reviewed, and covered by a public regression. Milestone C is active: the shell-only GLB slice, bounded offline model capture, strict WRL profile, source-derived point/mesh placement helpers, and strict supported stackup-plane derivation pass local tests. Per-component mesh integration and provenance, UUID/refdes nodes, full-coverage exports, and independent generated-export comparison remain next. Then version the native Tokito geometry/model package. Desktop and MCP connection follows after confirming actual desktop formats and separately granting sibling-repository write access. tokito-app import and AR follow the versioned package contract and require a real Android/iQOO device journey. Pure-Rust STEP support is a feasibility study after selectable GLB. Schematic-to-PCB needs a separate layout/placement/routing stage; the engine must not invent it.
 
 The issue and project board order is recorded in the private CLI project. Do not use KiCad CLI as a production dependency, invent 3D models, treat a schematic as a board layout, label hash checks as signatures, or claim complete compatibility from inventory counts.
 
