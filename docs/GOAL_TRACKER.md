@@ -253,3 +253,39 @@ Last updated: 2026-10-10. The frozen selector/help/assembly source passed all te
 Current implementation: the model-assignment manifest and assigned partial-WRL export are implemented on `codex/component-model-qualification`, awaiting the current full local verification, independent review and a separate PR. The manifest preserves all source components, binds exact source identities to the PCB SHA-256 and checks model bytes, explicit units and transforms. It does not certify an engineering body match, pose, physical revision or complete board. See `MODEL_ASSIGNMENTS.md`.
 
 Next approved work: issue #20 independent per-dataset model/pose/geometry evidence, alongside issue #19 STEP surface/trim qualification. The new local branch is codex/component-model-qualification, based on merged main. Identity reconciliation is delivered; complete component CAD, independent pose/geometry acceptance, App integration and full KiCad parity remain incomplete. This goal remains active.
+
+## Component Forge — first evidence-gated slice (2026-10-10)
+
+This is an additive workstream under the existing `TOKITO-PCB-ENGINE-002` goal; it does not restart or complete the native goal. The goal API currently reports that goal as `active` and does not expose objective editing. This tracker and CLI issue #22 hold the current task status.
+
+| Task | State | Evidence / next action |
+|---|---|---|
+| Read and challenge the personal-AI plan | ✅ | Accepted the staged architecture, rejected the implied broad all-family delivery as unsupported by current evidence, preserved the existing repository and issue history |
+| Classify the real MCXN236 U11 gap | ✅ | U11 has existing pads 1–9 with custom geometry and no model reference; it is a model gap, not a missing footprint |
+| Research generator and CAD references | ✅ | Pinned KiCad generator/library references and reviewed Truck, ruststep, Python CAD, image-registration, and optional part-lookup roles; no new production dependencies admitted |
+| Strict package/body evidence record | ◐ | Current request binds board hash and unique refdes/UUID; BOM/manufacturer fields are explicitly unverified source claims. Add a richer tolerance-aware package spec later |
+| Nominal candidate envelope and generic selectable GLB | ✅ bounded | Deterministic 8-vertex/12-triangle WRL; fixture E2E emits one candidate `ref:R1` GLB mesh after explicit partial consent; not an engineering model |
+| Actual dataset U11 run | ✅ refusal path | Generates the 3 × 3 × 0.85 mm candidate and assignment manifest. U11 is withheld from GLB; missing canonical stackup is confirmed, and the exporter reports the combined `missing_stackup_or_outline` state |
+| Footprint geometry and `.kicad_mod` serializer | ☐ | No footprint generated. Select a true missing-footprint case and recover/verify complete manufacturer land-pattern coordinates before implementing |
+| U11 component-bearing GLB | ☐ | Requires a qualified same-board stackup/outline path and sourced geometry/pose evidence; never infer from the related Gerber job without an adapter and provenance check |
+| GUI/CAD visual comparison | ⏸ | Not run in this session; command-level E2E does not substitute for a viewer comparison |
+| GitHub delivery | 🔄 | Issue #22 and the CLI Project track the slice. PR #21 remains an open dependency. Create a dependent feature PR only after complete current-source verification and independent review; no Actions, merge, or sibling writes |
+
+The actual dataset E2E is included as an optional local verifier gate with `-DatasetRepo` and `-DatasetBomReport`; the generic component envelope journey is in the portable default gate set. Details and evidence limits are in [Component Forge qualification](COMPONENT_FORGE_QUALIFICATION.md), with design in [architecture](COMPONENT_FORGE_ARCHITECTURE.md), schema in [specification](COMPONENT_FORGE_SPECIFICATION.md), and tool decisions in [open-source review](COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md). The current full-source verification receipt remains the newest receipt under `target/delivery/local/` and is authoritative only if every recorded fingerprint matches the final tree.
+
+## Per-component twin selection — CLI handoff (2026-10-10)
+
+The preceding component-envelope source passed 19 local gates in the F: delivery receipt at 20261010T075121Z. The added source below requires its own current-source receipt. The verifier now runs 18 portable gates or 20 with both dataset profiles; use the newest matching receipt in the selected delivery base (F:\TokitoCliDelivery for this work).
+
+| Task | Owner | State | Evidence / next action |
+|---|---|---|---|
+| Audit updated dataset PR #6 and App main | Read-only evidence agents | Complete | PR head 5283bc0 adds capture evidence and no changed CAD binaries; main remains pinned |
+| Expose source revision mismatch | CLI documentation | Complete | NXP B marking differs from available C design; reviewed board-reference manifest absent |
+| Audit isolated renderable selectors | Rust CLI | Implemented | Source NXP has 354 reference parents and zero direct renderable selectors |
+| Prepare mesh names and manifest hashes | Rust CLI | Implemented | Focused fixture and NXP runs passed; payload and all non-name node values preserved after float-roundtrip correction |
+| Exact ref/class-claim query | Rust CLI | Implemented | Unique, ambiguous, missing-model and no-match states; no positional guidance claim |
+| Current-source E2E / review / PR | CLI QA + reviewer | Release gate | Full 20-gate local runner and independent review before branch delivery; no hosted Actions |
+| Board-reference and PCB crosswalk | CLI + dataset | Open | Source hash, UUID/refdes, reviewed revision/targets/context and decoded bounds |
+| App colour selection and import bridge | App owner | Open | Scoped App edits need permission; per-entity material restoration and device acceptance |
+
+See [the complete CLI flow, evidence and staged AR plan](DIGITAL_TWIN_SELECTION.md). Footprint generation, exact component CAD, complete KiCad parity, App import and registered physical guidance remain unfinished.

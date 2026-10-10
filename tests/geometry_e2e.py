@@ -215,8 +215,11 @@ def compare_svg_reference(root, reference):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
-    binary = parser.parse_args().binary.resolve(strict=True)
-    output_parent = ROOT / "target/geometry-e2e"
+    parser.add_argument("--output-dir", type=Path)
+    args = parser.parse_args()
+    binary = args.binary.resolve(strict=True)
+    output_parent = args.output_dir or ROOT / "target/geometry-e2e"
+    output_parent = output_parent.resolve()
     output_parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="run-", dir=output_parent) as temporary:
         output = Path(temporary)

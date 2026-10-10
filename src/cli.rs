@@ -1,5 +1,67 @@
 use super::*;
 
+fn twin_command(args: &[String]) -> Result<(), CliError> {
+    if args.len() < 7 || args[3] != "--component-map" || args[5] != "--manifest" {
+        return Err(CliError::new(
+            "usage: twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <AUTHORED_LABEL>]",
+        ));
+    }
+    let twin = digital_twin::ValidatedTwin::load(
+        Path::new(&args[2]),
+        Path::new(&args[4]),
+        Path::new(&args[6]),
+    )?;
+    let json_bytes = |value: &serde_json::Value| {
+        serde_json::to_vec_pretty(value).map_err(|e| CliError::new(e.to_string()))
+    };
+    match args[1].as_str() {
+        "inspect" if args.len() == 7 => {
+            println!(
+                "{}",
+                String::from_utf8(json_bytes(&twin.index_json())?).unwrap()
+            );
+        }
+        "select" if args.len() == 9 && (args[7] == "--reference" || args[7] == "--class") => {
+            let result = if args[7] == "--reference" {
+                twin.select(Some(&args[8]), None)?
+            } else {
+                twin.select(None, Some(&args[8]))?
+            };
+            println!("{}", String::from_utf8(json_bytes(&result)?).unwrap());
+        }
+        "prepare"
+            if (args.len() == 9 || args.len() == 10 && args[9] == "--allow-partial")
+                && args[7] == "--output" =>
+        {
+            let prepared = twin.prepare(args.len() == 10)?;
+            let output = Path::new(&args[8]);
+            // Exclusive creation prevents reuse or replacement of a user's folder.
+            fs::create_dir(output).map_err(|e| {
+                CliError::new(format!("cannot create new twin output directory: {e}"))
+            })?;
+            write_new_file(&output.join("active.digital-twin.glb"), &prepared.glb)?;
+            for (name, value) in [
+                ("active.digital-twin.json", &prepared.manifest),
+                ("component-map.json", &prepared.component_map),
+                ("component-index.json", &prepared.index),
+                ("prepare-report.json", &prepared.report),
+            ] {
+                write_new_file(&output.join(name), &json_bytes(value)?)?;
+            }
+            println!(
+                "{}",
+                String::from_utf8(json_bytes(&prepared.report)?).unwrap()
+            );
+        }
+        _ => {
+            return Err(CliError::new(
+                "unsupported twin command or arguments; use tokito-cli help twin",
+            ));
+        }
+    }
+    Ok(())
+}
+
 fn reconcile_bom(args: &[String]) -> Result<(), CliError> {
     if !(args.len() == 7 || args.len() == 8 && args[7] == "--json")
         || args[3] != "--bom"
@@ -71,6 +133,73 @@ fn model_assignments_command(args: &[String]) -> Result<(), CliError> {
     }
 }
 
+fn component_model_envelope_command(args: &[String]) -> Result<(), CliError> {
+    use std::io::Read;
+
+    if args.len() < 8 || args[0] != "component" || args[1] != "model" || args[2] != "envelope" {
+        return Err(CliError::new(
+            "usage: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]",
+        ));
+    }
+    let spec_path = Path::new(&args[3]);
+    let mut board_path = None;
+    let mut output_path = None;
+    let mut json_output = false;
+    let mut index = 4;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--board" if index + 1 < args.len() && board_path.is_none() => {
+                board_path = Some(Path::new(&args[index + 1]));
+                index += 2;
+            }
+            "--output" if index + 1 < args.len() && output_path.is_none() => {
+                output_path = Some(Path::new(&args[index + 1]));
+                index += 2;
+            }
+            "--json" if !json_output => {
+                json_output = true;
+                index += 1;
+            }
+            _ => {
+                return Err(CliError::new(
+                    "usage: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]",
+                ));
+            }
+        }
+    }
+    let board_path = board_path.ok_or_else(|| CliError::new("missing --board"))?;
+    let output_path = output_path.ok_or_else(|| CliError::new("missing --output"))?;
+    let file = std::fs::File::open(spec_path)
+        .map_err(|error| CliError::new(format!("cannot read component specification: {error}")))?;
+    let mut bytes = Vec::new();
+    file.take(64 * 1024 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| CliError::new(format!("cannot read component specification: {error}")))?;
+    let spec = component_forge::parse_component_envelope_spec(&bytes)?;
+    let board = load_board_input(board_path)?;
+    component_forge::validate_component_envelope(&spec, &board)?;
+    let wrl = component_forge::generate_envelope_wrl(&spec);
+    write_new_file(output_path, wrl.as_bytes())?;
+    let report = component_forge::envelope_report_json(&spec);
+    if json_output {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|_| CliError::new("cannot encode component envelope report"))?
+        );
+    } else {
+        println!(
+            "Wrote provisional body envelope for {} to {}",
+            spec.component_reference(),
+            output_path.display()
+        );
+        println!(
+            "Geometry remains an envelope candidate; footprint, pose and physical fit are not certified."
+        );
+    }
+    Ok(())
+}
+
 fn print_help() {
     println!(
         "Tokito CLI 0.1.0\n\
@@ -89,6 +218,8 @@ fn print_help() {
          \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
+         \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
+         \ttokito-cli twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
          \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
@@ -99,6 +230,8 @@ fn print_help() {
          \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
          \tbom      Reconcile dataset BOM references with PCB identities.\n\
+         \tcomponent Generate an evidence-bound provisional component body envelope.\n\
+         \ttwin     Audit and prepare per-component renderable selectors, or query authored labels.\n\
          \tpackage  Build or verify a Tokito source-and-inventory package.\n\
          \n\
          VERSION:\n\
@@ -161,6 +294,12 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         | ["model", "assignments", "template"]
         | ["model", "assignments", "verify"] => println!(
             "USAGE: tokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n       tokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\nAssigned bodies: export glb <BOARD> --model-assignments <FILE.json> --project-root <DIR> --output <FILE.glb> --allow-partial --json-report\nAssignment and rendered coverage do not certify part identity, pose or geometry."
+        ),
+        ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
+            "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
+        ),
+        ["twin"] | ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "select"] => println!(
+            "USAGE: tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nMoves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
         ),
         ["model"] | ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
@@ -267,6 +406,12 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     }
     if args[0] == "model" && args.get(1).is_some_and(|value| value == "inspect") {
         return inspect_model(args);
+    }
+    if args[0] == "component" {
+        return component_model_envelope_command(args);
+    }
+    if args[0] == "twin" {
+        return twin_command(args);
     }
     if args[0] == "inspect" {
         if args.len() < 2 || args.len() > 3 || (args.len() == 3 && args[2] != "--json") {
