@@ -21,7 +21,9 @@ contours/bounds and cannot pass the SVG physical-outline gate.
 Endpoint joins use Euclidean distance at or below `1e-6 mm` (1 nanometre). The
 engine does not quantize coordinates or transitively weld a chain of endpoints.
 Multiple possible partners are ambiguous. Positive overlap/intersection is
-checked as geometry independently from join tolerance. Arc intersections,
+checked as geometry independently from join tolerance. Near-parallel ambiguity
+also requires proximity of the finite projected intervals; distant support
+lines alone do not establish a segment contact. Arc intersections,
 extrema, signed area and containment use analytic circle calculations; no polygon
 tessellation is used for acceptance.
 
@@ -41,10 +43,16 @@ outline gate to pass, uses physical Edge.Cuts arc math and centerline view bound
 and leaves non-Edge.Cuts drawing projection and v0.1 inventory bytes compatible.
 The SVG viewport includes rendered outline stroke and its existing display
 margin; centerline-only physical bounds are reported separately by the API.
-It does not perform DRC, copper connectivity, fabrication validation, hole
-triangulation, board extrusion, 3D model resolution or GLB/STEP export. Source
-inventory and v0.1 packages with a physically invalid outline can still be
-imported and integrity-verified; their SVG export is refused.
+The topology API itself does not perform DRC, copper connectivity, fabrication
+validation, triangulation, or 3D model resolution. A separate opt-in GLB exporter
+uses a valid report to triangulate/extrude a board shell; it does not add component
+models. STEP is unimplemented. Source inventory and v0.1 packages with a
+physically invalid outline can still be imported and integrity-verified; their
+SVG and GLB exports are refused.
+
+Invalid reports retain source primitives and diagnostics for investigation but
+clear derived certified bounds/contours, including unsupported records detected
+after normalization and invalid contour nesting/disconnection.
 
 ## Evidence
 
@@ -60,6 +68,13 @@ are in `src/topology.rs`. The real CLI and independent reference journey is
   test was about `2.84e-14 mm`; maximum source-vs-Gerber arc-center error was
   `2.182e-6 mm`, below the stated `5e-6 mm` tolerance. The original board has
   approximately `0.0035355 mm` open endpoint gaps and must remain rejected.
+
+- Original Opulo LumenPnP vacuum adapter: unchanged official PCB and stored
+  KiCad 6.0.1 profile at commit `11f17018e61c1513400680852bd1f34afb207b3c`.
+  Eight entities include four lines, two arcs and two footprint-owned circles.
+  The E2E additionally compares actual SVG path/circle geometry directly with
+  the external Gerber, including radius/sweep and negative corrupted outputs.
+  This is vector geometry evidence, not raster rendering or full plot fidelity.
 
 Fixture pinning, license notices, exact digests and feature boundaries are in
 [`PCB_FIXTURE_CORPUS.md`](PCB_FIXTURE_CORPUS.md). Historical inventory/SVG/package

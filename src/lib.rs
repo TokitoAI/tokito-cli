@@ -6,8 +6,12 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 mod cli;
+pub mod component_pose;
 pub mod document;
 mod geometry;
+mod glb;
+pub mod model_mesh;
+pub mod model_resolver;
 mod package_input;
 mod strict_json;
 pub mod topology;
@@ -141,6 +145,16 @@ pub enum SvgSide {
     Top,
     Bottom,
 }
+
+/// Controls whether an explicitly incomplete GLB may be produced.
+/// The current board-shell-only exporter is always partial and is refused by default.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct GlbExportOptions {
+    pub allow_partial: bool,
+}
+
+pub use glb::{GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
+
 impl SvgSide {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -297,6 +311,12 @@ impl PhysicalBoardDocument {
             )));
         }
         geometry::render_validated_svg(&self.geometry, &self.layers, side.as_str(), layers)
+    }
+    /// Export a self-contained GLB board shell from validated physical topology.
+    /// This initial GLB slice does not resolve component models; set
+    /// `allow_partial` explicitly to export a shell while components are missing.
+    pub fn export_glb(&self, options: GlbExportOptions) -> Result<GlbExport, EngineError> {
+        glb::export_board_shell(self, options.allow_partial)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())
@@ -898,6 +918,7 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
             });
         }
     }
+    outline.discard_invalid_geometry();
     Ok(Board {
         source: path.to_path_buf(),
         source_bytes: bytes.len(),

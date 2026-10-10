@@ -103,6 +103,15 @@ impl OutlineReport {
     pub fn is_valid(&self) -> bool {
         self.diagnostics.is_empty() && !self.contours.is_empty()
     }
+    /// Unsupported source records may invalidate a previously built report.
+    /// Keep primitives/diagnostics for inspection, but never publish certified
+    /// derived geometry when the complete outline did not pass validation.
+    pub(crate) fn discard_invalid_geometry(&mut self) {
+        if !self.is_valid() {
+            self.bounds = None;
+            self.contours.clear();
+        }
+    }
     fn fail(&mut self, code: OutlineDiagnosticCode, source: Option<&SourceLocator>, message: &str) {
         if self.diagnostics.len() < MAX_DIAGNOSTICS {
             self.diagnostics.push(OutlineDiagnostic {
@@ -433,7 +442,9 @@ pub(crate) fn from_engineering(engineering: &EngineeringData) -> OutlineReport {
             );
         }
     }
-    validate(report)
+    let mut report = validate(report);
+    report.discard_invalid_geometry();
+    report
 }
 
 fn endpoints(shape: &OutlineShape) -> Option<(Point2, Point2)> {
@@ -509,17 +520,21 @@ fn line_line(a: Point2, b: Point2, c: Point2, d: Point2) -> Contacts {
     let lu = length(u);
     let lv = length(v);
     if denominator.abs() <= 1e-12 * lu * lv {
+        let t0 = dot(w, u) / dot(u, u);
+        let t1 = dot(sub(d, a), u) / dot(u, u);
+        let low = t0.min(t1).max(0.0);
+        let high = t0.max(t1).min(1.0);
         if cross(w, u).abs() / lu <= JOIN_TOLERANCE_MM {
-            let t0 = dot(w, u) / dot(u, u);
-            let t1 = dot(sub(d, a), u) / dot(u, u);
-            let low = t0.min(t1).max(0.0);
-            let high = t0.max(t1).min(1.0);
             if high > low {
                 out.overlap = true;
             } else if high >= low - JOIN_TOLERANCE_MM / lu {
                 out.points.push(add(a, mul(u, (low + high) / 2.0)));
             }
-        } else if cross(w, u).abs() / lu <= JOIN_TOLERANCE_MM * 2.0 {
+        } else if cross(w, u).abs() / lu <= JOIN_TOLERANCE_MM * 2.0
+            && high >= low - JOIN_TOLERANCE_MM * 2.0 / lu
+        {
+            // Close infinite support lines do not imply contact between
+            // finite segments whose projected intervals are distant.
             out.ambiguous = true;
         }
         return out;

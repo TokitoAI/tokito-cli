@@ -36,7 +36,7 @@ function Assert-LocalOutputPath([string]$Path) {
 }
 
 function Get-InputFingerprints {
-    $paths = @('Cargo.toml', 'Cargo.lock', 'scripts/verify-local.ps1', 'README.md')
+    $paths = @('Cargo.toml', 'Cargo.lock', 'scripts/verify-local.ps1', 'scripts/real-cli-e2e.ps1', 'README.md')
     foreach ($optionalRootFile in @('AGENTS.md')) {
         if (Test-Path -LiteralPath (Join-Path $projectRoot $optionalRootFile)) { $paths += $optionalRootFile }
     }
@@ -44,6 +44,10 @@ function Get-InputFingerprints {
         $inputDirectory = Join-Path $projectRoot $directory
         if (Test-Path -LiteralPath $inputDirectory) {
             $paths += Get-ChildItem -LiteralPath $inputDirectory -Recurse -File |
+                Where-Object {
+                    $_.FullName -notmatch '(?i)(^|[\\/])__pycache__([\\/]|$)' -and
+                    $_.Extension -notin @('.pyc', '.pyo')
+                } |
                 ForEach-Object { [System.IO.Path]::GetRelativePath($projectRoot, $_.FullName) }
         }
     }
@@ -60,7 +64,10 @@ function Get-InputFingerprints {
 Push-Location -LiteralPath $projectRoot
 try {
     $env:RUSTC = $rustcCommand.Source
-    $env:CARGO_TARGET_DIR = Join-Path $projectRoot 'target/local-verification'
+    # Fresh outputs avoid replacing Windows test executables that may be locked.
+    # Each run remains isolated inside this checkout; previous evidence is retained.
+    $verificationRun = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N')
+    $env:CARGO_TARGET_DIR = Join-Path $projectRoot "target/local-verification/$verificationRun"
     Assert-LocalOutputPath $env:CARGO_TARGET_DIR
     if (Test-Path -LiteralPath $env:CARGO_TARGET_DIR) {
         foreach ($item in (Get-ChildItem -LiteralPath $env:CARGO_TARGET_DIR -Recurse -Force)) {
@@ -79,7 +86,10 @@ try {
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) }
+        @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
+        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) }
     )
     $results = @()
     $testedBinaryHash = $null
@@ -133,7 +143,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'No KiCad visual oracle, phone/AR E2E, GLB/STEP or desktop integration acceptance.')
+        limitations = @('Local platform/toolchain only.', 'Offline model capture, a declared flat-triangle VRML profile, and source-derived point/mesh placement helpers are checked; GLB remains board-shell-only. Stackup-derived mounting planes, GLB-integrated component geometry/selection, KiCad-export equivalence, general VRML/STEP, phone/AR and Desktop acceptance remain unverified.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"

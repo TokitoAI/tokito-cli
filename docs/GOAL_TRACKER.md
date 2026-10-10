@@ -1,6 +1,6 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
-Goal ID: TOKITO-PCB-ENGINE-001. Current execution: Milestones A and B are complete for their declared scope after the fail-closed audit fix.
+Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is complete; this active delivery goal audits the current CLI, records reproducible end-to-end evidence, reconciles PR #11 with current local source, and advances the evidence-gated path to selectable assembled 3D. The current code has pure-Rust parsed-mesh placement helpers and strict source-stackup outer-copper-plane derivation based on pinned KiCad 10.0.7 STEP behavior. GLB scene assembly, selectable nodes, complete model coverage, independent generated-export comparison, and schematic-to-physical-layout conversion remain open. Use the newest `verification.json` under `target/delivery/local/` for the exact current receipt. Earlier C-06 and PR history below is preserved. Milestones A and B remain complete for their declared scope. Only CLI source is writable; App/API/dataset repositories are inspected read-only. The owner authorized CLI issue/Project updates, a normal feature-branch PR push, and later review-based merge; GitHub Actions remain disabled and direct main push is prohibited.
 
 ## 1. Product goal
 
@@ -8,18 +8,21 @@ Build an original, pure-Rust, offline-first, Windows-first engine that imports s
 
 ## 2. Current stage and progress
 
-Milestones A and B are complete for their stated scope. B implements supported physical Edge.Cuts topology, contained cutout classification, historical v0.1 output compatibility, and pinned board/Gerber comparisons. Independent review found a fail-closed gap for near-parallel contours; it is fixed and covered by a public regression. The full current-source Windows verification gate passes after the correction and status-document updates.
+Milestones A and B are complete for their declared scope. This continuation added parsed-triangle mesh placement to the existing point transform and tests front/back board-side normals plus winding parity under signed model scales. The helper requires explicit copper-plane inputs and is not connected to GLB scene assembly; the canonical source parser now derives supported stackup planes, while independent generated-export comparison remains open. The full local verification reran the CLI, geometry, GLB, model-resolution, and compatibility journeys.
 
-A+B task progress: 14 of 14 scoped tasks verified. This is not engineering completeness of the final digital-twin product. Milestone readiness: A and B complete; C through H planned.
+Geometry evidence includes a pinned same-commit KiCad 7 profile for the Raspberry Pi Press RP2040 Game Controller: all 644 valid source Edge.Cuts lines match one-to-one with 0 mm maximum endpoint error, and the validator reports one outer contour plus four cutouts. A reduced LumenPnP vacuum-adapter extract adds a valid curved reference comparison for eight represented entities (four lines, two quarter-circle arcs, and two full-circle arcs) against its same-revision Gerber profile. The two footprint-owned 0.5 mm circles transform to board-space centers (121, 74.4) and (127, 80.4), preserve their graphic and footprint UUIDs, and appear in SVG. This derived extract is not the full upstream PCB; no raw upstream file checksum or complete-board equivalence is claimed. The NFC board remains an intentionally open curved negative case. Porcupine remains a valid curved board without an independent plot. Full curved-outline or rendered-SVG fidelity is not established.
+
+The wider product goal remains active. The tested board-shell-only GLB slice is in place, as are offline asset resolution, a bounded WRL mesh profile, source-derived point/mesh placement helpers, and strict source-stackup copper-plane derivation. The values are not wired into the GLB scene, and stable component selectors, complete model coverage, and independent KiCad export comparison remain open. The current App contract is needed later for package interoperability and phone acceptance, not for the standalone model-resolution gate. Do not infer physical board geometry from a schematic-only input.
 
 ## 3. Status legend
 
 - ✅ Completed: implementation and acceptance verified with actual evidence.
 - 🔄 Ongoing: started, acceptance incomplete.
+- ⏸ Deferred: existing or planned work is outside the current authorized execution scope.
 - ☐ Not started: no verified implementation.
 - ❌ Failed or blocked: required gate failed or a concrete dependency is blocked.
 
-Historical failures stay in the register even after resolution. Current status is determined by the latest full verification receipt, not by a partial or earlier run.
+Historical failures stay in the register even after resolution. Current implementation status is determined by the latest full verification receipt plus later scoped verification recorded in section 9; a partial receipt does not replace full acceptance.
 
 ## 4. Milestone dashboard
 
@@ -27,7 +30,7 @@ Historical failures stay in the register even after resolution. Current status i
 |---|---|---|---|
 | A | Canonical Rust PCB engine and public API | ✅ | Broaden normalized interpretation only with evidence |
 | B | Contours, topology and SVG accuracy | ✅ | Extend format coverage only with supported fixtures |
-| C | Exact model resolution and selectable GLB | ☐ | Requires validated topology, sourced dimensions/models, UUID selectors |
+| C | Exact model resolution and selectable GLB | 🔄 | Board shell, offline model capture, strict local WRL inspection, point/mesh placement helpers, and strict stackup-plane derivation are implemented; GLB component nodes, UUID/refdes selectors, complete component coverage, and independent export comparison remain |
 | D | Versioned native Tokito physical-board package | ☐ | Preserve v0.1 compatibility; do not claim mobile readiness early |
 | E | Desktop and MCP integration | ☐ | Confirm actual contracts and obtain separate sibling-repository write scope |
 | F | tokito-app offline import and AR | ☐ | Needs stable package contract and real Android/iQOO device journey |
@@ -42,38 +45,62 @@ Historical failures stay in the register even after resolution. Current status i
 | B-02 | Canonical physical contours | ✅ | Sourced line, arc, and circle normalization; bounded joins; centerline bounds |
 | B-03 | Intersection/topology validation | ✅ | Reject open, degenerate, duplicate, branched, crossing, overlapping, and ambiguous contours |
 | B-04 | Holes/cutouts and nesting | ✅ | One outer contour plus contained holes; refuse disconnected, nested-island, or ambiguous topology |
-| B-05 | Sourced fixture expansion | ✅ | Pinned licensed board fixtures, provenance, source hashes, and actual gap evidence |
-| B-06 | SVG/reference validation | ✅ | NFC Gerber matches its 22 source entities but that outline is invalid; Porcupine's valid SVG paths, 17 arcs, five circles, identities and parameters are checked against the canonical report/math, with viewport enclosure (no external valid-board plot oracle) |
+| B-05 | Sourced fixture expansion | ✅ | Pinned source files, clearly labeled reduced extracts, provenance and fixture hashes; actual gap and geometry evidence |
+| B-06 | SVG/reference validation | ✅ | NFC matches 22 entities but is open; RP2040 matches 644 lines; original LumenPnP PCB/profile matches eight curved/circular entities plus direct SVG geometry; reduced fixture preserved; Porcupine checks identities/viewport |
 | B-07 | v0.1 compatibility | ✅ | Five historical package fixtures; exact inspect, CSV, top/bottom SVG bytes and tamper checks |
-| B-08 | Full local verification and independent review | ✅ | Current-source formatting, 58 Rust tests, Clippy, release build, four-board E2E, geometry/Gerber E2E, compatibility E2E, and independent source/evidence review pass |
+| B-08 | Full local verification and independent review | ✅ | Fresh nine-gate/92-test run passes, with original curved reference, two reproduced B fixes, full E2E and v0.1 compatibility; independent source/evidence review found no concrete blocker |
 
-## 6. Ownership and delivery
+## 6. Milestone C first slice
+
+| ID | Task | Status | Acceptance evidence |
+|---|---|---|---|
+| C-01 | Triangulate validated outside contour and cutouts | ✅ | Pure-Rust Earcut output has valid indices, non-degenerate faces, centroid/material checks, and polygonized/analytic area checks |
+| C-02 | Extrude sourced board thickness and transform to GLB frame | ✅ | Metres, right-handed Y-up, board on XZ plane, mid-plane centered; f32 quantization and collapsed-face checks enforced |
+| C-03 | Require explicit consent for board-shell-only output | ✅ | Default CLI/API refusal; `--allow-partial` creates a shell labelled partial even with no components |
+| C-04 | Report unresolved component/model coverage | ✅ | Bounded report includes component ref/UUID/source identity and model paths; absolute paths are redacted |
+| C-05 | Real-board GLB subprocess journey and local receipt | ✅ | Porcupine curves + five cutouts, independent container/accessor/mesh/closed-edge checks, deterministic output, package input, invalid-outline and no-overwrite checks |
+| C-06 | Resolve actual component meshes and stable selection IDs | ☐ | Needs a pinned model corpus and independently validated transforms/coverage/selectors |
+| C-07 | Independently reviewed current-source local gate | ✅ | Read-only geometry review found no new concrete defect; current full local gate passed with the GLB source/tests fingerprinted |
+
+## 7. Ownership and delivery
 
 Main owns requirements, integration, tracker, and final QA. The implementation and review agents were limited to scoped CLI work; they shared the checkout and preserved existing edits. Sibling repositories remain read-only.
 
-The user requests a feature-branch push and PR for review, with `main` left untouched until they merge. No CI/CD or GitHub Actions should run; the repository has no workflow files. Hosted checks and hosted binary uploads are not claimed. Local verification and E2E remain the pre-push gate.
+Current execution boundary (2026-10-10, latest owner steering): implementation and binary delivery remain inside the CLI checkout. CLI issues and its repository-linked Project may be updated. A feature-branch PR push is authorized only after actual current-source local QA/E2E and independent review pass. No Actions, releases, binary uploads, direct-main push or sibling edits. Merge remains a separate current-head decision. Preserve historical remote state below.
 
-The replacement private repository is TokitoAI/tokito-cli. PR #8 has been merged to `main`; its current remote head was read as `102e4adb069779ae4a4cc70f4dc8713b34688400`. NAVANEETHVVINOD was verified to have Admin access; no invitation was sent. The CLI-specific roadmap at https://github.com/TokitoAI/tokito-cli/projects is now linked to this repository; the organization-wide Tokito ecosystem project remains untouched. The CLI roadmap tracks issues #1-#7 and the new near-parallel topology follow-up #9. This next delivery belongs on a new feature branch based on current `main`, followed by a PR for the user's review. The older local branch and working files remain preserved.
+The private repository is TokitoAI/tokito-cli. PR #8 was merged to main; its historical recorded remote head was 102e4adb069779ae4a4cc70f4dc8713b34688400. NAVANEETHVVINOD was verified to have Admin access; no invitation was sent. The CLI-specific roadmap at https://github.com/TokitoAI/tokito-cli/projects is linked to this repository; the organization-wide Tokito ecosystem project remains untouched. The roadmap tracks issues #1-#7, topology follow-up #9, resolver #12 and parity #13. The later owner instruction authorizes updating PR #11 on `codex/milestone-c-selectable-glb` after local verification and independent review; it supersedes the earlier instruction to leave that remote branch untouched. No main push or Actions run is included.
 
-## 7. Milestone B acceptance
+## 8. Milestone B acceptance
 
 - The physical outline report uses source millimetres and Y-down coordinates, centerlines rather than stroke/margins, and source locators/UUIDs.
 - Join tolerances and work limits are bounded and declared.
 - Supported line/arc/circle topology rejects crossings, overlaps, invalid tangencies, degeneracy, branches, open chains, and ambiguous nesting.
 - Real boards demonstrate curved outlines and cutouts. Copper routing arcs are not treated as physical-outline evidence.
 - Existing inspection, CSV, package schema, and historical SVG bytes remain compatible. Invalid topology does not prevent an integrity-valid inventory package from being imported or verified.
-- Independent Gerber comparisons and full current-source local verification pass.
+- Geometry reference comparisons pass within disclosed coverage: RP2040 paired profile, unchanged original LumenPnP PCB/profile and direct SVG vector geometry, preserved reduced extract, and NFC negative reference. Full current-source local verification passes.
 - GLB or solids are not generated before this topology gate.
 
-## 8. Current verification
+## 9. Verification history and current receipt
 
-The release gate is scripts/verify-local.ps1. It uses target/local-verification and writes a tested executable plus verification.json under target/delivery/local/. Use the newest timestamped receipt.
+The newest timestamped `verification.json` under `target/delivery/local/` is the authoritative current-source receipt. Older receipts below are historical and retain the input scope and result recorded at their own run. The current full gate and its exact counts are summarized at the end of this tracker after the receipt is created.
 
-The latest full local Windows x64 run passed formatting, 40 library unit tests, eight engine API tests, ten topology API tests, Clippy with warnings denied, release build, four-board CLI subprocess E2E, geometry/SVG/Gerber E2E, and five v0.1 compatibility packages with exact historical inspect/CSV/top/bottom SVG outputs. The newest receipt records toolchain versions, source-input hashes, tested binary hash, and platform under target/delivery/local/.
+An initial default-sandbox verification attempt failed at the format gate before checking source: Cargo could not canonicalize the CLI path and returned Access is denied (OS error 5), so no receipt was created. The same local verifier was rerun with authorized filesystem access. That historical B audit reproduced and fixed two public API failures: distant near-parallel finite segments were rejected, and invalid reports retained certified geometry. All nine gates passed with 92 Rust tests (51 library, 8 engine API, 1 GLB API, 11 mesh API, 9 resolver API, 12 topology API). Receipt: `target/delivery/local/20261009T231642Z-6ddbef64fd4e454eba5e5538d36b0221/verification.json`. Binary: 1,567,232 bytes, SHA-256 `1454f726f0d4f16701ab34935a4ac539d1cfe8ed3d6d3701078e6991e5e6fd9b`. At that run, all 105 input fingerprints and the delivered binary hash/size matched. Later changes are captured by the newest receipt.
 
-This local Windows evidence does not establish Linux/MSRV, hosted CI, full KiCad plot/DRC conformance, fabrication validity, GLB/STEP generation, Desktop/MCP integration, phone import, or AR/device accuracy.
+The unchanged original official LumenPnP PCB/profile now supplies an eight-entity valid curved reference. Maximum canonical endpoint error is 0 mm; maximum centre error is 1.0565238672857966e-6 mm. Direct actual SVG path/circle comparison has maximum geometry error 1.4142142622039706e-6 mm against a 5e-6 mm tolerance and rejects deliberately corrupted radius/sweep outputs. This is source-frame vector geometry, not raster rendering or component-model qualification. The gate evidence is directly traceable in `src/topology.rs`, `tests/topology_api.rs`, `tests/geometry_e2e.py`, `tests/compat_v0.py`, `docs/PCB_TOPOLOGY.md`, and `docs/PCB_FIXTURE_CORPUS.md`.
 
-## 9. Error and blocker register
+The earlier C-06 source passed all nine local gates with 90 Rust tests (51 library, 8 engine API, 1 GLB API, 11 mesh API, 9 resolver API, 10 topology API). Receipt: `target/delivery/local/20261009T220148Z-4a0a128be9404747bbf8b3c55d7ed3da/verification.json`. Binary: 1,566,720 bytes, SHA-256 `7d71ab51da56f52ad901fa676abf5bf651be4a513aac4fbc8d3cf73575700eb6`. All 98 recorded inputs matched immediately after the run. At the C-06 delivery, subsequent tracker and App/API documentation updates were narrative-only and code/build/test inputs matched. The later B audit now changes source and tests and requires its own fresh receipt. Independent source reviewers rechecked the resolver and mesh hardening and found no remaining concrete defect. Their reviews do not substitute for these executed tests.
+
+The real-board model journey resolves six R0603 assets from explicit KiCad8 roots, verifies hashes and source ownership, decodes the real WRL profile and bounds, tests exact/one-byte-under budgets, retains package lookup and rejects malicious paths. This is local asset/mesh qualification, not component-pose, selection, mobile or KiCad rendering equivalence.
+
+The following paragraph records the **previous baseline** and its then-current fingerprints; it predates C-06 source changes.
+
+The earlier historical baseline Windows x64 receipt is `target/delivery/local/20261009T211314Z-570c977da3604eb4bde5e08b517702e9/verification.json` (verified 2026-10-09 21:13:14 UTC). It records eight passing gates: formatting, the Rust test gate, Clippy with warnings denied, release build, four-board CLI E2E, geometry E2E, GLB E2E, and v0.1 compatibility. The run output reported 69 Rust tests (50 library, 8 engine API, 1 GLB API, 10 topology API). The delivered `tokito-cli.exe` is SHA-256 `0362eeb16945253eb05563893cb51f72c9be9e97661bfd5d8b2484c937471b9c`, 1,432,576 bytes. The receipt fingerprints 88 inputs; a post-run comparison found all 88 still matched before this tracker edit. The tracker now records the receipt, so its own hash is the only expected mismatch; source, tests, fixtures and other documentation remain receipt-matched. No GitHub Actions or remote repository mutation was performed.
+
+The geometry E2E checks four cases: the intentionally open NFC curved outline; the valid RP2040 straight outline; the reduced LumenPnP curved profile including component-owned circles; and Porcupine SVG geometry/identity and viewport enclosure. The NFC case matches 22 entities with maximum endpoint error 2.842170943040401e-14 mm and maximum arc-center error 2.1817713396709406e-6 mm. RP2040 matches all 644 profile entities with 0 mm endpoint error. The reduced LumenPnP extract matches eight profile entities with 0 mm endpoint error and maximum circle/arc center error 1.0565238672857966e-6 mm. This is not full upstream-board equivalence because neither raw upstream artifact was downloaded.
+
+This Windows x64 receipt does not establish Linux/MSRV, hosted CI, full KiCad plot/DRC conformance, fabrication validity, complete component models/selectors, STEP, Desktop/MCP integration, phone import, or AR accuracy. The reduced LumenPnP fixture validates only represented geometry reconstructed from indexed records against its paired reconstructed profile.
+
+## 10. Error and blocker register
 
 | ID | Failure | Cause | Resolution |
 |---|---|---|---|
@@ -90,31 +117,97 @@ This local Windows evidence does not establish Linux/MSRV, hosted CI, full KiCad
 | B-ERR-011 | Exact comparison first used a stale release binary | Command targeted an older target path | ✅ Fresh release binary passes all four comparisons |
 | B-ERR-012 | Final verifier test link hit LNK1104 in target/verified | That target repeatedly failed to link while a new isolated target compiled; exact OS cause is unknown | ✅ Runner uses target/local-verification; complete current-source gate passed |
 | B-ERR-013 | Two closed contours with a 1.5× join-tolerance parallel gap could be certified | Ambiguous parallel contacts carried no point and the validator repeated the point-only predicate | ✅ Validator rejects ambiguous contacts with no allowed point; focused public regression and full local gate pass |
+| B-ERR-014 | Valid stepped polygon rejected because distant near-parallel edges have close infinite support lines | Ambiguity check omitted finite projected interval proximity | ✅ Public regression reproduced before fix; finite interval proximity filter passes alongside genuine near-parallel rejection in fresh full verification |
+| B-ERR-015 | Unknown/module Edge.Cuts invalidation left derived bounds/contours in API/JSON | Late diagnostics were appended after the geometry builder; invalid nesting also retained contours | ✅ Derived geometry discarded while primitives remain; API/JSON cases for unsupported sources, disconnected/nested contours pass in fresh full verification |
+| B-ERR-016 | First fixed-source topology rerun hit linker LNK1104 | Reused Windows output could not replace topology test executable; exact OS cause unknown | ✅ Failed compilation preserved; fresh full nine-gate run and all 12 topology API tests pass |
+| B-ERR-017 | Full runner launch failed before any gate started | Assumed Program Files PowerShell path was absent; current host is bundled PowerShell 7.6.5 | ✅ Located actual PowerShell 7.6.5 runtime; full nine-gate run passes in current host |
+| B-ERR-018 | Default-sandbox full verification stopped at format | Cargo path canonicalization returned Access is denied (OS error 5); no receipt was created | ✅ Same local verifier rerun with authorized filesystem access; all nine gates and 92 Rust tests pass in receipt `target/delivery/local/20261009T231642Z-6ddbef64fd4e454eba5e5538d36b0221/verification.json`; environment boundary, not a source-code failure |
+| C-ERR-001 | Preliminary scoped build commands could not locate Cargo; model E2E then reached an older binary and failed unknown-command | Rust bin directory absent from that shell PATH | ✅ Installed toolchain path supplied; current build, subprocess journey and full nine-gate verification passed. |
+| C-ERR-002 | Resolver test reruns and first full revised-source gate hit Windows LNK1104 (tests exit 101) | Cannot replace existing test executable; exact locking source unknown | ✅ Failed run produced no receipt. Fresh isolated full nine-gate run passes; earlier build/evidence preserved. |
+| C-ERR-003 | Case-folded root boundary and malformed-variable classification were insufficiently conservative | Path comparator ignored case; lookup preceded variable syntax validation | ✅ Exact component boundaries and malformed-path diagnostics; regressions, full gate and source re-review pass. |
+| C-ERR-004 | Mesh parser errors could echo a source token; CLI help omitted budget options and implied model resolution changed GLB completeness | Unbounded token text in error formatting and incomplete help | ✅ Fixed help, 256-byte token cap and static redacted errors; tests, source re-review and full gate pass. |
 
-## 10. Implementation evidence
+## 11. Implementation evidence
 
-Key CLI files include src/document.rs, src/lib.rs, src/cli.rs, src/geometry.rs, and src/topology.rs. Tests include tests/engine_api.rs, tests/topology_api.rs, tests/geometry_e2e.py, tests/compat_v0.py, and tests/e2e_cli.py. Source and reference fixture provenance is in docs/PCB_FIXTURE_CORPUS.md; API and topology limits are in docs/CANONICAL_ENGINE.md and docs/PCB_TOPOLOGY.md.
+Key CLI files include src/document.rs, src/lib.rs, src/cli.rs, src/geometry.rs, src/topology.rs, and src/glb.rs. Tests include tests/engine_api.rs, tests/glb_api.rs, tests/topology_api.rs, tests/geometry_e2e.py, tests/glb_e2e.py, tests/compat_v0.py, and tests/e2e_cli.py. Source and reference fixture provenance is in docs/PCB_FIXTURE_CORPUS.md; API, topology and GLB limits are in docs/CANONICAL_ENGINE.md, docs/PCB_TOPOLOGY.md, and docs/GLB_EXPORT_ARCHITECTURE.md.
 
 The current reader is bounded and partial. Unknown or unsupported outline features must remain diagnostic and block certification; no API field means complete KiCad interpretation or fabrication readiness.
 
-## 11. Completed milestone history
+## 12. Completed milestone history
 
-Milestone A delivered the importer, UUID-backed inventory, partial SVG, Tokito package v0.1, public canonical model, and local verification. Milestone B delivered supported physical outline validation, topology and cutout classification, exact SVG compatibility, pinned reference comparisons, and the current-source local gate.
+Milestone A delivered the importer, UUID-backed inventory, partial SVG, Tokito package v0.1, public canonical model, and local verification. Milestone B delivered supported physical outline validation, topology and cutout classification, exact SVG compatibility, and pinned positive/negative Gerber geometry comparisons.
 
 The earlier-repository recovery bundle remains under target/recovery/github-before-recreation-20261009T150910Z. Old PR #9 and its failed artifact upload are historical; they are not current checks in the replacement repository.
 
-## 12. Next work
+## 13. Next work
 
-Follow issues in the private CLI roadmap. First implement C: triangulate validated boundaries with cutouts, source thickness and models, verify metre/Y-up transforms, winding/normals/bounds, and UUID selection in GLB. Then define D's versioned native Tokito geometry/model package. E requires confirmed Desktop schemas and separate permission before sibling changes. F requires app permission and a real offline Android/iQOO import, selection, and AR journey. G is a separate pure-Rust STEP feasibility study. H defines the required physical placement/routing handoff from schematic generation.
+This execution advances C-06 with secure offline model capture, CLI inventory, and a strict real WRL mesh profile. The official pinned resistor permits independent local mesh work. The dataset owner supplied a newer Ultimainboard sample at c2bdf2369e13b71aaa8f13a91a23637faf339813; committed metadata is checked, but binary/model-pose/global-registration qualification is incomplete. All dataset boards are intended targets, with separate per-board gates. Next are independent asymmetric component-pose references, mounting-plane/frame decisions, and UUID/refdes node mapping before GLB assembly. The refreshed App/dataset boundaries are recorded in ECOSYSTEM_CONTRACT_MAP.md. Confirm KiCad 10.0.7 as reference baseline. Preserve historical milestone letters; project discovery/parity work is a later subtask rather than silently renaming milestones D–H. Keep Desktop/App, STEP and schematic-to-PCB edits deferred.
 
-Do not silently replace missing models with boxes, treat a schematic as a physical layout, label hashes as signatures, or claim complete support from inventory counts.
+### Current C-06 task ledger
 
-## 13. Significant transitions
+| Task | Owner | Dependency | State | Evidence / next gate |
+|---|---|---|---|---|
+| C-06a baseline | Main | A/B | ✅ | Earlier eight-gate/69-test receipt; feature branch and edits preserved |
+| C-06b model sample | Research + Main | Exact library source | ✅ | Pinned official R0603 asset/hash/license; six UNO references; declared local-mesh gate passes; world-pose evidence still separate |
+| C-06c resolver | Scoped worker + Main | Approved roots | ✅ | src/model_resolver.rs, nine API tests plus root-boundary unit test, CLI/subprocess tests; source re-review and full local gate pass |
+| C-06d mesh adapter | Scoped worker | Pinned WRL + units | ✅ declared profile | src/model_mesh.rs, eleven API tests and real mesh CLI inspection pass; Transform/Inline/general VRML and STEP remain unsupported |
+| C-06e transforms | Main | Pinned STEP pose semantics + explicit copper planes | ◐ | Public Rust point- and parsed-mesh placement APIs; asymmetric front/back, winding, normal, and stackup-plane derivation tests pass. Still open: GLB wiring and independent export comparison |
+| C-06f selectable nodes | Main | C-06e | ☐ | Placement helper is not wired to GLB assembly; no component meshes or UUID/refdes selectors are emitted |
+| C-06g partial rules | Main | Existing shell | ✅ | Default refusal and explicit --allow-partial preserved; model lookup does not alter export |
+| C-06h full QA / delivery | Main + reviewer | Integrated files | ✅ QA / ✅ PR delivered | Nine-gate/90-test receipt above; independent reviews pass. Source commit 5db49481ce62e859d13cf0504c75f6f6d1124add pushed to PR #11; actual remote head verified. PR remains open; merge pending. No Actions or main push. |
+
+## 14. Active delivery board — TOKITO-PCB-ENGINE-002
+
+This table is the current work plan. Completed means evidence has been inspected;
+it does not extend the scope of a milestone or prove an untested integration.
+
+| ID | Work item | State | Evidence, dependency, or next acceptance gate |
+|---|---|---|---|
+| G-01 | Verify the existing goal claim | ✅ | Goal 001/Milestone B was attained only for its declared canonical-engine and topology scope. The complete selectable 3D, Desktop, App, and schematic-to-layout goal is not attained. |
+| G-02 | Correct local verification provenance | ✅ | The verifier excludes ignored Python bytecode, fingerprints the acceptance runner, and passes all ten gates. The newest receipt under `target/delivery/local/` is authoritative. |
+| G-03 | Exercise the release executable through real local subprocesses | ✅ | `scripts/real-cli-e2e.ps1` passes through the freshly built executable and saves its receipt under `target/real-cli-e2e/`. GUI/CAD-viewer/phone testing remains blocked by unavailable control/device capability. |
+| G-04 | Update PR #11 to current local source | 🔄 | Current-source local verification and independent review pass. Commit and push this branch, then update the PR body with the actual ten-gate receipt and limits. No Actions run. |
+| G-05 | Obtain current-head review and merge decision | ☐ | PR #11 has no review or hosted checks. The owner must review the pushed current head before merge; do not bypass unverified branch protection. |
+| K-01 | KiCad CLI behavior reconnaissance | ✅ limited | Local KiCad CLI reports 10.0.5. Version/help was inspected for SVG, GLB, and POS only; no board export was run. This documents syntax, not 10.0.7 behavior or artifact parity. |
+| K-02 | Pin and differentially test 10.0.7 behavior | ❌ blocked | Requires a designated 10.0.7 executable and pinned reference fixtures. Start with a bounded POS or SVG option subset, then compare parsed output, errors, units, origin, and side transforms. |
+| C-08 | Parse declared stackup and derive outer-copper planes | ◐ | Typed source-order records and strict copper/core/prepreg plane derivation with positive/refusal tests are implemented. It is not yet connected to GLB component assembly and lacks independent generated-export comparison. |
+| C-09 | Validate transforms against an independent mechanical/KiCad export oracle | ☐ | Requires an asymmetric board plus accepted model and a 10.0.7 or reviewed mechanical reference. Do not claim from source archaeology alone. |
+| C-10 | Assemble qualified component mesh geometry into GLB | ☐ | Depends on C-08/C-09 and a pinned mesh corpus. Preserve explicit partial export for any missing/unsupported model. |
+| C-11 | Emit deterministic UUID/refdes node and selector metadata | ☐ | Depends on C-10 and App's accepted identity contract. Node selection must not depend only on mutable refdes. |
+| H-01 | Define schematic-to-physical handoff | ✅ design evidence | Desktop snapshot `34a5f55c8425ff7ef53efd33bc6b6e36d0e877f5` provides stable symbol UUIDs, PinKey identities, connectivity and optional footprint references. Its schematic coordinates are not physical layout coordinates. |
+| H-02 | Implement or import an authored physical layout | ☐ | Requires outline, layers/stackup, placed footprints, side/rotation, routing and provenance. A schematic-only input must be rejected for physical 3D. |
+| E/F-01 | Agree Desktop-to-App package transport and import contract | ❌ blocked | The App snapshot accepts a completed assembly context and GLB manifest but has no board-layout resource/import bridge. Owners must reconcile authorized Cloud transport with optional local immutable-bundle language. |
+
+### Current error and blocker register
+
+| ID | State | Meaning and resolution path |
+|---|---|---|
+| ERR-005 | Active limitation | No callable GUI Computer Use or Android/ADB target is available in this session. Direct CLI subprocess E2E is run; CAD-viewer, Desktop, phone, AR, and visual overlay acceptance are not claimed. |
+| ERR-006 | Active limitation | Installed KiCad CLI is 10.0.5, not the proposed 10.0.7 baseline. Its help output is useful syntax evidence only. Install or nominate 10.0.7 before a parity claim. |
+| ERR-007 | Active delivery blocker | PR #11's remote head and body are stale. Fresh local verification, a normal branch push, honest PR update, and current-head review are required before merge. |
+| ERR-008 | Product blocker | The Desktop schematic and App assembly-context contracts are not a physical-layout handoff. Define and validate that separate contract before promising schematic-to-3D conversion. |
+
+## 15. Significant transitions
+
+- 2026-10-10: this local continuation is progress: acquired verified unchanged official curved reference files, reproduced two B public failures, fixed finite-segment ambiguity and invalid derived geometry, obtained independent source/evidence review, and passed all nine current-source gates with 92 Rust tests. All 105 receipt fingerprints matched before later narrative records. No push/PR/release/Actions/settings/sibling operation occurred in this continuation.
+
+- 2026-10-10: a fresh local verifier run first stopped at the format gate under the default sandbox (Cargo path canonicalization returned Access is denied, OS error 5; no receipt); rerunning the same verifier with authorized filesystem access passed all nine gates and 92 tests. Current receipt: `target/delivery/local/20261009T231642Z-6ddbef64fd4e454eba5e5538d36b0221/verification.json`. Recording it changed only this tracker and PERSONAL_AI_HANDOFF after the run; implementation/test inputs remain matched.
+
+- 2026-10-10: pushed reviewed source commit `5db49481ce62e859d13cf0504c75f6f6d1124add` to PR #11; verified its actual remote head and empty hosted-check list. Updated CLI issues #2/#4/#5/#12/#13 and verified the CLI-specific Project statuses. Main remained `17f74a3f94cf6b901ef4329cbcc3322fae6cadbb`; no merge, Actions or sibling changes. This later narrative delivery record does not change tested source.
+
+- 2026-10-10: refreshed native App/API sources read-only, documented the mobile importer gap and project/design context-revision conditions, and checked newer Ultimainboard sample metadata. No device/deployed API test or CAD binary rehash was performed. All source/build/test receipt inputs and the delivered binary independently matched before feature PR delivery; only narrative documentation changed after the nine-gate run.
 
 - 2026-10-09 22:26 IST: goal created; Milestone A baseline rerun passed.
 - 2026-10-09 22:31 IST: geometry audit and public regression completed.
 - 2026-10-09 23:08 IST: independent review drove the stable arc and unsupported module-outline fixes.
 - 2026-10-09 23:20 IST: archived SVG goldens, analytic geometry checks, and the full local gate passed.
-- 2026-10-09: private replacement repository and collaborator access verified; PR #8 merged; CLI roadmap linked to the repository Projects tab; issue #9 tracks the audited topology fix. The organization-wide ecosystem project remains unchanged. The user requests the next delivery on a feature branch and PR, with Actions disabled and main unchanged until their merge.
+- 2026-10-10 (earlier scope): the board-shell-only GLB slice passed the Windows gate and remains partial; component models/selectors and complete Milestone C remain open.
+- 2026-10-09: private replacement repository and collaborator access verified; PR #8 merged; CLI roadmap linked to the repository Projects tab; issue #9 tracks the audited topology fix. The organization-wide ecosystem project remains unchanged.
+- 2026-10-10: added the reduced LumenPnP profile extract and checks for eight line/arc/circle entities, component-local circle transforms, UUID ownership, and SVG output. The full local Windows gate passed: 69 Rust tests and all eight verifier steps. A read-only evidence review found no remaining unsupported fixture or test claim. At the first post-run receipt comparison only the tracker had changed; later documentation edits are also newer than the receipt.
+- 2026-10-10: documented command-by-command KiCad 10.0.7 parity (proposed baseline) and the current local ecosystem handoff. Read-only agent reviews confirmed that Desktop snapshot has schematic exports but no routed PCB contract, that the App snapshot has twin-manifest schemas but no board-import bridge, and that `tokito-app-dataset` is not available in the local workspace. These snapshot findings do not represent the friend's newer unpinned changes. No code tests were rerun for the documentation-only update.
+- 2026-10-10: reran the full offline current-source verifier after the documentation updates. Formatting, 69 Rust tests, Clippy, release build, four-board CLI E2E, geometry E2E, GLB E2E and v0.1 compatibility all passed. The 88 hashed inputs matched before the tracker was updated with this receipt; the tested binary hash and size remained unchanged. No remote operation occurred.
 
-Last updated: 2026-10-09. The latest verification timestamp is in the newest local receipt under target/delivery/local/.
+Last updated: 2026-10-10. The latest full local receipt is the newest timestamped file under `target/delivery/local/`; its exact path is reported with the verification result. The most recent completed gate passed all ten local stages and 106 Rust tests. The final delivery rerun is recorded there; this tracker and the personal-AI handoff are included in that run. Milestone B's declared local acceptance is satisfied. The wider selectable component digital-twin goal remains incomplete and active.
+
+- 2026-10-10: implemented pure-Rust point- and parsed-mesh placement APIs from the pinned KiCad 10.0.7 STEP exporter behavior. Both take front/back copper-plane values as explicit inputs; canonical source parsing now derives supported copper/core/prepreg stackup planes, but the CLI GLB scene does not consume them. Focused tests cover asymmetric poses, frame reflection, signed scale parity, winding, recomputed normals, simple and four-layer stackups, and refusal paths. Component scene assembly, stable selectors, and independent exported-geometry comparison remain open.
+- 2026-10-10: added a bounded parsed-mesh placement helper and corrected winding for the reflected STEP-to-GLB basis composed with signed model-scale parity. Component-pose tests cover front/back placement, winding, and recomputed normals. The full local gate provides the current exact test count and ten-stage receipt. GLB scene integration and independent KiCad-export comparison remain open.
