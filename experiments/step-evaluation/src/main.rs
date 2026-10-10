@@ -2,10 +2,11 @@
 use oxideav_step::{read_step_with, GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
-use std::{fs::File, io::Read, path::Path, time::Instant};
+use std::{collections::HashSet, fs::File, io::Read, path::Path, time::Instant};
 
 const MAX_BYTES: usize = 32 * 1024 * 1024;
 const MAX_WARNING_DETAILS: usize = 128;
+const MAX_SHAPE_PROVENANCE_SUMMARIES: usize = 128;
 
 fn read_bounded(reader: impl Read) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
@@ -35,6 +36,28 @@ fn rejection_reasons(warnings: usize) -> Vec<&'static str> {
     reasons
 }
 
+fn shape_provenance_summary(
+    part_index: usize,
+    shape_index: usize,
+    representation_item_id: u64,
+    triangles: usize,
+    faces: &[u64],
+) -> Value {
+    let distinct: HashSet<u64> = faces.iter().copied().filter(|id| *id != 0).collect();
+    json!({
+        "partIndex": part_index,
+        "shapeIndex": shape_index,
+        "representationItemId": representation_item_id,
+        "triangles": triangles,
+        "provenanceEntries": faces.len(),
+        "distinctNonzeroSourceFaceIds": distinct.len(),
+        "unassignedProvenanceEntries": faces.iter().filter(|id| **id == 0).count(),
+        "missingTriangleProvenanceEntries": triangles.saturating_sub(faces.len()),
+        "excessProvenanceEntries": faces.len().saturating_sub(triangles),
+        "provenanceEntryCountMismatch": faces.len() != triangles,
+        "qualification": "reader_observation_not_source_face_completeness"
+    })
+}
 fn probe(path: &Path) -> Result<Value, String> {
     let start = Instant::now();
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
@@ -65,8 +88,13 @@ fn probe(path: &Path) -> Result<Value, String> {
     let mut styled_triangles = 0usize;
     let mut provenance = 0usize;
     let mut shapes = 0usize;
-    for part in &model.parts {
-        for shape in &part.shapes {
+    let mut shape_provenance_summaries = Vec::new();
+    let mut unassigned_provenance_entries = 0usize;
+    let mut provenance_count_mismatched_shapes = 0usize;
+    let mut missing_triangle_provenance_entries = 0usize;
+    let mut excess_provenance_entries = 0usize;
+    for (part_index, part) in model.parts.iter().enumerate() {
+        for (shape_index, shape) in part.shapes.iter().enumerate() {
             shapes += 1;
             styled_shapes += usize::from(shape.colour.is_some());
             styled_triangles += shape
@@ -75,6 +103,23 @@ fn probe(path: &Path) -> Result<Value, String> {
                 .filter(|c| c.is_some())
                 .count();
             provenance += shape.triangle_faces.len();
+            let triangle_count = shape.mesh.triangles.len();
+            unassigned_provenance_entries +=
+                shape.triangle_faces.iter().filter(|id| **id == 0).count();
+            provenance_count_mismatched_shapes +=
+                usize::from(shape.triangle_faces.len() != triangle_count);
+            missing_triangle_provenance_entries +=
+                triangle_count.saturating_sub(shape.triangle_faces.len());
+            excess_provenance_entries += shape.triangle_faces.len().saturating_sub(triangle_count);
+            if shape_provenance_summaries.len() < MAX_SHAPE_PROVENANCE_SUMMARIES {
+                shape_provenance_summaries.push(shape_provenance_summary(
+                    part_index,
+                    shape_index,
+                    shape.item,
+                    triangle_count,
+                    &shape.triangle_faces,
+                ));
+            }
             for position in &shape.mesh.positions {
                 positions += 1;
                 if position.iter().any(|x| !x.is_finite()) {
@@ -101,6 +146,15 @@ fn probe(path: &Path) -> Result<Value, String> {
         "parts": model.parts.len(), "rootOccurrences": model.roots.len(), "childOccurrences": model.parts.iter().map(|p| p.children.len()).sum::<usize>(),
         "shapes": shapes, "triangles": model.triangle_count(), "positions": positions, "nonfinitePositions": nonfinite,
         "styledShapes": styled_shapes, "styledTriangleEntries": styled_triangles, "faceProvenanceEntries": provenance,
+        "shapeProvenanceSummaries": shape_provenance_summaries,
+        "shapeProvenanceSummariesTotal": shapes,
+        "shapeProvenanceSummariesTruncated": shapes > MAX_SHAPE_PROVENANCE_SUMMARIES,
+        "maxShapeProvenanceSummaries": MAX_SHAPE_PROVENANCE_SUMMARIES,
+        "unassignedProvenanceEntries": unassigned_provenance_entries,
+        "provenanceEntryCountMismatchedShapes": provenance_count_mismatched_shapes,
+        "missingTriangleProvenanceEntries": missing_triangle_provenance_entries,
+        "excessProvenanceEntries": excess_provenance_entries,
+        "sourceFaceCompletenessVerified": false,
         "occurrenceColourOverrides": model.occurrence_colours.len(),
         "localBounds": if positions > nonfinite { json!({"min": bounds, "max": upper}) } else { Value::Null },
         "boundsFrame": "union_of_part_local_frames_not_assembly_world", "boundsUnits": "reader_reported_model_length_units",
@@ -147,5 +201,31 @@ mod tests {
         assert!(!rejection_reasons(0).contains(&"reader_warnings_or_partial_geometry"));
         assert!(rejection_reasons(0).contains(&"units_not_independently_preflighted"));
         assert!(rejection_reasons(0).contains(&"experimental_probe_not_production_adapter"));
+    }
+    #[test]
+    fn provenance_summary_counts_repeated_zero_and_missing_entries() {
+        let summary = shape_provenance_summary(2, 3, 42, 5, &[7, 7, 8, 0]);
+        assert_eq!(summary["partIndex"], 2);
+        assert_eq!(summary["shapeIndex"], 3);
+        assert_eq!(summary["representationItemId"], 42);
+        assert_eq!(summary["distinctNonzeroSourceFaceIds"], 2);
+        assert_eq!(summary["unassignedProvenanceEntries"], 1);
+        assert_eq!(summary["missingTriangleProvenanceEntries"], 1);
+        assert_eq!(summary["excessProvenanceEntries"], 0);
+        assert_eq!(summary["provenanceEntryCountMismatch"], true);
+        assert_eq!(
+            summary["qualification"],
+            "reader_observation_not_source_face_completeness"
+        );
+    }
+    #[test]
+    fn provenance_summary_reports_excess_entries_and_matched_counts() {
+        let excess = shape_provenance_summary(0, 0, 1, 1, &[4, 5]);
+        assert_eq!(excess["excessProvenanceEntries"], 1);
+        assert_eq!(excess["missingTriangleProvenanceEntries"], 0);
+        assert_eq!(excess["provenanceEntryCountMismatch"], true);
+        let matched = shape_provenance_summary(0, 1, 2, 2, &[4, 4]);
+        assert_eq!(matched["provenanceEntryCountMismatch"], false);
+        assert_eq!(matched["distinctNonzeroSourceFaceIds"], 1);
     }
 }

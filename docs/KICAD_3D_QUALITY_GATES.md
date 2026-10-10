@@ -66,6 +66,12 @@ and [3D exporter](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc
 
 ## Pure-Rust STEP evaluation
 
+Selected dataset CAD assets are now materialized and hash-verified. Three real
+STEP samples have independent FreeCAD bounds and face-inventory comparisons;
+one inherited metre label resolves to an active inch conversion-based unit.
+See [dataset STEP qualification](DATASET_STEP_QUALIFICATION.md) for the actual
+scope, receipts and outstanding surface/assembly gates.
+
 The published `truck-stepio` 0.3.0 shell-import example contradicts its stale
 overview text saying STEP input is future work. It is a geometry candidate, but
 its released example does not prove dataset units/materials/assembly placement.

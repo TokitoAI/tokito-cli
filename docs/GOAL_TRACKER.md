@@ -15,12 +15,21 @@ files. The current thirteen-gate run passed at `target/delivery/local/20261010T0
 See [KiCad-quality 3D gates](KICAD_3D_QUALITY_GATES.md) for the actual ESP32
 comparison and the remaining geometry/pose/material acceptance requirements.
 
+Subsequent real-corpus qualification materialized three PCB layouts and all 61
+Ultimainboard STEP assets. The updated isolated probe adds per-shape provenance
+observations; its current scoped formatting, five unit tests, two executable
+integration tests and Clippy passed, followed by all-61 reader journeys and
+independent FreeCAD references. The engine/verifier inputs still match the
+thirteen-gate receipt; this is combined scoped evidence, not a new whole-tree
+thirteen-gate run. See [qualification results](DATASET_STEP_QUALIFICATION.md)
+and [issue #19](https://github.com/TokitoAI/tokito-cli/issues/19) for concrete gaps.
+
 | Current task | Owner | Dependency | State | Evidence / next action |
 | --- | --- | --- | --- | --- |
 | Foundation delivery | Main + independent reviewer | Ten local gates | PR open | #17 matches tested implementation; no Actions or upload |
-| Dataset target audit | Main + read-only reviewer | Current dataset main | Partial | ESP32 source hash checked; inventory imports, strict topology refuses six joins; LFS intake is live |
+| Dataset target audit | Main + read-only reviewer | Current dataset main | Selected assets verified | Three PCB layouts + 61 STEP assets match pinned LFS pointers; ESP32 refuses six joins; NXP/Ultimainboard produce explicit partial shells |
 | Outline behavior comparison | Main + read-only researcher | Same ESP32 bytes | Evidence captured | Two KiCad 10.0.5 GLBs; 10.0.7 source explains derived-contour/inference paths, not complete parity |
-| Pure-Rust STEP evaluation | Scoped worker + Main | Pinned reader and real model corpus | Local implementation | Disabled production admission; test strict limits/reports, then qualify materialized dataset STEP |
+| Pure-Rust STEP evaluation | Scoped worker + Main | Pinned reader and real model corpus | Corpus observations captured | All 61 return meshes; warnings/invalid reference/discrepancies remain; production admission disabled; see DATASET_STEP_QUALIFICATION.md |
 | Current-source QA/review | Main + independent reviewer | Frozen experiment and docs | Thirteen gates passed | 109 engine tests, three probe unit tests, two executable rejection tests and subprocess E2E; final snapshot verification required before push |
 
 Build an original, pure-Rust, offline-first, Windows-first engine that imports supported PCB documents, validates physical geometry, renders usable 2D/3D views, and preserves component identity for selection. KiCad is not a normal-runtime dependency. STEP and schematic-to-PCB remain later work.
