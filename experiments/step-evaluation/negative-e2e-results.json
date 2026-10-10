@@ -1,0 +1,21 @@
+{
+  "lfs": {
+    "exit": 2,
+    "report": {
+      "admitted": false,
+      "error": "git_lfs_pointer_not_materialized",
+      "exportsProduced": [],
+      "probeSchema": "tokito.step-evaluation.v1"
+    }
+  },
+  "malformed": {
+    "exit": 2,
+    "report": {
+      "admitted": false,
+      "error": "reader_error: STEP parse error: syntax error at 1:15: expected `HEADER` to open the header section, found keyword `MALFORMED`",
+      "exportsProduced": [],
+      "probeSchema": "tokito.step-evaluation.v1"
+    }
+  },
+  "datasetStepRun": false
+}

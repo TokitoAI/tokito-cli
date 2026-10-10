@@ -1,11 +1,14 @@
-//! Pure-Rust, board-shell-only GLB export from validated Edge.Cuts topology.
+//! Pure-Rust GLB export for a validated board shell and a bounded local VRML subset.
 //! Source: KiCad board files use mm and a saved Y-down frame. Output is metres,
 //! right-handed, Y-up, with the board plane in XZ and its slab centered at Y=0.
 //! GLB container alignment follows Khronos glTF 2.0:
 //! https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc
-//! This exporter does not resolve component models or claim a complete digital twin.
+//! General VRML, STEP, glTF and GLB component models remain unsupported; neither
+//! export scope claims a complete digital twin or a verified phone import.
 
 use super::document::Point2;
+use super::model_assembly::{ModelAssembly, assemble_supported_vrml_models};
+use super::model_resolver::ModelResolver;
 use super::topology::{ContourRole, OutlineContour, OutlineShape};
 use super::{EngineError, PhysicalBoardDocument};
 use earcut::Earcut;
@@ -21,6 +24,7 @@ const MAX_POLYGON_POINTS: usize = 50_000;
 const MAX_GLTF_VERTICES: usize = 1_000_000;
 const MAX_GLB_BYTES: usize = 128 * 1024 * 1024;
 const MAX_COVERAGE_COMPONENTS: usize = 500;
+const MAX_COVERAGE_MODELS: usize = 2_048;
 const MAX_MODEL_PATHS_PER_COMPONENT: usize = 16;
 const MAX_MODEL_PATH_CHARS: usize = 256;
 const MAX_FLOAT_POSITION_ERROR_M: f64 = 0.000_001;
@@ -56,6 +60,9 @@ pub struct GlbCoverageReport {
     pub unresolved_components: Vec<UnresolvedComponentCoverage>,
     pub unresolved_components_total: usize,
     pub unresolved_components_truncated: bool,
+    pub unresolved_models: Vec<UnresolvedModelCoverage>,
+    pub unresolved_models_total: usize,
+    pub unresolved_models_truncated: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -72,6 +79,16 @@ pub struct UnresolvedComponentCoverage {
     pub model_paths_redacted: bool,
     pub reason: &'static str,
     pub no_model_reference_reason: Option<&'static str>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct UnresolvedModelCoverage {
+    pub component_reference: Option<String>,
+    pub component_uuid: Option<String>,
+    pub source_kind: String,
+    pub source_ordinal: usize,
+    pub source_identity: String,
+    pub status: String,
 }
 
 impl GlbCoverageReport {
@@ -100,6 +117,16 @@ impl GlbCoverageReport {
                     "modelPathsTruncated": item.model_paths_truncated,
                     "modelPathsRedacted": item.model_paths_redacted,
                     "reason": item.reason, "noModelReferenceReason": item.no_model_reference_reason
+                })).collect::<Vec<_>>(),
+                "unresolvedModelsTotal": self.unresolved_models_total,
+                "unresolvedModelsTruncated": self.unresolved_models_truncated,
+                "unresolvedModels": self.unresolved_models.iter().map(|item| json!({
+                    "componentReference": item.component_reference,
+                    "componentUuid": item.component_uuid,
+                    "sourceKind": item.source_kind,
+                    "sourceOrdinal": item.source_ordinal,
+                    "sourceIdentity": item.source_identity,
+                    "status": item.status
                 })).collect::<Vec<_>>()
             },
             "mesh": {
@@ -139,7 +166,12 @@ pub(crate) fn export_board_shell(
     let component_count = board.engineering().components.len();
     let model_references = board.engineering().models.len();
     let (unresolved_components, unresolved_components_truncated) =
-        unresolved_component_coverage(board);
+        unresolved_component_coverage_for(
+            board,
+            None,
+            "component_geometry_not_emitted_by_board_shell_only_export",
+        );
+    let unresolved_models = unresolved_models_for_shell(board);
     let partial = true;
     if !allow_partial {
         return Err(EngineError::new(format!(
@@ -178,6 +210,9 @@ pub(crate) fn export_board_shell(
         unresolved_components,
         unresolved_components_total: component_count,
         unresolved_components_truncated,
+        unresolved_models,
+        unresolved_models_total: model_references,
+        unresolved_models_truncated: model_references > MAX_COVERAGE_MODELS,
         polygonized_vertices: triangulation.points.len(),
         triangles: mesh.positions.len() / 9,
         exact_outline_area_mm2: triangulation.exact_area_mm2,
@@ -218,8 +253,243 @@ pub(crate) fn export_board_shell(
     Ok(GlbExport { bytes, report })
 }
 
-fn unresolved_component_coverage(
+/// Emit a board shell together with the supported, resolved VRML component
+/// meshes. Every output component is a separate glTF node carrying its
+/// canonical source identity, so a consumer can select it without parsing a
+/// display name. Unhandled source models remain in the coverage report.
+pub(crate) fn export_board_assembly(
     board: &PhysicalBoardDocument,
+    resolver: &ModelResolver,
+    allow_partial: bool,
+) -> Result<GlbExport, EngineError> {
+    if !board.outline.is_valid() {
+        return Err(EngineError::new(
+            "GLB assembly export requires a valid, closed physical board outline",
+        ));
+    }
+    let thickness = board
+        .thickness_mm()
+        .filter(|value| value.is_finite() && *value > 0.0 && *value <= MAX_THICKNESS_MM)
+        .ok_or_else(|| EngineError::new(
+            "GLB assembly export requires a finite positive board thickness no greater than 1000 mm",
+        ))?;
+    let rings = polygonize_outline(board)?;
+    let triangulation = triangulate(&rings, board)?;
+    let shell = extrude_shell(
+        &rings,
+        &triangulation.points,
+        &triangulation.triangles,
+        thickness,
+        board,
+    )?;
+    let assembly = assemble_supported_vrml_models(board, resolver);
+    let (component_meshes, emitted_components) = component_meshes(&assembly)?;
+    let incomplete = incomplete_components(board, &assembly, &emitted_components);
+    let (unresolved_components, unresolved_components_truncated) =
+        unresolved_component_coverage_for(
+            board,
+            Some(&incomplete),
+            "component_model_geometry_not_emitted_by_assembly_export",
+        );
+    let unresolved_models = unresolved_models_for_assembly(board, &assembly);
+    let model_references = board.engineering().models.len();
+    let model_references_emitted = assembly.emitted.len();
+    let model_references_unresolved = model_references.saturating_sub(model_references_emitted);
+    let component_count = board.engineering().components.len();
+    let component_models_emitted = emitted_components.len();
+    let component_models_unresolved = incomplete.len();
+    let partial = component_models_unresolved != 0 || model_references_unresolved != 0;
+    if partial && !allow_partial {
+        return Err(EngineError::new(format!(
+            "assembled GLB has {component_models_unresolved} component(s) and {model_references_unresolved} model reference(s) without supported emitted geometry; pass allow_partial=true to permit this explicit partial export"
+        )));
+    }
+    let bounds = board
+        .outline
+        .bounds
+        .ok_or_else(|| EngineError::new("validated outline has no bounds"))?;
+    let origin = (
+        (bounds.min_x + bounds.max_x) / 2.0,
+        (bounds.min_y + bounds.max_y) / 2.0,
+    );
+    let report = GlbCoverageReport {
+        scope: "board_shell_and_supported_vrml_models",
+        shell_geometry_complete: true,
+        // A complete source-model coverage set does not certify artwork,
+        // copper, manufacturing, physical fit, or optical registration.
+        whole_board_digital_twin_complete: false,
+        partial_export: partial,
+        component_count,
+        component_models_emitted,
+        component_models_unresolved,
+        model_references,
+        model_references_emitted,
+        model_references_unresolved,
+        unresolved_components,
+        unresolved_components_total: component_models_unresolved,
+        unresolved_components_truncated,
+        unresolved_models,
+        unresolved_models_total: model_references_unresolved,
+        unresolved_models_truncated: assembly.diagnostics_truncated
+            || model_references_unresolved > MAX_COVERAGE_MODELS,
+        polygonized_vertices: triangulation.points.len(),
+        triangles: shell.positions.len() / 9,
+        exact_outline_area_mm2: triangulation.exact_area_mm2,
+        polygonized_outline_area_mm2: triangulation.polygonized_area_mm2,
+        triangulated_outline_area_mm2: triangulation.triangle_area_mm2,
+        thickness_mm: thickness,
+        max_curve_chord_error_mm: MAX_CHORD_ERROR_MM,
+    };
+    let document = gltf_assembly_document(&shell, &component_meshes, &report, board, origin)?;
+    let json_bytes = serde_json::to_vec(&document)
+        .map_err(|error| EngineError::new(format!("cannot serialize GLB JSON: {error}")))?;
+    let bin = combined_bin(&shell, &component_meshes)?;
+    let total_len = container_len(json_bytes.len(), bin.len())?;
+    if total_len > MAX_GLB_BYTES {
+        return Err(EngineError::new(format!(
+            "GLB exceeds the {MAX_GLB_BYTES}-byte export budget"
+        )));
+    }
+    let glb = Glb {
+        header: Header {
+            magic: *b"glTF",
+            version: 2,
+            length: total_len as u32,
+        },
+        json: Cow::Owned(json_bytes),
+        bin: Some(Cow::Owned(bin)),
+    };
+    let bytes = glb
+        .to_vec()
+        .map_err(|error| EngineError::new(format!("cannot encode GLB container: {error}")))?;
+    gltf::Gltf::from_slice(&bytes).map_err(|error| {
+        EngineError::new(format!("generated GLB failed glTF validation: {error}"))
+    })?;
+    Ok(GlbExport { bytes, report })
+}
+
+#[derive(Clone, Debug)]
+struct ComponentMesh {
+    mesh: Mesh,
+    reference: Option<String>,
+    uuid: Option<String>,
+    source_ordinal: usize,
+    source_asset_sha256: String,
+    model_source_ordinal: usize,
+    part_ordinal: usize,
+}
+
+fn component_meshes(
+    assembly: &ModelAssembly,
+) -> Result<(Vec<ComponentMesh>, std::collections::BTreeSet<usize>), EngineError> {
+    let mut result = Vec::new();
+    let mut components = std::collections::BTreeSet::new();
+    for emitted in &assembly.emitted {
+        for part in &emitted.mesh.parts {
+            result.push(ComponentMesh {
+                mesh: mesh_from_component_part(part)?,
+                reference: emitted.component_reference.clone(),
+                uuid: emitted.component_uuid.clone(),
+                source_ordinal: emitted.component_source.ordinal,
+                source_asset_sha256: emitted.source_asset_sha256.clone(),
+                model_source_ordinal: emitted.model_source.ordinal,
+                part_ordinal: part.source_shape_ordinal,
+            });
+        }
+        components.insert(emitted.component_source.ordinal);
+    }
+    // The GLB accessors and binary payload must use exactly the same order.
+    // Serialization groups by component ordinal; normalize the flat payload
+    // list here so combined_bin follows that identical order.
+    result.sort_by_key(|item| {
+        (
+            item.source_ordinal,
+            item.model_source_ordinal,
+            item.part_ordinal,
+        )
+    });
+    Ok((result, components))
+}
+
+fn mesh_from_component_part(
+    part: &crate::component_pose::PlacedModelMeshPart,
+) -> Result<Mesh, EngineError> {
+    let mut positions = Vec::with_capacity(part.triangles.len() * 9);
+    let mut normals = Vec::with_capacity(part.triangles.len() * 9);
+    for (triangle, normal) in part.triangles.iter().zip(&part.flat_normals) {
+        let point = |index: u32| {
+            part.positions_m
+                .get(index as usize)
+                .copied()
+                .ok_or_else(|| EngineError::new("placed component triangle index is out of range"))
+        };
+        push_face(
+            &mut positions,
+            &mut normals,
+            [
+                point(triangle[0])?,
+                point(triangle[1])?,
+                point(triangle[2])?,
+            ],
+            *normal,
+        )?;
+    }
+    mesh_from_vectors(positions, normals)
+}
+
+fn mesh_from_vectors(positions: Vec<f32>, normals: Vec<f32>) -> Result<Mesh, EngineError> {
+    if positions.is_empty() || positions.len() != normals.len() || positions.len() % 9 != 0 {
+        return Err(EngineError::new(
+            "component mesh has invalid flattened geometry",
+        ));
+    }
+    let mut min = [f32::INFINITY; 3];
+    let mut max = [f32::NEG_INFINITY; 3];
+    for point in positions.chunks_exact(3) {
+        for axis in 0..3 {
+            min[axis] = min[axis].min(point[axis]);
+            max[axis] = max[axis].max(point[axis]);
+        }
+    }
+    if !min.iter().chain(max.iter()).all(|value| value.is_finite()) {
+        return Err(EngineError::new("component mesh bounds are non-finite"));
+    }
+    let mut bin = Vec::with_capacity(positions.len() * 8);
+    for value in positions.iter().chain(&normals) {
+        bin.extend_from_slice(&value.to_le_bytes());
+    }
+    Ok(Mesh {
+        positions,
+        normals,
+        bin,
+        min,
+        max,
+    })
+}
+
+fn incomplete_components(
+    board: &PhysicalBoardDocument,
+    assembly: &ModelAssembly,
+    emitted: &std::collections::BTreeSet<usize>,
+) -> std::collections::BTreeSet<usize> {
+    board
+        .engineering()
+        .components
+        .iter()
+        .filter(|component| {
+            !emitted.contains(&component.source.ordinal)
+                || assembly
+                    .incomplete_component_ordinals
+                    .contains(&component.source.ordinal)
+        })
+        .map(|component| component.source.ordinal)
+        .collect()
+}
+
+fn unresolved_component_coverage_for(
+    board: &PhysicalBoardDocument,
+    only_ordinals: Option<&std::collections::BTreeSet<usize>>,
+    reason: &'static str,
 ) -> (Vec<UnresolvedComponentCoverage>, bool) {
     let engineering = board.engineering();
     let mut by_owner = BTreeMap::<usize, Vec<&super::document::ModelReference>>::new();
@@ -229,7 +499,14 @@ fn unresolved_component_coverage(
         }
     }
     let mut items = Vec::with_capacity(engineering.components.len().min(MAX_COVERAGE_COMPONENTS));
-    for component in engineering.components.iter().take(MAX_COVERAGE_COMPONENTS) {
+    for component in engineering
+        .components
+        .iter()
+        .filter(|component| {
+            only_ordinals.is_none_or(|ordinals| ordinals.contains(&component.source.ordinal))
+        })
+        .take(MAX_COVERAGE_COMPONENTS)
+    {
         let models = by_owner
             .get(&component.source.ordinal)
             .map(Vec::as_slice)
@@ -270,15 +547,71 @@ fn unresolved_component_coverage(
             model_references_without_path,
             model_paths_truncated,
             model_paths_redacted,
-            reason: "component_geometry_not_emitted_by_board_shell_only_export",
+            reason,
             no_model_reference_reason: (model_reference_count == 0)
                 .then_some("no_source_model_reference_in_imported_data"),
         });
     }
     (
         items,
-        engineering.components.len() > MAX_COVERAGE_COMPONENTS,
+        only_ordinals.map_or(engineering.components.len(), |ordinals| ordinals.len())
+            > MAX_COVERAGE_COMPONENTS,
     )
+}
+
+fn unresolved_models_for_shell(board: &PhysicalBoardDocument) -> Vec<UnresolvedModelCoverage> {
+    board
+        .engineering()
+        .models
+        .iter()
+        .take(MAX_COVERAGE_MODELS)
+        .map(|model| {
+            unresolved_model_coverage(board, &model.source, None, "not_attempted_board_shell_only")
+        })
+        .collect()
+}
+
+fn unresolved_models_for_assembly(
+    board: &PhysicalBoardDocument,
+    assembly: &ModelAssembly,
+) -> Vec<UnresolvedModelCoverage> {
+    assembly
+        .diagnostics
+        .iter()
+        .take(MAX_COVERAGE_MODELS)
+        .map(|diagnostic| {
+            unresolved_model_coverage(
+                board,
+                &diagnostic.model_source,
+                diagnostic.component_source.as_ref(),
+                diagnostic.status.as_str(),
+            )
+        })
+        .collect()
+}
+
+fn unresolved_model_coverage(
+    board: &PhysicalBoardDocument,
+    source: &super::document::SourceLocator,
+    component_source: Option<&super::document::SourceLocator>,
+    status: &str,
+) -> UnresolvedModelCoverage {
+    let component = component_source.and_then(|source| {
+        board
+            .engineering()
+            .components
+            .iter()
+            .find(|component| component.source.ordinal == source.ordinal)
+    });
+    UnresolvedModelCoverage {
+        component_reference: component.and_then(|item| item.reference.clone()),
+        component_uuid: component
+            .and_then(|item| item.source.source_uuid.as_deref().map(str::to_owned)),
+        source_kind: source.kind.clone(),
+        source_ordinal: source.ordinal,
+        source_identity: format!("{}#{}", source.kind, source.ordinal),
+        status: status.to_owned(),
+    }
 }
 
 fn report_model_path(path: &str) -> (String, bool) {
@@ -1024,6 +1357,16 @@ fn gltf_document(
                     "modelPathsRedacted": item.model_paths_redacted,
                         "reason": item.reason, "noModelReferenceReason": item.no_model_reference_reason
                     })).collect::<Vec<_>>(),
+                    "unresolvedModelsTotal": report.unresolved_models_total,
+                    "unresolvedModelsTruncated": report.unresolved_models_truncated,
+                    "unresolvedModels": report.unresolved_models.iter().map(|item| json!({
+                        "componentReference": item.component_reference,
+                        "componentUuid": item.component_uuid,
+                        "sourceKind": item.source_kind,
+                        "sourceOrdinal": item.source_ordinal,
+                        "sourceIdentity": item.source_identity,
+                        "status": item.status
+                    })).collect::<Vec<_>>(),
                     "componentModelCoverageComplete": report.component_models_unresolved == 0 && report.model_references_unresolved == 0
                 },
                 "mesh": {
@@ -1054,6 +1397,241 @@ fn gltf_document(
             { "bufferView": 1, "byteOffset": 0, "componentType": 5126, "count": count, "type": "VEC3" }
         ]
     }))
+}
+
+fn gltf_assembly_document(
+    shell: &Mesh,
+    components: &[ComponentMesh],
+    report: &GlbCoverageReport,
+    board: &PhysicalBoardDocument,
+    origin: (f64, f64),
+) -> Result<Value, EngineError> {
+    let source = board.source();
+    let mut buffer_views = Vec::with_capacity((components.len() + 1) * 2);
+    let mut accessors = Vec::with_capacity((components.len() + 1) * 2);
+    let mut meshes = Vec::with_capacity(components.len() + 1);
+    let mut nodes = Vec::with_capacity(components.len() + 1);
+    let mut byte_offset = 0usize;
+    append_gltf_shell_mesh(
+        shell,
+        &mut buffer_views,
+        &mut accessors,
+        &mut meshes,
+        &mut nodes,
+        &mut byte_offset,
+    )?;
+    let mut by_component = BTreeMap::<usize, Vec<&ComponentMesh>>::new();
+    for component in components {
+        by_component
+            .entry(component.source_ordinal)
+            .or_default()
+            .push(component);
+    }
+    let mut scene_nodes = vec![0usize];
+    for (source_ordinal, parts) in by_component {
+        let first = parts
+            .first()
+            .ok_or_else(|| EngineError::new("component group unexpectedly has no mesh parts"))?;
+        let reference = first
+            .reference
+            .as_deref()
+            .filter(|reference| !reference.is_empty())
+            .ok_or_else(|| EngineError::new("assembled component has no unique reference"))?;
+        let uuid = first
+            .uuid
+            .as_deref()
+            .filter(|uuid| !uuid.is_empty())
+            .ok_or_else(|| EngineError::new("assembled component has no unique UUID"))?;
+        if parts.iter().any(|part| {
+            part.reference.as_deref() != Some(reference)
+                || part.uuid.as_deref() != Some(uuid)
+                || part.source_ordinal != source_ordinal
+        }) {
+            return Err(EngineError::new(
+                "component mesh group contains conflicting source identities",
+            ));
+        }
+        let mut primitives = Vec::with_capacity(parts.len());
+        for component in parts.iter().copied() {
+            primitives.push(append_gltf_primitive(
+                &component.mesh,
+                1,
+                Some(json!({ "tokito": {
+                    "componentReference": component.reference,
+                    "componentUuid": component.uuid,
+                    "componentSourceOrdinal": component.source_ordinal,
+                    "modelSourceOrdinal": component.model_source_ordinal,
+                    "sourceAssetSha256": component.source_asset_sha256,
+                    "partOrdinal": component.part_ordinal,
+                    "selectable": false
+                }})),
+                &mut buffer_views,
+                &mut accessors,
+                &mut byte_offset,
+            )?);
+        }
+        let mesh_index = meshes.len();
+        meshes.push(json!({
+            "name": format!("Component {reference}"),
+            "primitives": primitives
+        }));
+        let selector_node = nodes.len();
+        nodes.push(json!({
+            "name": format!("ref:{reference}"),
+            "mesh": mesh_index,
+            "extras": { "tokito": {
+                "selectorContract": "componentNodePrefix+refdes",
+                "componentReference": reference,
+                "componentUuid": uuid,
+                "componentSourceOrdinal": source_ordinal,
+                "selectable": true
+            }}
+        }));
+        scene_nodes.push(selector_node);
+    }
+    let bin_len = byte_offset;
+    Ok(json!({
+        "asset": {
+            "version": "2.0", "generator": "Tokito CLI",
+            "extras": { "tokito": {
+                "format": "tokito.board-assembly.glb.v0",
+                "scope": report.scope,
+                "shellGeometryComplete": report.shell_geometry_complete,
+                "wholeBoardDigitalTwinComplete": report.whole_board_digital_twin_complete,
+                "partialExport": report.partial_export,
+                "source": { "format": "kicad_pcb", "sha256": source.sha256, "formatVersion": source.format_version },
+                "coordinateFrame": {
+                    "units": "m", "handedness": "right-handed", "upAxis": "Y", "boardPlane": "XZ",
+                    "sourceUnits": "mm", "sourceCoordinateFrame": "KiCad-board-Y-down",
+                    "sourceOriginMm": [origin.0, origin.1],
+                    "boardTopYMetres": report.thickness_mm * MM_TO_M / 2.0,
+                    "boardBottomYMetres": -report.thickness_mm * MM_TO_M / 2.0
+                },
+                "coverage": {
+                    "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
+                    "componentModelsUnresolved": report.component_models_unresolved,
+                    "modelReferences": report.model_references, "modelReferencesEmitted": report.model_references_emitted,
+                    "modelReferencesUnresolved": report.model_references_unresolved,
+                    "unresolvedComponentsTotal": report.unresolved_components_total,
+                    "unresolvedComponentsTruncated": report.unresolved_components_truncated,
+                    "unresolvedModelsTotal": report.unresolved_models_total,
+                    "unresolvedModelsTruncated": report.unresolved_models_truncated,
+                    "unresolvedModels": report.unresolved_models.iter().map(|item| json!({
+                        "componentReference": item.component_reference,
+                        "componentUuid": item.component_uuid,
+                        "sourceKind": item.source_kind,
+                        "sourceOrdinal": item.source_ordinal,
+                        "sourceIdentity": item.source_identity,
+                        "status": item.status
+                    })).collect::<Vec<_>>(),
+                    "componentModelCoverageComplete": report.component_models_unresolved == 0 && report.model_references_unresolved == 0
+                }
+            }}
+        },
+        "scene": 0,
+        "scenes": [{ "name": "Tokito board assembly", "nodes": scene_nodes }],
+        "nodes": nodes,
+        "meshes": meshes,
+        "materials": [
+            { "name": "Board shell", "pbrMetallicRoughness": { "baseColorFactor": [0.36, 0.39, 0.43, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.82 }, "doubleSided": false },
+            { "name": "Imported VRML component", "pbrMetallicRoughness": { "baseColorFactor": [0.72, 0.58, 0.30, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.65 }, "doubleSided": false }
+        ],
+        "buffers": [{ "byteLength": bin_len }],
+        "bufferViews": buffer_views,
+        "accessors": accessors
+    }))
+}
+
+fn append_gltf_shell_mesh(
+    mesh: &Mesh,
+    buffer_views: &mut Vec<Value>,
+    accessors: &mut Vec<Value>,
+    meshes: &mut Vec<Value>,
+    nodes: &mut Vec<Value>,
+    byte_offset: &mut usize,
+) -> Result<(), EngineError> {
+    let primitive = append_gltf_primitive(mesh, 0, None, buffer_views, accessors, byte_offset)?;
+    let mesh_index = meshes.len();
+    meshes.push(json!({
+        "name": "Board shell",
+        "primitives": [primitive]
+    }));
+    nodes.push(json!({ "name": "Board shell", "mesh": mesh_index }));
+    Ok(())
+}
+
+fn append_gltf_primitive(
+    mesh: &Mesh,
+    material: usize,
+    extras: Option<Value>,
+    buffer_views: &mut Vec<Value>,
+    accessors: &mut Vec<Value>,
+    byte_offset: &mut usize,
+) -> Result<Value, EngineError> {
+    if mesh.positions.is_empty()
+        || mesh.positions.len() != mesh.normals.len()
+        || mesh.positions.len() % 9 != 0
+    {
+        return Err(EngineError::new(
+            "GLB primitive has invalid triangle geometry",
+        ));
+    }
+    let count = mesh.positions.len() / 3;
+    let position_bytes = count
+        .checked_mul(12)
+        .ok_or_else(|| EngineError::new("position buffer length overflow"))?;
+    let normal_bytes = count
+        .checked_mul(12)
+        .ok_or_else(|| EngineError::new("normal buffer length overflow"))?;
+    let position_view = buffer_views.len();
+    buffer_views.push(json!({
+        "buffer": 0, "byteOffset": *byte_offset, "byteLength": position_bytes, "target": 34962
+    }));
+    *byte_offset = byte_offset
+        .checked_add(position_bytes)
+        .ok_or_else(|| EngineError::new("GLB buffer offset overflow"))?;
+    let normal_view = buffer_views.len();
+    buffer_views.push(json!({
+        "buffer": 0, "byteOffset": *byte_offset, "byteLength": normal_bytes, "target": 34962
+    }));
+    *byte_offset = byte_offset
+        .checked_add(normal_bytes)
+        .ok_or_else(|| EngineError::new("GLB buffer offset overflow"))?;
+    let position_accessor = accessors.len();
+    accessors.push(json!({
+        "bufferView": position_view, "byteOffset": 0, "componentType": 5126,
+        "count": count, "type": "VEC3", "min": mesh.min, "max": mesh.max
+    }));
+    let normal_accessor = accessors.len();
+    accessors.push(json!({
+        "bufferView": normal_view, "byteOffset": 0, "componentType": 5126,
+        "count": count, "type": "VEC3"
+    }));
+    let mut primitive = json!({
+        "attributes": { "POSITION": position_accessor, "NORMAL": normal_accessor },
+        "material": material,
+        "mode": 4
+    });
+    if let Some(extras) = extras {
+        primitive["extras"] = extras;
+    }
+    Ok(primitive)
+}
+
+fn combined_bin(shell: &Mesh, components: &[ComponentMesh]) -> Result<Vec<u8>, EngineError> {
+    let capacity = components
+        .iter()
+        .try_fold(shell.bin.len(), |total, component| {
+            total
+                .checked_add(component.mesh.bin.len())
+                .ok_or_else(|| EngineError::new("GLB buffer length overflow"))
+        })?;
+    let mut bin = Vec::with_capacity(capacity);
+    bin.extend_from_slice(&shell.bin);
+    for component in components {
+        bin.extend_from_slice(&component.mesh.bin);
+    }
+    Ok(bin)
 }
 
 fn container_len(json_len: usize, bin_len: usize) -> Result<usize, EngineError> {

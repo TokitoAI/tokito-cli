@@ -1,8 +1,9 @@
 # Offline model assets and initial mesh adapter
 
 Milestone C-06c supplies `model_resolver::ModelResolver` and `resolve models`.
-Milestone C-06d begins with `model_mesh::parse_vrml_mesh` and `model inspect`.
-These operations preserve the current board-shell GLB behavior; component assembly remains gated.
+Milestone C-06d supplies `model_mesh::parse_vrml_mesh` and `model inspect`.
+Milestones C-06e/f now connect this limited VRML profile to GLB assembly; broad
+model-format support and independent placement/consumer validation remain gated.
 
 ## Asset capture contract
 
@@ -72,10 +73,13 @@ references, not copied algorithms or successful renderer comparisons:
 - KiCad WRL scaling depends on top-level Transform behavior; rejecting Transform keeps this first profile explicit ([reader](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/plugins/3d/vrml/v2/vrml2_transform.cpp#L207)).
 - Tokito's saved-Y-down to GLB −Z mapping gives the placed STEP-to-GLB basis negative parity. The mesh-placement helper now corrects triangle winding using that fixed reflection composed with signed model-scale parity, then recomputes flat normals. Asymmetric tests verify the implemented matrix and normal direction; comparison against an independent KiCad-generated or reviewed mechanical reference is still required before claiming viewer equivalence.
 
-Next gates: independent asymmetric export/mechanical comparison;
-validated per-component world bounds; deterministic UUID/refdes-to-node mapping;
-then GLB assembly and real consumer selection. Existing `--allow-partial`
-remains required for board-shell exports.
+Next gates: independent asymmetric export/mechanical comparison and reviewed
+per-component world bounds; verify the `ref:<refdes>` selector group through the
+actual App importer; then expand the pinned model corpus. Board-shell GLB always
+requires `--allow-partial`. An assembled GLB that omits any component/model also
+requires that explicit flag; exact per-model statuses and bounded truncation are
+reported. Complete supported model coverage still does not establish a complete
+digital twin or App/AR readiness.
 
 ## KiCad CLI STEP placement: pinned behavior contract
 
@@ -83,7 +87,7 @@ The source baseline used here is KiCad 10.0.7 commit 69cafb907ebc09e7722a2a464b1
 
 For a model-space point already expressed in millimetres, the Rust point-placement API applies scale, model rotations around X/Y/Z by the negative stored angles, the model offset and selected copper-plane/clearance offset, the back-side 180-degree X rotation when applicable, the footprint Z rotation, then the board translation (x, -y). This operation order follows the pinned exporter and the documented Open CASCADE composition rule; no KiCad or Open CASCADE runtime is linked or invoked.
 
-The point API maps a placed model point to Tokito's shell frame in GLB metres: x=(board_x-origin_x+local_x)/1000, y=local_z/1000, z=(-(board_y-origin_y)+local_y)/1000. This STEP-to-GLB basis has negative determinant. The parsed-mesh placement helper applies that point transform to a bounded triangle mesh, composes reflection parity with negative model scales, adjusts triangle winding, recomputes flat normals, and rejects invalid indices, degenerate triangles, non-finite results, or meshes over its geometry budgets. `EngineeringData::stackup` retains physical source order and exposes strict centred outer-copper planes for supported copper/core/prepreg stacks; missing, malformed, or unsupported outer material refuses. The helper is not yet connected to GLB scene assembly, does not parse STEP, and does not claim equality with a KiCad-generated export. The current asymmetric test oracle verifies the declared source-derived contract mathematically, not by independent renderer comparison.
+The point API maps a placed model point to Tokito's shell frame in GLB metres: x=(board_x-origin_x+local_x)/1000, y=local_z/1000, z=(-(board_y-origin_y)+local_y)/1000. This STEP-to-GLB basis has negative determinant. The parsed-mesh placement helper applies that point transform to a bounded triangle mesh, composes reflection parity with negative model scales, adjusts triangle winding, recomputes flat normals, and rejects invalid indices, degenerate triangles, non-finite results, or meshes over their geometry budgets. `EngineeringData::stackup` retains physical source order and exposes strict centred outer-copper planes for supported copper/core/prepreg stacks; missing, malformed, or unsupported outer material refuses. This placement path is integrated into GLB scene assembly for the accepted VRML subset. It does not parse STEP and does not claim equality with a KiCad-generated export. Asymmetric tests verify the declared source-derived contract mathematically, but independent renderer comparison remains pending.
 
 Primary references:
 - KiCad's pinned STEP exporter inputs and board-origin handling: https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/exporters/step/exporter_step.cpp

@@ -12,7 +12,17 @@ The script uses cached offline dependencies and creates a fresh isolated build d
 
 Each verification.json records the local Windows architecture, actual Rust/Cargo/Python versions, passed checks, source-input SHA-256 values, and tested binary hash/size. The newest timestamped receipt under target/delivery/local/ is the current result; earlier receipts are historical.
 
-The current run verifies the declared board-shell GLB, bounded model capture, flat-triangle WRL profile, pure-Rust point/mesh placement helpers, and the strict source-stackup derivation tests on Windows. It does not prove Linux/MSRV, hosted CI, general WRL/STEP, complete KiCad conformance, manufacturing validity, component-node assembly/selection, Desktop/MCP integration, app import or AR. The placement and stackup tests are source-derived checks, not a KiCad-generated export comparison. Hashes establish integrity, not publisher identity. Later narrative README/Markdown updates may retain code-test evidence only after review and an explicit check that source/dependencies/scripts/tests/schemas still match the receipt; record those newer documentation hashes separately rather than pretending they were part of the earlier run.
+The STEP-evaluation continuation adds three separate local gates for the isolated
+`experiments/step-evaluation` crate: formatting, locked offline tests and
+warnings-denied Clippy. Its manifest/lock/source are fingerprinted; nested
+generated `target` output is excluded. BOM subprocess E2E and the original
+analytic torus-inverse regression add two further gates, bringing the current
+runner to fifteen gates. BOM tests cover exact identity joins, malformed/quoted
+CSV, UTF-8 BOM encoding and nonzero resource-cap refusal; these do not qualify
+3D component geometry. Earlier ten- and thirteen-gate receipts verify only their original input snapshots and
+do not qualify this experiment or enable production STEP import.
+
+The full suite verifies the board-shell GLB, bounded model capture, flat-triangle WRL profile, pure-Rust point/mesh placement helpers, strict source-stackup derivation, one- and two-component assembly GLBs, exact-refdes selector behavior, unsupported-side diagnostics, and coverage truncation on Windows. The tests model the App's documented name filter but do not run the App importer or Android renderer/selection. The suite does not prove Linux/MSRV, hosted CI, general WRL/STEP, complete KiCad conformance, manufacturing validity, Desktop/MCP integration or AR. Placement and stackup tests are source-derived checks, not a KiCad-generated export comparison. Hashes establish integrity, not publisher identity. A verification receipt is authoritative only when its recorded source fingerprints match the final implementation/scripts/tests; narrative documentation can be updated afterward, but must not be represented as an input to that earlier receipt.
 
 The recreated private TokitoAI/tokito-cli repository receives source through a feature branch and pull request; application code is not pushed directly to main. The user reviews and merges the PR. No hosted workflow runs on pushes or pull requests. The CLI-specific roadmap is linked from the repository's Projects tab at https://github.com/TokitoAI/tokito-cli/projects; the organization-wide ecosystem project remains separate and unchanged. Hosted CI, release, and binary upload are out of scope.
 

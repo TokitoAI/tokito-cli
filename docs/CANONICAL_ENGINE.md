@@ -98,28 +98,31 @@ projection on other layers. The outline API reports centerline bounds; the SVG
 view bounds include stroke and the existing display margin. Four prior board
 outputs were compared byte-for-byte after this distinction was enforced.
 
-The public Rust API now exposes `PhysicalBoardDocument::export_glb(GlbExportOptions)`.
-Its first GLB capability emits only the validated physical board shell, sourced
-thickness, cutouts and tessellated curves. Because component bodies are not yet
-resolved or emitted, this output is always partial and fails by default unless
-`allow_partial` is explicitly set. `GlbCoverageReport` distinguishes complete
-shell geometry from an incomplete whole-board digital twin and gives bounded
-per-component model-reference details. Absolute model paths are redacted to a
-basename in reports and GLB extras. STEP, desktop-native schematic adapters,
+The public Rust API exposes `PhysicalBoardDocument::export_glb(GlbExportOptions)`
+for a validated shell and `export_glb_with_models` for the bounded supported
+VRML assembly path. Shell-only output is always partial and fails by default
+unless `allow_partial` is set. Assembly resolves only under caller-approved
+local roots; it emits one renderable `ref:<refdes>` node per uniquely identified
+component. That node owns a mesh with separate primitives for its imported
+model parts and carries UUID/source metadata. An assembly with any
+unresolved component or model also fails by default. `GlbCoverageReport` gives
+bounded unresolved component and per-model statuses; shared metadata redacts
+absolute paths. Matching the App's documented node name convention does not
+prove App intake or device selection. STEP, desktop-native schematic adapters,
 Desktop/MCP wiring and phone package acceptance remain unimplemented.
 
 ## Next dependency
 
-The current Windows x64/Rust 1.94.1 local receipt records 50 library unit tests,
-8 engine API tests, 1 GLB public API test, 10 topology API tests, formatting,
-warnings-denied Clippy, release build, four-board CLI E2E, geometry/SVG/Gerber
-E2E, board-shell GLB E2E, and five historical package compatibility journeys.
-See [local delivery](CI_AND_DELIVERY.md) for the receipt path and limitations.
-Windows evidence does not establish Linux/MSRV or visual CAD/device acceptance.
+The latest full local Windows x64 verification receipt is the newest current-source
+`verification.json` under `target/delivery/local/`; prior receipts predate the
+assembly-selector and E2E changes in this document. See [local delivery](CI_AND_DELIVERY.md)
+for verification scope and limitations. Windows evidence does not establish
+Linux/MSRV or visual CAD/device acceptance.
 
 Milestones A and B are complete for their scoped behavior. Milestone C is active:
-the board-shell-only GLB slice is locally verified, while real model resolution,
-component transforms, stable UUID selectors and full-coverage export remain
-unfinished. Those are the next engine tasks before the versioned geometry package
-extension and separately authorized Desktop/mobile adapters. Schematics still
-need physical PCB placement/routing before they can become a board digital twin.
+board-shell export and a bounded local VRML assembly are implemented. Independent
+asymmetric geometry comparison, larger real model/board coverage, App importer
+acceptance, and STEP support remain unfinished. Those gates precede the versioned
+geometry package extension and separately authorized Desktop/mobile adapters.
+Schematics still need physical PCB placement/routing before they can become a
+board digital twin.

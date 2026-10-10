@@ -1,0 +1,13 @@
+(kicad_pcb
+  (version 20240108)
+  (general (thickness 1.6))
+  (layers (0 "F.Cu" signal) (31 "B.Cu" signal) (44 "Edge.Cuts" user))
+  (setup (stackup
+    (layer "F.Cu" (type "copper") (thickness 0.035))
+    (layer "dielectric 1" (type "core") (thickness 1.53))
+    (layer "B.Cu" (type "copper") (thickness 0.035))))
+  (gr_rect (start 0 0) (end 10 10)
+    (stroke (width 0.05) (type default)) (fill none) (layer "Edge.Cuts") (uuid "edge"))
+  (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu") (at 5 5 90) (uuid "assembly-r1")
+    (property "Reference" "R1")
+    (model "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl")))
