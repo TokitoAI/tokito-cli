@@ -4,9 +4,9 @@ Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is com
 
 ## 1. Product goal
 
-Current continuation: the verified foundation is now delivered as open
+Current continuation: the verified foundation and BOM reconciliation are delivered through merged
 [PR #17](https://github.com/TokitoAI/tokito-cli/pull/17), head
-`6ea6317414c69b1005cfd4eb9a9c17ed40ab1fb9`; PR #11 and #16 are historical merges.
+`dae0a1a9e94e83fa4fa5f2ee5fa1ccbf6d48f45c`, merged as `f935b7500501eaadcab85ab8e0c53487c3101b6c` on 2026-10-10. PR #11 and #16 are historical merges.
 Dataset qualification uses main at `257ea7e68ee2e700522bd1b19ad9cbf1c0c3980a`
 and [issue #18](https://github.com/TokitoAI/tokito-cli/issues/18). The latest
 local continuation adds an isolated STEP evaluation crate and three new local
@@ -248,4 +248,8 @@ Last updated: 2026-10-10. The frozen selector/help/assembly source passed all te
 | Same-part controls and vertex comparison | Main + independent reviewer | Candidate sampler + FreeCAD | Executed | Affected vertex maximum 0.68639 mm; unchanged controls 0.00350 mm; see DATASET_STEP_QUALIFICATION.md |
 | Original torus inverse regression | Experiment worker + Main | Reader inverse diagnosis | Analytic tests passed | Five tests and seven samples; no STEP trim support or production admission |
 | Current QA | Main + reviewer | Frozen implementation | Fifteen gates passed | Receipt 20261010T050440Z-26878073a5b347fbb11e7427163d927e; corrected real BOM runs passed; later narrative clarifies anonymous/placeholder identities only |
-| GitHub delivery | Main | Full acceptance and review | PR17 remains open | Head6ea6317; new geometry experiments remain local; issue19 updated; no Actions |
+| GitHub delivery | Main | Full acceptance and review | PR17 merged | Fifteen local gates, delivered-binary dataset runs and independent review; merge f935b75 matches tested head dae0a1a; no Actions |
+
+Current implementation: the model-assignment manifest and assigned partial-WRL export are implemented on `codex/component-model-qualification`, awaiting the current full local verification, independent review and a separate PR. The manifest preserves all source components, binds exact source identities to the PCB SHA-256 and checks model bytes, explicit units and transforms. It does not certify an engineering body match, pose, physical revision or complete board. See `MODEL_ASSIGNMENTS.md`.
+
+Next approved work: issue #20 independent per-dataset model/pose/geometry evidence, alongside issue #19 STEP surface/trim qualification. The new local branch is codex/component-model-qualification, based on merged main. Identity reconciliation is delivered; complete component CAD, independent pose/geometry acceptance, App integration and full KiCad parity remain incomplete. This goal remains active.

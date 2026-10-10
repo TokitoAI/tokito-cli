@@ -107,8 +107,9 @@ evidence. Unknown assembly options remain unknown rather than silently omitted.
   missing. Explicit partial export reports its unresolved components and remains
   labelled partial; it never becomes a certified whole-board digital twin.
 
-Next implementation: approved model-assignment manifests, selectable assembly and
-independent geometry/pose acceptance. Production STEP work remains separately
+Model-assignment manifests and explicit partial selectable WRL bodies are now
+implemented locally; see [their contract](MODEL_ASSIGNMENTS.md). Independent
+geometry/pose acceptance remains pending. Production STEP work remains separately
 gated by [dataset geometry evidence](DATASET_STEP_QUALIFICATION.md).
 
 ## CLI reconciliation interface

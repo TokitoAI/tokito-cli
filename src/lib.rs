@@ -5,6 +5,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+pub mod assigned_assembly;
 pub mod bom;
 mod cli;
 pub mod component_pose;
@@ -12,6 +13,7 @@ pub mod document;
 mod geometry;
 mod glb;
 pub mod model_assembly;
+pub mod model_assignments;
 pub mod model_mesh;
 pub mod model_resolver;
 mod package_input;
@@ -155,7 +157,7 @@ pub struct GlbExportOptions {
     pub allow_partial: bool,
 }
 
-pub use glb::{GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
+pub use glb::{AssignedGlbExport, GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
 
 impl SvgSide {
     pub fn as_str(self) -> &'static str {
@@ -319,6 +321,15 @@ impl PhysicalBoardDocument {
     /// `allow_partial` explicitly to export a shell while components are missing.
     pub fn export_glb(&self, options: GlbExportOptions) -> Result<GlbExport, EngineError> {
         glb::export_board_shell(self, options.allow_partial)
+    }
+
+    /// Export explicitly assigned bodies; authored PCB model records are unchanged.
+    pub fn export_glb_with_assignments(
+        &self,
+        assignments: &model_assignments::ValidatedModelAssignments,
+        options: GlbExportOptions,
+    ) -> Result<AssignedGlbExport, EngineError> {
+        glb::export_assigned_board_assembly(self, assignments, options.allow_partial)
     }
     /// Export the board shell plus the strictly supported locally resolved VRML
     /// model subset. STEP, GLB and glTF source models are retained as explicit

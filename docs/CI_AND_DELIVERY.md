@@ -17,7 +17,9 @@ The STEP-evaluation continuation adds three separate local gates for the isolate
 warnings-denied Clippy. Its manifest/lock/source are fingerprinted; nested
 generated `target` output is excluded. BOM subprocess E2E and the original
 analytic torus-inverse regression add two further gates, bringing the current
-runner to fifteen gates. BOM tests cover exact identity joins, malformed/quoted
+runner to sixteen gates, including assignment subprocess verification. Assignment
+tests inspect actual selectable body meshes, independent front/back coordinates,
+manifest provenance, population exclusions and hash refusal. BOM tests cover exact identity joins, malformed/quoted
 CSV, UTF-8 BOM encoding and nonzero resource-cap refusal; these do not qualify
 3D component geometry. Earlier ten- and thirteen-gate receipts verify only their original input snapshots and
 do not qualify this experiment or enable production STEP import.
