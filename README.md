@@ -14,6 +14,14 @@ mean native Altium/STEP import or full-board AR is implemented.
 
 ## Current status
 
+`bom reconcile` reads the reviewed dataset NXP JSON or ESP32 CSV schemas and
+joins exact references to unique PCB UUIDs. It retains source hashes, candidate
+part numbers, DNP/assembly uncertainty, quantity conflicts and missing identities.
+Actual MCXN236/ESP32 runs matched 391/24 BOM references. The additional records
+are 190 anonymous MCXN236 footprints and two ESP32 placeholder references, not
+evidence of missing physical bodies. This is identity reconciliation, not generated
+component CAD or verified physical assembly. See the [BOM qualification plan](docs/BOM_COMPONENT_QUALIFICATION.md).
+
 Milestones A and B provide a reusable `tokito_cli` Rust library with a typed `PhysicalBoardDocument` and a physical `OutlineReport`. Milestone C includes a board-shell GLB and a bounded assembly path: `export glb --assemble-wrl` resolves caller-approved local paths, accepts only the flat triangle VRML97 profile, derives supported copper/core/prepreg mounting planes, and emits one renderable node named `ref:<reference>` per uniquely identified component. That node owns a mesh with separate primitives for imported model parts and includes footprint UUID/source metadata. This matches the App's documented prefix-plus-reference selector shape; App package import and Android selection have not been tested. Missing, ambiguous, hidden, unsupported, STEP, glTF, and GLB models are reported with explicit reasons. Aggregate triangle and report limits bound output. A repeatable external KiCad 10.0.5 GLB capture establishes one non-origin 90-degree component-placement baseline, but it is not 10.0.7 parity. Complete component coverage and an independent KiCad-export geometry comparison remain open. Inspection, placement, package, SVG and GLB share source identities; CLI dispatch stays separate. See the [architecture](docs/ARCHITECTURE.md), [public API](docs/CANONICAL_ENGINE.md), [topology limits](docs/PCB_TOPOLOGY.md), [model operations](docs/MODEL_RESOLUTION.md), [GLB export architecture](docs/GLB_EXPORT_ARCHITECTURE.md), and [external GLB reference](docs/KICAD_GLB_REFERENCE.md).
 
 The executable reads bounded KiCad PCB S-expressions, reports source/component inventory, exports placement CSV, and exports partial physical-scale SVG with layer selection and top/bottom views. `validate outline` provides a separate JSON or text physical topology report; unsupported, open, crossed, overlapping or ambiguous outlines are rejected for physical SVG and GLB export while their source inventory remains inspectable. `export glb` triangulates and extrudes a validated board shell, then independently validates the self-contained GLB container. A shell-only export always requires `--allow-partial`; an assembled export also refuses unresolved models unless the user explicitly permits partial output. Geometry includes supported footprint graphics/text, simple pads/drills, segments/arcs, vias, and stored filled-zone polygons. SVG retains source IDs and parent footprint UUIDs. Text uses approximate SVG fonts; full KiCad plot fidelity and DRC are unverified.
@@ -51,6 +59,8 @@ The dataset provides candidate engineering and photo assets; the CLI does not au
 
 ## Research
 
+- [BOM-driven component geometry and validation plan](docs/BOM_COMPONENT_QUALIFICATION.md)
+
 - [KiCad-quality 3D gates and actual dataset comparison](docs/KICAD_3D_QUALITY_GATES.md)
 - [KiCad CLI behavior analysis](docs/KICAD_CLI_BEHAVIOR.md)
 - [KiCad CLI compatibility matrix](docs/KICAD_CLI_PARITY_MATRIX.md) (10.0.7 is proposed as the behavior baseline pending confirmation)
@@ -73,6 +83,8 @@ tokito-cli pcb export glb -h
 tokito-cli pcb export glb --help
 tokito-cli --version
 tokito-cli inspect board.kicad_pcb --json
+tokito-cli bom reconcile board.kicad_pcb --bom bom-items.json --format nxp-json --json
+tokito-cli bom reconcile board.kicad_pcb --bom bom-components.csv --format esp32-csv --json
 tokito-cli pcb --help
 tokito-cli pcb inspect board.kicad_pcb --json
 tokito-cli resolve models board.kicad_pcb --project-root "F:\boards\project" --library-root "F:\models\KiCad8" --model-var "KICAD8_3DMODEL_DIR=F:\models\KiCad8" --json

@@ -1,5 +1,35 @@
 use super::*;
 
+fn reconcile_bom(args: &[String]) -> Result<(), CliError> {
+    if !(args.len() == 7 || args.len() == 8 && args[7] == "--json")
+        || args[3] != "--bom"
+        || args[5] != "--format"
+    {
+        return Err(CliError::new(
+            "usage: tokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]",
+        ));
+    }
+    let format = match args[6].as_str() {
+        "nxp-json" => bom::BomFormat::NxpJson,
+        "esp32-csv" => bom::BomFormat::Esp32Csv,
+        _ => return Err(CliError::new("BOM format must be nxp-json or esp32-csv")),
+    };
+    let board = load_board_input(Path::new(&args[2]))?;
+    let document = bom::load_bom(Path::new(&args[4]), format)?;
+    let report = bom::reconcile(&board, &document);
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report)
+            .map_err(|_| CliError::new("Cannot serialize BOM reconciliation"))?
+    );
+    if report["status"] == "refused" {
+        return Err(CliError::new(
+            "BOM reconciliation refused; inspect the JSON report",
+        ));
+    }
+    Ok(())
+}
+
 fn print_help() {
     println!(
         "Tokito CLI 0.1.0\n\
@@ -12,6 +42,7 @@ fn print_help() {
          \ttokito-cli help [COMMAND...]\n\
          \ttokito-cli pcb [--help]\n\
          \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
+         \ttokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\n\
          \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
@@ -24,6 +55,7 @@ fn print_help() {
          COMMAND GROUPS:\n\
          \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
+         \tbom      Reconcile dataset BOM references with PCB identities.\n\
          \tpackage  Build or verify a Tokito source-and-inventory package.\n\
          \n\
          VERSION:\n\
@@ -38,6 +70,7 @@ fn print_help() {
          \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
          \ttokito-cli pcb export svg|glb|placements ...\n\
          \ttokito-cli pcb resolve models <BOARD|PACKAGE> ...\n\
+         \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \n\
          Use --help after a command path or `tokito-cli help <COMMAND...>` for command-specific help.\n\
          \n\
@@ -71,6 +104,9 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["version"] => println!("USAGE: tokito-cli version\nPrint the Tokito CLI version."),
         ["inspect"] => println!(
             "USAGE: tokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\nReads supported board metadata, inventory and import diagnostics."
+        ),
+        ["bom"] | ["bom", "reconcile"] => println!(
+            "USAGE: tokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\nJoins exact source references and reports identity/population conflicts; model geometry, placement and board revision remain unverified."
         ),
         ["validate"] | ["validate", "outline"] => println!(
             "USAGE: tokito-cli validate outline <BOARD|TOKITO_PACKAGE_DIRECTORY> [--json]\nValidates the supported physical Edge.Cuts topology."
@@ -116,6 +152,7 @@ fn print_pcb_help() {
          \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
          \ttokito-cli pcb resolve models <BOARD|PACKAGE> --project-root <DIR> ...\n\
          \ttokito-cli pcb export placements <BOARD> --output <FILE.csv>\n\
+         \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom]\n\
          \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--allow-partial]\n\
          \n\
@@ -162,6 +199,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             "validate" => vec!["validate".to_owned()],
             "export" => vec!["export".to_owned()],
             "resolve" => vec!["resolve".to_owned()],
+            "bom" => vec!["bom".to_owned()],
             _ => {
                 print_pcb_help();
                 return Err(CliError::new("unknown PCB command"));
@@ -172,6 +210,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     }
     if args[0] == "resolve" && args.get(1).is_some_and(|value| value == "models") {
         return resolve_models(args);
+    }
+    if args[0] == "bom" && args.get(1).is_some_and(|value| value == "reconcile") {
+        return reconcile_bom(args);
     }
     if args[0] == "model" && args.get(1).is_some_and(|value| value == "inspect") {
         return inspect_model(args);

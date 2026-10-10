@@ -1,5 +1,12 @@
 # Experimental STEP reader qualification probe
 
+The explicit `--negative-torus-compat` research option retains original warnings,
+records cloned-AST edits/fingerprints and remains unqualified. Its face-count
+recovery on `57.step` is contradicted by large nearest-reference surface
+discrepancies. See the [actual dataset evidence](../../docs/DATASET_STEP_QUALIFICATION.md#negative-major-radius-torus-experiment).
+The `torus_surface_evidence` example produces bounded research samples only;
+successful report generation never means production admission.
+
 This isolated pure-Rust experiment evaluates the exact crates.io reader `oxideav-step = 0.0.1`, with default features disabled. It is not a Tokito production adapter, does not produce GLB, and always reports `admitted: false` and exits **2**, including when the reader returns a mesh without warnings. Existing CLI STEP support is not changed.
 
 ```powershell

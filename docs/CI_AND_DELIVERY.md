@@ -15,8 +15,11 @@ Each verification.json records the local Windows architecture, actual Rust/Cargo
 The STEP-evaluation continuation adds three separate local gates for the isolated
 `experiments/step-evaluation` crate: formatting, locked offline tests and
 warnings-denied Clippy. Its manifest/lock/source are fingerprinted; nested
-generated `target` output is excluded. The current runner therefore has thirteen
-gates. Earlier ten-gate receipts verify only their original input snapshots and
+generated `target` output is excluded. BOM subprocess E2E and the original
+analytic torus-inverse regression add two further gates, bringing the current
+runner to fifteen gates. BOM tests cover exact identity joins, malformed/quoted
+CSV, UTF-8 BOM encoding and nonzero resource-cap refusal; these do not qualify
+3D component geometry. Earlier ten- and thirteen-gate receipts verify only their original input snapshots and
 do not qualify this experiment or enable production STEP import.
 
 The full suite verifies the board-shell GLB, bounded model capture, flat-triangle WRL profile, pure-Rust point/mesh placement helpers, strict source-stackup derivation, one- and two-component assembly GLBs, exact-refdes selector behavior, unsupported-side diagnostics, and coverage truncation on Windows. The tests model the App's documented name filter but do not run the App importer or Android renderer/selection. The suite does not prove Linux/MSRV, hosted CI, general WRL/STEP, complete KiCad conformance, manufacturing validity, Desktop/MCP integration or AR. Placement and stackup tests are source-derived checks, not a KiCad-generated export comparison. Hashes establish integrity, not publisher identity. A verification receipt is authoritative only when its recorded source fingerprints match the final implementation/scripts/tests; narrative documentation can be updated afterward, but must not be represented as an input to that earlier receipt.

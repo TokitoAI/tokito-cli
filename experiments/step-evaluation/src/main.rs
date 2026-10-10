@@ -1,4 +1,6 @@
 #![forbid(unsafe_code)]
+#![recursion_limit = "256"]
+mod negative_torus;
 use oxideav_step::{read_step_with, GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -58,7 +60,7 @@ fn shape_provenance_summary(
         "qualification": "reader_observation_not_source_face_completeness"
     })
 }
-fn probe(path: &Path) -> Result<Value, String> {
+fn probe(path: &Path, negative_torus_compat: bool) -> Result<Value, String> {
     let start = Instant::now();
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     let hash = format!("{:x}", Sha256::digest(&bytes));
@@ -79,7 +81,46 @@ fn probe(path: &Path) -> Result<Value, String> {
         },
         keep_invisible: false,
     };
-    let model = read_step_with(&bytes, &options).map_err(|e| format!("reader_error: {e}"))?;
+    let (model, compatibility, baseline) = if negative_torus_compat {
+        let original = oxideav_ifc::parse_step_with_limits(&bytes, &options.parse_limits)
+            .map_err(|e| format!("reader_error: {e}"))?;
+        let baseline = match oxideav_step::model_from_file(&original, &options) {
+            Ok(model) => json!({
+                "readerReturnedModel": true,
+                "warningsTotal": model.warnings.len(),
+                "warningDetails": model.warnings.iter().take(MAX_WARNING_DETAILS).map(|s| s.chars().take(512).collect::<String>()).collect::<Vec<_>>(),
+                "warningDetailsTruncated": model.warnings.len() > MAX_WARNING_DETAILS,
+                "triangles": model.triangle_count(),
+                "faceProvenanceEntries": model.parts.iter().flat_map(|p| &p.shapes).map(|s| s.triangle_faces.len()).sum::<usize>(),
+            }),
+            Err(error) => {
+                json!({"readerReturnedModel":false,"error":error.to_string().chars().take(512).collect::<String>()})
+            }
+        };
+        let (derived, compatibility) = match negative_torus::normalized_copy(&original, true) {
+            Ok(value) => value,
+            Err(error) => {
+                return Ok(
+                    json!({"probeSchema":"tokito.step-evaluation.v1", "sourceSha256":hash, "sourceBytes":bytes.len(), "admitted":false, "exportsProduced":[], "baselineBeforeCompatibility":baseline, "negativeTorusCompatibility":{"enabled":true,"rejected":true,"error":error},"durationMilliseconds":start.elapsed().as_millis()}),
+                )
+            }
+        };
+        let model = match oxideav_step::model_from_file(&derived, &options) {
+            Ok(model) => model,
+            Err(error) => {
+                return Ok(
+                    json!({"probeSchema":"tokito.step-evaluation.v1", "sourceSha256":hash, "sourceBytes":bytes.len(), "admitted":false, "exportsProduced":[], "baselineBeforeCompatibility":baseline, "negativeTorusCompatibility":compatibility,"error":format!("reader_error: {error}"),"durationMilliseconds":start.elapsed().as_millis()}),
+                )
+            }
+        };
+        (model, compatibility, baseline)
+    } else {
+        (
+            read_step_with(&bytes, &options).map_err(|e| format!("reader_error: {e}"))?,
+            json!({"enabled":false}),
+            Value::Null,
+        )
+    };
     let mut bounds = [f64::INFINITY; 3];
     let mut upper = [f64::NEG_INFINITY; 3];
     let mut positions = 0usize;
@@ -141,6 +182,7 @@ fn probe(path: &Path) -> Result<Value, String> {
         .collect();
     Ok(json!({
         "probeSchema": "tokito.step-evaluation.v1", "reader": "oxideav-step=0.0.1/default-features=false",
+        "negativeTorusCompatibility": compatibility, "baselineBeforeCompatibility": baseline,
         "sourceSha256": hash, "sourceBytes": bytes.len(), "declaredApSchema": format!("{:?}", model.schema),
         "readerReportedLengthUnitMetres": model.length_unit_metres, "unitsIndependentlyPreflighted": false,
         "parts": model.parts.len(), "rootOccurrences": model.roots.len(), "childOccurrences": model.parts.iter().map(|p| p.children.len()).sum::<usize>(),
@@ -166,11 +208,25 @@ fn probe(path: &Path) -> Result<Value, String> {
 }
 
 fn main() {
-    let args: Vec<_> = std::env::args_os().skip(1).collect();
-    let result = if args.len() == 1 {
-        probe(Path::new(&args[0]))
+    let mut paths = Vec::new();
+    let mut negative_torus_compat = false;
+    let mut invalid = false;
+    for arg in std::env::args_os().skip(1) {
+        if arg == "--negative-torus-compat" {
+            if negative_torus_compat {
+                invalid = true;
+            }
+            negative_torus_compat = true;
+        } else if arg.to_string_lossy().starts_with('-') {
+            invalid = true;
+        } else {
+            paths.push(arg);
+        }
+    }
+    let result = if paths.len() == 1 && !invalid {
+        probe(Path::new(&paths[0]), negative_torus_compat)
     } else {
-        Err("usage: tokito-step-evaluation <explicit-materialized-step-path>".into())
+        Err("usage: tokito-step-evaluation [--negative-torus-compat] <explicit-materialized-step-path>".into())
     };
     let report = result.unwrap_or_else(|error| json!({"probeSchema":"tokito.step-evaluation.v1", "admitted": false, "error": error, "exportsProduced": []}));
     println!("{report}");

@@ -96,3 +96,60 @@ identity/topology and surface-distance comparisons, material preservation,
 assembly occurrence transforms, resource qualification and deterministic exports.
 Component assignment and native-Altium-to-extracted-model equivalence remain
 unverified. Keep production STEP admission disabled until these gates pass.
+
+## Negative-major-radius torus experiment
+
+The eight skipped faces in `57.step` reference tori with negative major radii.
+An explicit development-only `--negative-torus-compat` option clones the parsed
+AST, normalizes those radii and toggles the reader's affected face sense. Original
+bytes remain unchanged; original warnings and separate AST fingerprints are
+reported. This is a candidate heuristic, not an implementation of OCCT's full
+orientation semantics: OCCT distinguishes edge-loop sense from final face
+orientation. The default reader and production admission are unchanged.
+
+On the pinned asset, the candidate recovers eight face IDs (228 versus the
+default's 220) and reports zero derived-reader warnings. However, the independent
+FreeCAD 1.1.4 surface check does **not** establish correct geometry. Across 250
+triangle-centroid samples covering all eight affected face IDs, nearest-reference
+surface distance has median **0.21893656595 mm** and maximum
+**0.79343805063 mm**. The reference is valid and has 228 faces. Distance is measured
+against a compound of reference faces, avoiding solid-containment zero distances.
+The composed reader frame remains unqualified; source-to-reference face identity,
+surface normals, trim coverage and worst-case deviation remain unverified.
+These discrepancies block treating recovered face counts as a geometry fix.
+
+Controls from eight unchanged faces of the same reader part produced 131 centroid
+samples with maximum distance **0.00405380850 mm**. The 750 sampled affected
+triangle vertices have maximum distance **0.68639072817 mm**, compared with
+**0.00349781607 mm** for 393 control vertex observations (shared vertices may
+repeat). This makes a general frame/unit mismatch less likely and shows the
+affected discrepancy is not solely triangle-centroid chord approximation. It
+still does not establish source-face correspondence or certify all transforms.
+
+`examples/torus_surface_evidence.rs` is development tooling with at most 256
+occurrence visits, depth 32, 32 samples per affected face/shape occurrence, 8192
+total samples and 128 warning details of 512 characters. It rejects empty
+sampling and reports sampled/missing selected face IDs. `--control-faces` selects
+up to eight unchanged face IDs from parts containing affected faces. Its process exit 0 means
+only that the research report was produced; `admitted` remains false. The main
+probe always exits 2. Neither tool exports a production model.
+
+Local reports are `target/dataset-intake/torus-surface-samples.json` and
+`torus-reference-surface.json`. The affected experiment passed nine unit tests,
+two executable rejection tests, formatting, warnings-denied all-target Clippy,
+and the actual example/FreeCAD runs. These scoped checks do not replace the
+earlier whole-engine verification receipt. Initial example compilation failed
+on a nonexistent identity method, then on an incomplete local edit; both were
+corrected before successful build and checks.
+
+An original Rust analytic regression in `examples/torus_inverse_regression.rs`
+isolates a spindle-torus inverse ambiguity. For the magnitude of source surface
+`#3871` (minor radius greater than major radius), an outer-only inverse round
+trip at the inner equator differs by **2.49189545339 mm**; a second branch
+reconstructs the point. Seven analytic samples have selected-branch maximum
+residual **1.0739e-15 mm**. Five regression tests passed, including axis-pole
+ambiguity, finite input validation and negative-major reparameterization. This
+is mathematical evidence, not a parsed STEP trim fix: source trim domains,
+periodic continuity, pole behavior and face orientation still require an
+original implementation or a suitable supported reader extension. No cached
+dependency source was changed, and no production STEP adapter was enabled.

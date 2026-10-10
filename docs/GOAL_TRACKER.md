@@ -6,7 +6,7 @@ Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is com
 
 Current continuation: the verified foundation is now delivered as open
 [PR #17](https://github.com/TokitoAI/tokito-cli/pull/17), head
-`1efe33eb4695fa0b188c4a89385dcb01eea1dddc`; PR #11 and #16 are historical merges.
+`6ea6317414c69b1005cfd4eb9a9c17ed40ab1fb9`; PR #11 and #16 are historical merges.
 Dataset qualification uses main at `257ea7e68ee2e700522bd1b19ad9cbf1c0c3980a`
 and [issue #18](https://github.com/TokitoAI/tokito-cli/issues/18). The latest
 local continuation adds an isolated STEP evaluation crate and three new local
@@ -239,3 +239,13 @@ Last updated: 2026-10-10. The frozen selector/help/assembly source passed all te
 
 - 2026-10-10: implemented pure-Rust point- and parsed-mesh placement APIs from reviewed KiCad STEP-export behavior. Both take front/back copper-plane values as explicit inputs; canonical source parsing derives supported copper/core/prepreg stackup planes. Focused tests cover asymmetric poses, frame reflection, signed scale parity, winding, recomputed normals, simple and four-layer stackups, and refusal paths. Independent exported-geometry comparison remains open.
 - 2026-10-10: wired a bounded local VRML assembly path to the GLB exporter. It accepts only caller-approved roots and flat triangle VRML, requires unique component UUIDs and consistent stackup/body thickness, emits UUID-backed nodes, and fails closed into explicit coverage for all other model conditions. A pinned one-resistor release subprocess E2E passes. STEP and KiCad GLB parity remain open.
+
+## Current STEP geometry investigation — 2026-10-10
+
+| Work | Owner | Dependency | State | Evidence / next action |
+|---|---|---|---|---|
+| Negative-torus candidate | Experiment worker + main | Real 57.step | Recovery observed, quality failed | Eight face IDs recovered; nearest-reference surface discrepancies block admission |
+| Same-part controls and vertex comparison | Main + independent reviewer | Candidate sampler + FreeCAD | Executed | Affected vertex maximum 0.68639 mm; unchanged controls 0.00350 mm; see DATASET_STEP_QUALIFICATION.md |
+| Original torus inverse regression | Experiment worker + Main | Reader inverse diagnosis | Analytic tests passed | Five tests and seven samples; no STEP trim support or production admission |
+| Current QA | Main + reviewer | Frozen implementation | Fifteen gates passed | Receipt 20261010T050440Z-26878073a5b347fbb11e7427163d927e; corrected real BOM runs passed; later narrative clarifies anonymous/placeholder identities only |
+| GitHub delivery | Main | Full acceptance and review | PR17 remains open | Head6ea6317; new geometry experiments remain local; issue19 updated; no Actions |

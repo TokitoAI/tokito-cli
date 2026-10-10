@@ -5,6 +5,7 @@ use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+pub mod bom;
 mod cli;
 pub mod component_pose;
 pub mod document;

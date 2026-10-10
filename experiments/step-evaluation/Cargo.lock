@@ -175,6 +175,7 @@ dependencies = [
 name = "tokito-step-evaluation"
 version = "0.0.0"
 dependencies = [
+ "oxideav-ifc",
  "oxideav-step",
  "serde_json",
  "sha2",
