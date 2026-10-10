@@ -1,0 +1,35 @@
+{
+  "schema": "tokito.prototype-browser-acceptance.v1",
+  "recordedAtUtc": "2026-10-10T13:21:37.929968+00:00",
+  "execution": "actual Playwright CLI Edge session tokito-prototype",
+  "board": "NXP",
+  "passed": true,
+  "componentRecords": 391,
+  "triangles": 108920,
+  "positions": 134860,
+  "drawBatches": 871,
+  "gpuPickedReference": "J6",
+  "checks": [
+    "visible IC highlight pixels",
+    "separate component selection",
+    "colour restoration",
+    "explicit missing-model message",
+    "GPU picking",
+    "orbit pixels",
+    "zoom pixels",
+    "fresh offline rendering",
+    "3840x2160 screenshot"
+  ],
+  "multiMeshVisibleHighlight": false,
+  "limits": [
+    "source geometry reused; physical fit and AR registration unverified",
+    "NXP R100 identity tested; it is occluded in reset view"
+  ],
+  "testScriptSha256": "d3119536d02220fd9df316964a07d73c6d516df8b14c23706c801d88e20b2cec",
+  "viewerSha256": "60068bc3768cdd28f71671c664dfce226f5b351409f82ba58b8d8b227fa99465",
+  "preparedGlbSha256": "9113e74057ca87f3ed3910b6e8ea5989bdb54f17bbdb98fccdc8d58d71b7be5b",
+  "screenshots": {
+    "selected-ic.png": "64d2700c98cfd9149166ed3e0039690410de08c598fb1c931b4a94ced96b361e",
+    "selected-ic-4k.png": "63430dbb80b121b888f5d4033440a1147b8e8108e4cf93161d754dd4f137efab"
+  }
+}

@@ -1,5 +1,25 @@
 # Local build and delivery locations
 
+## Active workspace — 2026-10-11
+
+The active ecosystem is `D:\kannan\projects\tokito ecosystem`; CLI work uses
+its `tokito_cli` folder. The relocation compared SHA-256 for all 159,930 files
+(66,816,607,839 bytes) and preserved the HEAD, branch and working-tree status of
+18 repositories. Verification is retained at
+`D:\kannan\projects\tokito-migration-evidence-20261011/`.
+
+The original F: copy still exists: automatic approval review blocked its removal.
+Use D: for new work; do not maintain two development copies. No sibling source
+content was changed by the relocation. Historical absolute F: receipt paths remain
+execution telemetry; resolve their suffixes beneath the relocated D: ecosystem.
+
+Temporary isolated ESP8266 work uses `D:\TokitoCliBuilds`, and the pinned NXP
+PR #21 intake uses `D:\TokitoCliDatasetAssets\nxp-intake-20261011`. These folders
+are separate local artifacts, not additional source repositories. New default
+CLI builds and delivery outputs remain under the active CLI's ignored `target`.
+
+## Earlier output consolidation
+
 On 2026-10-10 the user requested that all CLI outputs live inside this project. Existing outputs were moved on the same F: volume, preserving their contents:
 
 | Previous directory | Current directory | Preserved inventory |

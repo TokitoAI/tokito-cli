@@ -1,5 +1,24 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Current execution checkpoint — 2026-10-11
+
+Active CLI: `D:\kannan\projects\tokito ecosystem\tokito_cli`. The complete
+ecosystem copy passed full-file SHA-256 and 18-repository Git-state comparisons;
+the old F: copy remains because automatic review blocked its removal. Use D:.
+
+| Priority | Owner | State | Actual evidence | Next gate |
+|---|---|---|---|---|
+| ESP8266 assembly | CLI / independent reviewer | Source components, bodies, poses and board inputs implemented; assembled GLB incomplete | 20 current experiment tests, Clippy, source/association E2E; independent stack guard review passed | Complete surfaces, contour topology and independently compared world placement |
+| NXP improvement | CLI / dataset owner | Latest PR #21 payload materialized and hash-checked | PR head `de945d0d36a6132e28e247d4f566f2e300301c14`; 5,250,580-byte GLB; actual CLI inspect succeeds | Resolve 23 placeholder bodies and photographed layout/population matching |
+| AR and YOLO integration | App owner / CLI | Deferred until asset and identity gates | Existing App coordinate/revision/expiry contract; candidate dataset mappings | Verified identity crosswalk, accepted importer and physical-device evaluation |
+| Documentation and PR delivery | CLI | Local changes retained; fresh full delivery needed for new module | Previous 33-gate receipt plus current scoped checks | Current-source full QA and independent review before PR push/merge |
+| Afan handoff | CLI / App owner | Plan retained; final handoff incomplete | `AFAN_PROTOTYPE_HANDOFF_PLAN.md` | Verified assets, commands, contracts, limitations and merge sequence |
+
+No schematic-only physical PCB conversion, complete ESP8266 assembly or phone AR
+completion is claimed. Sibling repositories remain read-only. Hosted Actions are
+not used. These current rows supersede older snapshot states below without changing
+their historical execution evidence.
+
 ## Current priority — dataset pipeline before App integration (2026-10-10)
 
 The active goal remains **TOKITO-PCB-ENGINE-002**; it is not complete. The user now requires the dataset pipeline to be implemented and tested before connecting Tokito App. App, API and dataset source remain read-only. Model accuracy requires geometric evidence, not a texture-resolution label.
@@ -340,3 +359,161 @@ See [the complete CLI flow, evidence and staged AR plan](DIGITAL_TWIN_SELECTION.
 | Complete KiCad/footprint parity and physical App acceptance | CLI/App owners | Open | Issues #13/#24 incomplete; prototype reuses candidate source bodies without certifying physical alignment |
 
 Build and delivery folders were moved intact under this checkout: `target/builds` and `target/delivery/imported-f-drive`. Previous receipts retain historical execution paths; [output mapping](LOCAL_OUTPUT_LOCATIONS.md) documents their new locations. No sibling repository was edited.
+
+## ESP prototype priority and native unit progress (2026-10-10)
+
+| Task | Owner | State | Evidence / next action |
+|---|---|---|---|
+| ESP8266 declared STEP length units | CLI main + scoped worker | Local checks passed | 17 unit tests, five subprocess tests, Clippy and independent full-row comparisons on all 17 pinned models; [scope and receipt](STEP_LENGTH_UNIT_PREFLIGHT.md) |
+| ESP32 latest candidate intake | CLI main | Hash verified | Dataset PR16 pinned `07c4519c964520e1a143b5f3c059b18dd108f037`; actual GLB has 16 nodes/meshes and 15 selectors; `target/dataset-intake/esp32-candidate-07c4519/cli-intake.json` |
+| ESP32 individually selectable inspection | CLI main | Local prototype passed | Actual CLI preserved source geometry/materials, selected all 15 bodies; browser passed IC pixels, diode identity, restoration, missing-model message, picking, orbit/zoom/offline and 4K screenshot. Receipts in `target/prototypes/esp32-candidate-e2e-v1/`. Nominal package shapes/dimensions/identity still unqualified |
+| ESP8266 assembled selectable inspection | CLI main | Open | Existing 17 STEP sources still need qualified geometry evaluation and component/world-transform joins; unit success is insufficient |
+| ESP8266 original source body recovery | CLI main | Bounded source audit passed | 34 component records match dataset extraction, 62 body candidates resolve across 17 model records / 13 IDs; duplicate transform metadata retained. Six tests, Clippy and real subprocess passed; [remaining gates](ESP8266_SOURCE_ASSEMBLY.md) |
+| NXP replacement | Dataset owner | External work | User reports new model in progress; inspect its published pinned assets before replacing the current Rev C candidate |
+| AR and product completion | CLI/App owners | Open | Follow accepted inspection prototypes with explicit import and registration gates; sibling repositories remain read-only |
+
+The STEP changes are local and not yet qualified for a new push by the full CLI
+delivery runner. PR29's previously verified prototype baseline is separate. GitHub
+Actions remain disabled. The goal remains active; full KiCad parity is incomplete.
+
+### ESP32 population defect confirmed
+
+The first prototype's successful browser checks establish selection behavior, not
+full population. Source photos visibly contain omitted passives. The new Rust
+`twin audit-population` command reports the community-reference comparison: six
+resistors versus zero rendered, six capacitors versus two, and incompatible U1/U2
+label meanings. [Population correction and next gates](ESP32_POPULATION_AUDIT.md).
+The v2 demo retains the existing candidate geometry and explicitly exposes incomplete
+coverage; missing components have not yet been generated or physically placed.
+
+ESP8266 embedded-byte gate is now passed: all 17 direct Rust-decompressed model
+streams match extracted STEP bytes/hashes; eight experiment tests and dataset E2E
+passed. Component-index semantics, face/trim completeness and assembly pose remain open.
+
+ESP32 outline refusal was narrowed to a chaining-tolerance mismatch. Three unique
+source gaps measure 0.001655551–0.009959051 mm. New explicit `validate outline
+--compare-chaining` diagnostics show eight unique endpoint pairs at the published
+KiCad standard 0.01 mm profile, while strict Tokito validation still refuses.
+Comparison is not an export/admission gate; source coordinates remain untouched.
+Eighteen topology tests, actual three-profile CLI comparisons and Clippy passed.
+
+The explicit export chaining policy is now implemented locally: opt-in 0.001/0.01
+mm tolerance, contour revalidation, connection-area accounting, curve/join error
+allocation and policy metadata. 82 library tests, Clippy and actual ESP32 shell
+E2E passed. All24 component model references remain withheld by the assembly
+stackup-span gate (1.58 mm copper span versus1.60 mm nominal including declared
+mask). Full verifier and independent review remain delivery gates; no new push.
+
+Latest ESP32 recheck: dataset PR17 `34fe631a` contains no newer ESP32 component
+mapping. The v3 demo now bundles and displays the reference BOM comparison via
+`twin prototype --reference-bom`; actual CLI and browser E2E passed, including
+required visible resistor/capacitor deficits and identity conflicts. Full
+population remains incomplete. The arc/circle analytic error bound was corrected
+after independent review; 84 library tests, all Rust integration/doc tests,
+Clippy and the real-source shell E2E passed. Current changes remain local pending
+the full delivery runner. See [the detailed task ledger](ESP32_POPULATION_AUDIT.md).
+
+Native reference assembly advanced: separate typed body/copper/coating extents
+fix the ESP32 nominal-thickness comparison, with malformed-stackup refusals and
+a 0.840 mm independent mounted-resistor regression. Exact official KiCad9 library
+assets are commit/hash pinned locally. Native Rust emits 18 separately selectable
+bodies, including all six reference resistors and capacitors; six source models
+remain refused. Current shell is a labelled nominal envelope and component
+materials are still generic. Actual source CLI and real browser E2E passed for
+the separate community-reference prototype; photographed-board equivalence is
+unverified. Both research issues #13/#24 remain incomplete. Full local verifier
+now includes experimental source-record/unit checks and optional pinned ESP32/
+ESP8266 E2E inputs; no hosted Actions were added.
+
+Material quality correction: native and assigned exports now preserve per-part
+source diffuse RGB, alpha, emissive and solid fields with bounded deterministic
+deduplication and original Phong provenance. Nine materials replace generic gold
+in the new ESP32 reference v2 demo; source geometry/BIN/UUIDs remain identical.
+86 library tests, Clippy, actual native E2E and real browser colour restoration /
+18 selectors / offline / 4K checks passed. Earlier full29-gate verification passed
+before this source change and is not reused as current evidence. Six missing/
+unsupported models, patterned copper/mask/silk, full PBR/culling and physical fit
+remain quality tasks. No new code push has occurred.
+
+The material correction subsequently passed a fresh full 29-gate run:
+`target/delivery/local/20261010T160138Z-4ed5e1cd8e0947dfa7afd9e41af40714/verification.json`.
+Later STEP experiment changes are separate and do not inherit that receipt.
+
+### Current handoff reconciliation
+
+PR #11 is confirmed merged at remote head `40e60efcf32a8128446a3ab96afb559fa7858699`;
+it is historical foundation delivery, not verification of current uncommitted work.
+See [dataset AR handoff](DATASET_AR_HANDOFF.md) for PR #18's pinned working contract.
+
+| Task | Owner | Dependency | State / QA | Next action |
+|---|---|---|---|---|
+| ESP32 central module | CLI | Official pinned WRL / source layout | 19-body local export and material-preserving selection browser checks passed | Full fresh delivery verification; missing models and photo joins |
+| ESP8266 occurrence world | CLI + independent reviewer | Declared units and FreeCAD reference | Three-model bounds comparison passed at 0.05 mm; one unresolved 0.049816 mm delta | Review traversal; qualify surfaces and Altium board transforms |
+| Dataset/App AR identity contract | CLI / App | Dataset PR #18 reviewed inputs | Documented; no qualified joins or phone acceptance | Materialize latest models/annotations, then establish exact crosswalks |
+| Current source PR | CLI | Current local QA and independent review | Not pushed; historical receipts do not qualify it | Finish gates, then feature PR without Actions |
+
+Model-first owner steering is captured in
+[Afan prototype handoff plan](AFAN_PROTOTYPE_HANDOFF_PLAN.md): finish model/identity
+quality, then App AR, then a complete source/asset/YOLO/integration/product handoff.
+This document is a plan, not completed delivery. PR18's actual dense ESP32 annotation
+has 28 masks per image across three images; its source component IDs remain unmapped
+and training export/evaluation flags are false.
+
+A fresh 30-gate local runner passed at
+`target/delivery/local/20261010T184243Z-5a6a87804e3545f089b45443d70aa387/verification.json`.
+Subsequent browser review reproduced a stale selection box after graphics context
+loss. The fix clears/refuses overlay rendering after loss and adds synchronous
+snapshot capture; real v9 browser execution passed nonblank colour equality,
+orbit/zoom overlay changes, matching resized bitmap dimensions, offline selection,
+4K rendering and context-loss suppression. That later source change does not inherit
+the earlier full receipt. Fresh scoped Rust checks and full delivery review remain
+separate evidence. No new source push or merge has occurred.
+
+ESP32 switch recovery now exports21 independently selectable bodies through the
+ordinary Rust CLI: exact source palette-only derivation, source-byte splice/hash
+checks, saved UUIDs,4,538triangles per switch and explicit full-assembly refusal.
+Actual CLI E2E and browser21-selector/material/orbit/zoom/resize/context-loss/offline/
+4K journeys passed. Independent review verified hashes and retained the physical
+geometry/pose limits. USB/LED exact-zero-face derivation and CP2102 model resolution
+remain open; see [the population audit](ESP32_POPULATION_AUDIT.md). The full local
+runner now includes the switch journey and must be rerun for this source before
+delivery. No new source push or merge; sibling code unchanged.
+
+### Official ESP32 STEP candidate face-presence work
+
+| Task | Owner | Dependency | State/evidence | Next action |
+|---|---|---|---|---|
+| Bounded source shell/face comparison | CLI | Materialized official assets | Implemented; 21 experiment tests, five executable tests and Clippy passed | Extend independent geometry comparisons |
+| Real model membership comparison | CLI QA | Rust probe | Passed: module 751, USB 484, switch 81 face IDs; full digests independently matched | Verify surfaces, cavities and dimensions |
+| Malformed topology review | Independent reviewer / CLI | Audit implementation | Arity and duplicate-reference gaps corrected with regressions | Final scoped review |
+| Parametric-context units | CLI | USB source semantics | Incomplete; 2D contexts without assigned length units refused | Explicit schema-aware handling |
+| Replacement model admission / full board | CLI | Units, surfaces, transforms | Not admitted; no new populated GLB | Qualify before assembly |
+
+See [the gate, exact scope and current evidence](STEP_FACE_COVERAGE.md). The goal
+remains active; issues #13, #19 and #24 remain incomplete. No sibling write,
+GitHub Action or code push occurred in this step.
+
+### Parallel ESP8266 and ESP32 checkpoint
+
+| Work | Owner | State | Verified evidence | Next action |
+|---|---|---|---|---|
+| ESP8266 source-to-model candidate inventory | Scoped worker / main | Implemented; normalized source pose inputs; assembly unqualified | 34 components, 62 bodies, 17 model records; source-bound v5 receipt; 14 experiment tests and all 62 Decimal pose comparisons passed | Verify world placement and complete surfaces |
+| ESP32 exact zero-area source derivation | Main / independent reviewer | Implemented; source-reference prototype only | Exact Fraction comparison: 7 USB and 2 LED faces; 23 selectable bodies; actual browser selection/offline/4K/context-loss pass | Resolve CP2102 and photographed revision correspondence |
+| Current-source Rust verification | Main | Scoped checks passed | 91 root unit tests plus integration/doc tests; root and Altium Clippy | Run fresh full local delivery gate before any code push |
+| Delivery | Main | Pending | No new source push or merge | Full current-source local gate and independent release review |
+
+ESP8266 evidence: `target/dataset-intake/esp8266-latest-f81f6f85/assembly-e2e-v5/`.
+ESP32 evidence: `target/prototypes/esp32-usb-led-e2e-v2/` including hash-bound
+`browser-qa-receipt.json`. The local verifier now includes switch recovery,
+exact-zero-area derivation and ESP8266 candidate associations in dependency order.
+No full-board, physical-fit or phone/AR completion is claimed.
+
+ESP8266 board-stream intake now preserves 27 separate legacy property sections,
+unresolved non-ASCII bytes and conflicting duplicates. Actual source E2E v8
+checks the pinned stream hash, linked two-copper-layer stack and all nine contour
+records; declared copper/core thickness is 0.39116 mm, not an assumed 1.6 mm.
+Current experiment verification passed 15 Rust tests, formatting, Clippy and
+the source + 62-body candidate E2E journeys. Numeric pose v5 received independent
+review without blockers; independent Board6 review also matched all 27 sections,
+offsets, properties and stream bytes without blockers. Geometry,
+world placement and the full delivery gate are still incomplete.

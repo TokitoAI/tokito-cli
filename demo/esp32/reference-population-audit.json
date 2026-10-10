@@ -1,0 +1,112 @@
+{
+  "candidateComponentRecords": 26,
+  "candidateSourceHashes": {
+    "componentMap": "a60bd705758f8e4f4e496908b44a5724876dbbbf69eb230f5f5e63367198b366",
+    "glb": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+    "manifest": "a6d2b79c5bbaa09826e53332e1cf118f705635c4b7a8e2af628d2a067f76aa3e"
+  },
+  "classCoverageComparison": [
+    {
+      "classClaim": "capacitor",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 6,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 6
+    },
+    {
+      "classClaim": "connector",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 1
+    },
+    {
+      "classClaim": "diode",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 1
+    },
+    {
+      "classClaim": "interface_ic",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 1,
+      "renderedCandidateCount": 0
+    },
+    {
+      "classClaim": "led",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 1
+    },
+    {
+      "classClaim": "pin_header",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 2,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 2
+    },
+    {
+      "classClaim": "resistor",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 6,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 6
+    },
+    {
+      "classClaim": "rf_module",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 1
+    },
+    {
+      "classClaim": "switch",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 2,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 2
+    },
+    {
+      "classClaim": "transistor",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 2,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 2
+    },
+    {
+      "classClaim": "voltage_regulator",
+      "physicalMissingPartsVerified": false,
+      "referenceBOMCount": 1,
+      "referenceCountDeficit": 0,
+      "renderedCandidateCount": 1
+    }
+  ],
+  "completePopulationVerified": false,
+  "identityJoinsVerified": false,
+  "limitations": [
+    "Reference BOM is not the photographed specimen BOM. Counts and equal labels do not prove identical parts or positions.",
+    "BOM classification is a source-field heuristic; missing photo parts require reviewed source joins."
+  ],
+  "physicalFitVerified": false,
+  "referenceBOMComponents": 24,
+  "referenceBOMSha256": "e2268bb49933e7e03b455b51b4a8e003d4d2f221bd1e37124edb3dc78a676e99",
+  "referenceLabelsAbsentFromCandidate": [],
+  "renderedCandidateClassCounts": {
+    "capacitor": 6,
+    "connector": 1,
+    "diode": 1,
+    "led": 1,
+    "pin_header": 2,
+    "resistor": 6,
+    "rf_module": 1,
+    "switch": 2,
+    "transistor": 2,
+    "voltage_regulator": 1
+  },
+  "sameLabelClassConflicts": [],
+  "samePhysicalBoardVerified": false,
+  "schema": "tokito.reference-population-audit.v1"
+}

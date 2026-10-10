@@ -1,0 +1,5439 @@
+{
+  "asset_id": "tokito-selectable-b005375032a454d04fd9bc75071c37c9",
+  "board_id": "ultimainboard",
+  "board_revision": "2.1.4",
+  "component_count": 574,
+  "components": [
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R41",
+      "glb_selector": "ref:R41",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R41"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C74",
+      "glb_selector": "ref:C74",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C74"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R98",
+      "glb_selector": "ref:R98",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R98"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R24",
+      "glb_selector": "ref:R24",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R24"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R74",
+      "glb_selector": "ref:R74",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R74"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C92",
+      "glb_selector": "ref:C92",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C92"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C82",
+      "glb_selector": "ref:C82",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C82"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C38",
+      "glb_selector": "ref:C38",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C38"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R92",
+      "glb_selector": "ref:R92",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R92"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C78",
+      "glb_selector": "ref:C78",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C78"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D14",
+      "glb_selector": "ref:D14",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D14"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R101",
+      "glb_selector": "ref:R101",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R101"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R46",
+      "glb_selector": "ref:R46",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R46"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R34",
+      "glb_selector": "ref:R34",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R34"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C17",
+      "glb_selector": "ref:C17",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C17"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J20",
+      "glb_selector": "ref:J20",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J20"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C29",
+      "glb_selector": "ref:C29",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C29"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J3",
+      "glb_selector": "ref:J3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C50",
+      "glb_selector": "ref:C50",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C50"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J13",
+      "glb_selector": "ref:J13",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J13"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R39",
+      "glb_selector": "ref:R39",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R39"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R9",
+      "glb_selector": "ref:R9",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R9"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C12",
+      "glb_selector": "ref:C12",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C12"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:SW1",
+      "glb_selector": "ref:SW1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "SW1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L161",
+      "glb_selector": "ref:L161",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L161"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J15",
+      "glb_selector": "ref:J15",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J15"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C80",
+      "glb_selector": "ref:C80",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C80"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L1",
+      "glb_selector": "ref:L1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R85",
+      "glb_selector": "ref:R85",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R85"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C49",
+      "glb_selector": "ref:C49",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C49"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C23",
+      "glb_selector": "ref:C23",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C23"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C58",
+      "glb_selector": "ref:C58",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C58"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D9",
+      "glb_selector": "ref:D9",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D9"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J2",
+      "glb_selector": "ref:J2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D8",
+      "glb_selector": "ref:D8",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D8"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C32",
+      "glb_selector": "ref:C32",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C32"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R88",
+      "glb_selector": "ref:R88",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R88"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C21",
+      "glb_selector": "ref:C21",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C21"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R29",
+      "glb_selector": "ref:R29",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R29"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R8",
+      "glb_selector": "ref:R8",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R8"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C57",
+      "glb_selector": "ref:C57",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C57"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C44",
+      "glb_selector": "ref:C44",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C44"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J22",
+      "glb_selector": "ref:J22",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J22"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R31",
+      "glb_selector": "ref:R31",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R31"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C54",
+      "glb_selector": "ref:C54",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C54"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Q2",
+      "glb_selector": "ref:Q2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "Q2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C85",
+      "glb_selector": "ref:C85",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C85"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C62",
+      "glb_selector": "ref:C62",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C62"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R67",
+      "glb_selector": "ref:R67",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R67"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R27",
+      "glb_selector": "ref:R27",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R27"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C8",
+      "glb_selector": "ref:C8",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C8"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C64",
+      "glb_selector": "ref:C64",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C64"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J29",
+      "glb_selector": "ref:J29",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J29"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R42",
+      "glb_selector": "ref:R42",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R42"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C11",
+      "glb_selector": "ref:C11",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C11"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C76",
+      "glb_selector": "ref:C76",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C76"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R62",
+      "glb_selector": "ref:R62",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R62"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J9",
+      "glb_selector": "ref:J9",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J9"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U8",
+      "glb_selector": "ref:U8",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U8"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C73",
+      "glb_selector": "ref:C73",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C73"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C14",
+      "glb_selector": "ref:C14",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C14"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L140",
+      "glb_selector": "ref:L140",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L140"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J14",
+      "glb_selector": "ref:J14",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J14"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D11",
+      "glb_selector": "ref:D11",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D11"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D2",
+      "glb_selector": "ref:D2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C4",
+      "glb_selector": "ref:C4",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C4"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C117",
+      "glb_selector": "ref:C117",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C117"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R70",
+      "glb_selector": "ref:R70",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R70"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C45",
+      "glb_selector": "ref:C45",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C45"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D6",
+      "glb_selector": "ref:D6",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D6"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R14",
+      "glb_selector": "ref:R14",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R14"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L153",
+      "glb_selector": "ref:L153",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L153"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L123",
+      "glb_selector": "ref:L123",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L123"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R20",
+      "glb_selector": "ref:R20",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R20"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R90",
+      "glb_selector": "ref:R90",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R90"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R81",
+      "glb_selector": "ref:R81",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R81"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C101",
+      "glb_selector": "ref:C101",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C101"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C59",
+      "glb_selector": "ref:C59",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C59"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C48",
+      "glb_selector": "ref:C48",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C48"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C36",
+      "glb_selector": "ref:C36",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C36"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L143",
+      "glb_selector": "ref:L143",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L143"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R3",
+      "glb_selector": "ref:R3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R37",
+      "glb_selector": "ref:R37",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R37"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R51",
+      "glb_selector": "ref:R51",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R51"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L120",
+      "glb_selector": "ref:L120",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L120"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:T100",
+      "glb_selector": "ref:T100",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "T100"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J1",
+      "glb_selector": "ref:J1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J8",
+      "glb_selector": "ref:J8",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J8"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Y2",
+      "glb_selector": "ref:Y2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "Y2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C88",
+      "glb_selector": "ref:C88",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C88"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R36",
+      "glb_selector": "ref:R36",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R36"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R7",
+      "glb_selector": "ref:R7",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R7"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R1",
+      "glb_selector": "ref:R1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R78",
+      "glb_selector": "ref:R78",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R78"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C61",
+      "glb_selector": "ref:C61",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C61"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R57",
+      "glb_selector": "ref:R57",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R57"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C26",
+      "glb_selector": "ref:C26",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C26"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U2",
+      "glb_selector": "ref:U2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J21",
+      "glb_selector": "ref:J21",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J21"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R49",
+      "glb_selector": "ref:R49",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R49"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C77",
+      "glb_selector": "ref:C77",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C77"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R10",
+      "glb_selector": "ref:R10",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R10"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D16",
+      "glb_selector": "ref:D16",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D16"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R43",
+      "glb_selector": "ref:R43",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R43"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C91",
+      "glb_selector": "ref:C91",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C91"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R45",
+      "glb_selector": "ref:R45",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R45"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R106",
+      "glb_selector": "ref:R106",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R106"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R83",
+      "glb_selector": "ref:R83",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R83"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C47",
+      "glb_selector": "ref:C47",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C47"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C46",
+      "glb_selector": "ref:C46",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C46"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R72",
+      "glb_selector": "ref:R72",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R72"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J11",
+      "glb_selector": "ref:J11",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J11"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U5",
+      "glb_selector": "ref:U5",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U5"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U12",
+      "glb_selector": "ref:U12",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U12"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R19",
+      "glb_selector": "ref:R19",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R19"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R15",
+      "glb_selector": "ref:R15",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R15"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C70",
+      "glb_selector": "ref:C70",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C70"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C86",
+      "glb_selector": "ref:C86",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C86"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R64",
+      "glb_selector": "ref:R64",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R64"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J4",
+      "glb_selector": "ref:J4",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J4"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C63",
+      "glb_selector": "ref:C63",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C63"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C37",
+      "glb_selector": "ref:C37",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C37"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C83",
+      "glb_selector": "ref:C83",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C83"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D7",
+      "glb_selector": "ref:D7",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D7"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C22",
+      "glb_selector": "ref:C22",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C22"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R109",
+      "glb_selector": "ref:R109",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R109"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C71",
+      "glb_selector": "ref:C71",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C71"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Q3",
+      "glb_selector": "ref:Q3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "Q3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R52",
+      "glb_selector": "ref:R52",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R52"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U3",
+      "glb_selector": "ref:U3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J33",
+      "glb_selector": "ref:J33",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J33"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C42",
+      "glb_selector": "ref:C42",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C42"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C18",
+      "glb_selector": "ref:C18",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C18"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U6",
+      "glb_selector": "ref:U6",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U6"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R73",
+      "glb_selector": "ref:R73",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R73"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D100",
+      "glb_selector": "ref:D100",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D100"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L100",
+      "glb_selector": "ref:L100",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L100"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R99",
+      "glb_selector": "ref:R99",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R99"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C102",
+      "glb_selector": "ref:C102",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C102"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R53",
+      "glb_selector": "ref:R53",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R53"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D5",
+      "glb_selector": "ref:D5",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D5"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J25",
+      "glb_selector": "ref:J25",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J25"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J19",
+      "glb_selector": "ref:J19",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J19"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R66",
+      "glb_selector": "ref:R66",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R66"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C103",
+      "glb_selector": "ref:C103",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C103"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R97",
+      "glb_selector": "ref:R97",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R97"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U11",
+      "glb_selector": "ref:U11",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U11"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R22",
+      "glb_selector": "ref:R22",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R22"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R68",
+      "glb_selector": "ref:R68",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R68"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J5",
+      "glb_selector": "ref:J5",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J5"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R35",
+      "glb_selector": "ref:R35",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R35"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R84",
+      "glb_selector": "ref:R84",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R84"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Q1",
+      "glb_selector": "ref:Q1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "Q1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R11",
+      "glb_selector": "ref:R11",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R11"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C90",
+      "glb_selector": "ref:C90",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C90"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J32",
+      "glb_selector": "ref:J32",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J32"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R56",
+      "glb_selector": "ref:R56",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R56"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C5",
+      "glb_selector": "ref:C5",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C5"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C3",
+      "glb_selector": "ref:C3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C100",
+      "glb_selector": "ref:C100",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C100"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C84",
+      "glb_selector": "ref:C84",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C84"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D12",
+      "glb_selector": "ref:D12",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D12"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R63",
+      "glb_selector": "ref:R63",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R63"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R111",
+      "glb_selector": "ref:R111",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R111"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C15",
+      "glb_selector": "ref:C15",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C15"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C40",
+      "glb_selector": "ref:C40",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C40"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C39",
+      "glb_selector": "ref:C39",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C39"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L160",
+      "glb_selector": "ref:L160",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L160"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C75",
+      "glb_selector": "ref:C75",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C75"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R55",
+      "glb_selector": "ref:R55",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R55"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C79",
+      "glb_selector": "ref:C79",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C79"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R87",
+      "glb_selector": "ref:R87",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R87"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R108",
+      "glb_selector": "ref:R108",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R108"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L152",
+      "glb_selector": "ref:L152",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L152"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C43",
+      "glb_selector": "ref:C43",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C43"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C81",
+      "glb_selector": "ref:C81",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C81"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C66",
+      "glb_selector": "ref:C66",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C66"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C2",
+      "glb_selector": "ref:C2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C113",
+      "glb_selector": "ref:C113",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C113"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C68",
+      "glb_selector": "ref:C68",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C68"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C111",
+      "glb_selector": "ref:C111",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C111"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R103",
+      "glb_selector": "ref:R103",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R103"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L121",
+      "glb_selector": "ref:L121",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L121"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R71",
+      "glb_selector": "ref:R71",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R71"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J24",
+      "glb_selector": "ref:J24",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J24"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C27",
+      "glb_selector": "ref:C27",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C27"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C35",
+      "glb_selector": "ref:C35",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C35"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C20",
+      "glb_selector": "ref:C20",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C20"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R4",
+      "glb_selector": "ref:R4",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R4"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C9",
+      "glb_selector": "ref:C9",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C9"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C56",
+      "glb_selector": "ref:C56",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C56"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R89",
+      "glb_selector": "ref:R89",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R89"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R110",
+      "glb_selector": "ref:R110",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R110"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L130",
+      "glb_selector": "ref:L130",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L130"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R102",
+      "glb_selector": "ref:R102",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R102"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C114",
+      "glb_selector": "ref:C114",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C114"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R58",
+      "glb_selector": "ref:R58",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R58"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R2",
+      "glb_selector": "ref:R2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R82",
+      "glb_selector": "ref:R82",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R82"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R44",
+      "glb_selector": "ref:R44",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R44"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:JP3",
+      "glb_selector": "ref:JP3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "JP3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J30",
+      "glb_selector": "ref:J30",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J30"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R76",
+      "glb_selector": "ref:R76",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R76"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R21",
+      "glb_selector": "ref:R21",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R21"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R91",
+      "glb_selector": "ref:R91",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R91"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C110",
+      "glb_selector": "ref:C110",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C110"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C51",
+      "glb_selector": "ref:C51",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C51"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R38",
+      "glb_selector": "ref:R38",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R38"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L162",
+      "glb_selector": "ref:L162",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L162"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C25",
+      "glb_selector": "ref:C25",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C25"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C41",
+      "glb_selector": "ref:C41",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C41"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R50",
+      "glb_selector": "ref:R50",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R50"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C112",
+      "glb_selector": "ref:C112",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C112"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R18",
+      "glb_selector": "ref:R18",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R18"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C104",
+      "glb_selector": "ref:C104",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C104"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L122",
+      "glb_selector": "ref:L122",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L122"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C7",
+      "glb_selector": "ref:C7",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C7"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R47",
+      "glb_selector": "ref:R47",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R47"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R75",
+      "glb_selector": "ref:R75",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R75"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U10",
+      "glb_selector": "ref:U10",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U10"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J26",
+      "glb_selector": "ref:J26",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J26"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L133",
+      "glb_selector": "ref:L133",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L133"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C115",
+      "glb_selector": "ref:C115",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C115"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R61",
+      "glb_selector": "ref:R61",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R61"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C72",
+      "glb_selector": "ref:C72",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C72"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L131",
+      "glb_selector": "ref:L131",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L131"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C69",
+      "glb_selector": "ref:C69",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C69"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R59",
+      "glb_selector": "ref:R59",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R59"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R33",
+      "glb_selector": "ref:R33",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R33"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C28",
+      "glb_selector": "ref:C28",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C28"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:T1",
+      "glb_selector": "ref:T1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "T1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L151",
+      "glb_selector": "ref:L151",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L151"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C10",
+      "glb_selector": "ref:C10",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C10"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Y1",
+      "glb_selector": "ref:Y1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "Y1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R94",
+      "glb_selector": "ref:R94",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R94"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R6",
+      "glb_selector": "ref:R6",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R6"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R30",
+      "glb_selector": "ref:R30",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R30"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D4",
+      "glb_selector": "ref:D4",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D4"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D1",
+      "glb_selector": "ref:D1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R17",
+      "glb_selector": "ref:R17",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R17"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U1",
+      "glb_selector": "ref:U1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C19",
+      "glb_selector": "ref:C19",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C19"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R100",
+      "glb_selector": "ref:R100",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R100"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U4",
+      "glb_selector": "ref:U4",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U4"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L150",
+      "glb_selector": "ref:L150",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L150"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R69",
+      "glb_selector": "ref:R69",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R69"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L142",
+      "glb_selector": "ref:L142",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L142"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R23",
+      "glb_selector": "ref:R23",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R23"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R77",
+      "glb_selector": "ref:R77",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R77"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U13",
+      "glb_selector": "ref:U13",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U13"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R54",
+      "glb_selector": "ref:R54",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R54"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C55",
+      "glb_selector": "ref:C55",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C55"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U7",
+      "glb_selector": "ref:U7",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U7"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C31",
+      "glb_selector": "ref:C31",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C31"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R80",
+      "glb_selector": "ref:R80",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R80"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R79",
+      "glb_selector": "ref:R79",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R79"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R5",
+      "glb_selector": "ref:R5",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R5"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C53",
+      "glb_selector": "ref:C53",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C53"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J17",
+      "glb_selector": "ref:J17",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J17"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J7",
+      "glb_selector": "ref:J7",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J7"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J6",
+      "glb_selector": "ref:J6",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J6"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R65",
+      "glb_selector": "ref:R65",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R65"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R40",
+      "glb_selector": "ref:R40",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R40"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C65",
+      "glb_selector": "ref:C65",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C65"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R96",
+      "glb_selector": "ref:R96",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R96"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C13",
+      "glb_selector": "ref:C13",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C13"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C60",
+      "glb_selector": "ref:C60",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C60"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L132",
+      "glb_selector": "ref:L132",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L132"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C105",
+      "glb_selector": "ref:C105",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C105"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C87",
+      "glb_selector": "ref:C87",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C87"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R107",
+      "glb_selector": "ref:R107",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R107"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:T3",
+      "glb_selector": "ref:T3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "T3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C30",
+      "glb_selector": "ref:C30",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C30"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:F1",
+      "glb_selector": "ref:F1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "F1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R48",
+      "glb_selector": "ref:R48",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R48"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R93",
+      "glb_selector": "ref:R93",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R93"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R16",
+      "glb_selector": "ref:R16",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R16"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J31",
+      "glb_selector": "ref:J31",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J31"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C1",
+      "glb_selector": "ref:C1",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C1"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R104",
+      "glb_selector": "ref:R104",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R104"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R26",
+      "glb_selector": "ref:R26",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R26"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J16",
+      "glb_selector": "ref:J16",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J16"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J27",
+      "glb_selector": "ref:J27",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J27"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J18",
+      "glb_selector": "ref:J18",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J18"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D13",
+      "glb_selector": "ref:D13",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D13"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R86",
+      "glb_selector": "ref:R86",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R86"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J28",
+      "glb_selector": "ref:J28",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J28"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L163",
+      "glb_selector": "ref:L163",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L163"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R32",
+      "glb_selector": "ref:R32",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R32"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R28",
+      "glb_selector": "ref:R28",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R28"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C24",
+      "glb_selector": "ref:C24",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C24"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R60",
+      "glb_selector": "ref:R60",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R60"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D3",
+      "glb_selector": "ref:D3",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D3"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R105",
+      "glb_selector": "ref:R105",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R105"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R120",
+      "glb_selector": "ref:R120",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R120"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C52",
+      "glb_selector": "ref:C52",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C52"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D15",
+      "glb_selector": "ref:D15",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D15"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R12",
+      "glb_selector": "ref:R12",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R12"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C33",
+      "glb_selector": "ref:C33",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C33"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:D10",
+      "glb_selector": "ref:D10",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "D10"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R13",
+      "glb_selector": "ref:R13",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R13"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R95",
+      "glb_selector": "ref:R95",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R95"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C16",
+      "glb_selector": "ref:C16",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C16"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J23",
+      "glb_selector": "ref:J23",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J23"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C116",
+      "glb_selector": "ref:C116",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C116"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L141",
+      "glb_selector": "ref:L141",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L141"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:R25",
+      "glb_selector": "ref:R25",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "R25"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:T2",
+      "glb_selector": "ref:T2",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "T2"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C67",
+      "glb_selector": "ref:C67",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C67"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:C6",
+      "glb_selector": "ref:C6",
+      "model_quality": "unverified-source-geometry",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "C6"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP527",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP527",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP526",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP526",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP525",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP525",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP524",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP524",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP521",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP521",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP520",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP520",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP519",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP519",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP518",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP518",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP517",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP517",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP516",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP516",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP515",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP515",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP514",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP514",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP511",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP511",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP510",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP510",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP509",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP509",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP508",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP508",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP507",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP507",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP506",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP506",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP505",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP505",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP504",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP504",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP503",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP503",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP502",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP502",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP501",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP501",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP500",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP500",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP443",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP443",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP442",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP442",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP441",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP441",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP440",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP440",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP439",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP439",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP438",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP438",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP435",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP435",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP434",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP434",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP433",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP433",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP432",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP432",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP431",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP431",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP430",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP430",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP429",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP429",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP428",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP428",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP427",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP427",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP426",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP426",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP425",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP425",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP422",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP422",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP421",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP421",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP420",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP420",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP419",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP419",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP418",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP418",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP417",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP417",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP416",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP416",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP415",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP415",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP414",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP414",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP411",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP411",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP410",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP410",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP409",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP409",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP408",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP408",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP407",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP407",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP406",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP406",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP405",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP405",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP404",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP404",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP403",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP403",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP402",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP402",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP401",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP401",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP400",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP400",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP321",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP321",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP320",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP320",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP319",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP319",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP318",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP318",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP317",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP317",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP316",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP316",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP315",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP315",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP314",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP314",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP313",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP313",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP312",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP312",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP311",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP311",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP310",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP310",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP309",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP309",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP308",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP308",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP307",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP307",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP305",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP305",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP304",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP304",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP303",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP303",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP302",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP302",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP301",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP301",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP300",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP300",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP219",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP219",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP218",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP218",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP217",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP217",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP216",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP216",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP215",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP215",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP214",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP214",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP213",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP213",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP212",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP212",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP211",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP211",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP210",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP210",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP209",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP209",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP208",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP208",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP207",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP207",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP206",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP206",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP205",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP205",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP204",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP204",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP203",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP203",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP202",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP202",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP201",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP201",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP200",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP200",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP191",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP191",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP190",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP190",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP189",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP189",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP180",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP180",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP179",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP179",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP178",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP178",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP177",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP177",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP176",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP176",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP175",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP175",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP174",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP174",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP173",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP173",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP172",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP172",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP171",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP171",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP170",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP170",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP169",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP169",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP168",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP168",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP167",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP167",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP166",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP166",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP165",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP165",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP164",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP164",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP163",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP163",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP162",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP162",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP161",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP161",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP160",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP160",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP159",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP159",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP156",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP156",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP155",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP155",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP154",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP154",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP153",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP153",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP152",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP152",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP151",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP151",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP149",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP149",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP148",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP148",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP147",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP147",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP146",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP146",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP145",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP145",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP144",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP144",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP143",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP143",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP142",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP142",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP141",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP141",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP140",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP140",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP139",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP139",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP138",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP138",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP137",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP137",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP136",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP136",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP135",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP135",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP134",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP134",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP133",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP133",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP132",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP132",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP131",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP131",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP130",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP130",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP126",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP126",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP125",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP125",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP120",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP120",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP119",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP119",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP118",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP118",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP117",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP117",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP116",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP116",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP115",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP115",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP114",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP114",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP113",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP113",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP111",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP111",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP110",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP110",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP108",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP108",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP107",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP107",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP106",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP106",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP105",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP105",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP101",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP101",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP100",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP100",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:SP2",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "SP2",
+      "source_category": "mechanical_spacer; fitted_population_and_body_pending"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:J34",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "J34",
+      "source_category": "component_package_body_missing"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:SP4",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "SP4",
+      "source_category": "mechanical_spacer; fitted_population_and_body_pending"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:SP3",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "SP3",
+      "source_category": "mechanical_spacer; fitted_population_and_body_pending"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:SP1",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "SP1",
+      "source_category": "mechanical_spacer; fitted_population_and_body_pending"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP80",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP80",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Fid3",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "Fid3",
+      "source_category": "optical_landmark; needs_source_copper_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Fid2",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "Fid2",
+      "source_category": "optical_landmark; needs_source_copper_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:Fid1",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "Fid1",
+      "source_category": "optical_landmark; needs_source_copper_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP79",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP79",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP78",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP78",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP77",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP77",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP76",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP76",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP75",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP75",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP74",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP74",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP73",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP73",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP72",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP72",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP71",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP71",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP70",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP70",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP69",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP69",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP68",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP68",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP67",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP67",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP66",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP66",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:U9",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "U9",
+      "source_category": "component_package_body_missing"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:K1",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "K1",
+      "source_category": "component_package_body_missing"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:JP2",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "JP2",
+      "source_category": "solder_jumper; needs_pad_and_bridge_population_review"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:L2",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": true,
+      "physical_geometry_verified": false,
+      "reference": "L2",
+      "source_category": "component_package_body_missing"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP1",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP1",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP2",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP2",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP3",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP3",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP4",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP4",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP5",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP5",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP6",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP6",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP7",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP7",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP8",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP8",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP9",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP9",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP10",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP10",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP11",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP11",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP12",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP12",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP13",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP13",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP14",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP14",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP15",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP15",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP16",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP16",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP17",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP17",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP18",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP18",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP19",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP19",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP20",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP20",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP21",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP21",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP22",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP22",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP23",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP23",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP24",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP24",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP25",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP25",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP26",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP26",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP27",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP27",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP28",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP28",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP29",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP29",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP30",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP30",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP31",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP31",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP32",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP32",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP33",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP33",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP34",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP34",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP35",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP35",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP36",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP36",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP37",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP37",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP38",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP38",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP39",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP39",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP40",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP40",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP41",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP41",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP42",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP42",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP43",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP43",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP44",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP44",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP45",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP45",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP46",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP46",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP47",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP47",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP48",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP48",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP49",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP49",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP50",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP50",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP51",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP51",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP52",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP52",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP53",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP53",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP54",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP54",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP55",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP55",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP56",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP56",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP57",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP57",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP58",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP58",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP59",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP59",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP60",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP60",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP61",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP61",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP62",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP62",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP63",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP63",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP64",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP64",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    },
+    {
+      "component_class": null,
+      "component_id": "ultimainboard:2.1.4:TP65",
+      "glb_selector": null,
+      "model_quality": "missing",
+      "needs_3d_body": false,
+      "physical_geometry_verified": false,
+      "reference": "TP65",
+      "source_category": "test_contact; needs_source_pad_region_not_package_body"
+    }
+  ],
+  "renderable_count": 310
+}

@@ -1,0 +1,26 @@
+{
+  "appNameFilterCompatible": false,
+  "arRegistrationVerified": false,
+  "binaryGeometryPayloadUnchanged": true,
+  "boardReferenceContextVerified": false,
+  "componentCount": 574,
+  "missingRequiredModelCount": 8,
+  "multiMeshComponentCount": 94,
+  "nodeTransformsUnchanged": true,
+  "outputGlbSha256": "b005375032a454d04fd9bc75071c37c93e1999bf2285f8a189af33db0737b712",
+  "partialConsent": true,
+  "physicalFitVerified": false,
+  "positionalGuidanceAllowed": false,
+  "renamedComponentSubtrees": 216,
+  "renderableCount": 310,
+  "renderableMeshNodeCount": 433,
+  "retainedGroupSelectors": 94,
+  "schema": "tokito.digital-twin-preparation.v1",
+  "sourceAssetId": "source-candidate-e28d5b7899454c6d93a8ec12cd348af0db9c6ce13f4368d885eb9ee7aec9f2b2",
+  "sourceSha256": {
+    "componentMap": "28fcf80a7c1b206b6d74d7cc717c3ac8069c8981f9b69e54e703ee8d79bff5c3",
+    "glb": "b89622c4013e654ffe1c8595d20d01647bc72d2af823187241487a5b36835c2d",
+    "manifest": "ebfb21e5bfdfa00d9d78a22e017ff38b0c6eb692536ac94d5b5323ea11483e45"
+  },
+  "status": "unregistered-reference-candidate"
+}

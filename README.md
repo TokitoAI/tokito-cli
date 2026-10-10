@@ -4,7 +4,7 @@
 
 Tokito CLI is a new Rust project for importing existing PCB layouts and preparing board artifacts for the Tokito ecosystem. Its first supported input is a declared subset of KiCad `.kicad_pcb` files whose format date is between `20211014` (KiCad 6) and `20260206` (the version reviewed in KiCad 10.0.7). Older, newer, or missing format versions are rejected until their structure is reviewed. Schematic-to-PCB design comes later.
 
-The canonical local workspace is `F:\kannan\projects\tokito ecosystem\tokito_cli`. The duplicate space-named checkout was removed after verifying its two documents were unchanged at the same commit and already superseded here. Sibling repositories remain read-only.
+The canonical local workspace is `D:\kannan\projects\tokito ecosystem\tokito_cli`. The ecosystem copy was verified byte-for-byte before activating D:; the old F: copy remains pending cleanup. Sibling repositories remain read-only. See [local output locations](docs/LOCAL_OUTPUT_LOCATIONS.md).
 
 The [App/API native bridge audit](docs/APP_API_BRIDGE_AUDIT.md) pins the updated GitHub sources, distinguishes physical-session sync from board-package import, and records the remaining cloud/mobile contracts. [Team handoff](docs/TEAM_HANDOFF.md) lists what the App and dataset owners need to provide.
 
@@ -15,6 +15,14 @@ and remaining offline/registration requirements. Dataset availability does not
 mean native Altium/STEP import or full-board AR is implemented.
 
 ## Current status
+
+The ESP32 selectable candidate is **not fully populated**: it renders 15 bodies,
+including no resistors and two capacitors. Its separate community-reference BOM
+has six resistors and six capacitors, with conflicting U1/U2 identities. The Rust
+`twin audit-population` command reports this comparison. `twin prototype` accepts
+`--reference-bom <esp32-csv>` to bundle the hash-bound report and display it in the
+offline viewer. No component placement is inferred from counts. See the
+[ESP32 population audit and remaining work](docs/ESP32_POPULATION_AUDIT.md).
 
 `bom reconcile` reads the reviewed dataset NXP JSON or ESP32 CSV schemas and
 joins exact references to unique PCB UUIDs. It retains source hashes, candidate
@@ -128,3 +136,12 @@ The input-byte ceiling limits bytes read from disk; parser tokens and the in-mem
 Offline interactive inspection: [Selectable prototype](docs/SELECTABLE_PROTOTYPE.md). Generate it with `tokito-cli twin prototype` from a supported dataset GLB, component map and hash manifest.
 
 [Ultimaker multi-mesh prototype](docs/ULTIMAKER_SELECTABLE_PROTOTYPE.md) · [Local output locations](docs/LOCAL_OUTPUT_LOCATIONS.md). All build and delivery outputs now live under this CLI checkout's `target` folder.
+
+[Dataset AR handoff and identity gates](docs/DATASET_AR_HANDOFF.md) documents the
+working dataset contract, per-board uncertainty and the boundary between selectable
+CLI geometry and the App's calibrated AR presentation.
+
+[ESP8266 parallel pipeline](docs/ESP8266_PARALLEL_PROGRESS.md) records the current
+source-bound component/body/model inventory and remaining assembly gates.
+[Placement research](docs/ESP8266_PLACEMENT_RESEARCH.md) explains body-specific
+pose inputs and why model-library rotations must not be applied twice.

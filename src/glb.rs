@@ -64,6 +64,7 @@ pub struct GlbCoverageReport {
     pub triangulated_outline_area_mm2: f64,
     pub thickness_mm: f64,
     pub max_curve_chord_error_mm: f64,
+    pub outline_chaining_tolerance_mm: f64,
     pub unresolved_components: Vec<UnresolvedComponentCoverage>,
     pub unresolved_components_total: usize,
     pub unresolved_components_truncated: bool,
@@ -143,7 +144,11 @@ impl GlbCoverageReport {
                 "polygonizedOutlineAreaMm2": self.polygonized_outline_area_mm2,
                 "triangulatedOutlineAreaMm2": self.triangulated_outline_area_mm2,
                 "thicknessMm": self.thickness_mm,
-                "maxCurveChordErrorMm": self.max_curve_chord_error_mm
+                "shellRepresentation": "nominal_thickness_envelope",
+                "maxCurveChordErrorMm": self.max_curve_chord_error_mm,
+                "outlineChainingToleranceMm": self.outline_chaining_tolerance_mm,
+                "maxJoinDisplacementMm":self.outline_chaining_tolerance_mm/2.,
+                "sourceGeometryEdited":false
             }
         });
         format!(
@@ -227,6 +232,7 @@ pub(crate) fn export_board_shell(
         triangulated_outline_area_mm2: triangulation.triangle_area_mm2,
         thickness_mm: thickness,
         max_curve_chord_error_mm: MAX_CHORD_ERROR_MM,
+        outline_chaining_tolerance_mm: board.outline.join_tolerance_mm,
     };
     let document = gltf_document(&mesh, &report, board, origin)?;
     let json_bytes = serde_json::to_vec(&document)
@@ -346,6 +352,7 @@ pub(crate) fn export_board_assembly(
         triangulated_outline_area_mm2: triangulation.triangle_area_mm2,
         thickness_mm: thickness,
         max_curve_chord_error_mm: MAX_CHORD_ERROR_MM,
+        outline_chaining_tolerance_mm: board.outline.join_tolerance_mm,
     };
     let document = gltf_assembly_document(&shell, &component_meshes, &report, board, origin)?;
     let json_bytes = serde_json::to_vec(&document)
@@ -394,6 +401,8 @@ pub(crate) fn export_assigned_board_assembly(
         for part in &item.mesh.parts {
             components.push(ComponentMesh {
                 mesh: mesh_from_component_part(part)?,
+                material: part.material.clone(),
+                solid: part.solid,
                 reference: item.component_reference.clone(),
                 uuid: item.component_uuid.clone(),
                 source_ordinal: item.component_source.ordinal,
@@ -495,6 +504,8 @@ pub(crate) fn export_assigned_board_assembly(
 #[derive(Clone, Debug)]
 struct ComponentMesh {
     mesh: Mesh,
+    material: Option<crate::model_mesh::MeshMaterial>,
+    solid: bool,
     reference: Option<String>,
     uuid: Option<String>,
     source_ordinal: usize,
@@ -513,6 +524,8 @@ fn component_meshes(
         for part in &emitted.mesh.parts {
             result.push(ComponentMesh {
                 mesh: mesh_from_component_part(part)?,
+                material: part.material.clone(),
+                solid: part.solid,
                 reference: emitted.component_reference.clone(),
                 uuid: emitted.component_uuid.clone(),
                 source_ordinal: emitted.component_source.ordinal,
@@ -822,7 +835,7 @@ fn polygonize_outline(board: &PhysicalBoardDocument) -> Result<Vec<Ring>, Engine
                     } else {
                         (a0, original)
                     };
-                    let count = curve_segments(radius, sweep)?;
+                    let count = curve_segments(radius, sweep, board.outline.join_tolerance_mm)?;
                     for index in 0..count {
                         if index == 0 {
                             points.push(canonical);
@@ -836,7 +849,7 @@ fn polygonize_outline(board: &PhysicalBoardDocument) -> Result<Vec<Ring>, Engine
                     }
                 }
                 OutlineShape::Circle { center, radius_mm } => {
-                    let count = curve_segments(*radius_mm, TAU)?;
+                    let count = curve_segments(*radius_mm, TAU, board.outline.join_tolerance_mm)?;
                     for index in 0..count {
                         let angle = TAU * index as f64 / count as f64;
                         points.push(Point2 {
@@ -965,8 +978,19 @@ fn sweep_through_mid(start: f64, mid: f64, end: f64) -> Result<f64, EngineError>
     Ok(sweep)
 }
 
-fn curve_segments(radius: f64, sweep: f64) -> Result<usize, EngineError> {
-    let error = MAX_CHORD_ERROR_MM - super::topology::JOIN_TOLERANCE_MM;
+fn curve_segments(radius: f64, sweep: f64, join_tolerance_mm: f64) -> Result<usize, EngineError> {
+    // Reserve midpoint displacement from the combined chord/join error budget.
+    let join_error = if join_tolerance_mm == super::topology::JOIN_TOLERANCE_MM {
+        join_tolerance_mm
+    } else {
+        join_tolerance_mm / 2.
+    };
+    let error = MAX_CHORD_ERROR_MM - join_error;
+    if !error.is_finite() || error <= 0. {
+        return Err(EngineError::new(
+            "join tolerance exhausts curve tessellation budget",
+        ));
+    }
     if !radius.is_finite() || radius <= 0.0 || !sweep.is_finite() || sweep.abs() <= 0.0 {
         return Err(EngineError::new("curve has invalid radius or sweep"));
     }
@@ -1011,21 +1035,13 @@ fn contour_area_error_bound(
                     EngineError::new("validated arc has no circle parameters")
                 })?;
                 let sweep = sweep_through_mid(a0, am, a1)?;
-                let segments = curve_segments(radius, sweep)?;
-                error += 0.5
-                    * radius
-                    * radius
-                    * (sweep.abs()
-                        - segments as f64 * stable_sweep_minus_sin(sweep / segments as f64))
-                    .abs();
+                let segments = curve_segments(radius, sweep, board.outline.join_tolerance_mm)?;
+                error += curve_chord_area_loss(radius, sweep, segments);
                 perimeter += radius * sweep.abs();
             }
             OutlineShape::Circle { radius_mm, .. } => {
-                let segments = curve_segments(*radius_mm, TAU)?;
-                error += 0.5
-                    * *radius_mm
-                    * *radius_mm
-                    * (TAU - segments as f64 * stable_sweep_minus_sin(TAU / segments as f64)).abs();
+                let segments = curve_segments(*radius_mm, TAU, board.outline.join_tolerance_mm)?;
+                error += curve_chord_area_loss(*radius_mm, TAU, segments);
                 perimeter += TAU * *radius_mm;
             }
         }
@@ -1036,6 +1052,10 @@ fn contour_area_error_bound(
     } else {
         Err(EngineError::new("area error bound overflowed"))
     }
+}
+
+fn curve_chord_area_loss(radius: f64, sweep: f64, segments: usize) -> f64 {
+    0.5 * radius * radius * segments as f64 * stable_sweep_minus_sin(sweep / segments as f64).abs()
 }
 
 fn stable_sweep_minus_sin(x: f64) -> f64 {
@@ -1363,6 +1383,17 @@ fn extrude_shell(
     })
 }
 
+/// Check the actual GLB conversion before assembly retains a component. A failed
+/// model is withheld as a whole; no face is dropped or repaired silently.
+pub(crate) fn validate_component_mesh_for_glb(
+    mesh: &crate::component_pose::PlacedModelMesh,
+) -> Result<(), EngineError> {
+    for part in &mesh.parts {
+        mesh_from_component_part(part)?;
+    }
+    Ok(())
+}
+
 fn push_face(
     positions: &mut Vec<f32>,
     normals: &mut Vec<f32>,
@@ -1466,7 +1497,10 @@ fn gltf_document(
                     "boardTopYMetres": report.thickness_mm * MM_TO_M / 2.0,
                     "boardBottomYMetres": -report.thickness_mm * MM_TO_M / 2.0
                 },
-                "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm": board.outline.join_tolerance_mm },
+                "shellRepresentation":"nominal_thickness_envelope",
+                "physicalLayerGeometryComplete":false,
+                "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm": board.outline.join_tolerance_mm,
+                    "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2.,"sourceGeometryEdited":false },
                 "coverage": {
                     "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
@@ -1525,6 +1559,21 @@ fn gltf_document(
     }))
 }
 
+fn projected_vrml_material(source: Option<&crate::model_mesh::MeshMaterial>, solid: bool) -> Value {
+    let fallback = crate::model_mesh::MeshMaterial::default();
+    let m = source.unwrap_or(&fallback);
+    json!({"name":"VRML diffuse/opacity projection",
+        "pbrMetallicRoughness":{"baseColorFactor":[m.diffuse_color[0],m.diffuse_color[1],m.diffuse_color[2],1.0-m.transparency],
+            "metallicFactor":0.0,"roughnessFactor":1.0},
+        "emissiveFactor":m.emissive_color,
+        "alphaMode":if m.transparency > 0.0 {"BLEND"} else {"OPAQUE"},
+        "doubleSided":!solid,
+        "extras":{"tokito":{"materialProjection":"diffuse-alpha-emissive; neutral PBR factors; not Phong/PBR equivalence",
+            "authoredMaterialPresent":source.is_some(),"sourceVrmlMaterial":{"diffuseColor":m.diffuse_color,
+                "specularColor":m.specular_color,"emissiveColor":m.emissive_color,"ambientIntensity":m.ambient_intensity,
+                "shininess":m.shininess,"transparency":m.transparency},"sourceSolid":solid}}})
+}
+
 fn gltf_assembly_document(
     shell: &Mesh,
     components: &[ComponentMesh],
@@ -1538,6 +1587,12 @@ fn gltf_assembly_document(
     let mut meshes = Vec::with_capacity(components.len() + 1);
     let mut nodes = Vec::with_capacity(components.len() + 1);
     let mut byte_offset = 0usize;
+    let mut materials = vec![
+        json!({"name":"Board nominal envelope","pbrMetallicRoughness":{"baseColorFactor":[0.36,0.39,0.43,1.0],"metallicFactor":0.0,"roughnessFactor":0.82},"doubleSided":false}),
+        projected_vrml_material(None, true),
+    ];
+    let mut material_indices = BTreeMap::new();
+    material_indices.insert(serde_json::to_string(&materials[1]).unwrap(), 1usize);
     append_gltf_shell_mesh(
         shell,
         &mut buffer_views,
@@ -1579,9 +1634,23 @@ fn gltf_assembly_document(
         }
         let mut primitives = Vec::with_capacity(parts.len());
         for component in parts.iter().copied() {
+            let material = projected_vrml_material(component.material.as_ref(), component.solid);
+            let key =
+                serde_json::to_string(&material).map_err(|e| EngineError::new(e.to_string()))?;
+            let material_index = if let Some(&index) = material_indices.get(&key) {
+                index
+            } else {
+                if materials.len() >= 4096 {
+                    return Err(EngineError::new("assembly material budget exceeded"));
+                }
+                let index = materials.len();
+                materials.push(material);
+                material_indices.insert(key, index);
+                index
+            };
             primitives.push(append_gltf_primitive(
                 &component.mesh,
-                1,
+                material_index,
                 Some(component_primitive_provenance(component)),
                 &mut buffer_views,
                 &mut accessors,
@@ -1625,6 +1694,9 @@ fn gltf_assembly_document(
                     "boardTopYMetres": report.thickness_mm * MM_TO_M / 2.0,
                     "boardBottomYMetres": -report.thickness_mm * MM_TO_M / 2.0
                 },
+                "shellRepresentation":"nominal_thickness_envelope",
+                "physicalLayerGeometryComplete":false,
+                "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm":board.outline.join_tolerance_mm, "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2., "sourceGeometryEdited":false },
                 "coverage": {
                     "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
@@ -1650,10 +1722,7 @@ fn gltf_assembly_document(
         "scenes": [{ "name": "Tokito board assembly", "nodes": scene_nodes }],
         "nodes": nodes,
         "meshes": meshes,
-        "materials": [
-            { "name": "Board shell", "pbrMetallicRoughness": { "baseColorFactor": [0.36, 0.39, 0.43, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.82 }, "doubleSided": false },
-            { "name": "Imported VRML component", "pbrMetallicRoughness": { "baseColorFactor": [0.72, 0.58, 0.30, 1.0], "metallicFactor": 0.0, "roughnessFactor": 0.65 }, "doubleSided": false }
-        ],
+        "materials": materials,
         "buffers": [{ "byteLength": bin_len }],
         "bufferViews": buffer_views,
         "accessors": accessors
@@ -1796,6 +1865,80 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
     static NEXT: AtomicU64 = AtomicU64::new(0);
 
+    #[test]
+    fn material_projection_preserves_opacity_emission_and_raw_phong_metadata() {
+        let source = crate::model_mesh::MeshMaterial {
+            diffuse_color: [0.1, 0.2, 0.3],
+            specular_color: [0.7, 0.6, 0.5],
+            emissive_color: [0.02, 0.03, 0.04],
+            ambient_intensity: 0.4,
+            shininess: 0.8,
+            transparency: 0.25,
+        };
+        let projected = projected_vrml_material(Some(&source), false);
+        assert_eq!(
+            projected["pbrMetallicRoughness"]["baseColorFactor"],
+            json!([0.1, 0.2, 0.3, 0.75])
+        );
+        assert_eq!(projected["emissiveFactor"], json!([0.02, 0.03, 0.04]));
+        assert_eq!(projected["alphaMode"], "BLEND");
+        assert_eq!(projected["doubleSided"], true);
+        assert_eq!(
+            projected["extras"]["tokito"]["sourceVrmlMaterial"]["shininess"],
+            0.8
+        );
+        assert_eq!(
+            projected["extras"]["tokito"]["sourceVrmlMaterial"]["specularColor"],
+            json!([0.7, 0.6, 0.5])
+        );
+        let fallback = projected_vrml_material(None, true);
+        assert_eq!(
+            fallback["pbrMetallicRoughness"]["baseColorFactor"],
+            json!([0.8, 0.8, 0.8, 1.0])
+        );
+        assert_eq!(
+            fallback["extras"]["tokito"]["authoredMaterialPresent"],
+            false
+        );
+        assert_eq!(fallback["doubleSided"], false);
+    }
+
+    #[test]
+    fn chord_area_bound_matches_independent_regular_polygon_and_shrinks() {
+        for sweep in [PI, -PI, TAU, -TAU] {
+            let radius = 3.0;
+            let mut previous = f64::INFINITY;
+            for segments in [8, 16, 64, 256] {
+                // Sector area minus the sum of triangular wedges, independently
+                // evaluated without the stable-series helper used by the bound.
+                let analytic = 0.5 * radius * radius * sweep.abs();
+                let polygon =
+                    0.5 * radius * radius * segments as f64 * (sweep.abs() / segments as f64).sin();
+                let bound = curve_chord_area_loss(radius, sweep, segments);
+                assert!((bound - (analytic - polygon)).abs() < 1e-12);
+                assert!(bound > 0.0 && bound < previous);
+                previous = bound;
+            }
+        }
+        assert!((curve_chord_area_loss(1.0, PI, 16) - 0.0100737506658704).abs() < 1e-14);
+    }
+
+    #[test]
+    fn circular_contour_bound_covers_only_chord_loss_and_join_budget() {
+        let b = board(
+            r#"(gr_circle (center 0 0) (end 3 0) (layer Edge.Cuts) (uuid circle))"#,
+            "",
+        );
+        let contour = &b.outline().contours[0];
+        let n = curve_segments(3.0, TAU, b.outline().join_tolerance_mm).unwrap();
+        let actual_loss = PI * 9.0 - 0.5 * n as f64 * 9.0 * (TAU / n as f64).sin();
+        let bound = contour_area_error_bound(contour, &b).unwrap();
+        let join_budget = TAU * 3.0 * b.outline().join_tolerance_mm;
+        assert!((bound - actual_loss - join_budget).abs() < 1e-12);
+        assert!(bound < 0.2);
+        export_board_shell(&b, true).unwrap();
+    }
+
     struct Temp(PathBuf);
     impl Drop for Temp {
         fn drop(&mut self) {
@@ -1818,6 +1961,59 @@ mod tests {
         );
         fs::write(&file.0, text).expect("write test board");
         super::super::load_board(&file.0).expect("parse test board")
+    }
+
+    #[test]
+    fn explicit_chaining_preserves_source_and_accounts_for_join_displacement() {
+        let outline = r#"(gr_line (start 0 0) (end 10 0) (layer Edge.Cuts) (uuid a))
+            (gr_line (start 10.005 0) (end 10 10) (layer Edge.Cuts) (uuid b))
+            (gr_line (start 10 10) (end 0 10) (layer Edge.Cuts) (uuid c))
+            (gr_line (start 0 10) (end 0 0) (layer Edge.Cuts) (uuid d))"#;
+        let original = board(outline, "");
+        let hash = original.source().sha256.to_owned();
+        let primitives = original.outline().primitives.clone();
+        assert!(export_board_shell(&original, true).is_err());
+        let tight = board(outline, "")
+            .with_outline_chaining_tolerance(0.001)
+            .unwrap();
+        assert!(!tight.outline().is_valid());
+        let chained = original.with_outline_chaining_tolerance(0.01).unwrap();
+        assert!(
+            chained.outline().is_valid(),
+            "{:?}",
+            chained.outline().diagnostics
+        );
+        assert_eq!(chained.source().sha256, hash);
+        assert_eq!(chained.outline().primitives, primitives);
+        let export = export_board_shell(&chained, true).unwrap();
+        assert_eq!(export.report.outline_chaining_tolerance_mm, 0.01);
+        assert!(!export.report.whole_board_digital_twin_complete);
+        let tess = extras(&export.bytes)["asset"]["extras"]["tokito"]["tessellation"].clone();
+        assert_eq!(tess["maxJoinDisplacementMm"], 0.005);
+        assert_eq!(tess["sourceGeometryEdited"], false);
+        assert!(
+            board(outline, "")
+                .with_outline_chaining_tolerance(0.1)
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn chaining_does_not_bypass_crossings_and_reserves_curve_error_budget() {
+        let crossing = r#"(gr_line (start 0 0) (end 10 10) (layer Edge.Cuts) (uuid a))
+            (gr_line (start 10 10) (end 0 10) (layer Edge.Cuts) (uuid b))
+            (gr_line (start 0 10) (end 10 0) (layer Edge.Cuts) (uuid c))
+            (gr_line (start 10 0) (end 0 0) (layer Edge.Cuts) (uuid d))"#;
+        assert!(
+            board(crossing, "")
+                .with_outline_chaining_tolerance(0.01)
+                .is_err()
+        );
+        assert!(
+            curve_segments(1.55, PI / 2., 0.01).unwrap()
+                > curve_segments(1.55, PI / 2., 0.000001).unwrap()
+        );
+        assert!(curve_segments(1.55, PI / 2., 0.1).is_err());
     }
 
     fn rect(a: f64, b: f64, c: f64, d: f64, id: &str) -> String {

@@ -1,11 +1,33 @@
 # Local verification and delivery
 
+The current runner also verifies the original Rust Altium experiment (format,
+tests, Clippy and build) and builds the STEP experiment explicitly. Supply all of
+`-Esp32CandidateRoot`, `-Esp32ReferenceBom`, `-Esp32Pcb`, `-Esp32ModelLibrary` to
+include the real provisional and native-reference ESP32 E2E journeys. The model
+library must carry the pinned KiCad9 intake receipt and exact source assets.
+Supply `-Esp8266SourceRoot`, `-Esp8266UnitReceipt` and `-Esp8266FreecadReference`
+together for the 17-model independent STEP unit comparisons, positioned candidate
+mesh diagnostics and original Altium record/embedded-byte audit. The unit receipt
+is the original source inventory with `models[].model` and `models[].sha256`,
+not a later unit-qualification report. The complete ESP32/ESP8266 profile runs
+34 gates; the portable profile alone runs 25. Historical counts below refer to
+earlier verifier versions.
+Each actual dataset journey must emit a passed receipt; the delivery receipt
+records its path and SHA-256. Missing paired inputs or failed tests refuse delivery.
+Without these optional inputs, the receipt establishes only the included checks.
+Browser and physical-device acceptance remain separate evidence.
+
+Keep new output parents inside
+`D:\kannan\projects\tokito ecosystem\tokito_cli\target`. Earlier examples below
+of external `F:\TokitoCliBuilds`/`F:\TokitoCliDelivery` describe historical options;
+the owner moved those outputs under the canonical CLI directory.
+
 The owner selected local builds and E2E to preserve the GitHub Actions quota. The repository workflow was removed by request; no hosted workflow runs on pushes or pull requests. Hosted CI and artifact upload results are not claimed. A later workflow can be added when the owner chooses.
 
 Run the PowerShell 7 script from any directory:
 
 ```powershell
-& 'F:\kannan\projects\tokito ecosystem\tokito_cli\scripts\verify-local.ps1' -CargoPath 'C:\Users\PC\.cargo\bin\cargo.exe'
+& 'D:\kannan\projects\tokito ecosystem\tokito_cli\scripts\verify-local.ps1' -CargoPath 'C:\Users\PC\.cargo\bin\cargo.exe'
 ```
 
 The script uses cached offline dependencies and creates a fresh isolated build directory under target/local-verification/<run-id>, preserving earlier outputs and avoiding replacement of potentially locked Windows executables. Use absolute alternate paths such as -TargetBase F:\TokitoCliBuilds and -DeliveryBase F:\TokitoCliDelivery when desired. TargetBase relocates Cargo build output plus geometry and optional dataset E2E receipts; the release binary and outer verification receipt stay under target/delivery/local unless DeliveryBase is supplied. External paths and existing parents are rejected if they contain reparse points. The portable runner has twenty gates: formatting, locked offline Rust tests, warnings-denied Clippy, release build, board/geometry/GLB/model-resolution E2Es, historical v0.1 compatibility, BOM and model-assignment E2Es, candidate-envelope E2E, real CLI acceptance, and isolated STEP-probe gates. To include the pinned dataset component journey, pass both `-DatasetRepo` and `-DatasetBomReport`; that adds a twenty-first gate. The dataset E2E checks the pinned MCXN236 commit and PCB hash, the available BOM report's U11 join, candidate envelope dimensions, assignment evidence, and the fail-closed shell-only result. The BOM source digest is a carried report claim because the raw BOM source is not materialized in this local checkout. The test does not prove that missing stackup is the only cause of the exporter's combined `missing_stackup_or_outline` condition. To audit the current NXP asset referenced by dataset PR #6, pass all of `-DatasetTwinGlb`, `-DatasetTwinComponentMap`, `-DatasetTwinManifest`, and `-DatasetTwinProvenance`; this adds another gate. It validates the pinned bytes, manifest, map, unique `ref:` selectors, and independently non-shared GLB component meshes. It does not certify package accuracy, board/photo registration, or a production footprint/PCB identity crosswalk. Neither profile drives a GUI, CAD viewer, or phone. The GLB journey checks container and mesh bounds/area/winding/closed edges, explicit partial consent, coverage, package input, determinism, no-overwrite and invalid-outline refusal. The real-model journey checks explicit roots, six UNO asset hashes, local WRL geometry/material inventory, units/bounds, byte budgets and malformed paths. Inputs and tested binary are fingerprinted; generated Python bytecode and __pycache__ paths are deliberately excluded from the source fingerprint. A receipt is written only if every selected gate passes.
