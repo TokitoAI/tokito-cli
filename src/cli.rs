@@ -5,6 +5,25 @@ fn dataset_command(args: &[String]) -> Result<(), CliError> {
         Some("inventory") if args.len() == 5 && args[3] == "--revision" => {
             dataset_git::inventory(Path::new(&args[2]), &args[4])?
         }
+        Some("inventory")
+            if args.len() == 7 && args[3] == "--revision" && args[5] == "--assets-root" =>
+        {
+            dataset_git::inventory_with_assets(Path::new(&args[2]), &args[4], Path::new(&args[6]))?
+        }
+        Some("bind")
+            if args.len() == 9
+                && args[3] == "--assets-root"
+                && args[5] == "--request"
+                && args[7] == "--output" =>
+        {
+            let request = dataset::load_json(Path::new(&args[6]))?;
+            let binding =
+                dataset_git::bind_source_lock(Path::new(&args[2]), Path::new(&args[4]), &request)?;
+            let bytes =
+                serde_json::to_vec_pretty(&binding).map_err(|e| CliError::new(e.to_string()))?;
+            write_new_file(Path::new(&args[8]), &bytes)?;
+            binding
+        }
         Some("lock") if args.len() == 7 && args[3] == "--request" && args[5] == "--output" => {
             let request = dataset::load_json(Path::new(&args[4]))?;
             let lock = dataset::create_source_lock(Path::new(&args[2]), &request)?;
@@ -330,9 +349,13 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
         ),
-        ["dataset"] | ["dataset", "inventory"] | ["dataset", "lock"] | ["dataset", "verify"] => {
+        ["dataset"]
+        | ["dataset", "inventory"]
+        | ["dataset", "bind"]
+        | ["dataset", "lock"]
+        | ["dataset", "verify"] => {
             println!(
-                "USAGE: tokito-cli dataset inventory <ROOT> --revision <FULL_COMMIT>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nOffline hashes and inventory for explicitly listed materialized assets. The Git revision is caller-declared; this command does not authenticate repository history, validate CAD geometry or admit an App package."
+                "USAGE: tokito-cli dataset inventory <GIT_ROOT> --revision <FULL_COMMIT> [--assets-root <ROOT>]\n       tokito-cli dataset bind <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nInventory/bind verify local immutable source object and payload identities; lock/verify retain a caller-declared revision. None authenticate publishers, qualify CAD geometry or admit an App package."
             )
         }
         ["twin"] | ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "select"] => println!(

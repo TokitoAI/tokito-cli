@@ -159,10 +159,21 @@ fn role(path: &str) -> &'static str {
 /// Inspect exactly a caller-pinned commit, independent of HEAD, sparse checkout,
 /// untracked output folders, Git environment overrides and user configuration.
 pub fn inventory(root: &Path, revision: &str) -> Result<Value, EngineError> {
+    inventory_with_assets(root, revision, root)
+}
+
+/// Inspect immutable source objects against a separately materialized asset tree.
+/// Asset paths retain their source-relative names; no checkout or copying occurs.
+pub fn inventory_with_assets(
+    root: &Path,
+    revision: &str,
+    assets_root: &Path,
+) -> Result<Value, EngineError> {
     if !dataset::hex(revision, 40) {
         return Err(err("inventory requires a full lowercase Git SHA-1"));
     }
     let root = dataset::root_path(root)?;
+    let assets_root = dataset::root_path(assets_root)?;
     let git_dir = root.join(".git");
     validate_storage(&git_dir)?;
     let options = gix::open::Options::isolated()
@@ -266,12 +277,12 @@ pub fn inventory(root: &Path, revision: &str) -> Result<Value, EngineError> {
                             record["materialization"] = json!("unsupported_payload_size");
                         } else {
                             // Linked paths are refused even when their payload matches.
-                            let payload = match dataset::asset_present(&root, &path) {
+                            let payload = match dataset::asset_present(&assets_root, &path) {
                                 Ok(false) => {
                                     record["materialization"] = json!("missing");
                                     None
                                 }
-                                Ok(true) => Some(dataset::asset_bytes(&root, &path)),
+                                Ok(true) => Some(dataset::asset_bytes(&assets_root, &path)),
                                 Err(error) => Some(Err(error)),
                             };
                             match payload {
@@ -332,6 +343,58 @@ pub fn inventory(root: &Path, revision: &str) -> Result<Value, EngineError> {
         > 8 * 1024 * 1024
     {
         return Err(err("inventory report exceeds 8 MiB"));
+    }
+    Ok(result)
+}
+
+/// Bind a listed-asset content lock to verified immutable local source objects.
+/// This proves selected payload identity, not publisher or engineering acceptance.
+pub fn bind_source_lock(
+    git_root: &Path,
+    assets_root: &Path,
+    request: &Value,
+) -> Result<Value, EngineError> {
+    let lock = dataset::create_source_lock(assets_root, request)?;
+    let revision = lock["revision"]
+        .as_str()
+        .ok_or_else(|| err("source lock revision missing"))?;
+    let inventory = inventory_with_assets(git_root, revision, assets_root)?;
+    let records: BTreeMap<_, _> = inventory["assets"]
+        .as_array()
+        .ok_or_else(|| err("source inventory missing"))?
+        .iter()
+        .filter_map(|record| record["path"].as_str().map(|path| (path, record)))
+        .collect();
+    let mut source_assets = Vec::new();
+    for asset in lock["assets"]
+        .as_array()
+        .ok_or_else(|| err("source lock assets missing"))?
+    {
+        let path = asset["path"]
+            .as_str()
+            .ok_or_else(|| err("source lock path missing"))?;
+        let record = records.get(path).ok_or_else(|| {
+            err(format!(
+                "requested asset is not tracked at source pin: {path}"
+            ))
+        })?;
+        if record["contentVerified"] != true
+            || record["actualSha256"] != asset["sha256"]
+            || record["actualBytes"] != asset["bytes"]
+        {
+            return Err(err(format!(
+                "selected source payload does not match pinned object: {path}"
+            )));
+        }
+        source_assets.push(json!({"path":path,"gitObjectId":record["gitObjectId"],"lfs":record["lfs"],"sha256":asset["sha256"],"bytes":asset["bytes"]}));
+    }
+    let result = json!({"schema":"tokito.dataset-source-binding.v1","status":"bound","scope":"listed_assets_only","commit":revision,"tree":inventory["tree"],"commitAndTreeHashesVerified":true,"selectedPayloadsMatchSourceObjects":true,"publisherAuthenticated":false,"roleAndBoardIdentityQualified":false,"physicalFitVerified":false,"geometryQualified":false,"appAdmissionAuthorized":false,"contentLock":lock,"sourceAssets":source_assets});
+    if serde_json::to_vec_pretty(&result)
+        .map_err(|_| err("cannot serialize source binding"))?
+        .len()
+        > MAX_METADATA
+    {
+        return Err(err("source binding JSON budget exceeded"));
     }
     Ok(result)
 }

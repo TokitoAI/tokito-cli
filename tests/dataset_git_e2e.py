@@ -62,6 +62,48 @@ def run(binary):
         complete = inventory(binary, root, revision)
         assert complete["workingTreeCoverageComplete"] is True
         assert complete["materializationCounts"] == {"materialized": 2}
+        # Separately staged payloads bind to the source pin, not their local names.
+        staged = root / "candidate-assets"
+        relative_paths = [p.relative_to(root).as_posix() for p in (native, pointer_path)]
+        for relative in relative_paths:
+            destination = staged / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(payload)
+        request = {"schema": "tokito.dataset-source-request.v1",
+                   "repository": "https://github.com/TokitoAI/tokito-app-dataset", "revision": revision,
+                   "assets": [{"boardId": "fixture", "role": "pcb", "path": relative,
+                               "provenance": "Real PCB fixture; identity only"} for relative in relative_paths]}
+        request_path = root / "binding-request.json"
+        request_path.write_text(json.dumps(request), encoding="utf-8")
+        output_path = root / "binding.json"
+        def bind(succeeds, output):
+            proc = subprocess.run([str(binary), "dataset", "bind", str(root), "--assets-root", str(staged),
+                                   "--request", str(request_path), "--output", str(output)],
+                                  capture_output=True, text=True, encoding="utf-8")
+            assert proc.returncode == (0 if succeeds else 2), proc.stderr
+            if succeeds:
+                return json.loads(proc.stdout)
+            assert not output.exists()
+        binding = bind(True, output_path)
+        assert binding["commit"] == revision and binding["tree"] == tree
+        assert binding["selectedPayloadsMatchSourceObjects"] and not binding["publisherAuthenticated"]
+        assert not binding["geometryQualified"] and not binding["appAdmissionAuthorized"]
+        assert {a["path"]: a["gitObjectId"] for a in binding["sourceAssets"]} == {
+            path: records[path]["gitObjectId"] for path in relative_paths}
+        assert binding["contentLock"]["assets"][0]["sha256"] == digest
+        original_binding = output_path.read_bytes()
+        proc = subprocess.run([str(binary), "dataset", "bind", str(root), "--assets-root", str(staged),
+                               "--request", str(request_path), "--output", str(output_path)], capture_output=True)
+        assert proc.returncode == 2 and output_path.read_bytes() == original_binding
+        (staged / relative_paths[1]).write_bytes(payload + b"altered")
+        bind(False, root / "altered-binding.json")
+        (staged / relative_paths[1]).write_bytes(pointer)
+        bind(False, root / "pointer-binding.json")
+        (staged / relative_paths[1]).write_bytes(payload)
+        request["assets"][0]["path"] = "untracked.kicad_pcb"
+        (staged / "untracked.kicad_pcb").write_bytes(payload)
+        request_path.write_text(json.dumps(request), encoding="utf-8")
+        bind(False, root / "untracked-binding.json")
         pointer_path.write_bytes(payload + b"altered")
         assert inventory(binary, root, revision)["materializationCounts"]["content_mismatch"] == 1
         pointer_path.write_bytes(pointer)

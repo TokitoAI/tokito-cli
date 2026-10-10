@@ -2,6 +2,8 @@
 
 ~~~text
 tokito-cli dataset inventory <STANDALONE_CHECKOUT> --revision <FULL_COMMIT>
+tokito-cli dataset inventory <STANDALONE_CHECKOUT> --revision <FULL_COMMIT> --assets-root <CANDIDATE_ROOT>
+tokito-cli dataset bind <STANDALONE_CHECKOUT> --assets-root <CANDIDATE_ROOT> --request <REQUEST.json> --output <NEW_BINDING.json>
 ~~~
 
 This pure-Rust command reads the specified local commit, not the current branch or index. It verifies the commit, tree and regular blob object IDs, enumerates tracked paths, compares working payloads, and reports per-source materialization counts. It never checks out files, downloads missing Git/LFS objects, executes Git, applies filters, or reads untracked qualification outputs.
@@ -24,7 +26,11 @@ Each asset records its Git object ID, source-folder grouping, filename-derived r
 
 `workingTreeCoverageComplete` is true only when every tracked asset's actual content matches. The checker intentionally performs no line-ending or clean/smudge transformation: Windows CRLF conversion can yield a byte mismatch even when text semantics are unchanged. Review the source bytes separately before admitting that transformation. Source-folder and extension labels are inventory clues, not validated board identity or format support. MCXN947 and MCXN236 remain separate source groups.
 
-The existing [source-lock commands](DATASET_SOURCE_LOCK.md) lock selected working payloads independently; they still carry a caller-declared revision. This inventory supplies source-object evidence but does not automatically create an admitted lock, resolve board/component crosswalks or qualify geometry.
+The existing [source-lock commands](DATASET_SOURCE_LOCK.md) lock selected working payloads independently; they still carry a caller-declared revision. Optional `--assets-root` compares a separately staged tree retaining source-relative paths against the local pinned Git objects. Neither operation copies or downloads files.
+
+`dataset bind` accepts the existing source-request v1 schema and emits `tokito.dataset-source-binding.v1`. Its `contentLock` is an ordinary v1 lock; `sourceAssets` records each selected source blob and supported LFS identity. Every selected path must be tracked at that commit and its actual byte count/digest must agree with both the inventory and content lock. Untracked, altered, missing, pointer-only and unsafe inputs refuse before publishing a receipt. The new output refuses overwrite and is capped at 4 MiB. Use the embedded `contentLock` with `dataset verify` for later listed-payload integrity checks; the binding wrapper itself is not a v1 lock. The wrapper is evidence of local object/payload correspondence, not a signed publisher certificate or accepted engineering package. Board/role claims, physical fit, geometry qualification and App admission remain false.
+
+External release models that are only referenced by tracked provenance are not tracked source blobs. Binding rejects a request to treat them as such; a separate typed external-artifact provenance adapter is still required.
 
 ## Storage, limits and dependency
 
@@ -36,6 +42,6 @@ The dependency is exact `gix = 0.83.0`, defaults disabled, features `sha1` and `
 
 ## QA and remaining pipeline
 
-`tests/dataset_git_e2e.py` uses Git only as an independent fixture/oracle tool. It compares commit/tree/blob identities, verifies LFS payloads, partial/mutated/missing paths, old pins independent of HEAD, replacement suppression, corrupt loose objects, packed objects, linked tracked parents, oversized local config, unsupported pointers, unchanged metadata and untracked-file preservation. The optional dataset journey compares every tracked path/object ID at the pinned main commit and checks three materialized PCB inputs.
+`tests/dataset_git_e2e.py` uses Git only as an independent fixture/oracle tool. It compares commit/tree/blob identities, verifies LFS payloads, partial/mutated/missing paths, old pins independent of HEAD, replacement suppression, corrupt loose objects, packed objects, linked tracked parents, oversized local config, unsupported pointers, unchanged metadata and untracked-file preservation. Detached candidate binding tests cover raw and LFS payloads, altered/pointer/untracked refusal and no overwrite. The optional dataset journey compares every tracked path/object ID at the pinned main commit and binds three materialized PCB inputs.
 
 A partial clone must have the relevant Git objects present before running the CLI. Preparation tooling may explicitly fetch pinned PR object data into the CLI-owned cache; the shipping inventory command does not do so. Open PRs remain distinct candidate commits. Further stages are selected-asset materialization, reviewed update comparison/admission, source PCB/UUID/refdes/model crosswalk, units/transforms/geometry qualification and physical registration. See [issue #26](https://github.com/TokitoAI/tokito-cli/issues/26) and [the active goal tracker](GOAL_TRACKER.md).

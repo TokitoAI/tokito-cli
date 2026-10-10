@@ -30,7 +30,7 @@ The new lock uses schema `tokito.dataset-source-lock.v1`, adds each asset's byte
 
 ## Integrity and qualification boundaries
 
-The repository URL, revision, board ID, role and provenance are caller claims. `revisionAuthenticated` is always false: independently check the Git commit/tree/blob or LFS object identities before accepting a request. The real dataset test separately checks pinned Git/LFS identities for three materialized PCB files; this is test evidence, not an implemented production Git resolver. Hashes are computed over the actual payload, not an LFS pointer.
+The repository URL, revision, board ID, role and provenance are caller claims. `revisionAuthenticated` is always false in the content verifier. The separate production `dataset bind` command checks selected payloads against immutable local Git/tree/blob/LFS identities and wraps this content lock with source-object evidence; it still does not authenticate the repository publisher or qualify engineering geometry. The real dataset test exercises binding for three materialized PCB files against an independent Git oracle. Hashes are computed over actual payloads, not LFS pointers. See [binding and detached candidate roots](DATASET_GIT_INVENTORY.md).
 
 `physicalFitVerified`, `componentCrosswalkVerified`, `geometryQualified`, and `appAdmissionAuthorized` remain false. An imported PCB, a board-only shell and a component assembly are different inputs even if their role is `model`; retain derivation details in provenance until a typed qualification adapter is implemented. Photos and detections do not establish pad geometry or fitted-part identity.
 

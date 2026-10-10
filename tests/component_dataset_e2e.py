@@ -187,6 +187,12 @@ def run(binary: Path, dataset_repo: Path, bom_report: Path, out_dir: Path, outpu
     lock_path = out_dir / "dataset-source-lock.json"
     lock = json.loads(invoke(binary, "dataset", "lock", dataset_repo, "--request", request_path, "--output", lock_path).stdout)
     verification = json.loads(invoke(binary, "dataset", "verify", dataset_repo, "--lock", lock_path).stdout)
+    binding_path = out_dir / "dataset-source-binding.json"
+    binding = json.loads(invoke(binary, "dataset", "bind", dataset_repo, "--assets-root", dataset_repo,
+                                "--request", request_path, "--output", binding_path).stdout)
+    assert binding["selectedPayloadsMatchSourceObjects"] is True
+    assert binding["contentLock"] == lock
+    assert len(binding["sourceAssets"]) == 3 and not binding["publisherAuthenticated"]
     assert verification["status"] == "passed" and verification["assetCount"] == 3
     assert verification["revisionAuthenticated"] is False
     assert len(verification["inventory"]) == 3
@@ -216,7 +222,7 @@ def run(binary: Path, dataset_repo: Path, bom_report: Path, out_dir: Path, outpu
         "schema": "tokito.component-dataset-e2e.v1",
         "datasetCommit": head,
         "gitInventory": {"trackedAssets": len(expected_objects), "sourceTree": git_inventory["tree"], "sha256": hashlib.sha256(inventory_path.read_bytes()).hexdigest(), "workingTreeCoverageComplete": False},
-        "datasetSourceLock": {"assetCount": 3, "boardCount": 3, "sourceGitLfsIdentityCheckedByTest": True, "verified": True, "sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()},
+        "datasetSourceLock": {"assetCount": 3, "boardCount": 3, "sourceGitLfsIdentityCheckedByTest": True, "sourceObjectBindingVerifiedByCli": True, "bindingSha256": hashlib.sha256(binding_path.read_bytes()).hexdigest(), "verified": True, "sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()},
         "boardFileSha256": manifest["sourceBoardSha256"],
         "bomReportPath": bom_report_label,
         "bomReportFileSha256": bom_report_file_sha256,
