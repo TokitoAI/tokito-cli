@@ -32,7 +32,13 @@ The pinned corpus includes SparkFun Basic, Pico/UNO community conversions, NXP M
 
 The CLI's v0.1 Tokito package schema and source/inventory writer are implemented. This is an initial exchange format, not the complete canonical board package or a phone import contract. The App remote snapshot inspected on 2026-10-10 defines native GLB/context validation and reference-based selection, but its mobile bridge has no board-package import operation. See [the package contract and limits](docs/TOKITO_BOARD_PACKAGE_V0.md) and the [pinned ecosystem contract map](docs/ECOSYSTEM_CONTRACT_MAP.md). Other vendor formats remain separate, explicitly scoped adapters.
 
+### Component Forge: bounded prototype
+
+The first pure-Rust component-generation command accepts an explicit nominal body specification and writes a deterministic rectangular VRML envelope. The generic subprocess test binds the candidate to a fixture PCB identity and emits one selectable partial-GLB component node. On the pinned FRDM-MCXN236 dataset case, U11 has existing custom footprint pads and a missing model; no footprint is rewritten. Its nominal NXP body envelope is generated and assigned as a candidate, but the current board lacks canonical stackup and the assigned U11 model is withheld from the board GLB under the combined stackup-or-outline gate. This prototype is not a qualified component model. See [architecture](docs/COMPONENT_FORGE_ARCHITECTURE.md), [specification](docs/COMPONENT_FORGE_SPECIFICATION.md), [dataset qualification](docs/COMPONENT_FORGE_QUALIFICATION.md), and [open-source review](docs/COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md).
+
 ## Architecture and data flow
+
+The pure-Rust twin commands audit an existing GLB/map/manifest, prepare isolated mesh-bearing reference selectors, and query exact references or authored component-class labels. Preparation preserves geometry and transforms, updates hashes, and reports missing/unmapped geometry. It creates an unregistered reference candidate; colour highlighting, board-reference admission, mobile import and physical AR registration remain separate App stages. See [the CLI flow, architecture and acceptance roadmap](docs/DIGITAL_TWIN_SELECTION.md).
 
 ```mermaid
 flowchart LR
@@ -61,6 +67,9 @@ The dataset provides candidate engineering and photo assets; the CLI does not au
 
 - [BOM-driven component geometry and validation plan](docs/BOM_COMPONENT_QUALIFICATION.md)
 - [Offline model assignments, selectable bodies and qualification receipts](docs/MODEL_ASSIGNMENTS.md)
+- [Component Forge architecture, specification, dataset qualification, and upstream review](docs/COMPONENT_FORGE_ARCHITECTURE.md)
+- [Offline dataset source locks, integrity verification, and remaining intake gates](docs/DATASET_SOURCE_LOCK.md)
+- [Immutable local Git/LFS object inventory and partial dataset states](docs/DATASET_GIT_INVENTORY.md)
 
 - [KiCad-quality 3D gates and actual dataset comparison](docs/KICAD_3D_QUALITY_GATES.md)
 - [KiCad CLI behavior analysis](docs/KICAD_CLI_BEHAVIOR.md)
@@ -74,7 +83,7 @@ The dataset provides candidate engineering and photo assets; the CLI does not au
 
 Build locally with `cargo check --offline --locked` after dependencies are cached. The pure-Rust dependency graph includes pinned `earcut` for contour triangulation and `gltf` for independent GLB parsing, plus pinned `serde` and `serde_json`; it has no native CAD dependency. Run `cargo test --offline --locked`, `cargo fmt --all --check`, and `cargo clippy --offline --locked --all-targets -- -D warnings`.
 
-Verification and binary delivery stay local to conserve the GitHub Actions quota. The repository's workflow file was removed before PR creation; the PowerShell 7 runner performs the full local gates, release build, E2E and historical compatibility checks. Binaries and receipts are saved under ignored `target/delivery/local/`. See [local delivery](docs/CI_AND_DELIVERY.md).
+Verification and binary delivery stay local to conserve the GitHub Actions quota. The repository's workflow file was removed before PR creation; the PowerShell 7 runner performs the full local gates, release build, E2E and historical compatibility checks. Binaries and receipts default to ignored target/delivery/local/; TargetBase and DeliveryBase can put build/test outputs and delivery evidence on a chosen local volume such as F:. See [local delivery](docs/CI_AND_DELIVERY.md).
 
 ```text
 tokito-cli --help

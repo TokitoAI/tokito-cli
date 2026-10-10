@@ -4,6 +4,7 @@ use std::{
     fs::{self, OpenOptions},
     io::Write,
     path::PathBuf,
+    sync::atomic::{AtomicU64, Ordering},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokito_cli::bom::{
@@ -21,6 +22,7 @@ fn nxp(value: Value) -> tokito_cli::bom::BomDocument {
     parse_bom(&serde_json::to_vec(&value).unwrap(), BomFormat::NxpJson).unwrap()
 }
 struct BoardInput(PathBuf);
+static NEXT_BOARD_INPUT: AtomicU64 = AtomicU64::new(0);
 impl BoardInput {
     fn new(footprints: &str) -> Self {
         let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/bom-api-tests");
@@ -29,7 +31,11 @@ impl BoardInput {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = dir.join(format!("bom-{}-{time}.kicad_pcb", std::process::id()));
+        let sequence = NEXT_BOARD_INPUT.fetch_add(1, Ordering::Relaxed);
+        let path = dir.join(format!(
+            "bom-{}-{time}-{sequence}.kicad_pcb",
+            std::process::id()
+        ));
         let mut file = OpenOptions::new()
             .write(true)
             .create_new(true)

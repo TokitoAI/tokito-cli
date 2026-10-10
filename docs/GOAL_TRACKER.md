@@ -1,5 +1,40 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Current priority — dataset pipeline before App integration (2026-10-10)
+
+The active goal remains **TOKITO-PCB-ENGINE-002**; it is not complete. The user now requires the dataset pipeline to be implemented and tested before connecting Tokito App. App, API and dataset source remain read-only. Model accuracy requires geometric evidence, not a texture-resolution label.
+
+Delivery baseline: [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25), head `3ac40c3ba0ef964543b19a70743cf10c18abb24f`, depends on PR #21 and remains open. All 22 local verification gates passed before that push. Receipt: `F:\TokitoCliDelivery\20261010T111555Z-db7afdf431b3400d862e84c072e02311\verification.json`. The new detached candidate/source-binding changes below require their own current-source verification before delivery; the earlier receipt does not qualify them.
+
+| Order | Task and owner | State | Evidence / next gate |
+|---|---|---|---|
+| 1 | CLI + evidence review: audit dataset main and open PRs | Complete for inspected pins | Main `257ea7e6`, PR #6 `5283bc0`, PR #7 `ae27af8`, PR #4 `ca65648`; refresh before adopting later updates |
+| 2 | Rust CLI: prepare selectable dataset twin | Passed for pinned NXP asset | 354 isolated selectable component meshes; geometry payload and transforms preserved; one unmapped mesh reported |
+| 3 | CLI: candidate staging, source lock and offline asset verification | Content lock/inventory delivered; selected binding final gate pending | Separate staged roots and immutable source-object binding now implemented. Three PR6 metadata files staged/bound locally; external GLB needs its own provenance adapter. Automatic materialization/admission remain open |
+| 4 | CLI: all-board file/feature inventory | Git metadata primitive delivered; qualification open | Explicit commit/tree/blob hashes, LFS payload comparisons, tracked-only source inventory and missing/pointer/mismatch states. Physical board identity, complete assets and per-format qualification remain open; see DATASET_GIT_INVENTORY.md |
+| 5 | CLI + dataset evidence: component crosswalk and model qualification | Open / evidence blocked | Exact board revision, PCB hash, UUID/refdes, MPN, units, transforms and quality; NXP photographed B versus design C remains unresolved |
+| 6 | Rust CLI: qualified admission and accepted-update comparison | Open | After qualification, compare staged pinned inputs against accepted lock; report changes without silently replacing accepted data |
+| 7 | CLI QA + independent reviewer: all-board actual subprocess E2E | Open | Per-board passed/failed/unsupported/unverified results; missing input is not success |
+| 8 | CLI release: review and merge qualified pipeline PR | Open | Current-source local checks, independent review and approved dependency sequence; no hosted Actions |
+| 9 | Rust Component Forge: qualified footprint generator | Open | Separate missing footprint from missing body model; manufacturer land-pattern evidence, pads/numbering/layers and independent comparisons |
+| 9a | CLI behavior researcher + Rust engine: KiCad CLI export parity | Ongoing / incomplete | Study pinned command/option behavior and source boundaries; reproduce selected SVG/placement/GLB semantics in Rust and independently compare outputs. Local KiCad 10.0.5 is reconnaissance, not 10.0.7 parity |
+| 9b | Component Forge researcher + Rust generator: KiCad Library Tools workflow | Architectural assessment complete; generator families open | Pin Library Tools/KicadModTree references, study package parameters, geometry/node/serialization stages, then implement and verify each Rust footprint/body family independently |
+| 10 | App owner: import, colour highlighting, dialogue and registration | Deferred | Start only after dataset qualification and separate sibling-write authorization; physical device gates remain mandatory |
+
+GitHub tasks: [dataset pipeline #26](https://github.com/TokitoAI/tokito-cli/issues/26), [selection/handoff #23](https://github.com/TokitoAI/tokito-cli/issues/23), [footprint generator #24](https://github.com/TokitoAI/tokito-cli/issues/24), and [envelope slice #22](https://github.com/TokitoAI/tokito-cli/issues/22). They are tracked in the CLI-specific Project 2, not the overall ecosystem project. Completed implementation items remain distinct from unresolved physical accuracy and admission.
+
+Error resolved: the first full verification encountered a temporary BOM fixture filename collision. An atomic sequence fixes unique naming; the subsequent full run passed. Remaining blockers are missing engineering/registration evidence, not a demonstrated failure of the tested selector preparation.
+
+### Ordered CLI flow
+
+Dataset snapshot → verified materialized inventory/source lock → exact board/component crosswalk → geometry/unit/transform qualification → existing PCB exports or `twin inspect` / `twin prepare` / `twin select` → all-board E2E and independent review → qualified handoff → separately authorized App integration.
+
+The existing twin commands, earlier PCB exporters, and offline `dataset lock` / `dataset verify` content primitives are implemented. The current continuation adds `dataset inventory` for bounded local Git/LFS identity inspection; automated candidate materialization, admission and update comparison remain planned work. Vision detections are observations and do not establish hidden pad geometry or physical part identity. See [source-lock boundaries and commands](DATASET_SOURCE_LOCK.md).
+
+Two research tracks feed this flow explicitly: [KiCad CLI behavior #13](https://github.com/TokitoAI/tokito-cli/issues/13) supplies command, export, transform and refusal reference cases; [KiCad Library Tools footprint generation #24](https://github.com/TokitoAI/tokito-cli/issues/24) supplies package-parameter, pad, layer, courtyard and serialization reference cases. Each selected behavior needs an original Rust implementation and an independent comparison before acceptance. Dataset PR assets are separately pinned candidates, never implicit accepted replacements for main. Full KiCad CLI and footprint/library parity remain incomplete.
+
+## Earlier goal history
+
 Goal ID: TOKITO-PCB-ENGINE-002. Goal 001's bounded Milestone B foundation is complete; this active goal advances the evidence-gated path to selectable assembled 3D and a clearly documented Tokito CLI. The current working tree adds a pure-Rust bounded VRML assembly path with strict stackup-plane and unique-UUID gates, an implemented-command help tree, and one mesh-bearing `ref:<refdes>` GLB node per component. The frozen implementation passed all ten local gates and independent static review; the post-run narrative update is recorded below. Complete model coverage, independent generated-export comparison, App import/device acceptance, and schematic-to-physical-layout conversion remain open. Use the newest `verification.json` under `target/delivery/local/` only after confirming its source fingerprints match. Milestones A and B remain complete for their declared scope. Only CLI source is writable; App/API/dataset repositories are inspected read-only. GitHub Actions remain disabled and direct main push is prohibited.
 
 ## 1. Product goal
@@ -253,3 +288,39 @@ Last updated: 2026-10-10. The frozen selector/help/assembly source passed all te
 Current implementation: the model-assignment manifest and assigned partial-WRL export are implemented on `codex/component-model-qualification`, awaiting the current full local verification, independent review and a separate PR. The manifest preserves all source components, binds exact source identities to the PCB SHA-256 and checks model bytes, explicit units and transforms. It does not certify an engineering body match, pose, physical revision or complete board. See `MODEL_ASSIGNMENTS.md`.
 
 Next approved work: issue #20 independent per-dataset model/pose/geometry evidence, alongside issue #19 STEP surface/trim qualification. The new local branch is codex/component-model-qualification, based on merged main. Identity reconciliation is delivered; complete component CAD, independent pose/geometry acceptance, App integration and full KiCad parity remain incomplete. This goal remains active.
+
+## Component Forge — first evidence-gated slice (2026-10-10)
+
+This is an additive workstream under the existing `TOKITO-PCB-ENGINE-002` goal; it does not restart or complete the native goal. The goal API currently reports that goal as `active` and does not expose objective editing. This tracker and CLI issue #22 hold the current task status.
+
+| Task | State | Evidence / next action |
+|---|---|---|
+| Read and challenge the personal-AI plan | ✅ | Accepted the staged architecture, rejected the implied broad all-family delivery as unsupported by current evidence, preserved the existing repository and issue history |
+| Classify the real MCXN236 U11 gap | ✅ | U11 has existing pads 1–9 with custom geometry and no model reference; it is a model gap, not a missing footprint |
+| Research generator and CAD references | ✅ | Pinned KiCad generator/library references and reviewed Truck, ruststep, Python CAD, image-registration, and optional part-lookup roles; no new production dependencies admitted |
+| Strict package/body evidence record | ◐ | Current request binds board hash and unique refdes/UUID; BOM/manufacturer fields are explicitly unverified source claims. Add a richer tolerance-aware package spec later |
+| Nominal candidate envelope and generic selectable GLB | ✅ bounded | Deterministic 8-vertex/12-triangle WRL; fixture E2E emits one candidate `ref:R1` GLB mesh after explicit partial consent; not an engineering model |
+| Actual dataset U11 run | ✅ refusal path | Generates the 3 × 3 × 0.85 mm candidate and assignment manifest. U11 is withheld from GLB; missing canonical stackup is confirmed, and the exporter reports the combined `missing_stackup_or_outline` state |
+| Footprint geometry and `.kicad_mod` serializer | ☐ | No footprint generated. Select a true missing-footprint case and recover/verify complete manufacturer land-pattern coordinates before implementing |
+| U11 component-bearing GLB | ☐ | Requires a qualified same-board stackup/outline path and sourced geometry/pose evidence; never infer from the related Gerber job without an adapter and provenance check |
+| GUI/CAD visual comparison | ⏸ | Not run in this session; command-level E2E does not substitute for a viewer comparison |
+| GitHub delivery | 🔄 | Issue #22 and the CLI Project track the slice. PR #21 remains an open dependency. Create a dependent feature PR only after complete current-source verification and independent review; no Actions, merge, or sibling writes |
+
+The actual dataset E2E is included as an optional local verifier gate with `-DatasetRepo` and `-DatasetBomReport`; the generic component envelope journey is in the portable default gate set. Details and evidence limits are in [Component Forge qualification](COMPONENT_FORGE_QUALIFICATION.md), with design in [architecture](COMPONENT_FORGE_ARCHITECTURE.md), schema in [specification](COMPONENT_FORGE_SPECIFICATION.md), and tool decisions in [open-source review](COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md). The current full-source verification receipt remains the newest receipt under `target/delivery/local/` and is authoritative only if every recorded fingerprint matches the final tree.
+
+## Per-component twin selection — CLI handoff (2026-10-10)
+
+The preceding component-envelope source passed 19 local gates in the F: delivery receipt at 20261010T075121Z. The added source below requires its own current-source receipt. The verifier now runs 18 portable gates or 20 with both dataset profiles; use the newest matching receipt in the selected delivery base (F:\TokitoCliDelivery for this work).
+
+| Task | Owner | State | Evidence / next action |
+|---|---|---|---|
+| Audit updated dataset PR #6 and App main | Read-only evidence agents | Complete | PR head 5283bc0 adds capture evidence and no changed CAD binaries; main remains pinned |
+| Expose source revision mismatch | CLI documentation | Complete | NXP B marking differs from available C design; reviewed board-reference manifest absent |
+| Audit isolated renderable selectors | Rust CLI | Implemented | Source NXP has 354 reference parents and zero direct renderable selectors |
+| Prepare mesh names and manifest hashes | Rust CLI | Implemented | Focused fixture and NXP runs passed; payload and all non-name node values preserved after float-roundtrip correction |
+| Exact ref/class-claim query | Rust CLI | Implemented | Unique, ambiguous, missing-model and no-match states; no positional guidance claim |
+| Current-source E2E / review / PR | CLI QA + reviewer | Release gate | Full 20-gate local runner and independent review before branch delivery; no hosted Actions |
+| Board-reference and PCB crosswalk | CLI + dataset | Open | Source hash, UUID/refdes, reviewed revision/targets/context and decoded bounds |
+| App colour selection and import bridge | App owner | Open | Scoped App edits need permission; per-entity material restoration and device acceptance |
+
+See [the complete CLI flow, evidence and staged AR plan](DIGITAL_TWIN_SELECTION.md). Footprint generation, exact component CAD, complete KiCad parity, App import and registered physical guidance remain unfinished.
