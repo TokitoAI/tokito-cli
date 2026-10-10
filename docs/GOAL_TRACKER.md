@@ -8,11 +8,22 @@ the old F: copy remains because automatic review blocked its removal. Use D:.
 
 | Priority | Owner | State | Actual evidence | Next gate |
 |---|---|---|---|---|
-| ESP8266 assembly | CLI / independent reviewer | Source components, bodies, poses and board inputs implemented; assembled GLB incomplete | 20 current experiment tests, Clippy, source/association E2E; independent stack guard review passed | Complete surfaces, contour topology and independently compared world placement |
+| ESP8266 assembly | CLI / independent reviewer | Source inputs and positioned candidate meshes implemented; assembled GLB incomplete | 17 model journeys, 34 native identities, 62 bodies; 20 Altium and 34 STEP unit tests; full local suite passed | Reconcile model 11 bounds/surface evaluation, contour topology and independently compared world placement |
 | NXP improvement | CLI / dataset owner | Latest PR #21 payload materialized and hash-checked | PR head `de945d0d36a6132e28e247d4f566f2e300301c14`; 5,250,580-byte GLB; actual CLI inspect succeeds | Resolve 23 placeholder bodies and photographed layout/population matching |
 | AR and YOLO integration | App owner / CLI | Deferred until asset and identity gates | Existing App coordinate/revision/expiry contract; candidate dataset mappings | Verified identity crosswalk, accepted importer and physical-device evaluation |
-| Documentation and PR delivery | CLI | Local changes retained; fresh full delivery needed for new module | Previous 33-gate receipt plus current scoped checks | Current-source full QA and independent review before PR push/merge |
+| Documentation and PR delivery | CLI | Verified checkpoint pushed to PR #29; main unchanged | 34-gate receipt, independent review, exact demo hashes and current CLI inspect/select | Review/merge decision; full product qualification remains open |
 | Afan handoff | CLI / App owner | Plan retained; final handoff incomplete | `AFAN_PROTOTYPE_HANDOFF_PLAN.md` | Verified assets, commands, contracts, limitations and merge sequence |
+
+Delivered code/model checkpoint: commit `74bee98ca07bdcc75c93ae7b9658542808654968`
+on [PR #29](https://github.com/TokitoAI/tokito-cli/pull/29). The
+[demo bundle](DEMO_BUNDLE.md) contains ESP32/Ultimaker/NXP baseline models with
+23/310/354 selectable bodies or groups. ESP32 U3 remains missing; Ultimaker's
+multi-mesh groups need App import work. The latest NXP PR #21 asset is a separate
+intake. No assembled ESP8266 board or registered AR is delivered.
+
+Current verification: `target/delivery/local/20261010T203350Z-8f30e028a04547c2a052b9dc6dd1b9a8/verification.json`.
+All 34 local gates passed; the bundle, guides and this progress update were
+reviewed separately after that receipt. They are not claimed as its inputs.
 
 No schematic-only physical PCB conversion, complete ESP8266 assembly or phone AR
 completion is claimed. Sibling repositories remain read-only. Hosted Actions are
