@@ -138,7 +138,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'Offline model capture and a declared flat-triangle VRML profile are checked; GLB remains board-shell-only. Component world transforms/selection, general VRML/STEP, phone/AR and Desktop acceptance remain unverified.')
+        limitations = @('Local platform/toolchain only.', 'Offline model capture, a declared flat-triangle VRML profile, and source-derived point/mesh placement helpers are checked; GLB remains board-shell-only. Stackup-derived mounting planes, GLB-integrated component geometry/selection, KiCad-export equivalence, general VRML/STEP, phone/AR and Desktop acceptance remain unverified.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"

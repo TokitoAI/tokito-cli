@@ -16,10 +16,11 @@ This matrix distinguishes:
 
 Unsupported options must fail with a diagnostic. Silently accepting and ignoring an option is not parity.
 
-2026-10-10 C-06 addition: offline exact-path asset capture and a flat-triangle
-VRML97 local-mesh profile are available through Tokito-native APIs/commands.
-They do not supply KiCad path search-order parity, general WRL/STEP support,
-component world transforms or component GLB output. Source-behavior research
+2026-10-10 C-06 addition: offline exact-path asset capture, a flat-triangle
+VRML97 local-mesh profile, and source-derived point/parsed-mesh placement helpers
+are available through Tokito-native APIs/commands. The helpers do not establish
+KiCad transform parity or provide stackup-derived planes, general WRL/STEP
+support, or component geometry in the GLB scene. Source-behavior research
 now pins KiCad 10.0.7 commit `69cafb907ebc09e7722a2a464b1d466fc2e3608d`;
 the release remains a proposed compatibility reference until ratified. See
 [model semantics and remaining gates](MODEL_RESOLUTION.md).

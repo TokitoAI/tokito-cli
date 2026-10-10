@@ -76,6 +76,56 @@ fn near_parallel_closed_contours_are_rejected_as_ambiguous() {
     assert!(board.svg(SvgSide::Top, None).is_err());
 }
 
+#[test]
+fn separated_near_parallel_finite_segments_do_not_make_a_valid_step_ambiguous() {
+    let board = board_with_outline(
+        r#"
+        (gr_poly (pts (xy 0 0) (xy 10 0) (xy 10 10) (xy 20 10)
+                     (xy 20 0.0000015) (xy 30 0.0000015) (xy 30 20) (xy 0 20))
+                 (layer Edge.Cuts) (uuid separated-step))
+    "#,
+    );
+    assert!(
+        board.outline().is_valid(),
+        "Ten-millimetre-separated finite segments cannot become ambiguous because their infinite support lines are close: {:?}",
+        board.outline().diagnostics
+    );
+    assert_eq!(board.outline().contours.len(), 1);
+    assert!(board.svg(SvgSide::Top, None).is_ok());
+}
+
+#[test]
+fn invalid_outline_reports_clear_all_certified_geometry_in_api_and_json() {
+    for fragment in [
+        "(future_outline (layer Edge.Cuts) (uuid future-object))",
+        "(module Legacy (layer F.Cu) (at 0 0) (fp_circle (center 5 5) (end 6 5) (layer Edge.Cuts)))",
+        "(gr_rect (start 20 0) (end 30 10) (layer Edge.Cuts))",
+        "(gr_circle (center 5 5) (end 9 5) (layer Edge.Cuts)) (gr_circle (center 5 5) (end 6 5) (layer Edge.Cuts))",
+    ] {
+        let board = board_with_outline(&format!(
+            "(gr_rect (start 0 0) (end 10 10) (layer Edge.Cuts)) {fragment}"
+        ));
+        let report = board.outline();
+        assert!(!report.is_valid());
+        assert!(
+            report.bounds.is_none(),
+            "An unsupported outline cannot retain certified bounds: {fragment}"
+        );
+        assert!(
+            report.contours.is_empty(),
+            "An unsupported outline cannot retain certified contours: {fragment}"
+        );
+        assert!(
+            !report.primitives.is_empty(),
+            "Source primitives must remain available for diagnosis"
+        );
+        let json: serde_json::Value = serde_json::from_str(&board.outline_json()).unwrap();
+        assert_eq!(json["valid"], false);
+        assert!(json["bounds"].is_null());
+        assert_eq!(json["contours"].as_array().unwrap().len(), 0);
+    }
+}
+
 fn fixture(relative: &str) -> PhysicalBoardDocument {
     tokito_cli::load_kicad_board(
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))

@@ -8,11 +8,11 @@ Status: CLI source plus read-only local Desktop and immutable remote App/dataset
 |---|---|---|
 | Tokito Desktop schematic studio | Local read-only snapshot `tokito` at `master`, commit `e25ba7b2783f002318be07a9287a2476a1d19bff`; its README and schematic-editor docs describe schema-v2 schematic documents and schematic, netlist, BOM, SVG/PDF, and MCAD exports. | Schematic-first. The inspected snapshot does not provide routed PCB geometry. Its schematic symbol positions and MCAD handoff cannot establish physical component placement, board outline, stackup, routing, or 3D component pose. Friend's newer Desktop state must be checked at its supplied commit. |
 | Tokito CLI / Rust engine | This repository, feature branch `codex/milestone-c-selectable-glb`, reviewed source commit `5db49481ce62e859d13cf0504c75f6f6d1124add`, delivered through PR #11; later delivery documentation preserves that tested source. | Imports a bounded KiCad PCB subset or Tokito package v0.1; exposes a reusable Rust engine; emits inventory, partial SVG, raw placement CSV and explicitly partial board-shell GLB. Bounded offline model capture and flat triangle WRL inspection are implemented; no assembled component GLB or app-ready board package yet. |
-| Tokito App | Remote `main` at `780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50`, inspected read-only via authenticated GitHub CLI. | Assembly/twin schemas bind revisions, units/frame, GLB hashes/bytes and node names. Native selection uses `componentNodePrefix + refdes` (default `ref:`). The mobile JS/native bridge exposes sessions/sync and dialogue/vision/voice model bundles, but no board-package intake. |
+| Tokito App | Remote `main` at `780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50`, inspected read-only via authenticated GitHub CLI. | Docs define an `assembly.context-bundle` v1 and a separate GLB + digital-twin manifest, bound by revision, units/frame, GLB hash/size and component-node prefix. Native selection uses `componentNodePrefix + refdes` (default `ref:`). The mobile JS/native bridge exposes sessions/sync and dialogue/vision/voice model bundles, but no board-package intake or final Desktop-to-phone delivery flow. |
 | `tokito-app-dataset` | Earlier corpus `9787b398231421656e64f40217ed7e17e9aac625`; newer Ultimainboard sample `c2bdf2369e13b71aaa8f13a91a23637faf339813`; read-only remote inspection, not checked out locally. | Photo/annotation and CAD/model reference collection with incomplete specimen-to-source mapping. The earlier corpus includes an ESP32 community clone; the newer Ultimainboard sample includes Altium plus a derived KiCad reference. Other families and native Altium/STEP need their own adapters or source/layout evidence. No formal board-package import schema is established. |
 | DS-ViRe | Public [Tokito DS-ViRe repository](https://github.com/TokitoAI/tokito-dsvire); its README describes typed, hash-bound datasheet figure evidence. | Useful as an optional evidence source for part identity, package drawings, pinouts and datasheet context. It is not a PCB-layout parser, physical placement authority, 3D model generator, or model-transform validator. Keep it outside the offline geometry-critical path. |
 | Tokito MCP/catalog | `docs/ECOSYSTEM_INTEGRATION.md` and read-only `tokito-mcp` snapshot | Symbol/catalog operations may support design-time part lookup. They do not replace the local board importer or provide physical board geometry. |
-| Tokito API/cloud | Remote master at `e52c0d87f053611ed831fb74ffa186c06d28dc0e`; actual registrations/store inspected | Existing shared-project/device/versioned sync includes physical_sessions and generic artifacts, but no typed board/GLB import or CLI binding. Cloud remains optional for deterministic local preparation/viewing; see APP_API_BRIDGE_AUDIT.md. |
+| Tokito API/cloud | Remote `master` at `e52c0d87f053611ed831fb74ffa186c06d28dc0e`; current docs/API.md and docs/SHARED_PROJECTS.md inspected through authenticated GitHub CLI | Shared sync includes structured `physical_sessions`; Companion exposes generic named artifacts up to 16 MiB. There is no typed board/GLB import, package validation, or CLI binding. Generic artifact storage alone does not install or activate a twin. Cloud remains optional for deterministic local preparation/viewing; see APP_API_BRIDGE_AUDIT.md. |
 
 The `tokito-app-dataset` URL supplied by the user is the relevant target. `devboard_ar_dataset` is a different local folder and remains a research scaffold, not a source of verified product-board geometry.
 
@@ -43,11 +43,29 @@ unique validated reference mapping, rather than assuming UUID-only names satisfy
 the current App contract. Integrity/signing ownership and shell import remain
 integration gates; no phone/device test was run.
 
+The live App docs define two separate artifacts: a revisioned assembly-context
+bundle and a GLB with a digital-twin manifest. They describe optional verified
+local import, while the root product boundary says cross-product exchange must
+use an authorized versioned Cloud contract. The repository does not settle which
+delivery path Tokito Desktop should use, identify a final user-facing import
+flow, or establish the canonical board/GLB pair and signing owner. Keep the CLI
+v0.1 package marked `mobileImportReady: false` until the App owner confirms
+those points. See the pinned [assembly-context contract](https://github.com/TokitoAI/tokito-app/blob/780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50/physical-runtime/docs/ASSEMBLY_CONTEXT.md),
+[digital-twin contract](https://github.com/TokitoAI/tokito-app/blob/780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50/physical-runtime/docs/DIGITAL_TWIN_AR.md),
+and [product boundary](https://github.com/TokitoAI/tokito-app/blob/780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50/docs/PRODUCT_BOUNDARY.md).
+
 The native activity reads local context/twin files, but the mobile installer path
 was not found. The inspected `startBench` caller omits the context revision that
 the project-bound native session gate requires. Rust physical-context import and
 cloud UniFFI sync are separate bindings; see the
 [App/API source audit](APP_API_BRIDGE_AUDIT.md) for exact paths and owner inputs.
+
+The live API contract at the pinned `master` commit documents project-scoped
+generic artifact upload/download, limited to 16 MiB per artifact, plus structured
+`physical_sessions` resources. The docs do not define board-package semantics,
+GLB verification, package installation, or component selection through those
+routes. This can be a transport candidate only if the App adds and validates an
+explicit package flow; it is not evidence of an existing mobile bridge.
 
 ## Recommended data flow
 
@@ -57,7 +75,7 @@ flowchart LR
     Layout -->|routed board document| Engine[Tokito Rust physical-board engine]
     Data[Versioned board and model dataset] -->|source files, models, manifest| Engine
     Engine -->|2D views, validated geometry, GLB, report, package manifest| Bundle[Offline Tokito board package]
-    Bundle -->|explicit local import| App[Tokito Companion / App]
+    Bundle -->|approved versioned handoff; delivery path TBD| App[Tokito Companion / App]
     App -->|2D / 3D / component selection / later AR| User[User]
     DSViRe[DS-ViRe datasheet evidence] -. optional part evidence .-> Data
 ```
@@ -100,7 +118,7 @@ The first integration must consume an existing routed PCB input or a versioned T
 
 1. Continue the CLI-only work with the next Milestone C gate: define and test local model resolution and component-level GLB against a pinned real board/model sample. Preserve default refusal for missing models; permit visibly partial output only with the explicit flag.
 2. The newer Ultimainboard sample is pinned and its committed metadata was checked. Obtain fully materialized local assets and model assignment/frame evidence before qualifying it. Track every dataset board separately; see DATASET_BOARD_HANDOFF.md. The official resistor fixture permits independent resolver/mesh work but does not qualify a photographed product board.
-3. The App commit and native selector were inspected as above. Ask the owner to confirm the intended import bridge/schema and integrity/signing rules before implementing an interoperable package. Pin a newer snapshot when that interface is ready.
+3. The App commit and native selector were inspected as above. Ask the owner to confirm whether handoff is a user-mediated local bundle or an authorized Cloud contract, which context/GLB pair is canonical, and who owns verification/signing before implementing an interoperable package. Pin a newer snapshot when that interface is ready.
 4. Confirm whether Desktop should depend on the Rust library in-process (recommended) or require a versioned subprocess protocol.
 5. Confirm KiCad 10.0.7 as the command-behavior baseline, or name the release to use instead.
 6. The user intends to use every board in the dataset. Track readiness per exact specimen/revision and adapter instead of assigning one supported status to the corpus. Raspberry Pi/Pico, NXP, Arduino and Ultimaker inputs remain subject to their own pinned source, geometry, model and photo-registration gates.

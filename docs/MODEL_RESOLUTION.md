@@ -67,12 +67,25 @@ Source archaeology is pinned to KiCad 10.0.7 source commit
 references, not copied algorithms or successful renderer comparisons:
 
 - Legacy model `at` is inches ×25.4; modern `offset` is millimetres ([parser](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/pcb_io/kicad_sexpr/pcb_io_kicad_sexpr_parser.cpp#L929)).
-- Local model scale, signed XYZ rotation and offset composition, then footprint rotation/backside pose, need asymmetric numerical references ([renderer](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/3d-viewer/3d_rendering/opengl/render_3d_opengl.cpp#L1076)).
-- The viewer mounts components on outer paste-layer surfaces, which cannot be equated automatically with Tokito's ±thickness/2 slab ([adapter](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/3d-viewer/3d_canvas/board_adapter.cpp#L1039)).
+- KiCad CLI STEP and the 3D viewer have distinct placement paths. The public Rust point API follows the pinned STEP exporter; an independent asymmetric comparison against a KiCad-produced STEP/GLB or reviewed mechanical oracle remains pending. The OpenGL viewer transform is still unqualified ([renderer](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/3d-viewer/3d_rendering/opengl/render_3d_opengl.cpp#L1076)).
+- The OpenGL viewer mounts components on outer paste-layer surfaces; the CLI STEP exporter instead uses outer copper surfaces. Neither plane should be inferred from Tokito's ±thickness/2 slab without stackup evidence ([viewer adapter](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/3d-viewer/3d_canvas/board_adapter.cpp#L1039), [STEP pose](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/exporters/step/step_pcb_model.cpp#L3716)).
 - KiCad WRL scaling depends on top-level Transform behavior; rejecting Transform keeps this first profile explicit ([reader](https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/plugins/3d/vrml/v2/vrml2_transform.cpp#L207)).
-- Tokito's current source Y-down to GLB −Z mapping must be checked against asymmetric component landmarks, handedness and winding before claiming viewer equivalence. The symmetric resistor alone cannot qualify orientation.
+- Tokito's saved-Y-down to GLB −Z mapping gives the placed STEP-to-GLB basis negative parity. The mesh-placement helper now corrects triangle winding using that fixed reflection composed with signed model-scale parity, then recomputes flat normals. Asymmetric tests verify the implemented matrix and normal direction; comparison against an independent KiCad-generated or reviewed mechanical reference is still required before claiming viewer equivalence.
 
-Next gates: independent asymmetric pose references and mounting-plane policy;
+Next gates: stackup-derived copper-plane extraction and independent asymmetric export/mechanical comparison;
 validated per-component world bounds; deterministic UUID/refdes-to-node mapping;
 then GLB assembly and real consumer selection. Existing `--allow-partial`
 remains required for board-shell exports.
+
+## KiCad CLI STEP placement: pinned behavior contract
+
+The source baseline used here is KiCad 10.0.7 commit 69cafb907ebc09e7722a2a464b1d466fc2e3608d. The STEP exporter supplies each model's footprint position relative to the board origin, side, footprint angle, model offset, model rotation, and scale. Its placement routine derives front/back model planes from the board body plus the outer copper layers and uses a 0.05 mm clearance. It does not treat the board slab's half-thickness as the complete mount-plane definition.
+
+For a model-space point already expressed in millimetres, the Rust point-placement API applies scale, model rotations around X/Y/Z by the negative stored angles, the model offset and selected copper-plane/clearance offset, the back-side 180-degree X rotation when applicable, the footprint Z rotation, then the board translation (x, -y). This operation order follows the pinned exporter and the documented Open CASCADE composition rule; no KiCad or Open CASCADE runtime is linked or invoked.
+
+The point API maps a placed model point to Tokito's shell frame in GLB metres: x=(board_x-origin_x+local_x)/1000, y=local_z/1000, z=(-(board_y-origin_y)+local_y)/1000. This STEP-to-GLB basis has negative determinant. The parsed-mesh placement helper applies that point transform to a bounded triangle mesh, composes reflection parity with negative model scales, adjusts triangle winding, recomputes flat normals, and rejects invalid indices, degenerate triangles, non-finite results, or meshes over its geometry budgets. Both helpers require explicit copper-plane values; they do not derive those planes from the source board stackup. They are not yet connected to GLB scene assembly, do not parse STEP, and do not claim equality with a KiCad-generated export. The current asymmetric test oracle verifies the declared source-derived contract mathematically, not by independent renderer comparison.
+
+Primary references:
+- KiCad's pinned STEP exporter inputs and board-origin handling: https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/exporters/step/exporter_step.cpp
+- KiCad's pinned STEP model composition and copper-plane placement: https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/exporters/step/step_pcb_model.cpp#L3716
+- Open CASCADE's composition definition for Multiply: https://dev.opencascade.org/doc/refman/html/classgp___trsf.html

@@ -148,6 +148,70 @@ def compare_reference(report, reference, *, expected_valid, expected_entities,
             "endpointToleranceMm": 1e-6, "centerAndRadiusToleranceMm": 5e-6}
 
 
+def compare_svg_reference(root, reference):
+    """Check emitted source-frame paths against Gerber, not canonical geometry.
+
+    Deliberately limited to this stored profile's line/circular-arc/circle
+    objects; unsupported SVG path syntax fails instead of being skipped.
+    """
+    pending = list(reference)
+    edges = [e for e in root.iter() if e.attrib.get("data-layer") == "Edge.Cuts"]
+    assert len(edges) == len(reference)
+    maximum = 0.0
+    for element in edges:
+        if element.tag == NS + "circle":
+            center = (float(element.attrib["cx"]), float(element.attrib["cy"]))
+            radius = float(element.attrib["r"])
+            assert radius > 0 and all(map(math.isfinite, (*center, radius)))
+            matches = [(i, max(math.dist(center, r["center"]), abs(radius-r["radiusMm"])))
+                       for i, r in enumerate(pending) if r["kind"] == "circle"]
+        else:
+            assert element.tag == NS + "path"
+            values = element.attrib["d"].split()
+            assert values[0] == "M"
+            start = (float(values[1]), float(values[2]))
+            assert values[3] in ("L", "A")
+            is_arc = values[3] == "A"
+            assert len(values) == (11 if is_arc else 6)
+            end = (float(values[-2]), float(values[-1]))
+            assert all(map(math.isfinite, (*start, *end)))
+            if is_arc:
+                rx, ry, rotation = map(float, values[4:7])
+                large, sweep = map(int, values[7:9])
+                assert rx > 0 and rx == ry and rotation == 0
+                assert large in (0, 1) and sweep in (0, 1)
+                chord = math.dist(start, end)
+                assert chord > 0 and chord <= 2*rx + 1e-9
+                # SVG endpoint-to-centre conversion for an unrotated circle.
+                coefficient = math.sqrt(max(0.0, rx*rx/(chord*chord)-0.25))
+                if large == sweep:
+                    coefficient = -coefficient
+                center = ((start[0]+end[0])/2 - (end[1]-start[1])*coefficient,
+                          (start[1]+end[1])/2 + (end[0]-start[0])*coefficient)
+            matches = []
+            for i, entry in enumerate(pending):
+                if entry["kind"] != ("arc" if is_arc else "line"):
+                    continue
+                forward = max(math.dist(start, entry["start"]), math.dist(end, entry["end"]))
+                reverse = max(math.dist(start, entry["end"]), math.dist(end, entry["start"]))
+                error = min(forward, reverse)
+                if is_arc:
+                    error = max(error, math.dist(center, entry["center"]),
+                                abs(rx-math.dist(entry["start"], entry["center"])))
+                    expected_direction = entry["positive"] if forward <= reverse else not entry["positive"]
+                    if bool(sweep) != expected_direction:
+                        continue
+                matches.append((i, error))
+        matches = [(i, error) for i, error in matches if error <= 5e-6]
+        assert len(matches) == 1, "Emitted SVG geometry/sweep must match one stored Gerber entity"
+        index, error = matches[0]
+        maximum = max(maximum, error)
+        pending.pop(index)
+    assert not pending
+    return {"entities": len(edges), "maxSvgGeometryErrorMm": maximum,
+            "toleranceMm": 5e-6, "coverage": "path/circle geometry, not raster rendering"}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
@@ -229,6 +293,48 @@ def main():
             assert max(abs(float(element.attrib["cx"]) - center[0]),
                        abs(float(element.attrib["cy"]) - center[1]),
                        abs(float(element.attrib["r"]) - radius)) <= 5.1e-7
+        original = FIXTURES / "lumenpnp-vac-interposer-original/vac-adapter.kicad_pcb"
+        original_profile = original.with_name("vac-adapter-Edge_Cuts.gbr")
+        assert hashlib.sha256(original.read_bytes()).hexdigest() == "2b21f974c74f9521b45717f17e7f6f67489f7a47316db0f9eb2697f234edcce3"
+        assert hashlib.sha256(original_profile.read_bytes()).hexdigest() == "698d1cad11241bf7f225e8fa9a631fbbc7f5a74b995151b5ad328e52ad2785e1"
+        original_report = json.loads(run(binary, "validate", "outline", original, "--json"))
+        original_inventory = json.loads(run(binary, "inspect", original, "--json"))
+        assert len(original_inventory["footprints"]) == 7
+        original_reference = gerber(original_profile, expected_entities=8, expected_arcs=2, expected_circles=2)
+        original_comparison = compare_reference(
+            original_report, original_reference, expected_valid=True,
+            expected_entities=8, expected_arcs=2, expected_circles=2)
+        assert sorted(c["role"] for c in original_report["contours"]) == ["cutout", "cutout", "outer"]
+        original_svg_comparisons = {}
+        for side in ("top", "bottom"):
+            original_svg = output / f"original-lumenpnp-{side}.svg"
+            run(binary, "export", "svg", original, "--side", side, "--output", original_svg)
+            original_root = ET.parse(original_svg).getroot()
+            assert ("transform" in original_root.find(NS + "g").attrib) == (side == "bottom")
+            original_svg_comparisons[side] = compare_svg_reference(original_root, original_reference)
+            original_ids = {p["source"]["uuid"] for p in original_report["primitives"]}
+            edges = [e for e in original_root.iter() if e.attrib.get("data-layer") == "Edge.Cuts"]
+            assert {e.attrib.get("data-id") for e in edges} == original_ids
+            circles = [e for e in edges if e.tag == NS + "circle"]
+            assert {e.attrib.get("data-component-id") for e in circles} == {footprint_id}
+            # Prove the external comparison detects an actual wrong radius or
+            # sweep rather than merely checking the source endpoint inventory.
+            for field, bad_value in ((4, "2.000000"), (8, "0")):
+                mutated = ET.fromstring(ET.tostring(original_root))
+                arc = next(e for e in mutated.iter()
+                           if e.attrib.get("data-layer") == "Edge.Cuts"
+                           and " A " in e.attrib.get("d", ""))
+                values = arc.attrib["d"].split()
+                values[field] = bad_value
+                if field == 4:
+                    values[5] = bad_value
+                arc.attrib["d"] = " ".join(values)
+                try:
+                    compare_svg_reference(mutated, original_reference)
+                except AssertionError:
+                    pass
+                else:
+                    raise AssertionError("External SVG reference comparison accepted a wrong radius/sweep")
         refused = output / "refused.svg"
         run(binary, "export", "svg", nfc, "--output", refused, valid=False)
         assert not refused.exists()
@@ -306,6 +412,8 @@ def main():
         print("PASS pinned independent Edge.Cuts Gerber reference: " + json.dumps(comparison, sort_keys=True))
         print("PASS valid RP2040 board Gerber reference: " + json.dumps(rp2040_comparison, sort_keys=True))
         print("PASS reduced LumenPnP curved-profile Gerber reference and footprint cutouts: " + json.dumps(lumenpnp_comparison, sort_keys=True))
+        print("PASS unchanged original LumenPnP PCB/stored Gerber and actual SVG geometry: " + json.dumps(
+            {"canonical": original_comparison, "svg": original_svg_comparisons}, sort_keys=True))
 
 
 if __name__ == "__main__":

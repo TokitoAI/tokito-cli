@@ -6,6 +6,7 @@ use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
 mod cli;
+pub mod component_pose;
 pub mod document;
 mod geometry;
 mod glb;
@@ -917,6 +918,7 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
             });
         }
     }
+    outline.discard_invalid_geometry();
     Ok(Board {
         source: path.to_path_buf(),
         source_bytes: bytes.len(),

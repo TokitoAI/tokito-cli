@@ -12,6 +12,8 @@ Reviewed 2026-10-10. These are importer/geometry regression inputs, not certific
 | RoyalBlue54L NFC antenna (KiCad official demo) | a1b51d79b96b7dc2d4c3b374742de32d9b2144a7 | 20241229 | 2 / 2 | 112 / 48 / 2 / 0 | cd87e6d1b20fe0d129d9a9c807af3118c67749eff44b1f032d85c047a814c6dc |
 | Porcupine routed PCB | 84b0c5dd3643bedda88a9d8a2d2e97965ebc206d | 20211014 | 54 / 599 | 647 / 607 / 52 / 211 | 1731dd63f7d31e0f2112e297e06ee91bdbd2dfcf3421ed02ee75c764af718ef2 |
 | LumenPnP vacuum adapter (reduced geometry extract) | 11f17018e61c1513400680852bd1f34afb207b3c | 20211014 | 1 / 0 | 0 / 0 / 0 / 0 | dfa1ab6a4facd19542629b2a16c3296a3e6910fe1f624055dce15ce11bb8c174 (local extract) |
+| LumenPnP vacuum adapter (unchanged original) | 11f17018e61c1513400680852bd1f34afb207b3c | 20211014 | 7 / 12 | 18 / 0 / 0 / 0 | 2b21f974c74f9521b45717f17e7f6f67489f7a47316db0f9eb2697f234edcce3 |
+
 
 ## Provenance and boundaries
 
@@ -25,13 +27,29 @@ Pico/UNO add real graphical/footprint arcs; NXP exercises custom-pad omission. T
 
 Porcupine supplies a valid curved outline with 32 outer-contour line/arc edges and five explicit 2.05 mm circular Edge.Cuts cutouts. Its 607 root copper arcs are routed track objects, distinct from the 17 outline arcs. The actual CLI classifies one outer contour and five cutouts and exports both partial SVG views. Root/footprint source zone counts report present data only, not proof that every stored copper fill or design rule was understood.
 
-Together, the fixtures provide real routed-copper-arc and cutout coverage. The RP2040 profile is a positive reference for a valid straight-line outline; the NFC profile remains a negative reference for an open curved outline. For the reduced LumenPnP extract, the comparator matches all eight represented outline entities to the same-revision plotted profile: four lines, two quarter-circle arcs, and two full-circle arcs. The two full circles correspond to footprint-owned 0.5 mm cutouts; E2E checks their transformed board-space centers, graphic UUIDs, owning footprint UUID, and SVG geometry. This is evidence for the reduced extract only: it does not validate the full upstream PCB or confirm the source download byte-for-byte. Porcupine remains a valid curved-board source whose SVG arcs, circles, identities, and viewport are checked against the canonical report and independent geometry calculations. No external plot currently validates the rendered SVG itself. SVG remains partial; this corpus does not establish full KiCad parity, DRC, manufacturability, GLB/STEP correctness, Tokito target-board support, or device AR acceptance.
+Together, the fixtures provide real routed-copper-arc and cutout coverage. The RP2040 profile is a positive reference for a valid straight-line outline; the NFC profile remains a negative reference for an open curved outline. For the reduced LumenPnP extract, the comparator matches all eight represented outline entities to the same-revision plotted profile: four lines, two quarter-circle arcs, and two full-circle arcs. The two full circles correspond to footprint-owned 0.5 mm cutouts; E2E checks their transformed board-space centers, graphic UUIDs, owning footprint UUID, and SVG geometry. This is evidence for the reduced extract only: it does not validate the full upstream PCB or confirm the source download byte-for-byte. Porcupine remains a valid curved-board source whose SVG arcs, circles, identities, and viewport are checked against the canonical report and independent geometry calculations. The new unchanged original LumenPnP fixture supplies a direct actual SVG path/circle-to-stored-Gerber comparison for its eight profile entities, including radius/sweep. Raster rendering and complete plotting fidelity remain unverified. SVG remains partial; this corpus does not establish full KiCad parity, DRC, manufacturability, GLB/STEP correctness, Tokito target-board support, or device AR acceptance.
 
 The subagent also identified [PMW3360 breakout](https://github.com/jfedor2/pmw3360-breakout/tree/13738eece595fefb1246524429a3c1d3ba7e6ebf), CC0, with legacy KiCad 5 Edge.Cuts arcs and cutouts. It was not downloaded into the supported corpus because format 20171130 is outside the current adapter's declared range. Legacy module and arc syntax needs its own adapter work.
 
 - [KiCad RoyalBlue54L NFC demo](https://github.com/KiCad/kicad-source-mirror/tree/a1b51d79b96b7dc2d4c3b374742de32d9b2144a7/demos/royalblue54L_feather/nfc_antenna/RoyalBlue54L-NFC-Antenna), PCB and matching Gerber paths under the pinned commit. Hardware design is CERN-OHL-Pv2 per retained upstream notice. Exact source, LICENSE, README, and `-EdgeCuts.gbr` are committed. The reference header records KiCad 9.0.0-rc2, mm coordinates, and original coordinate mode. Its stored export declares 22 entities (12 G02 arcs, 10 G01 lines); the corpus test matches each source entity by endpoints (1e-6 mm) and checks arc center/radius against Gerber IJ offsets (5e-6 mm).
 - [Porcupine routed PCB](https://github.com/anarion80/porcupine/tree/84b0c5dd3643bedda88a9d8a2d2e97965ebc206d/output/porcupine/pcbs/porcupine_routed.kicad_pcb), exact board and upstream LICENSE/README retained. Hardware license is SHL-2.1 as stated by the upstream repository. It exercises a valid curved perimeter, five circular cutouts, and 607 root routed copper arcs. It has no separately committed independent plot reference.
 - [LumenPnP vacuum-adapter board and profile](https://gitea.interbiznw.com/KobolSystems/lumenpnp/commit/11f17018e61c1513400680852bd1f34afb207b3c), source paths `pnp/pcb/vac-interposer/vac-adapter.kicad_pcb` and `pnp/pcb/vac-interposer/out/REV00/vac-adapter-Edge_Cuts.gbr`. Both local files were reconstructed from indexed records in this pinned mirrored commit; neither was downloaded unchanged, and no upstream blob hashes are available. The reduced local PCB contains one footprint pose/UUID, six root outline records, and two footprint-owned circles; the reduced Gerber contains the paired profile records. The complete upstream PCB and full notice bundle were not downloaded, so this historical file revision’s exact license terms were not independently checked. The local PCB SHA-256 fingerprints only the reduced fixture.
+
+### Unchanged original LumenPnP pair
+
+The official Opulo repository contains the same pinned commit used by the older
+mirror research. The full PCB and profile were acquired unchanged through Git
+blobs, with lengths/SHA-256/Git SHA-1 checked before use; root LICENSE and README
+are retained. See [fixture provenance](../tests/fixtures/open-source/lumenpnp-vac-interposer-original/README.md).
+PCB blob `6f3409e9dcacf117657f9f5f7901d6e154261e44`; profile blob
+`c51857e82bd4bbbc119e8b0c6279436c0ee17e96`, SHA-256
+`698d1cad11241bf7f225e8fa9a631fbbc7f5a74b995151b5ad328e52ad2785e1`.
+The original has seven footprints and eighteen tracks, not the reduced fixture's
+one footprint/no tracks. The reduced inputs are preserved separately. Tests
+compare all eight original profile entities and top/bottom SVG source-frame
+paths, including UUID ownership, radius/sweep and rejection of deliberately
+corrupted SVG radius/sweep. The existing bottom view transform is checked
+separately; this is not a browser/CAD renderer test or a model/fabrication claim.
 
 ## User-supplied VTOL project
 
@@ -41,4 +59,4 @@ Source audit: format 20241229, six copper layers, 1.6 mm thickness, 116 footprin
 
 ## Remaining coverage
 
-A valid straight-edge same-commit plot comparison covers the RP2040 Game Controller (644 line primitives, one outer contour, four cutouts, exact endpoint agreement). A valid curved comparison now covers the reduced LumenPnP geometry extract (eight profile entities, including two footprint-owned circles); it does not establish complete-board equivalence because the raw upstream PCB was unavailable. NFC remains the open curved negative case, while Porcupine’s valid curved outline still lacks an external plot comparison. Topology support is a bounded subset, not full KiCad semantic or manufacturing certification. Manufacturer-model fidelity, GLB picking, STEP, and device AR registration remain unverified. Exported SVGs remain explicitly partial.
+A valid straight-edge same-commit plot comparison covers the RP2040 Game Controller (644 line primitives, one outer contour, four cutouts, exact endpoint agreement). A valid curved comparison also covers the unchanged original LumenPnP PCB and stored profile (eight entities, including two footprint-owned circles), with direct actual SVG vector-geometry comparison. The older reduced fixture remains a separate regression and does not claim original-byte provenance. NFC remains the open curved negative case, while Porcupine’s valid curved outline still lacks an external plot comparison. Topology support is a bounded subset, not full KiCad semantic or manufacturing certification. Manufacturer-model fidelity, GLB picking, STEP, and device AR registration remain unverified. Exported SVGs remain explicitly partial.

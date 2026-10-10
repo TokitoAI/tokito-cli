@@ -28,7 +28,7 @@ Status: Milestone C is active. The initial implementation slice is a board-shell
 
 ## Component model phase
 
-The canonical importer preserves raw model references and transform fields. Separate reusable resolver and flat-triangle WRL adapter APIs now capture real local assets and validate a declared local mesh profile; neither is yet connected to GLB scene assembly. See [model resolution/profile and transform gates](MODEL_RESOLUTION.md). KiCad board files show path, position/offset, scale and rotation fields; those fields do not establish correct world placement ([KiCad board file format](https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/)). The KiCad 9 PCB Editor manual documents STEP, VRML and IDF inputs, `${KIPRJMOD}`/versioned model-root variables, optional embedding and intentionally missing standard models ([manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
+The canonical importer preserves raw model references and transform fields. Separate reusable resolver and flat-triangle WRL adapter APIs capture real local assets and validate a declared local mesh profile; neither is yet connected to GLB scene assembly. See [model resolution/profile and transform gates](MODEL_RESOLUTION.md). Public Rust point- and mesh-placement helpers encode the pinned KiCad 10.0.7 STEP pose order, require caller-supplied front/back copper planes, normalize output to metres, and recompute normals after placement. The mesh helper accounts for the negative-parity STEP-to-GLB basis and signed model-scale parity when correcting triangle winding. Asymmetric synthetic tests cover placement, winding, and normals. Stackup-plane extraction and scene assembly remain open, and no comparison to a KiCad-generated export has passed. KiCad board files show path, position/offset, scale and rotation fields; those fields do not establish correct world placement ([KiCad board file format](https://dev-docs.kicad.org/en/file-formats/sexpr-pcb/)). The KiCad 9 PCB Editor manual documents STEP, VRML and IDF inputs, `${KIPRJMOD}`/versioned model-root variables, optional embedding and intentionally missing standard models ([manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
 
 Before component GLB nodes are added, the engine must:
 
@@ -37,7 +37,8 @@ Before component GLB nodes are added, the engine must:
 - determine and test model units, local origin, XYZ rotation order, top/bottom placement, and old/new offset semantics against primary documentation and real reference cases;
 - reject unsupported, missing, hidden, or ambiguous model references with a per-component coverage report;
 - require stable, unique footprint UUIDs before assigning selector IDs, and emit a deterministic UUID-to-node map;
-- validate assembled component bounds and placement without changing the authored board placement.
+- validate assembled component bounds and placement without changing the authored board placement;
+- validate component vertices again after f32 quantization so rounding cannot collapse or invert a face, matching the board-shell precision guard.
 
 No model decoding, download, KiCad invocation or transform inference occurs in the board-shell export. The separate WRL inspection profile operates offline with explicitly supplied units and rejects scene Transform/Inline nodes. STEP and general WRL remain unimplemented. Phone import, mobile rendering, registration, AR picking and Desktop/MCP integration remain later milestones.
 
