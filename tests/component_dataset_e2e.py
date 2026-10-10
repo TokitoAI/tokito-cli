@@ -194,9 +194,28 @@ def run(binary: Path, dataset_repo: Path, bom_report: Path, out_dir: Path, outpu
         assert asset["sha256"] == source_payload_hashes[asset["path"]]
     (out_dir / "dataset-source-verification.json").write_text(json.dumps(verification, indent=2), encoding="utf-8")
 
+    git_inventory = json.loads(invoke(binary, "dataset", "inventory", dataset_repo, "--revision", head).stdout)
+    git_entries = subprocess.run(["git", "-C", str(dataset_repo), "ls-tree", "-r", "-z", head], capture_output=True, check=True).stdout
+    expected_objects = {}
+    for raw in git_entries.split(b"\0"):
+        if raw:
+            info, path = raw.split(b"\t", 1)
+            expected_objects[path.decode("utf-8")] = info.split()[2].decode("ascii")
+    assert {a["path"]: a["gitObjectId"] for a in git_inventory["assets"]} == expected_objects
+    assert git_inventory["commit"] == head and git_inventory["commitAndTreeHashesVerified"] is True
+    assert git_inventory["workingTreeCoverageComplete"] is False
+    assert git_inventory["publisherAuthenticated"] is False
+    assert "nxp-frdm-mcxn236" in git_inventory["boardSourceCounts"]
+    assert "nxp-frdm-mcxn947" in git_inventory["boardSourceCounts"]
+    materialized_pcbs = {a["path"] for a in git_inventory["assets"] if a["roleClaim"] == "pcb" and a["contentVerified"] is True}
+    assert set(source_payload_hashes).issubset(materialized_pcbs)
+    inventory_path = out_dir / "dataset-git-inventory.json"
+    inventory_path.write_text(json.dumps(git_inventory, indent=2), encoding="utf-8")
+
     result = {
         "schema": "tokito.component-dataset-e2e.v1",
         "datasetCommit": head,
+        "gitInventory": {"trackedAssets": len(expected_objects), "sourceTree": git_inventory["tree"], "sha256": hashlib.sha256(inventory_path.read_bytes()).hexdigest(), "workingTreeCoverageComplete": False},
         "datasetSourceLock": {"assetCount": 3, "boardCount": 3, "sourceGitLfsIdentityCheckedByTest": True, "verified": True, "sha256": hashlib.sha256(lock_path.read_bytes()).hexdigest()},
         "boardFileSha256": manifest["sourceBoardSha256"],
         "bomReportPath": bom_report_label,

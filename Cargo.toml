@@ -10,6 +10,7 @@ name = "tokito-cli"
 path = "src/main.rs"
 
 [dependencies]
+gix = { version = "=0.83.0", default-features = false, features = ["sha1", "zlib-rs"] }
 earcut = "=0.4.11"
 gltf = { version = "=1.4.1", default-features = false }
 serde = "=1.0.229"

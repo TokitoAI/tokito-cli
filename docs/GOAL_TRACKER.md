@@ -4,14 +4,14 @@
 
 The active goal remains **TOKITO-PCB-ENGINE-002**; it is not complete. The user now requires the dataset pipeline to be implemented and tested before connecting Tokito App. App, API and dataset source remain read-only. Model accuracy requires geometric evidence, not a texture-resolution label.
 
-Delivery baseline: [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25), head `22357de169f1b4b32dd3e75e371cde399282377b`, depends on PR #21 and remains open. All 20 local verification gates passed before that push. Receipt: `F:\TokitoCliDelivery\20261010T100246Z-2020d1be95e94cb09a0f48a427d3bac4\verification.json`. This subsequent narrative update is not included in that receipt's source fingerprints; rerun verification before the next code delivery.
+Delivery baseline: [PR #25](https://github.com/TokitoAI/tokito-cli/pull/25), head `f08057796444e21b9b3fddb22da7ef8fb973ab8f`, depends on PR #21 and remains open. All 21 local verification gates passed before that push. Receipt: `F:\TokitoCliDelivery\20261010T103232Z-189e62c832164ad98ea67eaef407d567\verification.json`. The new Git inventory changes below require their own current-source verification before delivery; the earlier receipt does not qualify them.
 
 | Order | Task and owner | State | Evidence / next gate |
 |---|---|---|---|
-| 1 | CLI + evidence review: audit dataset main and open PRs | Complete for inspected pins | Main `257ea7e6`, PR #6 `5283bc0`, PR #7 `ae27af8`; refresh before adopting later updates |
+| 1 | CLI + evidence review: audit dataset main and open PRs | Complete for inspected pins | Main `257ea7e6`, PR #6 `5283bc0`, PR #7 `ae27af8`, PR #4 `ca65648`; refresh before adopting later updates |
 | 2 | Rust CLI: prepare selectable dataset twin | Passed for pinned NXP asset | 354 isolated selectable component meshes; geometry payload and transforms preserved; one unmapped mesh reported |
 | 3 | CLI: candidate staging, source lock and offline asset verification | Content-lock primitive implemented; full gate pending | Focused CLI tests and three materialized PCB files pass. Production Git/LFS identity resolver and candidate materialization remain open; revision is caller-declared |
-| 4 | CLI: all-board file/feature inventory | Open | Schematic, PCB, Gerber, BOM, photographs, CAD/models, identity maps and registration evidence |
+| 4 | CLI: all-board file/feature inventory | Git metadata primitive implemented; final gates pending | Explicit commit/tree/blob hashes, LFS payload comparisons, tracked-only source inventory and missing/pointer/mismatch states. Physical board identity, complete assets and per-format qualification remain open; see DATASET_GIT_INVENTORY.md |
 | 5 | CLI + dataset evidence: component crosswalk and model qualification | Open / evidence blocked | Exact board revision, PCB hash, UUID/refdes, MPN, units, transforms and quality; NXP photographed B versus design C remains unresolved |
 | 6 | Rust CLI: qualified admission and accepted-update comparison | Open | After qualification, compare staged pinned inputs against accepted lock; report changes without silently replacing accepted data |
 | 7 | CLI QA + independent reviewer: all-board actual subprocess E2E | Open | Per-board passed/failed/unsupported/unverified results; missing input is not success |
@@ -29,7 +29,9 @@ Error resolved: the first full verification encountered a temporary BOM fixture 
 
 Dataset snapshot → verified materialized inventory/source lock → exact board/component crosswalk → geometry/unit/transform qualification → existing PCB exports or `twin inspect` / `twin prepare` / `twin select` → all-board E2E and independent review → qualified handoff → separately authorized App integration.
 
-The existing twin commands, earlier PCB exporters, and new offline `dataset lock` / `dataset verify` content primitives are implemented. Production Git/LFS resolution, automated candidate materialization, admission and update comparison remain planned work; this flow does not invent working commands. Vision detections are observations and do not establish hidden pad geometry or physical part identity. See [source-lock boundaries and commands](DATASET_SOURCE_LOCK.md).
+The existing twin commands, earlier PCB exporters, and offline `dataset lock` / `dataset verify` content primitives are implemented. The current continuation adds `dataset inventory` for bounded local Git/LFS identity inspection; automated candidate materialization, admission and update comparison remain planned work. Vision detections are observations and do not establish hidden pad geometry or physical part identity. See [source-lock boundaries and commands](DATASET_SOURCE_LOCK.md).
+
+Two research tracks feed this flow explicitly: [KiCad CLI behavior #13](https://github.com/TokitoAI/tokito-cli/issues/13) supplies command, export, transform and refusal reference cases; [KiCad Library Tools footprint generation #24](https://github.com/TokitoAI/tokito-cli/issues/24) supplies package-parameter, pad, layer, courtyard and serialization reference cases. Each selected behavior needs an original Rust implementation and an independent comparison before acceptance. Dataset PR assets are separately pinned candidates, never implicit accepted replacements for main. Full KiCad CLI and footprint/library parity remain incomplete.
 
 ## Earlier goal history
 

@@ -2,6 +2,9 @@ use super::*;
 
 fn dataset_command(args: &[String]) -> Result<(), CliError> {
     let value = match args.get(1).map(String::as_str) {
+        Some("inventory") if args.len() == 5 && args[3] == "--revision" => {
+            dataset_git::inventory(Path::new(&args[2]), &args[4])?
+        }
         Some("lock") if args.len() == 7 && args[3] == "--request" && args[5] == "--output" => {
             let request = dataset::load_json(Path::new(&args[4]))?;
             let lock = dataset::create_source_lock(Path::new(&args[2]), &request)?;
@@ -327,9 +330,11 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
         ),
-        ["dataset"] | ["dataset", "lock"] | ["dataset", "verify"] => println!(
-            "USAGE: tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nOffline hashes and inventory for explicitly listed materialized assets. The Git revision is caller-declared; this command does not authenticate repository history, validate CAD geometry or admit an App package."
-        ),
+        ["dataset"] | ["dataset", "inventory"] | ["dataset", "lock"] | ["dataset", "verify"] => {
+            println!(
+                "USAGE: tokito-cli dataset inventory <ROOT> --revision <FULL_COMMIT>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nOffline hashes and inventory for explicitly listed materialized assets. The Git revision is caller-declared; this command does not authenticate repository history, validate CAD geometry or admit an App package."
+            )
+        }
         ["twin"] | ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "select"] => println!(
             "USAGE: tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nMoves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
         ),

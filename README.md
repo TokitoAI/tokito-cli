@@ -69,6 +69,7 @@ The dataset provides candidate engineering and photo assets; the CLI does not au
 - [Offline model assignments, selectable bodies and qualification receipts](docs/MODEL_ASSIGNMENTS.md)
 - [Component Forge architecture, specification, dataset qualification, and upstream review](docs/COMPONENT_FORGE_ARCHITECTURE.md)
 - [Offline dataset source locks, integrity verification, and remaining intake gates](docs/DATASET_SOURCE_LOCK.md)
+- [Immutable local Git/LFS object inventory and partial dataset states](docs/DATASET_GIT_INVENTORY.md)
 
 - [KiCad-quality 3D gates and actual dataset comparison](docs/KICAD_3D_QUALITY_GATES.md)
 - [KiCad CLI behavior analysis](docs/KICAD_CLI_BEHAVIOR.md)

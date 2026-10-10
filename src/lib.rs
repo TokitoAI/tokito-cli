@@ -11,6 +11,7 @@ mod cli;
 pub mod component_forge;
 pub mod component_pose;
 pub mod dataset;
+pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
 mod geometry;

@@ -136,6 +136,7 @@ try {
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },
         @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) },
         @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },

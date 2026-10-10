@@ -7,7 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 const MAX_JSON: usize = 4 * 1024 * 1024;
-const MAX_ASSET: usize = 256 * 1024 * 1024;
+pub(crate) const MAX_ASSET: usize = 256 * 1024 * 1024;
 const MAX_TOTAL: u64 = 2 * 1024 * 1024 * 1024;
 const ROLES: &[&str] = &[
     "schematic",
@@ -49,14 +49,14 @@ fn string<'a>(value: &'a Value, key: &str) -> Result<&'a str, EngineError> {
         .ok_or_else(|| err(format!("invalid dataset string {key}")))
 }
 
-fn hex(value: &str, len: usize) -> bool {
+pub(crate) fn hex(value: &str, len: usize) -> bool {
     value.len() == len
         && value
             .bytes()
             .all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(&c))
 }
 
-fn relative_path(value: &str) -> Result<(), EngineError> {
+pub(crate) fn relative_path(value: &str) -> Result<(), EngineError> {
     if value.contains(['\\', ':'])
         || value.split('/').any(|part| {
             part.is_empty()
@@ -81,7 +81,7 @@ fn relative_path(value: &str) -> Result<(), EngineError> {
     Ok(())
 }
 
-fn no_link(path: &Path) -> Result<(), EngineError> {
+pub(crate) fn no_link(path: &Path) -> Result<(), EngineError> {
     let metadata =
         fs::symlink_metadata(path).map_err(|e| err(format!("dataset path unavailable: {e}")))?;
     let linked = metadata.file_type().is_symlink();
@@ -98,7 +98,7 @@ fn no_link(path: &Path) -> Result<(), EngineError> {
     Ok(())
 }
 
-fn root_path(root: &Path) -> Result<PathBuf, EngineError> {
+pub(crate) fn root_path(root: &Path) -> Result<PathBuf, EngineError> {
     // Check lexical ancestors before canonicalization, which would erase links.
     let absolute = if root.is_absolute() {
         root.to_path_buf()
@@ -117,7 +117,7 @@ fn root_path(root: &Path) -> Result<PathBuf, EngineError> {
     Ok(result)
 }
 
-fn asset_bytes(root: &Path, relative: &str) -> Result<Vec<u8>, EngineError> {
+pub(crate) fn asset_bytes(root: &Path, relative: &str) -> Result<Vec<u8>, EngineError> {
     relative_path(relative)?;
     let mut target = root.to_path_buf();
     for segment in relative.split('/') {
@@ -139,6 +139,37 @@ fn asset_bytes(root: &Path, relative: &str) -> Result<Vec<u8>, EngineError> {
         return Err(err("dataset asset is an unmaterialized Git-LFS pointer"));
     }
     Ok(bytes)
+}
+
+/// Probe components without following links, distinguishing absence from refusal.
+pub(crate) fn asset_present(root: &Path, relative: &str) -> Result<bool, EngineError> {
+    relative_path(relative)?;
+    let mut path = root.to_path_buf();
+    let segments: Vec<_> = relative.split('/').collect();
+    for (index, segment) in segments.iter().enumerate() {
+        path.push(segment);
+        let metadata = match fs::symlink_metadata(&path) {
+            Ok(value) => value,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(_) => return Err(err("dataset asset metadata unavailable")),
+        };
+        if metadata.file_type().is_symlink() {
+            return Err(err("linked dataset paths are not accepted"));
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::MetadataExt;
+            if metadata.file_attributes() & 0x400 != 0 {
+                return Err(err("linked dataset paths are not accepted"));
+            }
+        }
+        if index + 1 < segments.len() && !metadata.is_dir()
+            || index + 1 == segments.len() && !metadata.is_file()
+        {
+            return Err(err("dataset asset path has an unsupported file type"));
+        }
+    }
+    Ok(true)
 }
 
 fn validate(value: &Value, locked: bool) -> Result<&Vec<Value>, EngineError> {
