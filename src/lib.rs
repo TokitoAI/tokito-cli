@@ -10,6 +10,7 @@ pub mod component_pose;
 pub mod document;
 mod geometry;
 mod glb;
+pub mod model_assembly;
 pub mod model_mesh;
 pub mod model_resolver;
 mod package_input;
@@ -317,6 +318,16 @@ impl PhysicalBoardDocument {
     /// `allow_partial` explicitly to export a shell while components are missing.
     pub fn export_glb(&self, options: GlbExportOptions) -> Result<GlbExport, EngineError> {
         glb::export_board_shell(self, options.allow_partial)
+    }
+    /// Export the board shell plus the strictly supported locally resolved VRML
+    /// model subset. STEP, GLB and glTF source models are retained as explicit
+    /// unresolved coverage; they are never approximated or converted here.
+    pub fn export_glb_with_models(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        options: GlbExportOptions,
+    ) -> Result<GlbExport, EngineError> {
+        glb::export_board_assembly(self, resolver, options.allow_partial)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())

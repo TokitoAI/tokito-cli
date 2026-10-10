@@ -14,15 +14,40 @@ mean native Altium/STEP import or full-board AR is implemented.
 
 ## Current status
 
-Milestones A and B add a reusable `tokito_cli` Rust library with a typed `PhysicalBoardDocument` and a physical `OutlineReport`. Milestone C adds an explicitly partial board-shell GLB, offline model asset resolution, a bounded flat VRML97 mesh adapter, and pure-Rust point and parsed-mesh placement helpers based on pinned KiCad 10.0.7 STEP behavior. The canonical source records now retain a physical stackup and strictly derive centred outer-copper planes for supported copper/core/prepreg stacks. A repeatable external KiCad 10.0.5 GLB capture establishes one non-origin 90-degree component-node baseline, but it is not 10.0.7 parity. The helpers are not yet wired into GLB scene assembly; component nodes/selectors, complete component coverage, and a complete independent KiCad-export comparison remain open. Inspection, placement, package, SVG and GLB share source identities; CLI dispatch stays separate. See the [public API](docs/CANONICAL_ENGINE.md), [topology limits](docs/PCB_TOPOLOGY.md), [model operations](docs/MODEL_RESOLUTION.md), [GLB export architecture](docs/GLB_EXPORT_ARCHITECTURE.md), and [external GLB reference](docs/KICAD_GLB_REFERENCE.md).
+Milestones A and B provide a reusable `tokito_cli` Rust library with a typed `PhysicalBoardDocument` and a physical `OutlineReport`. Milestone C includes a board-shell GLB and a bounded assembly path: `export glb --assemble-wrl` resolves caller-approved local paths, accepts only the flat triangle VRML97 profile, derives supported copper/core/prepreg mounting planes, and emits one renderable node named `ref:<reference>` per uniquely identified component. That node owns a mesh with separate primitives for imported model parts and includes footprint UUID/source metadata. This matches the App's documented prefix-plus-reference selector shape; App package import and Android selection have not been tested. Missing, ambiguous, hidden, unsupported, STEP, glTF, and GLB models are reported with explicit reasons. Aggregate triangle and report limits bound output. A repeatable external KiCad 10.0.5 GLB capture establishes one non-origin 90-degree component-placement baseline, but it is not 10.0.7 parity. Complete component coverage and an independent KiCad-export geometry comparison remain open. Inspection, placement, package, SVG and GLB share source identities; CLI dispatch stays separate. See the [architecture](docs/ARCHITECTURE.md), [public API](docs/CANONICAL_ENGINE.md), [topology limits](docs/PCB_TOPOLOGY.md), [model operations](docs/MODEL_RESOLUTION.md), [GLB export architecture](docs/GLB_EXPORT_ARCHITECTURE.md), and [external GLB reference](docs/KICAD_GLB_REFERENCE.md).
 
-The executable reads bounded KiCad PCB S-expressions, reports source/component inventory, exports placement CSV, and exports partial physical-scale SVG with layer selection and top/bottom views. `validate outline` provides a separate JSON or text physical topology report; unsupported, open, crossed, overlapping or ambiguous outlines are rejected for physical SVG and GLB export while their source inventory remains inspectable. `export glb` triangulates and extrudes a validated board shell, then independently validates the self-contained GLB container. Missing component geometry is always unresolved in this first slice; the command refuses by default and requires the explicit `--allow-partial` flag. Its JSON report identifies unresolved components and source model references. Geometry includes supported footprint graphics/text, simple pads/drills, segments/arcs, vias, and stored filled-zone polygons. SVG retains source IDs and parent footprint UUIDs. Text uses approximate SVG fonts; full KiCad plot fidelity and DRC are unverified.
+The executable reads bounded KiCad PCB S-expressions, reports source/component inventory, exports placement CSV, and exports partial physical-scale SVG with layer selection and top/bottom views. `validate outline` provides a separate JSON or text physical topology report; unsupported, open, crossed, overlapping or ambiguous outlines are rejected for physical SVG and GLB export while their source inventory remains inspectable. `export glb` triangulates and extrudes a validated board shell, then independently validates the self-contained GLB container. A shell-only export always requires `--allow-partial`; an assembled export also refuses unresolved models unless the user explicitly permits partial output. Geometry includes supported footprint graphics/text, simple pads/drills, segments/arcs, vias, and stored filled-zone polygons. SVG retains source IDs and parent footprint UUIDs. Text uses approximate SVG fonts; full KiCad plot fidelity and DRC are unverified.
 
-`package build` preserves the source and inventory with SHA-256 digests. `package verify` validates the v0.1 contract, artifact/source integrity and source consistency; inspection, placement, SVG, and GLB exports can also consume that Tokito package directory. It remains a source-and-inventory package with no generated SVG/GLB/STEP embedded and is not accepted by the phone. Placement CSV retains excluded and placeholder footprints and uses raw source anchors; it is not a manufacturing-position file. Tokito is an original Rust implementation and does not invoke KiCad or copy/translate its code.
+`package build` preserves the source and inventory with SHA-256 digests. `package verify` validates the v0.1 contract, artifact/source integrity and source consistency; inspection, placement, SVG, and GLB exports can also consume that Tokito package directory. It remains a source-and-inventory package with no generated SVG/GLB/STEP embedded and is not accepted by the phone. Placement CSV retains excluded and placeholder footprints and uses raw source anchors; it is not a manufacturing-position file. `pcb` is a command group alias for the existing routed-board commands; it mirrors KiCad's discoverable structure without claiming KiCad's unimplemented schematic, symbol, footprint, jobset, Gerber or STEP operations. Tokito is an original Rust implementation and does not invoke KiCad or copy/translate its code.
 
 The pinned corpus includes SparkFun Basic, Pico/UNO community conversions, NXP MCXA ESC, the Raspberry Pi Press RP2040 Game Controller, an official KiCad NFC demo, the routed Porcupine board, and unchanged original LumenPnP vacuum-adapter PCB/stored profile. The RP2040 source and same-commit KiCad 7 Gerber profile match all 644 valid outline lines exactly; the NFC profile remains a 22-entity reference for an intentionally open outline that the validator rejects. Porcupine has five cutouts and 607 routed copper arcs. The original LumenPnP reference validates eight curved/circular outline entities and emitted SVG path/circle geometry; renderer fidelity remains unverified. These fixtures are not certified Tokito product boards. See [fixture provenance](docs/PCB_FIXTURE_CORPUS.md).
 
 The CLI's v0.1 Tokito package schema and source/inventory writer are implemented. This is an initial exchange format, not the complete canonical board package or a phone import contract. The App remote snapshot inspected on 2026-10-10 defines native GLB/context validation and reference-based selection, but its mobile bridge has no board-package import operation. See [the package contract and limits](docs/TOKITO_BOARD_PACKAGE_V0.md) and the [pinned ecosystem contract map](docs/ECOSYSTEM_CONTRACT_MAP.md). Other vendor formats remain separate, explicitly scoped adapters.
+
+## Architecture and data flow
+
+```mermaid
+flowchart LR
+    PCB[Existing routed PCB file] --> PARSE[Version-gated Rust importer]
+    DATA[Dataset repository<br/>CAD, Gerber, BOM, models, photos] -. reviewed source files staged by a person .-> PCB
+    PARSE --> DOC[Canonical PhysicalBoardDocument]
+    DOC --> CHECK[Outline and source diagnostics]
+    DOC --> MODELS[Optional local model resolution<br/>approved roots only]
+    CHECK --> OUT[SVG, placement CSV, board-shell GLB]
+    MODELS --> OUT2[GLB with supported VRML assembly]
+    DOC --> PKG[Tokito package v0.1<br/>source + inventory]
+    CLI[tokito-cli help / pcb / export / package] --> LIB[Reusable Rust library]
+    LIB --> PARSE
+    OUT --> DISK[Local output files and reports]
+    OUT2 --> DISK
+    PKG --> DISK
+    DESKTOP[Tokito Desktop<br/>schematic, netlist, BOM] -. future physical-layout handoff .-> LIB
+    DISK -. future verified package importer .-> APP[Tokito App<br/>local twin renderer and AR runtime]
+    MCP[Tokito MCP catalog] -. current symbol lookup is separate .-> DESKTOP
+    API[Tokito API] -. no board-artifact transport implemented .-> APP
+```
+
+The dataset provides candidate engineering and photo assets; the CLI does not automatically crawl or import that repository. Desktop schematic, netlist, and BOM data do not define footprint placement, board outline, stackup, or routing. The dashed Desktop/App/API paths are integration work, not existing workflows. For the current module map and step-by-step behavior, see [Architecture](docs/ARCHITECTURE.md).
 
 ## Research
 
@@ -40,13 +65,22 @@ Build locally with `cargo check --offline --locked` after dependencies are cache
 Verification and binary delivery stay local to conserve the GitHub Actions quota. The repository's workflow file was removed before PR creation; the PowerShell 7 runner performs the full local gates, release build, E2E and historical compatibility checks. Binaries and receipts are saved under ignored `target/delivery/local/`. See [local delivery](docs/CI_AND_DELIVERY.md).
 
 ```text
+tokito-cli --help
+tokito-cli help pcb export glb
+tokito-cli help export glb
+tokito-cli pcb export glb -h
+tokito-cli pcb export glb --help
+tokito-cli --version
 tokito-cli inspect board.kicad_pcb --json
+tokito-cli pcb --help
+tokito-cli pcb inspect board.kicad_pcb --json
 tokito-cli resolve models board.kicad_pcb --project-root "F:\boards\project" --library-root "F:\models\KiCad8" --model-var "KICAD8_3DMODEL_DIR=F:\models\KiCad8" --json
 tokito-cli model inspect resistor.wrl --units kicad-wrl --json
 tokito-cli validate outline board.kicad_pcb --json
 tokito-cli export svg board.kicad_pcb --side top --output top.svg
 tokito-cli export svg board.kicad_pcb --side bottom --output bottom.svg
 tokito-cli export glb board.kicad_pcb --output board-shell.glb --allow-partial --json-report
+tokito-cli export glb board.kicad_pcb --output board-assembly.glb --assemble-wrl --project-root "F:\models\kicad" --model-var "KICAD8_3DMODEL_DIR=F:\models\kicad" --allow-partial --json-report
 tokito-cli package build board.kicad_pcb --output new-package
 tokito-cli package verify new-package --json
 tokito-cli inspect new-package --json

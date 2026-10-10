@@ -91,10 +91,15 @@ try {
     $fixtures = Join-Path $projectRoot 'tests/fixtures/open-source'
     $porcupine = Join-Path $fixtures 'porcupine-routed/porcupine_routed.kicad_pcb'
     $invalidOutline = Join-Path $fixtures 'kicad-royalblue54l-nfc/RoyalBlue54L-NFC-Antenna.kicad_pcb'
-    foreach ($fixture in @($porcupine, $invalidOutline)) {
+    $assemblyFixture = Join-Path $projectRoot 'tests/fixtures/assembly-e2e/single-resistor.kicad_pcb'
+    $assemblyModelRoot = Join-Path $fixtures 'kicad-resistor-models'
+    foreach ($fixture in @($porcupine, $invalidOutline, $assemblyFixture)) {
         if (-not (Test-Path -LiteralPath $fixture -PathType Leaf)) {
             throw "Required acceptance fixture is missing: $fixture"
         }
+    }
+    if (-not (Test-Path -LiteralPath $assemblyModelRoot -PathType Container)) {
+        throw "Required assembly model root is missing: $assemblyModelRoot"
     }
 
     $topSvg = Join-Path $runDirectory 'porcupine-top.svg'
@@ -102,6 +107,7 @@ try {
     $glb = Join-Path $runDirectory 'porcupine-board-shell.glb'
     $refused = Join-Path $runDirectory 'refused-default.glb'
     $invalidGlb = Join-Path $runDirectory 'invalid-outline.glb'
+    $assemblyGlb = Join-Path $runDirectory 'single-resistor-assembly.glb'
     $package = Join-Path $runDirectory 'porcupine-package'
     $records = @()
 
@@ -142,6 +148,24 @@ try {
         throw 'GLB acceptance artifact does not have a glTF binary header.'
     }
 
+    $assemblyRootFull = (Resolve-Path -LiteralPath $assemblyModelRoot).Path
+    $records += Invoke-RealCli -Name 'glb-vrml-assembly' -CliArguments @(
+        'export', 'glb', $assemblyFixture, '--output', $assemblyGlb,
+        '--assemble-wrl', '--project-root', $assemblyRootFull, '--json-report'
+    ) -ExpectSuccess $true
+    $assemblyReport = (Get-Content -LiteralPath (Join-Path $runDirectory 'glb-vrml-assembly.stdout.txt') -Raw | ConvertFrom-Json)
+    if ($assemblyReport.scope -ne 'board_shell_and_supported_vrml_models' -or
+        $assemblyReport.partialExport -or
+        $assemblyReport.coverage.componentModelsEmitted -ne 1 -or
+        $assemblyReport.coverage.modelReferencesEmitted -ne 1 -or
+        $assemblyReport.coverage.componentModelsUnresolved -ne 0) {
+        throw 'VRML assembly GLB did not report exactly one complete supported component mesh.'
+    }
+    $assemblyBytes = [System.IO.File]::ReadAllBytes($assemblyGlb)
+    if ($assemblyBytes.Length -lt 4 -or [System.Text.Encoding]::ASCII.GetString($assemblyBytes, 0, 4) -ne 'glTF') {
+        throw 'VRML assembly GLB does not have a glTF binary header.'
+    }
+
     $records += Invoke-RealCli -Name 'glb-no-overwrite' -CliArguments @('export', 'glb', $porcupine, '--output', $glb, '--allow-partial') -ExpectSuccess $false
     $records += Invoke-RealCli -Name 'glb-invalid-outline' -CliArguments @('export', 'glb', $invalidOutline, '--output', $invalidGlb, '--allow-partial') -ExpectSuccess $false
     if (Test-Path -LiteralPath $invalidGlb) { throw 'Invalid-outline GLB case wrote an output.' }
@@ -167,7 +191,8 @@ try {
         limitations = @(
             'Direct local CLI process acceptance only.',
             'No CAD viewer, Android device, AR registration, Desktop integration, or GUI computer-control test was run.',
-            'GLB remains an explicitly partial board shell with no component meshes or selectable component nodes.',
+            'This release-binary acceptance case covers one bounded local VRML model; the full tests/e2e_cli.py suite separately checks one- and two-component selector nodes plus the exact-refdes visibility rule.',
+            'CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; STEP, glTF/GLB model input and general VRML remain unsupported.',
             'This does not establish KiCad CLI behavior or artifact parity.'
         )
     }

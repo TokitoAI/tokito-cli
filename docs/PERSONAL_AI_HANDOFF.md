@@ -15,15 +15,19 @@ authoritative in [GOAL_TRACKER.md](GOAL_TRACKER.md).
 
 The authentic R0603 fixture supplies six referenced assets on the community UNO
 layout and one independently inventoried local mesh (29 root Shapes, 26 meshes,
-328 vertices, 276 triangles). This continuation adds pure-Rust point and parsed
-triangle-mesh placement APIs based on the pinned KiCad 10.0.7 STEP exporter
-behavior. Nine focused tests cover asymmetric front/back poses, frame reflection,
-signed scale parity, triangle winding, and recomputed normals. Both APIs require
-explicit front/back copper-plane inputs; the canonical source parser now derives
-supported copper/core/prepreg stackup planes, but GLB scene assembly, component
-UUID/refdes nodes, and independent comparison with a generated CAD export remain
-open. The board-shell GLB remains partial and requires
-`--allow-partial`.
+328 vertices, 276 triangles). The pure-Rust point and parsed triangle-mesh
+placement APIs follow the pinned KiCad 10.0.7 STEP exporter behavior; nine
+focused tests cover asymmetric front/back poses, frame reflection, signed scale
+parity, winding and recomputed normals. Those APIs now feed the bounded
+`--assemble-wrl` GLB path. Each component has one renderable node named
+`ref:<refdes>`; it owns a mesh with separate primitives for imported model parts
+and carries UUID/source metadata. CLI subprocess tests check one- and
+two-component output, GLB accessors, and the App's exact-prefix visibility rule.
+This does not establish App package intake, Android rendering/selection or KiCad
+mesh parity. Assembly reads only caller-approved roots, checks body/stackup
+thickness agreement, enforces a pre-retention aggregate triangle cap and bounded
+coverage diagnostics, and reports unresolved model status codes. Both shell-only
+and incomplete assembly output still require explicit `--allow-partial` consent.
 
 Read-only remote snapshots are App `780f3fbef5e0c207c736b7ad4ab9a28f3e15ec50`
 and earlier dataset corpus `9787b398231421656e64f40217ed7e17e9aac625`; the newer Ultimainboard sample is `c2bdf2369e13b71aaa8f13a91a23637faf339813`. Its metadata counts were checked, but binary hashes, model assignments and physical registration were not independently qualified. The user plans all dataset boards, with separate per-board gates in DATASET_BOARD_HANDOFF.md. The dataset's photos,
@@ -57,13 +61,13 @@ possible transport after the App defines and validates a package flow; it is not
 an existing mobile bridge. See [App/API audit](APP_API_BRIDGE_AUDIT.md) for the
 pinned native/FFI call chain and unresolved owner decisions.
 
-The owner authorized CLI issues/Project updates and a feature-branch PR push
-after full current local QA and independent review. Reviewed source commit
-`5db49481ce62e859d13cf0504c75f6f6d1124add` was delivered to
-[PR #11](https://github.com/TokitoAI/tokito-cli/pull/11), which remains open.
-The tested source is unchanged by this subsequent delivery documentation. Actions/binary delivery stay
-local; no direct main push. Issues #12 (resolver) and #13 (KiCad parity) track the
-new work. Historical milestone letters D–H remain unchanged. See
+PR #11 is merged: live read-only GitHub state on 2026-10-10 reports merge commit
+`7700eb7762ceaa8e82d1cc08d2abb1e62e33f564`, merged at 2026-10-10 01:26 UTC.
+Its prior tested source does not include the current local selector/help
+continuation. Any later delivery needs fresh local verification, independent
+review, and its own feature branch/PR. Actions and binary delivery stay local;
+direct main push is prohibited. Issues #12 (resolver) and #13 (KiCad parity)
+track the related work. Historical milestone letters D–H remain unchanged. See
 [team requests](TEAM_HANDOFF.md), [model profile and gates](MODEL_RESOLUTION.md)
 and [pinned ecosystem map](ECOSYSTEM_CONTRACT_MAP.md).
 
@@ -95,7 +99,7 @@ The reusable Rust library exposes a typed PhysicalBoardDocument with source loca
 
 Milestone B adds a bounded physical outline report for supported board Edge.Cuts lines, arcs, and circles. It checks closure, degeneracy, intersection/overlap, disconnected and ambiguous contours, nesting, and cutouts; reports source identities and explicit diagnostics; and refuses unsupported outline features rather than certifying a partial shape. Physical bounds use source millimetres without drawing stroke or margin. The SVG viewport separately includes drawing stroke and its established display margin. Existing v0.1 inspections, CSV projections, and top/bottom SVGs are protected by exact historical fixtures.
 
-Milestone C's first slice triangulates the validated outer boundary plus direct cutouts, tessellates supported curves, and extrudes authored thickness into a self-contained GLB. Coordinates use metres, right-handed Y-up, board plane XZ, centered at the mid-plane. The exporter reparses its GLB, checks bounded/finite geometry and analytic/polygonized area, and rejects f32 position quantization that exceeds 1 µm or collapses/inverts a face. Shell-only output is always partial and the default refuses; callers must set `--allow-partial`. JSON/GLB coverage metadata lists component identities and source model references with bounded record/path counts. Absolute model paths are redacted to basenames. Source-derived point/parsed-mesh placement helpers now exist, but the shell exporter still emits no component meshes or stable selectors. Stackup parsing, scene integration, STEP decoding, and complete digital-twin output remain unimplemented.
+Milestone C triangulates the validated outer boundary plus direct cutouts, tessellates supported curves, and extrudes authored thickness into a self-contained GLB. Coordinates use metres, right-handed Y-up, board plane XZ, centered at the mid-plane. The exporter checks GLB framing, geometry/accessors, analytic/polygonized area, and f32 position precision. Shell-only output is always partial and the default refuses. Bounded flat-triangle WRL models may be assembled through explicit local roots; each component's mesh-bearing node follows `ref:<refdes>` and carries UUID metadata. Per-model omission reasons and truncation are present in coverage. Absolute paths are redacted. STEP, general VRML, phone package intake, actual App selection, independent CAD geometry parity, and complete digital-twin output remain unimplemented.
 
 SVG is partial visualization, not a KiCad plot or DRC result. Supported features include selected board and footprint graphics/text, simple pads/drills, tracks/arcs, vias, and stored filled-zone polygons. Custom pads and other unsupported geometry remain explicit limitations. Component identity is source-backed; font and plotting fidelity are not complete.
 
@@ -103,18 +107,18 @@ The committed real-source fixtures include SparkFun Basic, community Pico and UN
 
 ## Latest local verification
 
-The latest full local Windows x64 verification receipt is the newest
-`verification.json` under `target/delivery/local/`. Its recorded versions, source
-fingerprints, test counts, gate results, and binary hash are authoritative. It
-passed ten stages: formatting, Rust tests, Clippy with warnings denied,
-release build, four-board CLI subprocess E2E, geometry/SVG/Gerber reference E2E,
-board-shell GLB E2E, model-resolution E2E, historical v0.1 compatibility, and a
-release-binary acceptance journey that preserves a local machine-readable receipt
-under `target/real-cli-e2e/`.
-There are 106 Rust tests, including nine focused placement tests. No hosted
-workflow is run. The verifier writes a timestamped receipt in that directory;
-the newest receipt records the current source fingerprints and actual results.
-Check that receipt before delivery instead of relying on older narrative counts.
+The frozen selector/help/assembly source passed all ten local stages and 109 Rust
+tests on Windows x64: formatting, tests, warnings-denied Clippy, release build,
+CLI subprocess E2Es, geometry/SVG/Gerber references, GLB E2E, model-resolution
+E2E, historical v0.1 compatibility, and the release-binary acceptance journey.
+The exact receipt is
+`target/delivery/local/20261010T025719Z-b99c34e60c5b4cfbbdd9550e93204a71/verification.json`.
+The real-binary receipt is under
+`target/real-cli-e2e/20261010T025713Z-16050e4c80c44904aab2e1df0f5be9bd/`.
+Independent static review found no remaining code blocker. This handoff and the
+tracker were updated after verification to record actual results; their narrative
+hashes differ from that receipt. Source, scripts, fixtures, tests and binary must
+still match before delivery. No hosted workflow ran.
 
 The verification proves only the tested local source and Windows environment. It does not prove Linux/MSRV, a hosted CI run, full KiCad plotting/DRC conformance, fabrication validity, stackup extraction, assembled component selection, general VRML or STEP decoding, Desktop/MCP integration, phone import, or AR/device alignment. CLI subprocess E2Es exercise actual command-line journeys, not Android device or GUI acceptance. The GLB E2E checks container/accessor structure, finite positions, dimensions/thickness, cap area, oriented closed edges, explicit partial consent, determinism, package input, no overwrite and invalid-outline refusal; it is not a CAD viewer or phone renderer oracle. A previous LNK1104 occurred only in the runner's old target/verified output directory; a fresh isolated local verification build completed all gates. The exact operating-system cause was not established.
 
@@ -124,7 +128,7 @@ The verification proves only the tested local source and Windows environment. It
 |---|---|
 | tokito | Rust desktop schematic studio and agentic design application; current schematic output is not by itself a physical PCB layout. Future local engine consumer. |
 | tokito-schematic-core | Deterministic schematic geometry, routing, hierarchy, and connectivity; not a physical PCB placement/routing engine. |
-| tokito-cli | Active pure-Rust parser, canonical PCB document, outline validation, partial SVG, explicitly partial board-shell GLB, and v0.1 source/inventory package. Bounded model capture and strict flat-triangle WRL inspection are implemented; world transforms/selectors remain future work. |
+| tokito-cli | Active pure-Rust parser, canonical PCB document, outline validation, partial SVG, board-shell GLB, bounded flat-triangle VRML assembly with mesh-bearing refdes selectors, and v0.1 source/inventory package. It does not yet prove App import, generated-CAD geometry parity, STEP support, or schematic-to-physical layout conversion. |
 | tokito-app | The sole active mobile application combining companion and offline physical intelligence. App importer/device work needs its own authorization. |
 | tokito-companion | Archived predecessor merged into tokito-app; not an active implementation target. |
 | tokito-physical-runtime | Archived predecessor merged into tokito-app; not an active implementation target. |
@@ -147,10 +151,10 @@ Desktop schematic coordinates use a project-specific unit system. The reviewed M
 
 ## What remains
 
-Milestones A and B are complete locally for the limited supported scope. The near-parallel ambiguity defect was reproduced, fixed, independently reviewed, and covered by a public regression. Milestone C is active: the shell-only GLB slice, bounded offline model capture, strict WRL profile, source-derived point/mesh placement helpers, and strict supported stackup-plane derivation pass local tests. Per-component mesh integration and provenance, UUID/refdes nodes, full-coverage exports, and independent generated-export comparison remain next. Then version the native Tokito geometry/model package. Desktop and MCP connection follows after confirming actual desktop formats and separately granting sibling-repository write access. tokito-app import and AR follow the versioned package contract and require a real Android/iQOO device journey. Pure-Rust STEP support is a feasibility study after selectable GLB. Schematic-to-PCB needs a separate layout/placement/routing stage; the engine must not invent it.
+Milestones A and B are complete for their limited supported scope. Milestone C now has bounded VRML-to-GLB assembly with one mesh-bearing `ref:<refdes>` node per component, multi-part model primitives, and per-model omission reasons. Next are independent asymmetric geometry checks, stronger real-board/model coverage, and verification through the App's real importer. Then define/version the complete geometry package. Desktop and MCP adapters follow only after a physical-layout handoff and library/job contract exist. App import and AR require changes in the App repository plus a real Android/iQOO device journey. Pure-Rust STEP support remains a feasibility study. Schematic-to-PCB needs a separate placement/routing stage; the engine must not invent it.
 
 The issue and project board order is recorded in the private CLI project. Do not use KiCad CLI as a production dependency, invent 3D models, treat a schematic as a board layout, label hash checks as signatures, or claim complete compatibility from inventory counts.
 
 ## Delivery and review
 
-Local verification remains the acceptance gate; the repository has no workflow files, and no GitHub Actions run is requested. This continuation updates the existing feature branch and PR #11 after local checks and independent review. It does not push to `main`, merge, upload a binary, or edit a sibling repository. The local source history and recovery records remain preserved. The replacement repository's collaborator grant was verified; branch protection should not be assumed unless explicitly confirmed in GitHub settings.
+Local verification remains the acceptance gate; the repository has no workflow files, and no GitHub Actions run is requested. PR #11 is already merged; these selector/help/assembly edits are separate local work and have not been delivered. Any future delivery requires current-source local checks, independent review, and a separate feature branch/PR. Do not push to `main`, merge, upload a binary, or edit a sibling repository as part of this local continuation. The local source history and recovery records remain preserved. The replacement repository's collaborator grant was verified; branch protection should not be assumed unless explicitly confirmed in GitHub settings.

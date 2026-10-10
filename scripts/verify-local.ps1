@@ -143,7 +143,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'Offline model capture, a declared flat-triangle VRML profile, and source-derived point/mesh placement helpers are checked; GLB remains board-shell-only. Stackup-derived mounting planes, GLB-integrated component geometry/selection, KiCad-export equivalence, general VRML/STEP, phone/AR and Desktop acceptance remain unverified.')
+        limitations = @('Local platform/toolchain only.', 'The release CLI acceptance receipt exercises one bounded local VRML component assembly; the full subprocess suite additionally checks one- and two-component GLBs, exact-refdes selection behavior, unsupported-side diagnostics, and coverage truncation. These CLI tests do not exercise the App importer or Android renderer.', 'General VRML, STEP, glTF and GLB model import, KiCad-export equivalence, physical fit, phone/AR and Desktop acceptance remain unverified.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"

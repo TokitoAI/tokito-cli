@@ -6,23 +6,120 @@ fn print_help() {
          Offline-first Rust tools for existing PCB layouts.\n\
          \n\
          USAGE:\n\
+         \ttokito-cli [--help|-h]\n\
+         \ttokito-cli [--version|-V]\n\
+         \ttokito-cli version\n\
+         \ttokito-cli help [COMMAND...]\n\
+         \ttokito-cli pcb [--help]\n\
          \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\n\
          \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
-         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--allow-partial] [--json-report]\n\
+         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
+         \n\
+         COMMAND GROUPS:\n\
+         \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
+         \tmodel    Inspect the bounded local VRML profile.\n\
+         \tpackage  Build or verify a Tokito source-and-inventory package.\n\
+         \n\
+         VERSION:\n\
+         \tversion, --version and -V print the Tokito CLI version.\n\
+         \n\
+         HELP:\n\
+         \t-h and --help print root or command-specific help.\n\
+         \t`help <COMMAND...>` prints help for a supported command path.\n\
+         \n\
+         PCB ALIASES:\n\
+         \ttokito-cli pcb inspect <BOARD|PACKAGE> [--json]\n\
+         \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
+         \ttokito-cli pcb export svg|glb|placements ...\n\
+         \ttokito-cli pcb resolve models <BOARD|PACKAGE> ...\n\
+         \n\
+         Use --help after a command path or `tokito-cli help <COMMAND...>` for command-specific help.\n\
          \n\
          CURRENT CAPABILITIES:\n\
          \tInspect board metadata and component placements.\n\
          \tExport placement rows in the source board coordinate frame.\n\
          \tExport partial physical-scale SVG views from supported geometry.\n\
-         \tExport a board-shell-only GLB; this always requires explicit --allow-partial.\n\
+         \tExport a board shell, or explicitly assemble the supported local VRML subset.\n\
          \tBuild a source-and-placement Tokito package (not mobile importable).\n\
-         \tComponent 3D models, STEP, and schematic-to-PCB are not implemented."
+         \tSTEP and schematic-to-PCB are not implemented; other model formats remain explicit partial coverage."
+    );
+}
+
+fn print_command_help(path: &[String]) -> Result<(), CliError> {
+    if path.len() == 1 && path[0] == "pcb" {
+        print_pcb_help();
+        return Ok(());
+    }
+    let path = if path.first().is_some_and(|part| part == "pcb") {
+        &path[1..]
+    } else {
+        path
+    };
+    match path
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
+    {
+        [] => print_help(),
+        ["version"] => println!("USAGE: tokito-cli version\nPrint the Tokito CLI version."),
+        ["inspect"] => println!(
+            "USAGE: tokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\nReads supported board metadata, inventory and import diagnostics."
+        ),
+        ["validate"] | ["validate", "outline"] => println!(
+            "USAGE: tokito-cli validate outline <BOARD|TOKITO_PACKAGE_DIRECTORY> [--json]\nValidates the supported physical Edge.Cuts topology."
+        ),
+        ["resolve"] | ["resolve", "models"] => println!(
+            "USAGE: tokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\nCaptures local model assets under caller-approved roots; it does not decode them."
+        ),
+        ["model"] | ["model", "inspect"] => println!(
+            "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
+        ),
+        ["export"] | ["export", "placements"] => println!(
+            "USAGE: tokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\nWrites source-frame component placement and identity rows."
+        ),
+        ["export", "svg"] => println!(
+            "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\nWrites a partial SVG view from supported board geometry."
+        ),
+        ["export", "glb"] => println!(
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. Partial output requires explicit --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+        ),
+        ["package"] | ["package", "build"] => println!(
+            "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
+        ),
+        ["package", "verify"] => println!(
+            "USAGE: tokito-cli package verify <DIRECTORY> [--json]\nChecks package structure, digests and imported-source consistency."
+        ),
+        _ => {
+            return Err(CliError::new(
+                "unknown command help topic; run `tokito-cli --help`",
+            ));
+        }
+    }
+    Ok(())
+}
+
+fn print_pcb_help() {
+    println!(
+        "Tokito CLI PCB\n\
+         Existing physical-board operations. Input must be a routed .kicad_pcb\n\
+         file or a validated Tokito source-and-inventory package.\n\
+         \n\
+         USAGE:\n\
+         \ttokito-cli pcb inspect <BOARD|PACKAGE> [--json]\n\
+         \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
+         \ttokito-cli pcb resolve models <BOARD|PACKAGE> --project-root <DIR> ...\n\
+         \ttokito-cli pcb export placements <BOARD> --output <FILE.csv>\n\
+         \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom]\n\
+         \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--allow-partial]\n\
+         \n\
+         No schematic-to-PCB, STEP conversion, Gerber, symbol, footprint-library or jobset command is implemented yet."
     );
 }
 
@@ -31,9 +128,47 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         print_help();
         return Ok(());
     }
+    if args[0] == "help" {
+        return print_command_help(&args[1..]);
+    }
+    if let Some(help_index) = args
+        .iter()
+        .position(|argument| argument == "--help" || argument == "-h")
+    {
+        return print_command_help(&args[..help_index]);
+    }
     if args[0] == "--version" || args[0] == "-V" {
         println!("tokito-cli 0.1.0");
         return Ok(());
+    }
+    if args[0] == "version" {
+        if args.len() != 1 {
+            return Err(CliError::new("usage: tokito-cli version"));
+        }
+        println!("tokito-cli 0.1.0");
+        return Ok(());
+    }
+    if args[0] == "pcb" {
+        if args.len() == 1
+            || args
+                .get(1)
+                .is_some_and(|argument| argument == "--help" || argument == "-h")
+        {
+            print_pcb_help();
+            return Ok(());
+        }
+        let mut delegated = match args[1].as_str() {
+            "inspect" => vec!["inspect".to_owned()],
+            "validate" => vec!["validate".to_owned()],
+            "export" => vec!["export".to_owned()],
+            "resolve" => vec!["resolve".to_owned()],
+            _ => {
+                print_pcb_help();
+                return Err(CliError::new("unknown PCB command"));
+            }
+        };
+        delegated.extend(args[2..].iter().cloned());
+        return run(&delegated);
     }
     if args[0] == "resolve" && args.get(1).is_some_and(|value| value == "models") {
         return resolve_models(args);
@@ -100,7 +235,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 println!("  - {diagnostic}");
             }
             println!(
-                "Geometry exports: partial SVG and explicit board-shell-only GLB; component models and STEP are not implemented"
+                "Geometry exports: partial SVG; board-shell GLB; optional bounded local VRML assembly; STEP remains unsupported"
             );
         }
         return Ok(());
@@ -218,12 +353,16 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--allow-partial] [--json-report]",
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR]] [--allow-partial] [--json-report]",
             ));
         }
         let mut output_path = None;
         let mut allow_partial = false;
         let mut json_report = false;
+        let mut assemble_wrl = false;
+        let mut project_root = None;
+        let mut library_roots = Vec::new();
+        let mut variables = std::collections::BTreeMap::new();
         let mut index = 3;
         while index < args.len() {
             match args[index].as_str() {
@@ -238,6 +377,34 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 "--json-report" if !json_report => {
                     json_report = true;
                     index += 1;
+                }
+                "--assemble-wrl" if !assemble_wrl => {
+                    assemble_wrl = true;
+                    index += 1;
+                }
+                "--project-root" if index + 1 < args.len() && project_root.is_none() => {
+                    project_root = Some(PathBuf::from(&args[index + 1]));
+                    index += 2;
+                }
+                "--library-root" if index + 1 < args.len() && library_roots.len() < 63 => {
+                    library_roots.push(PathBuf::from(&args[index + 1]));
+                    index += 2;
+                }
+                "--model-var" if index + 1 < args.len() && variables.len() < 64 => {
+                    let (name, path) = args[index + 1]
+                        .split_once('=')
+                        .ok_or_else(|| CliError::new("GLB --model-var must use NAME=DIR"))?;
+                    if name.is_empty()
+                        || path.is_empty()
+                        || variables
+                            .insert(name.to_owned(), PathBuf::from(path))
+                            .is_some()
+                    {
+                        return Err(CliError::new(
+                            "Empty or duplicate GLB model directory variable",
+                        ));
+                    }
+                    index += 2;
                 }
                 option => {
                     return Err(CliError::new(format!(
@@ -256,18 +423,30 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             return Err(CliError::new("GLB output path must use a .glb extension"));
         }
         let board = load_board_input(Path::new(&args[2]))?;
-        let export = board.export_glb(GlbExportOptions { allow_partial })?;
+        let export = if assemble_wrl {
+            use crate::model_resolver::{ModelResolver, ModelResolverConfig};
+            let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {
+                CliError::new("GLB --assemble-wrl requires --project-root <DIR>")
+            })?);
+            config.library_roots = library_roots;
+            config.directory_variables = variables;
+            let resolver = ModelResolver::new(config)?;
+            board.export_glb_with_models(&resolver, GlbExportOptions { allow_partial })?
+        } else {
+            if project_root.is_some() || !library_roots.is_empty() || !variables.is_empty() {
+                return Err(CliError::new(
+                    "GLB model roots require --assemble-wrl; board-shell export never reads model files",
+                ));
+            }
+            board.export_glb(GlbExportOptions { allow_partial })?
+        };
         write_new_file(&output_path, &export.bytes)?;
         if json_report {
             print!("{}", export.report.report_json());
         } else {
             println!(
                 "Wrote {} GLB ({} of {} component models emitted; {} unresolved) to {}",
-                if export.report.partial_export {
-                    "explicit partial board-shell-only"
-                } else {
-                    "board-shell-only"
-                },
+                export.report.scope,
                 export.report.component_models_emitted,
                 export.report.component_count,
                 export.report.component_models_unresolved,
