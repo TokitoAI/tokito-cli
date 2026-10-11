@@ -50,6 +50,15 @@ dataset detector plus crop classifier supports five families, but was evaluated
 on known specimens/sessions. Its closed classifier cannot certify an unknown
 board or an exact clone revision. Never promote confidence to physical proof.
 
+A camera-only diagnostic crop from the actual iQOO Ultimainboard view selected
+Ultimainboard through the complete pipeline (box score 0.641; crop-class score
+0.999995). The detector's initial class was NXP, demonstrating why that label
+cannot independently choose the twin. Running on a whole UI screenshot instead
+produced Raspberry Pi and a near-full-screen box. This is one diagnostic ROI,
+not held-out raw-camera evaluation or a shipping crop policy. Production must
+use raw frame pixels, preserve detector-to-crop transforms, and retain both
+scores with the final classifier identity; none supplies a metric board pose.
+
 Pose landmarks must agree between model metadata and twin metadata. The reviewed
 NXP photo uses mounting-hole centers while the older twin uses outline corners.
 Combining those changes scale and alignment. A selected model, a documentation
