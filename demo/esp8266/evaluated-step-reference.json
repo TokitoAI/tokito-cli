@@ -1,0 +1,666 @@
+{
+  "schema": "tokito.independent-step-evaluation.v1",
+  "evaluator": "FreeCAD/OCCT, off-device QA only",
+  "evaluatorVersion": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "deflectionMm": 0.01,
+  "models": [
+    {
+      "file": "0.step",
+      "sourceSha256": "2cb8d8e9861561c2daa3ba17b0611e13ecffba884d815240ddb5c02b59bc2542",
+      "sourceBytes": 152191,
+      "boundsMm": {
+        "min": [
+          -3.2500000000000036,
+          -3.5434120444167325,
+          -2.3771646235466527e-17
+        ],
+        "max": [
+          3.2500000000000044,
+          3.543412044416733,
+          1.6500000000000001
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -3.2500000000000036,
+          -3.5434120444167325,
+          -2.3771646235466527e-17
+        ],
+        "max": [
+          3.2500000000000044,
+          3.543412044416733,
+          1.6500000000000001
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 976,
+      "triangles": 1932,
+      "faces": 70,
+      "solids": 5,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "1.step",
+      "sourceSha256": "a3ec061f192d57424f6106933eeb9964e2fa424cf94715e74accf006b99f1752",
+      "sourceBytes": 934974,
+      "boundsMm": {
+        "min": [
+          -1.254125,
+          -2.710505431213761e-17,
+          -0.6223
+        ],
+        "max": [
+          1.2541249999999997,
+          0.7899400000000465,
+          0.6223000000000001
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.254125,
+          -2.710505431213761e-17,
+          -0.6223
+        ],
+        "max": [
+          1.2541249999999997,
+          0.7899400000000465,
+          0.6223000000000001
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 11071,
+      "triangles": 23074,
+      "faces": 121,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "10.step",
+      "sourceSha256": "949c47424f38a214f81346c71c22aa22e78c8dc7eb511bf93622f7cad9f2b270",
+      "sourceBytes": 465851,
+      "boundsMm": {
+        "min": [
+          -1.3500000000000003,
+          -0.6250000000000002,
+          3.611502847537634e-15
+        ],
+        "max": [
+          1.3500000000000003,
+          0.6250000000000002,
+          1.1
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.3500000000000003,
+          -0.6250000000000002,
+          3.611502847537634e-15
+        ],
+        "max": [
+          1.3500000000000003,
+          0.6250000000000002,
+          1.1
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 23879,
+      "triangles": 47754,
+      "faces": 91,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "11.step",
+      "sourceSha256": "7563140d288a810d2378b7f6121ff7475d7f639089e969282e78a22f63ea637a",
+      "sourceBytes": 652900,
+      "boundsMm": {
+        "min": [
+          -1.7500000000000002,
+          -4.3368086899420177e-16,
+          -1.4000000000000001
+        ],
+        "max": [
+          1.750000000000001,
+          1.9000000000000008,
+          1.4000000000000001
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.7500000000000002,
+          -4.3368086899420177e-16,
+          -1.4000000000000001
+        ],
+        "max": [
+          1.750000000000001,
+          1.9000000000000008,
+          1.4000000000000001
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 5259,
+      "triangles": 10506,
+      "faces": 160,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "12.step",
+      "sourceSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+      "sourceBytes": 148105,
+      "boundsMm": {
+        "min": [
+          -1.45,
+          -1.4,
+          1.3552527156068805e-17
+        ],
+        "max": [
+          1.45,
+          1.4,
+          1.2999999999999998
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.45,
+          -1.4,
+          1.3552527156068805e-17
+        ],
+        "max": [
+          1.45,
+          1.4,
+          1.2999999999999998
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 4118,
+      "triangles": 8232,
+      "faces": 58,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "13.step",
+      "sourceSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+      "sourceBytes": 148105,
+      "boundsMm": {
+        "min": [
+          -1.45,
+          -1.4,
+          1.3552527156068805e-17
+        ],
+        "max": [
+          1.45,
+          1.4,
+          1.2999999999999998
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.45,
+          -1.4,
+          1.3552527156068805e-17
+        ],
+        "max": [
+          1.45,
+          1.4,
+          1.2999999999999998
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 4118,
+      "triangles": 8232,
+      "faces": 58,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "14.step",
+      "sourceSha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b",
+      "sourceBytes": 5280399,
+      "boundsMm": {
+        "min": [
+          1.26999999992e-05,
+          -24.00000026,
+          -0.46148
+        ],
+        "max": [
+          16.000001020000003,
+          -1.26999999992e-05,
+          2.25
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          1.26999999992e-05,
+          -24.00000026,
+          -0.46148
+        ],
+        "max": [
+          16.000001020000003,
+          -1.26999999992e-05,
+          2.25
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 223497,
+      "triangles": 457282,
+      "faces": 2303,
+      "solids": 41,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "15.step",
+      "sourceSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+      "sourceBytes": 68317,
+      "boundsMm": {
+        "min": [
+          -1.2700000000000002,
+          -1.4599999999999995,
+          -3.683
+        ],
+        "max": [
+          1.2700000000000002,
+          1.4600000000000004,
+          8.509
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.2700000000000002,
+          -1.4599999999999995,
+          -3.683
+        ],
+        "max": [
+          1.2700000000000002,
+          1.4600000000000004,
+          8.509
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 40,
+      "triangles": 76,
+      "faces": 28,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "16.step",
+      "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+      "sourceBytes": 823120,
+      "boundsMm": {
+        "min": [
+          -2.5000026199999996,
+          -2.5000026199999996,
+          0.0
+        ],
+        "max": [
+          2.5000026199999996,
+          2.5000026199999996,
+          1.00000054
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -2.5000026199999996,
+          -2.5000026199999996,
+          0.0
+        ],
+        "max": [
+          2.5000026199999996,
+          2.5000026199999996,
+          1.00000054
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 15142,
+      "triangles": 30164,
+      "faces": 239,
+      "solids": 30,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "2.step",
+      "sourceSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+      "sourceBytes": 762504,
+      "boundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 14038,
+      "triangles": 29008,
+      "faces": 120,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "3.step",
+      "sourceSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+      "sourceBytes": 762504,
+      "boundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 14038,
+      "triangles": 29008,
+      "faces": 120,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "4.step",
+      "sourceSha256": "688cac32f7fb71be1abd6ef8e69e65003e93566c6a1e09f087daee2b0d5b1e31",
+      "sourceBytes": 400024,
+      "boundsMm": {
+        "min": [
+          -2.25,
+          -0.5,
+          -1.55
+        ],
+        "max": [
+          2.25,
+          2.05,
+          1.5499999999999998
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -2.25,
+          -0.5,
+          -1.55
+        ],
+        "max": [
+          2.25,
+          2.05,
+          1.5499999999999998
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 49206,
+      "triangles": 98420,
+      "faces": 129,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "5.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "sourceBytes": 762519,
+      "boundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 14038,
+      "triangles": 29008,
+      "faces": 120,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "6.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "sourceBytes": 762519,
+      "boundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 14038,
+      "triangles": 29008,
+      "faces": 120,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "7.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "sourceBytes": 762519,
+      "boundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.5080000000000001,
+          -1.239049239796288e-18,
+          -0.254
+        ],
+        "max": [
+          0.5080000000000001,
+          0.5105400000000514,
+          0.25400000000000006
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 14038,
+      "triangles": 29008,
+      "faces": 120,
+      "solids": 3,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "8.step",
+      "sourceSha256": "bbcd25b11a5355983ccea421fdfc4dd0b73175a2954fc2dfb52e53b7c3bbc658",
+      "sourceBytes": 1114204,
+      "boundsMm": {
+        "min": [
+          -4.100000000000126,
+          -1.825,
+          -2.65
+        ],
+        "max": [
+          4.100000000000169,
+          1.4749999999999999,
+          2.7800000000003395
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -4.100000000000126,
+          -1.825,
+          -2.65
+        ],
+        "max": [
+          4.100000000000169,
+          1.4749999999999999,
+          2.7800000000003395
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 18333,
+      "triangles": 36734,
+      "faces": 436,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "9.step",
+      "sourceSha256": "25acf4ce257097d9814bf8fc6b0b1e1c72abcfe62cdc919c4eacfc3ecaa59689",
+      "sourceBytes": 175435,
+      "boundsMm": {
+        "min": [
+          -0.81,
+          -0.4,
+          0.0
+        ],
+        "max": [
+          0.8099999999999999,
+          0.4,
+          0.6
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -0.81,
+          -0.4,
+          0.0
+        ],
+        "max": [
+          0.8099999999999999,
+          0.4,
+          0.6
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 7948,
+      "triangles": 15892,
+      "faces": 51,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    }
+  ],
+  "geometryQualified": false,
+  "physicalFitVerified": false,
+  "scope": "independent B-rep validity and evaluated mesh bounds, not surface or assembly acceptance"
+}

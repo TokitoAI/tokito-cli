@@ -6,6 +6,7 @@ build caches, executable binaries, photos and bulk STEP datasets are excluded.
 
 | Bundle | Component records | Selectable bodies/groups | Remaining qualification |
 |---|---:|---:|---|
+| ESP8266 NodeMCU source reference | 34 | 34 | Physical pose/surfaces, pads/drills/silkscreen and AR unqualified |
 | ESP32 community-layout reference | 26 | 23 | CP2102 U3 missing; photographed clone correspondence and physical geometry unverified |
 | Ultimainboard 2.1.4 | 574 | 310 | Four package bodies and four spacers unresolved; physical fit and registration unverified |
 | NXP Rev C source-reference baseline | 391 | 354 | Physical population/geometry unverified; latest dataset PR #21 intake is separate |
@@ -26,7 +27,7 @@ and selection before this asset can be presented as App-compatible.
 The NXP bundle is the browser-tested baseline, not an assertion that the latest
 Anandhu PR #21 asset has been visually or physically accepted. ESP8266 source
 records and positioned STEP candidate mesh data are implemented in Rust, but
-there is no assembled ESP8266 board GLB here. See
+the new selectable ESP8266 source-reference GLB is included under `demo/esp8266/`, with explicit partial/qualification limits. See
 [ESP8266 progress](ESP8266_PARALLEL_PROGRESS.md).
 
 ## Run locally
@@ -68,3 +69,5 @@ This documentation and frozen bundle were added afterward and checked
 separately; they were not inputs to that receipt. GitHub Actions, releases and
 binary uploads remain unused. Physical fit, App import, YOLO identity matching
 and registered phone AR remain separate unfinished acceptance gates.
+
+See [the final ESP8266 acceptance and Afan handover](AFAN_INTEGRATION_HANDOVER.md#esp8266-delivery-acceptance--11-october-2026) for the new 35-gate receipt, real browser tests, evaluated bounds comparisons and remaining limitations. Open `/esp8266/index.html` when serving `demo/`.

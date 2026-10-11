@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 //! Bounded source evidence and candidate joins; no qualified geometry or pose.
+mod assembly;
 mod association;
 mod board_inputs;
 mod embedded;
@@ -150,6 +151,25 @@ fn inspect(path: &Path) -> Result<Value, String> {
 
 fn main() {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|a| a == "export-prototype") {
+        let result = if args.len() == 5 && args[4] == "--allow-partial" {
+            inspect(Path::new(&args[1])).and_then(|source| {
+                assembly::export(&source, Path::new(&args[2]), Path::new(&args[3]))
+            })
+        } else {
+            Err("usage: tokito-altium-evaluation export-prototype <materialized.PcbDoc> <positioned-mesh-report-directory> <new-output-directory> --allow-partial; qualified assembly unavailable".into())
+        };
+        match result {
+            Ok(report) => {
+                println!("{report}");
+                return;
+            }
+            Err(error) => {
+                println!("{}", json!({"error":error,"admitted":false}));
+                std::process::exit(2);
+            }
+        }
+    }
     let result = if args.len() == 1 {
         inspect(Path::new(&args[0]))
     } else {

@@ -1,0 +1,3378 @@
+{
+  "assemblyContextRevision": "altium-body-source-candidate-v1",
+  "asset_id": "tokito-selectable-e929f29ff0fdc88e1b31c20e6820ff09",
+  "board_id": "esp8266-nodemcu-altium-reference",
+  "board_revision": "007d603df0ef",
+  "calibration_eligible": false,
+  "component_count": 34,
+  "component_node_prefix": "ref:",
+  "components": [
+    {
+      "body_count": 1,
+      "component_id": "WMHPOQWP",
+      "degenerate_triangles_omitted": 1,
+      "glb_node_index": 1,
+      "glb_selector": "ref:C2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 59,
+          "geometryQualified": false,
+          "meshReportSha256": "3a1e1a2c8f79b22550407d90a4e8f594cd6e98fd7cdb8f912d16a79d4e284dd6",
+          "modelOrdinal": 11,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                70.8873995,
+                72.57610072
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                70.89039924,
+                72.57610072
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "7563140d288a810d2378b7f6121ff7475d7f639089e969282e78a22f63ea637a",
+          "triangles": 2093
+        }
+      ],
+      "triangle_count": 2093
+    },
+    {
+      "body_count": 1,
+      "component_id": "FCYAYSSP",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 2,
+      "glb_selector": "ref:C4",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C4",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 58,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                78.23099923999999,
+                67.28329952
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                78.23099923999999,
+                67.28329952
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "VJPRJJLL",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 3,
+      "glb_selector": "ref:C5",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C5",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 57,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                74.94931924,
+                61.958900719999995
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                74.94931924,
+                61.958900719999995
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "IVLYCDDA",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 4,
+      "glb_selector": "ref:C6",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C6",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 56,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                73.30847924,
+                61.958900719999995
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                73.30847924,
+                61.958900719999995
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "FARUPLBC",
+      "degenerate_triangles_omitted": 4,
+      "glb_node_index": 5,
+      "glb_selector": "ref:D1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "D1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 61,
+          "geometryQualified": false,
+          "meshReportSha256": "55b46989946a63ede1e8c35145c86b5cb8bc7a607bf452c0c60983d86676524b",
+          "modelOrdinal": 10,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                70.43328306000001,
+                62.44139911999999
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                70.43319924,
+                62.44150071999999
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "949c47424f38a214f81346c71c22aa22e78c8dc7eb511bf93622f7cad9f2b270",
+          "triangles": 6832
+        }
+      ],
+      "triangle_count": 6832
+    },
+    {
+      "body_count": 15,
+      "component_id": "RPULQAPQ",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 6,
+      "glb_selector": "ref:J1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "J1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 41,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                59.01262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 42,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                66.63262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 43,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                64.09262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 44,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                61.552622639999996
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 45,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                69.17262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 46,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                94.57262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 47,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                92.03262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 48,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                84.41262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 49,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                86.95262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 50,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                89.49262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 51,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                81.87262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 52,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                79.33262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 53,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                71.71262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 54,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                74.25262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 55,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                66.80095859999999,
+                76.79262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                66.80099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        }
+      ],
+      "triangle_count": 1140
+    },
+    {
+      "body_count": 15,
+      "component_id": "KPCNLWUO",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 7,
+      "glb_selector": "ref:J2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "J2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 26,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                59.01262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 27,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                66.63262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 28,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                64.09262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 29,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                61.552622639999996
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 30,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                69.17262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 31,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                94.57262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 32,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                92.03262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 33,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                84.41262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 34,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                86.95262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 35,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                89.49262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 36,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                81.87262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 37,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                79.33262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 38,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                71.71262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 39,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                74.25262264
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        },
+        {
+          "bodyOrdinal": 40,
+          "geometryQualified": false,
+          "meshReportSha256": "3237c191ee8e6c625c457a530ddee62f48ac202f6d1994c900e5ec0a7aa2955e",
+          "modelOrdinal": 15,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                89.66095859999999,
+                76.79262263999999
+              ],
+              "projection": "bottom",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                89.66099924,
+                94.57250072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "bottom"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+          "triangles": 76
+        }
+      ],
+      "triangle_count": 1140
+    },
+    {
+      "body_count": 1,
+      "component_id": "LWJYORSC",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 8,
+      "glb_selector": "ref:LED1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "LED1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 25,
+          "geometryQualified": false,
+          "meshReportSha256": "76560f9b311c17b13cad414671980d5064635358ffb83514d16712422193fdff",
+          "modelOrdinal": 9,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                74.14151795999999,
+                64.67659911999999
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                360.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                74.14159923999999,
+                64.67670072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "25acf4ce257097d9814bf8fc6b0b1e1c72abcfe62cdc919c4eacfc3ecaa59689",
+          "triangles": 2032
+        }
+      ],
+      "triangle_count": 2032
+    },
+    {
+      "body_count": 1,
+      "component_id": "UBJVVVWA",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 9,
+      "glb_selector": "ref:R9",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R9",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 24,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                76.5752596,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                76.5752596,
+                67.27369832
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "DIUPSECT",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 10,
+      "glb_selector": "ref:R3",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R3",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 23,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                69.95230104,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                69.95230104,
+                67.27369832
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "RPRDXAKA",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 11,
+      "glb_selector": "ref:R11",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R11",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 22,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                73.26378032,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                73.26378032,
+                67.27369832
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "WGUVGXXU",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 12,
+      "glb_selector": "ref:R1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 21,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                87.27339923999999,
+                85.75870072
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                87.27339923999999,
+                85.75870072
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "TKRECECJ",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 13,
+      "glb_selector": "ref:R2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 20,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                87.27339923999999,
+                82.87580071999999
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                87.27339923999999,
+                82.87580071999999
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "BAXQTIDG",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 14,
+      "glb_selector": "ref:R5",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R5",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 19,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                87.27339923999999,
+                79.99290072
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                87.27339923999999,
+                79.99290072
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "MDLJPWDI",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 15,
+      "glb_selector": "ref:R12",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R12",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 18,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                84.85395779999999,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                84.85395779999999,
+                67.27369832
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "GWONYEYC",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 16,
+      "glb_selector": "ref:R13",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R13",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 17,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                69.18859923999999,
+                91.45620011999999
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                69.18859923999999,
+                91.45620011999999
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "FIATUWBP",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 17,
+      "glb_selector": "ref:C3",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C3",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 16,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                79.88673888,
+                67.28329952
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                79.88673888,
+                67.28329952
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "TIMUPIVH",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 18,
+      "glb_selector": "ref:R14",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R14",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 15,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                69.18859923999999,
+                88.57810072
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                69.18859923999999,
+                88.57810072
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "RIKAIUKN",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 19,
+      "glb_selector": "ref:R6",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R6",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 14,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                81.54247851999999,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                81.54247851999999,
+                67.27369832
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "URYHAFHV",
+      "degenerate_triangles_omitted": 1,
+      "glb_node_index": 20,
+      "glb_selector": "ref:S1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "S1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 13,
+          "geometryQualified": false,
+          "meshReportSha256": "f3f2599228bea30e3aa57a352704beed708e8b16256bd3509313709539fc4e31",
+          "modelOrdinal": 4,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                72.00808052,
+                55.71041944
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                72.00799923999999,
+                55.71050071999999
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "688cac32f7fb71be1abd6ef8e69e65003e93566c6a1e09f087daee2b0d5b1e31",
+          "triangles": 15615
+        }
+      ],
+      "triangle_count": 15615
+    },
+    {
+      "body_count": 1,
+      "component_id": "HLLOMOTV",
+      "degenerate_triangles_omitted": 1,
+      "glb_node_index": 21,
+      "glb_selector": "ref:S2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "S2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 12,
+          "geometryQualified": false,
+          "meshReportSha256": "f3f2599228bea30e3aa57a352704beed708e8b16256bd3509313709539fc4e31",
+          "modelOrdinal": 4,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                84.45408051999999,
+                55.71041944
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                84.45399923999999,
+                55.71050071999999
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "688cac32f7fb71be1abd6ef8e69e65003e93566c6a1e09f087daee2b0d5b1e31",
+          "triangles": 15615
+        }
+      ],
+      "triangle_count": 15615
+    },
+    {
+      "body_count": 1,
+      "component_id": "ATHSJNOA",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 22,
+      "glb_selector": "ref:U1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "U1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 11,
+          "geometryQualified": false,
+          "meshReportSha256": "84af18adb09d67b4e8c5f0cb7d1e5ebae9b93092274cfc8ab69a39000aba5d3d",
+          "modelOrdinal": 14,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                70.23198552,
+                101.03490588
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "zOffsetMm": 0.49999899999999997
+            },
+            "component": {
+              "positionMm": [
+                70.231,
+                92.52590079999999
+              ],
+              "rotationDegrees": 0.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b",
+          "triangles": 137652
+        }
+      ],
+      "triangle_count": 137652
+    },
+    {
+      "body_count": 1,
+      "component_id": "IUNOOEKC",
+      "degenerate_triangles_omitted": 8,
+      "glb_node_index": 23,
+      "glb_selector": "ref:U3",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "U3",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 10,
+          "geometryQualified": false,
+          "meshReportSha256": "bf9715d980c9e5fbd981dffd617cd3401396f0e791400ec6718c27dbc94f91e1",
+          "modelOrdinal": 8,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                78.23103988,
+                54.82154136
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                360.0
+              ],
+              "zOffsetMm": 1.20000014
+            },
+            "component": {
+              "positionMm": [
+                78.23099923999999,
+                57.23450071999999
+              ],
+              "rotationDegrees": 180.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "bbcd25b11a5355983ccea421fdfc4dd0b73175a2954fc2dfb52e53b7c3bbc658",
+          "triangles": 9276
+        }
+      ],
+      "triangle_count": 9276
+    },
+    {
+      "body_count": 1,
+      "component_id": "KJTOXPPC",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 24,
+      "glb_selector": "ref:R7",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R7",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 9,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                86.50969744,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                86.50969744,
+                67.27369832
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "ITIDGYDN",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 25,
+      "glb_selector": "ref:R8",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R8",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 8,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                83.19821816,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                83.19821816,
+                67.27369832
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "CTNHNBTS",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 26,
+      "glb_selector": "ref:VT1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "VT1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 7,
+          "geometryQualified": false,
+          "meshReportSha256": "2e2f7e2fd9295997c9ab591b9442f1ca2584b0b86273c84650f53c2677905073",
+          "modelOrdinal": 12,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                85.55748953999999,
+                63.5594995
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                180.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                85.55968917999999,
+                63.562499239999994
+              ],
+              "rotationDegrees": 180.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+          "triangles": 1466
+        }
+      ],
+      "triangle_count": 1466
+    },
+    {
+      "body_count": 1,
+      "component_id": "LNTFTMBE",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 27,
+      "glb_selector": "ref:VT2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "VT2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 6,
+          "geometryQualified": false,
+          "meshReportSha256": "2e2f7e2fd9295997c9ab591b9442f1ca2584b0b86273c84650f53c2677905073",
+          "modelOrdinal": 12,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                85.56188882,
+                70.90712006
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                360.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                85.55968917999999,
+                70.90412031999999
+              ],
+              "rotationDegrees": 360.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+          "triangles": 1466
+        }
+      ],
+      "triangle_count": 1466
+    },
+    {
+      "body_count": 1,
+      "component_id": "JMGERLTU",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 28,
+      "glb_selector": "ref:R10",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R10",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 5,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                74.91951995999999,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                74.91951995999999,
+                67.27369832
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "RSSVFXNT",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 29,
+      "glb_selector": "ref:C1",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C1",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 4,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                69.18859923999999,
+                94.34390072
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                69.18859923999999,
+                94.34390072
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "BRYQYQGQ",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 30,
+      "glb_selector": "ref:R4",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "R4",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 3,
+          "geometryQualified": false,
+          "meshReportSha256": "cb909f0c8f708d77e63629999e1989ec1f122ffc8203c496294c992190c4310d",
+          "modelOrdinal": 2,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                71.60804067999999,
+                67.27369832
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                71.60804067999999,
+                67.27369832
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "GVYBCNWF",
+      "degenerate_triangles_omitted": 1277,
+      "glb_node_index": 31,
+      "glb_selector": "ref:U2",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "U2",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 2,
+          "geometryQualified": false,
+          "meshReportSha256": "b15d37177fb790a45444c91f282b83523af17c11f20e2f2ec0d0b55c2b57f614",
+          "modelOrdinal": 16,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                79.42492116,
+                62.33981944
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                79.42479924,
+                62.339900719999996
+              ],
+              "rotationDegrees": 270.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "triangles": 6993
+        }
+      ],
+      "triangle_count": 6993
+    },
+    {
+      "body_count": 1,
+      "component_id": "TQBCLOVA",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 32,
+      "glb_selector": "ref:C7",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C7",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 60,
+          "geometryQualified": false,
+          "meshReportSha256": "485eb612cd335bc440fc9faf16e157a33ba0aa2122d57560ed774ca9b365aa2e",
+          "modelOrdinal": 1,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                73.98913827999999,
+                71.0061572
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                90.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                73.98919923999999,
+                71.00610132
+              ],
+              "rotationDegrees": 90.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "a3ec061f192d57424f6106933eeb9964e2fa424cf94715e74accf006b99f1752",
+          "triangles": 13734
+        }
+      ],
+      "triangle_count": 13734
+    },
+    {
+      "body_count": 1,
+      "component_id": "TBTXGLGE",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 33,
+      "glb_selector": "ref:C8",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "C8",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 1,
+          "geometryQualified": false,
+          "meshReportSha256": "76a529b136bb8e020de984c34e94d8c47a06df06b50f029f58ffd003302acd22",
+          "modelOrdinal": 5,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                73.98919923999999,
+                74.87612152
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                90.0,
+                0.0,
+                360.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                73.98919923999999,
+                74.87612152
+              ],
+              "rotationDegrees": 360.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+          "triangles": 9484
+        }
+      ],
+      "triangle_count": 9484
+    },
+    {
+      "body_count": 1,
+      "component_id": "IQTEUQVC",
+      "degenerate_triangles_omitted": 0,
+      "glb_node_index": 34,
+      "glb_selector": "ref:U4",
+      "identity_verified": false,
+      "model_quality": "source_step_candidate_pose_surface_unqualified",
+      "needs_3d_body": true,
+      "neutral_fallback_color_triangle_count": 0,
+      "reference": "U4",
+      "sourceBodies": [
+        {
+          "bodyOrdinal": 0,
+          "geometryQualified": false,
+          "meshReportSha256": "5e9c77afca0bc69f6e77ad3dd88088c162234510e4cf39703423e8c57a2f7e8b",
+          "modelOrdinal": 0,
+          "poseVerified": false,
+          "sourcePoseInputs": {
+            "angleUnit": "degree",
+            "body": {
+              "positionMm": [
+                79.52631795999999,
+                72.57601944
+              ],
+              "projection": "top",
+              "rotation2dDegrees": 0.0,
+              "rotation3dDegrees": [
+                0.0,
+                0.0,
+                270.0
+              ],
+              "zOffsetMm": 0.0
+            },
+            "component": {
+              "positionMm": [
+                79.52639923999999,
+                72.57610072
+              ],
+              "rotationDegrees": 180.0,
+              "side": "top"
+            },
+            "coordinateFrame": "source-altium-XY; source-Z-offset; no handedness conversion",
+            "inputLimits": {
+              "absoluteDegrees": 360000.0,
+              "absoluteMils": 1000000.0,
+              "propertyBytes": 128
+            },
+            "lengthUnit": "mm",
+            "modelsTablePoseApplied": false,
+            "numericInputsResolved": true,
+            "poseVerified": false,
+            "schema": "tokito.altium-source-pose-inputs.v1",
+            "worldTransform": null
+          },
+          "stepSha256": "2cb8d8e9861561c2daa3ba17b0611e13ecffba884d815240ddb5c02b59bc2542",
+          "triangles": 460
+        }
+      ],
+      "triangle_count": 460
+    }
+  ],
+  "physical_fit_verified": false,
+  "positional_guidance_allowed": false,
+  "renderable_count": 34,
+  "schema": "tokito.component-map.v1",
+  "selectable_component_count": 34
+}

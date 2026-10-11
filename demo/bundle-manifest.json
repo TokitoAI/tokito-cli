@@ -144,6 +144,78 @@
       "bytes": 298191,
       "sha256": "63430dbb80b121b888f5d4033440a1147b8e8108e4cf93161d754dd4f137efab",
       "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/selected-ic-4k.png"
+    },
+    {
+      "path": "esp8266/active.digital-twin.glb",
+      "bytes": 48699248,
+      "sha256": "e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/active.digital-twin.glb"
+    },
+    {
+      "path": "esp8266/active.digital-twin.json",
+      "bytes": 909,
+      "sha256": "1b079e72cd168d536290bc5f80425d5cdbca5249e23c678a222e85d354f1c4a3",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/active.digital-twin.json"
+    },
+    {
+      "path": "esp8266/component-map.json",
+      "bytes": 111492,
+      "sha256": "6265f2d8ae89e472b7788f034b2bb061144287c2fc9da5a35af5a0ed581027a7",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/component-map.json"
+    },
+    {
+      "path": "esp8266/component-index.json",
+      "bytes": 13088,
+      "sha256": "8377f07a35aa7e7533d5ff3b6b2df8f5c38f2ad2a00c371b75ce1076c86c77ea",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/component-index.json"
+    },
+    {
+      "path": "esp8266/prepare-report.json",
+      "bytes": 1031,
+      "sha256": "3e38ced413ef1ed21904616234757b190f35d0529ed002db198378b2c98dd38c",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/prepare-report.json"
+    },
+    {
+      "path": "esp8266/index.html",
+      "bytes": 64964366,
+      "sha256": "fbcaae31d2118f4939b4b1cc3fe996e2bd95ca29323ed02232d85f88f4a56b7a",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/index.html"
+    },
+    {
+      "path": "esp8266/esp8266-selected-module-4k.png",
+      "bytes": 303811,
+      "sha256": "96e778c4a891594000e58ee53f376cd95832c61a37a5320902fe7498c552756b",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/esp8266-selected-module-4k.png"
+    },
+    {
+      "path": "esp8266/assembly-report.json",
+      "bytes": 1360,
+      "sha256": "122c421a584e3757b77cad6468eef40e51db3446f3f8b9f7c95ac81a9402e614",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prepare-report.json"
+    },
+    {
+      "path": "esp8266/assembly-e2e-receipt.json",
+      "bytes": 15147,
+      "sha256": "fcd73c498d172bf8aaf92ec8a69ef822694f1677875ac69ac6d266daa0ae8ae9",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/e2e-receipt.json"
+    },
+    {
+      "path": "esp8266/evaluated-step-reference.json",
+      "bytes": 17099,
+      "sha256": "e83ad3db728ff8103b83febc2682d621915d03d90b9d71063de259895cea8029",
+      "sourceArtifact": "target/prototypes/esp8266-independent-evaluated-reference-20261011.json"
+    },
+    {
+      "path": "esp8266/evaluated-step-comparison.json",
+      "bytes": 3095,
+      "sha256": "9e3e0b980493fb030d968f37dab66f81a4590beca19db708c0e576cc76b2d920",
+      "sourceArtifact": "target/prototypes/esp8266-evaluated-comparison-20261011.json"
+    },
+    {
+      "path": "esp8266/browser-acceptance.json",
+      "bytes": 331,
+      "sha256": "f98649864e91bc888be5263d7ea29f6b9a9dce2358f9ac4a97c9e30cda8c99bc",
+      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/browser-acceptance.json"
     }
   ],
   "bytes": 78804176,

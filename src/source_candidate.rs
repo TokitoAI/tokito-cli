@@ -85,6 +85,27 @@ pub fn load(
     index_path: &Path,
     provenance_path: &Path,
     coverage_path: &Path,
+    board_id: &str,
+    revision: &str,
+) -> Result<Adapted, EngineError> {
+    load_with_board_plane(
+        glb_path,
+        map_path,
+        index_path,
+        provenance_path,
+        coverage_path,
+        (board_id, revision),
+        None,
+    )
+}
+
+/// Adapt a source asset with an optional explicitly selected substrate subtree.
+pub fn load_with_board_plane(
+    glb_path: &Path,
+    map_path: &Path,
+    index_path: &Path,
+    provenance_path: &Path,
+    coverage_path: &Path,
     identity: (&str, &str),
     board_plane_node: Option<&str>,
 ) -> Result<Adapted, EngineError> {
@@ -576,8 +597,8 @@ mod tests {
             &path.join("index.json"),
             &path.join("provenance.json"),
             &path.join("coverage.json"),
-            ("fixture", "r1"),
-            None,
+            "fixture",
+            "r1",
         )
     }
     fn edited_glb(bytes: &[u8], edit: impl FnOnce(&mut Value)) -> Vec<u8> {
@@ -637,7 +658,7 @@ mod tests {
     #[test]
     fn explicit_plane_does_not_grant_physical_qualification() {
         let (path, _) = fixture();
-        let result = load(
+        let result = load_with_board_plane(
             &path.join("model.glb"),
             &path.join("map.json"),
             &path.join("index.json"),

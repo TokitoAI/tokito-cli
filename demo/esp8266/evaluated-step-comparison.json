@@ -1,0 +1,94 @@
+{
+  "schema": "tokito.evaluated-step-comparison.v1",
+  "referenceSha256": "e83ad3db728ff8103b83febc2682d621915d03d90b9d71063de259895cea8029",
+  "models": [
+    {
+      "file": "0.step",
+      "sourceSha256": "2cb8d8e9861561c2daa3ba17b0611e13ecffba884d815240ddb5c02b59bc2542",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "1.step",
+      "sourceSha256": "a3ec061f192d57424f6106933eeb9964e2fa424cf94715e74accf006b99f1752",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "10.step",
+      "sourceSha256": "949c47424f38a214f81346c71c22aa22e78c8dc7eb511bf93622f7cad9f2b270",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "11.step",
+      "sourceSha256": "7563140d288a810d2378b7f6121ff7475d7f639089e969282e78a22f63ea637a",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "12.step",
+      "sourceSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "13.step",
+      "sourceSha256": "77578ffaed9a5f7420fea2fdbee5d675658a40a6c39d8d653fb3042e2e5656e5",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "14.step",
+      "sourceSha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "15.step",
+      "sourceSha256": "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "16.step",
+      "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "2.step",
+      "sourceSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "3.step",
+      "sourceSha256": "a9f0bb1212f97a4091789809380ca59a54676f504a952cd55a0d85cd3064390a",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "4.step",
+      "sourceSha256": "688cac32f7fb71be1abd6ef8e69e65003e93566c6a1e09f087daee2b0d5b1e31",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "5.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "6.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "7.step",
+      "sourceSha256": "055c62283bad884be6bbce7cc5d96b90da4c30cc498bf668946fee0b64138d79",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "8.step",
+      "sourceSha256": "bbcd25b11a5355983ccea421fdfc4dd0b73175a2954fc2dfb52e53b7c3bbc658",
+      "maximumBoundsDeltaMm": 0.0
+    },
+    {
+      "file": "9.step",
+      "sourceSha256": "25acf4ce257097d9814bf8fc6b0b1e1c72abcfe62cdc919c4eacfc3ecaa59689",
+      "maximumBoundsDeltaMm": 0.0
+    }
+  ],
+  "allWithin0_05mm": true,
+  "surfaceFidelityQualified": false,
+  "assemblyPoseQualified": false
+}

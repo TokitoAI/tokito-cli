@@ -528,3 +528,14 @@ the source + 62-body candidate E2E journeys. Numeric pose v5 received independen
 review without blockers; independent Board6 review also matched all 27 sections,
 offsets, properties and stream bytes without blockers. Geometry,
 world placement and the full delivery gate are still incomplete.
+
+### ESP8266 selectable prototype checkpoint
+
+| Owner | State | Evidence | Next action |
+|---|---|---|---|
+| Main / assembly worker | Source-derived prototype implemented | 34 selectable IDs, 62 bodies, 405,194 component triangles; `demo/esp8266/` | Physical/surface/pose qualification, pads and drills |
+| Main / independent reviewer | 35 local gates and browser acceptance passed | 20261011T023649Z local receipt; all 34 browser selections, offline and 4K | PR delivery; no Actions or main push |
+| Main / documentation maintainer | Afan handover prepared | `docs/AFAN_INTEGRATION_HANDOVER.md` | App admission, YOLO identities and registration |
+
+KiCad parity #13, footprint/library #24, physical AR, product-level STEP/Altium
+and schematic-to-physical-layout remain incomplete. Goal remains active.

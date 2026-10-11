@@ -71,7 +71,7 @@ fn integer(v: &Value, key: &str) -> Result<u64, String> {
         .ok_or_else(|| format!("missing unsigned {key}"))
 }
 
-fn accessor<'a>(doc: &'a Value, i: &Value, bin: &[u8], vector: bool) -> Result<&'a Value, String> {
+fn accessor<'a>(doc: &'a Value, i: &Value, bin: &[u8], channels: u64) -> Result<&'a Value, String> {
     let accessors = doc["accessors"].as_array().ok_or("GLB has no accessors")?;
     let a = i
         .as_u64()
@@ -81,11 +81,11 @@ fn accessor<'a>(doc: &'a Value, i: &Value, bin: &[u8], vector: bool) -> Result<&
         return Err("viewer does not support sparse/normalized accessors".into());
     }
     let component = integer(a, "componentType")?;
-    let width = if vector {
-        if component != 5126 || a["type"] != "VEC3" {
+    let width = if channels > 0 {
+        if component != 5126 || a["type"] != if channels == 4 { "VEC4" } else { "VEC3" } {
             return Err("viewer positions/normals require FLOAT VEC3".into());
         }
-        12
+        channels * 4
     } else {
         if a["type"] != "SCALAR" {
             return Err("viewer indices require SCALAR".into());
@@ -131,14 +131,17 @@ fn accessor<'a>(doc: &'a Value, i: &Value, bin: &[u8], vector: bool) -> Result<&
     let begin = view_start + start;
     for n in 0..count {
         let offset = (begin + n * stride) as usize;
-        if vector {
-            for axis in 0..3 {
+        if channels > 0 {
+            for axis in 0..channels as usize {
                 let value = f32::from_le_bytes(
                     bin[offset + axis * 4..offset + axis * 4 + 4]
                         .try_into()
                         .unwrap(),
                 );
-                if !value.is_finite() || value.abs() > 1_000_000.0 {
+                if !value.is_finite()
+                    || value.abs() > 1_000_000.0
+                    || (channels == 4 && !(0.0..=1.0).contains(&value))
+                {
                     return Err("non-finite or excessive geometry coordinate".into());
                 }
             }
@@ -212,15 +215,20 @@ fn validate_geometry(doc: &Value, bin: &[u8]) -> Result<(), String> {
                     "viewer supports uncompressed points, lines and triangle primitives without morph targets".into(),
                 );
             }
-            let pos = accessor(doc, &p["attributes"]["POSITION"], bin, true)?;
+            let pos = accessor(doc, &p["attributes"]["POSITION"], bin, 3)?;
             let count = integer(pos, "count")?;
+            if let Some(color) = p["attributes"].get("COLOR_0") {
+                if integer(accessor(doc, color, bin, 4)?, "count")? != count {
+                    return Err("vertex colour count does not match positions".into());
+                }
+            }
             if let Some(normal) = p["attributes"].get("NORMAL") {
-                if integer(accessor(doc, normal, bin, true)?, "count")? != count {
+                if integer(accessor(doc, normal, bin, 3)?, "count")? != count {
                     return Err("normal count differs from positions".into());
                 }
             }
             let triangles = if let Some(i) = p.get("indices") {
-                let a = accessor(doc, i, bin, false)?;
+                let a = accessor(doc, i, bin, 0)?;
                 let view = &doc["bufferViews"][integer(a, "bufferView")? as usize];
                 let bytes = match integer(a, "componentType")? {
                     5121 => 1,
@@ -359,22 +367,22 @@ function local(n){if(n.matrix)return n.matrix;const t=n.translation||[0,0,0],s=n
 function point(m,p){return[m[0]*p[0]+m[4]*p[1]+m[8]*p[2]+m[12],m[1]*p[0]+m[5]*p[1]+m[9]*p[2]+m[13],m[2]*p[0]+m[6]*p[1]+m[10]*p[2]+m[14]];}
 const componentBounds=new Map();function includeBounds(id,world,minimum,maximum){if(id<0)return;let bounds=componentBounds.get(id);if(!bounds){bounds={minimum:[Infinity,Infinity,Infinity],maximum:[-Infinity,-Infinity,-Infinity]};componentBounds.set(id,bounds);}for(let mask=0;mask<8;mask++){const corner=point(world,[mask&1?maximum[0]:minimum[0],mask&2?maximum[1]:minimum[1],mask&4?maximum[2]:minimum[2]]);for(let axis=0;axis<3;axis++){bounds.minimum[axis]=Math.min(bounds.minimum[axis],corner[axis]);bounds.maximum[axis]=Math.max(bounds.maximum[axis],corner[axis]);}}}
 function normalMatrix(m){const a=m[0],b=m[4],c=m[8],d=m[1],e=m[5],f=m[9],g=m[2],h=m[6],i=m[10],det=a*(e*i-f*h)-b*(d*i-f*g)+c*(d*h-e*g);if(Math.abs(det)<1e-20)throw Error('Singular node transform cannot be rendered reliably');return[(e*i-f*h)/det,(c*h-b*i)/det,(b*f-c*e)/det,(f*g-d*i)/det,(a*i-c*g)/det,(c*d-a*f)/det,(d*h-e*g)/det,(b*g-a*h)/det,(a*e-b*d)/det];}
-function readAccessor(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView],size=a.type==='VEC3'?3:1,width={5121:1,5123:2,5125:4,5126:4}[a.componentType],stride=v.byteStride||size*width,start=(v.byteOffset||0)+(a.byteOffset||0),out=a.componentType===5126?new Float32Array(a.count*size):new Uint32Array(a.count*size);for(let n=0;n<a.count;n++)for(let k=0;k<size;k++){const o=start+n*stride+k*width;out[n*size+k]=a.componentType===5126?bin.getFloat32(o,true):a.componentType===5121?bin.getUint8(o):a.componentType===5123?bin.getUint16(o,true):bin.getUint32(o,true);}return out;}
+function readAccessor(i){const a=doc.accessors[i],v=doc.bufferViews[a.bufferView],size=a.type==='VEC4'?4:a.type==='VEC3'?3:1,width={5121:1,5123:2,5125:4,5126:4}[a.componentType],stride=v.byteStride||size*width,start=(v.byteOffset||0)+(a.byteOffset||0),out=a.componentType===5126?new Float32Array(a.count*size):new Uint32Array(a.count*size);for(let n=0;n<a.count;n++)for(let k=0;k<size;k++){const o=start+n*stride+k*width;out[n*size+k]=a.componentType===5126?bin.getFloat32(o,true):a.componentType===5121?bin.getUint8(o):a.componentType===5123?bin.getUint16(o,true):bin.getUint32(o,true);}return out;}
 function shader(type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
 const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,`#version 300 es
-in vec3 position;in vec3 normal;uniform mat4 world;uniform mat4 vp;uniform mat3 nm;out vec3 p;out vec3 n;void main(){vec4 w=world*vec4(position,1.);p=w.xyz;n=nm*normal;gl_Position=vp*w;gl_PointSize=4.;}`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,`#version 300 es
-precision highp float;in vec3 p;in vec3 n;uniform vec3 color;uniform vec3 emission;uniform float alpha;uniform bool picking;uniform bool hasNormal;uniform bool surface;out vec4 outColor;void main(){if(picking){outColor=vec4(color,1.);return;}if(!surface){outColor=vec4(color,alpha);return;}vec3 norm=hasNormal?normalize(n):normalize(cross(dFdx(p),dFdy(p)));if(!gl_FrontFacing)norm=-norm;float light=.34+.66*max(dot(norm,normalize(vec3(.4,.8,.6))),0.);outColor=vec4(clamp(color*light+emission,0.,1.),alpha);}`));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
-const uniforms=Object.fromEntries(['world','vp','nm','color','emission','alpha','picking','hasNormal','surface'].map(k=>[k,gl.getUniformLocation(program,k)])),attrs={p:gl.getAttribLocation(program,'position'),n:gl.getAttribLocation(program,'normal')};
+in vec3 position;in vec3 normal;in vec4 vertexColor;out vec4 vc;uniform mat4 world;uniform mat4 vp;uniform mat3 nm;out vec3 p;out vec3 n;void main(){vec4 w=world*vec4(position,1.);p=w.xyz;n=nm*normal;vc=vertexColor;gl_Position=vp*w;gl_PointSize=4.;}`));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,`#version 300 es
+precision highp float;in vec4 vc;in vec3 p;in vec3 n;uniform vec3 color;uniform vec3 emission;uniform float alpha;uniform bool picking;uniform bool hasNormal;uniform bool surface;out vec4 outColor;void main(){if(picking){outColor=vec4(color,1.);return;}vec3 base=color*vc.rgb;if(!surface){outColor=vec4(base,alpha*vc.a);return;}vec3 norm=hasNormal?normalize(n):normalize(cross(dFdx(p),dFdy(p)));if(!gl_FrontFacing)norm=-norm;float light=.34+.66*max(dot(norm,normalize(vec3(.4,.8,.6))),0.);outColor=vec4(clamp(base*light+emission,0.,1.),alpha*vc.a);}`));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
+const uniforms=Object.fromEntries(['world','vp','nm','color','emission','alpha','picking','hasNormal','surface'].map(k=>[k,gl.getUniformLocation(program,k)])),attrs={p:gl.getAttribLocation(program,'position'),n:gl.getAttribLocation(program,'normal'),c:gl.getAttribLocation(program,'vertexColor')};
 const owner=new Map();index.components.forEach((c,i)=>{if(c.selectorNodeIndex!==null&&c.selectorNodeIndex!==undefined)owner.set(c.selectorNodeIndex,i);});
 const draws=[],seen=new Set(),lo=[Infinity,Infinity,Infinity],hi=[-Infinity,-Infinity,-Infinity];let vertexCount=0,triangleCount=0,lineSegmentCount=0,pointCount=0;
 function walk(ni,parent,inherited){
 if(seen.has(ni))throw Error('Shared/cyclic scene node');seen.add(ni);const node=doc.nodes[ni];if(!node)throw Error('Missing scene node');const world=mul(parent,local(node)),id=owner.has(ni)?owner.get(ni):inherited;
 if(node.mesh!==undefined){const groups=new Map();let primitiveNumber=0;
-for(const primitive of doc.meshes[node.mesh].primitives){const pos=readAccessor(primitive.attributes.POSITION),norm=primitive.attributes.NORMAL===undefined?null:readAccessor(primitive.attributes.NORMAL),indices=primitive.indices===undefined?null:readAccessor(primitive.indices),mode=primitive.mode??4,key=String(primitive.material??'default')+':'+!!norm+':'+mode+((mode===2||mode===3)?':'+primitiveNumber:'');primitiveNumber++;
-let group=groups.get(key);if(!group){group={positions:[],normals:norm?[]:null,indices:[],material:primitive.material,mode};groups.set(key,group);}const base=group.positions.length/3;for(const v of pos)group.positions.push(v);if(norm)for(const v of norm)group.normals.push(v);if(indices){for(const v of indices)group.indices.push(v+base);}else{for(let v=0;v<pos.length/3;v++)group.indices.push(v+base);}
+for(const primitive of doc.meshes[node.mesh].primitives){const pos=readAccessor(primitive.attributes.POSITION),norm=primitive.attributes.NORMAL===undefined?null:readAccessor(primitive.attributes.NORMAL),colors=primitive.attributes.COLOR_0===undefined?null:readAccessor(primitive.attributes.COLOR_0),indices=primitive.indices===undefined?null:readAccessor(primitive.indices),mode=primitive.mode??4,key=String(primitive.material??'default')+':'+!!norm+':'+!!colors+':'+mode+((mode===2||mode===3)?':'+primitiveNumber:'');primitiveNumber++;
+let group=groups.get(key);if(!group){group={positions:[],normals:norm?[]:null,colors:colors?[]:null,indices:[],material:primitive.material,mode};groups.set(key,group);}const base=group.positions.length/3;for(const v of pos)group.positions.push(v);if(norm)for(const v of norm)group.normals.push(v);if(colors)for(const v of colors)group.colors.push(v);if(indices){for(const v of indices)group.indices.push(v+base);}else{for(let v=0;v<pos.length/3;v++)group.indices.push(v+base);}
 }
 for(const group of groups.values()){const pos=new Float32Array(group.positions),norm=group.normals?new Float32Array(group.normals):null,indices=new Uint32Array(group.indices),vao=gl.createVertexArray();gl.bindVertexArray(vao);let buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,pos,gl.STATIC_DRAW);gl.enableVertexAttribArray(attrs.p);gl.vertexAttribPointer(attrs.p,3,gl.FLOAT,false,0,0);
-if(norm){buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,norm,gl.STATIC_DRAW);gl.enableVertexAttribArray(attrs.n);gl.vertexAttribPointer(attrs.n,3,gl.FLOAT,false,0,0);}else{gl.disableVertexAttribArray(attrs.n);gl.vertexAttrib3f(attrs.n,0,0,0);}buffer=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,buffer);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indices,gl.STATIC_DRAW);
+if(norm){buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,norm,gl.STATIC_DRAW);gl.enableVertexAttribArray(attrs.n);gl.vertexAttribPointer(attrs.n,3,gl.FLOAT,false,0,0);}else{gl.disableVertexAttribArray(attrs.n);gl.vertexAttrib3f(attrs.n,0,0,0);}if(group.colors){buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(group.colors),gl.STATIC_DRAW);gl.enableVertexAttribArray(attrs.c);gl.vertexAttribPointer(attrs.c,4,gl.FLOAT,false,0,0);}else{gl.disableVertexAttribArray(attrs.c);gl.vertexAttrib4f(attrs.c,1,1,1,1);}buffer=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,buffer);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indices,gl.STATIC_DRAW);
 const material=(doc.materials||[])[group.material],color=material?.pbrMetallicRoughness?.baseColorFactor?.slice(0,3)||[.56,.66,.72],transparent=material?.alphaMode==='BLEND',alpha=transparent?(material?.pbrMetallicRoughness?.baseColorFactor?.[3]??1):1,bmin=[Infinity,Infinity,Infinity],bmax=[-Infinity,-Infinity,-Infinity];for(let k=0;k<pos.length;k+=3)for(let j=0;j<3;j++){bmin[j]=Math.min(bmin[j],pos[k+j]);bmax[j]=Math.max(bmax[j],pos[k+j]);}includeBounds(id,world,bmin,bmax);const drawCenter=point(world,bmin.map((v,j)=>(v+bmax[j])/2));draws.push({vao,world,nm:normalMatrix(world),id,color,alpha,transparent,emission:material?.emissiveFactor||[0,0,0],center:drawCenter,count:indices.length,indexed:true,normal:!!norm,mode:group.mode});vertexCount+=pos.length/3;if(group.mode===4)triangleCount+=indices.length/3;else if(group.mode===0)pointCount+=indices.length;else lineSegmentCount+=group.mode===1?indices.length/2:group.mode===2?indices.length:indices.length-1;
 for(let k=0;k<pos.length;k+=3){const p=point(world,[pos[k],pos[k+1],pos[k+2]]);for(let j=0;j<3;j++){lo[j]=Math.min(lo[j],p[j]);hi[j]=Math.max(hi[j],p[j]);}}
 }}
@@ -422,6 +430,38 @@ mod tests {
         .unwrap();
         let index = json!({"schema":"tokito.component-selection-index.v1","sourceSha256":{"glb":crate::sha256_hex(&glb)},"boardIdentity":"</script><script>alert(1)</script>","components":[{"reference":"D1","selectorNodeIndex":0,"modelAvailable":true,"componentClassClaim":"diode"}]});
         (glb, index)
+    }
+
+    #[test]
+    fn vertex_colours_are_bounded_and_match_positions() {
+        let (glb, _) = fixture();
+        let c = gltf::binary::Glb::from_slice(&glb).unwrap();
+        let mut doc: Value = serde_json::from_slice(&c.json).unwrap();
+        let mut bin = c.bin.unwrap().to_vec();
+        bin.extend(
+            [0.2f32, 0.4, 0.6, 1.0]
+                .repeat(3)
+                .into_iter()
+                .flat_map(f32::to_le_bytes),
+        );
+        doc["buffers"][0]["byteLength"] = json!(bin.len());
+        doc["bufferViews"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"buffer":0,"byteOffset":36,"byteLength":48}));
+        doc["accessors"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({"bufferView":1,"componentType":5126,"type":"VEC4","count":3}));
+        doc["meshes"][0]["primitives"][0]["attributes"]["COLOR_0"] = json!(1);
+        validate_geometry(&doc, &bin).unwrap();
+        doc["accessors"][1]["count"] = json!(2);
+        assert!(validate_geometry(&doc, &bin).is_err());
+        doc["accessors"][1]["count"] = json!(3);
+        bin[36..40].copy_from_slice(&1.1f32.to_le_bytes());
+        assert!(validate_geometry(&doc, &bin).is_err());
+        bin[36..40].copy_from_slice(&f32::NAN.to_le_bytes());
+        assert!(validate_geometry(&doc, &bin).is_err());
     }
 
     #[test]

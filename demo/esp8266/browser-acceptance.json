@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "stats": {
+    "components": 34,
+    "triangles": 405594,
+    "draws": 35,
+    "error": ""
+  },
+  "selectedAll": 34,
+  "offlineSelection": true,
+  "viewport": [
+    3840,
+    2160
+  ],
+  "physicalFitVerified": false,
+  "arRegistrationVerified": false,
+  "browserVersion": "155.0.8059.39",
+  "pageErrors": []
+}
