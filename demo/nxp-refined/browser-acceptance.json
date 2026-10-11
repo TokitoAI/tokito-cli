@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "selectedAll": 351,
+  "components": 391,
+  "triangles": 274908,
+  "draws": 867,
+  "error": "",
+  "notFittedLabels": [
+    "J7",
+    "J14",
+    "J21"
+  ],
+  "orbitZoomReset": true,
+  "offlineInteraction": true,
+  "viewport": [
+    3840,
+    2160
+  ],
+  "physicalFitVerified": false,
+  "arRegistrationVerified": false,
+  "glbSha256": "49bac35c3941ebc403cf0faa40fb6fb21d31fdb104083c90eb5964014ca8b43a",
+  "scope": "actual Chrome Playwright CLI session tokito-nxp; offline interaction on loaded page, not a fresh offline reload"
+}

@@ -1,0 +1,5819 @@
+{
+  "appNameFilterCompatible": true,
+  "arRegistrationVerified": false,
+  "assemblyContextRevisionClaim": "nxp-frdm-mcxn236-guide-reference-v1@sha256:560e4c45a57bbd4b9362d56a4b3e620c04bf8a2a785ce61b79dc356a713acc71",
+  "assetId": "tokito-selectable-49bac35c3941ebc403cf0faa40fb6fb2",
+  "boardIdentity": "nxp-frdm-mcxn236",
+  "boardReferenceContextVerified": false,
+  "boardRevision": "C",
+  "completeComponentCoverageVerified": false,
+  "componentCount": 391,
+  "components": [
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "BH1",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "BH2",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "BH3",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "BH4",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C1",
+      "renderableNodeIndex": 308,
+      "renderableNodeIndices": [
+        308
+      ],
+      "selector": "ref:C1",
+      "selectorNodeIndex": 308
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C10",
+      "renderableNodeIndex": 723,
+      "renderableNodeIndices": [
+        723
+      ],
+      "selector": "ref:C10",
+      "selectorNodeIndex": 723
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C100",
+      "renderableNodeIndex": 475,
+      "renderableNodeIndices": [
+        475
+      ],
+      "selector": "ref:C100",
+      "selectorNodeIndex": 475
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C101",
+      "renderableNodeIndex": 336,
+      "renderableNodeIndices": [
+        336
+      ],
+      "selector": "ref:C101",
+      "selectorNodeIndex": 336
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C102",
+      "renderableNodeIndex": 473,
+      "renderableNodeIndices": [
+        473
+      ],
+      "selector": "ref:C102",
+      "selectorNodeIndex": 473
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C103",
+      "renderableNodeIndex": 320,
+      "renderableNodeIndices": [
+        320
+      ],
+      "selector": "ref:C103",
+      "selectorNodeIndex": 320
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C104",
+      "renderableNodeIndex": 517,
+      "renderableNodeIndices": [
+        517
+      ],
+      "selector": "ref:C104",
+      "selectorNodeIndex": 517
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C105",
+      "renderableNodeIndex": 16,
+      "renderableNodeIndices": [
+        16
+      ],
+      "selector": "ref:C105",
+      "selectorNodeIndex": 16
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C106",
+      "renderableNodeIndex": 613,
+      "renderableNodeIndices": [
+        613
+      ],
+      "selector": "ref:C106",
+      "selectorNodeIndex": 613
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C107",
+      "renderableNodeIndex": 483,
+      "renderableNodeIndices": [
+        483
+      ],
+      "selector": "ref:C107",
+      "selectorNodeIndex": 483
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C108",
+      "renderableNodeIndex": 87,
+      "renderableNodeIndices": [
+        87
+      ],
+      "selector": "ref:C108",
+      "selectorNodeIndex": 87
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C109",
+      "renderableNodeIndex": 691,
+      "renderableNodeIndices": [
+        691
+      ],
+      "selector": "ref:C109",
+      "selectorNodeIndex": 691
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C11",
+      "renderableNodeIndex": 717,
+      "renderableNodeIndices": [
+        717
+      ],
+      "selector": "ref:C11",
+      "selectorNodeIndex": 717
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C110",
+      "renderableNodeIndex": 66,
+      "renderableNodeIndices": [
+        66
+      ],
+      "selector": "ref:C110",
+      "selectorNodeIndex": 66
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C111",
+      "renderableNodeIndex": 422,
+      "renderableNodeIndices": [
+        422
+      ],
+      "selector": "ref:C111",
+      "selectorNodeIndex": 422
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C112",
+      "renderableNodeIndex": 412,
+      "renderableNodeIndices": [
+        412
+      ],
+      "selector": "ref:C112",
+      "selectorNodeIndex": 412
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C113",
+      "renderableNodeIndex": 533,
+      "renderableNodeIndices": [
+        533
+      ],
+      "selector": "ref:C113",
+      "selectorNodeIndex": 533
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C114",
+      "renderableNodeIndex": 611,
+      "renderableNodeIndices": [
+        611
+      ],
+      "selector": "ref:C114",
+      "selectorNodeIndex": 611
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C115",
+      "renderableNodeIndex": 446,
+      "renderableNodeIndices": [
+        446
+      ],
+      "selector": "ref:C115",
+      "selectorNodeIndex": 446
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C12",
+      "renderableNodeIndex": 689,
+      "renderableNodeIndices": [
+        689
+      ],
+      "selector": "ref:C12",
+      "selectorNodeIndex": 689
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C13",
+      "renderableNodeIndex": 687,
+      "renderableNodeIndices": [
+        687
+      ],
+      "selector": "ref:C13",
+      "selectorNodeIndex": 687
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C14",
+      "renderableNodeIndex": 719,
+      "renderableNodeIndices": [
+        719
+      ],
+      "selector": "ref:C14",
+      "selectorNodeIndex": 719
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C15",
+      "renderableNodeIndex": 711,
+      "renderableNodeIndices": [
+        711
+      ],
+      "selector": "ref:C15",
+      "selectorNodeIndex": 711
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C150",
+      "renderableNodeIndex": 241,
+      "renderableNodeIndices": [
+        241
+      ],
+      "selector": "ref:C150",
+      "selectorNodeIndex": 241
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C154",
+      "renderableNodeIndex": 344,
+      "renderableNodeIndices": [
+        344
+      ],
+      "selector": "ref:C154",
+      "selectorNodeIndex": 344
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C16",
+      "renderableNodeIndex": 731,
+      "renderableNodeIndices": [
+        731
+      ],
+      "selector": "ref:C16",
+      "selectorNodeIndex": 731
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C17",
+      "renderableNodeIndex": 693,
+      "renderableNodeIndices": [
+        693
+      ],
+      "selector": "ref:C17",
+      "selectorNodeIndex": 693
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C18",
+      "renderableNodeIndex": 707,
+      "renderableNodeIndices": [
+        707
+      ],
+      "selector": "ref:C18",
+      "selectorNodeIndex": 707
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C19",
+      "renderableNodeIndex": 681,
+      "renderableNodeIndices": [
+        681
+      ],
+      "selector": "ref:C19",
+      "selectorNodeIndex": 681
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C2",
+      "renderableNodeIndex": 429,
+      "renderableNodeIndices": [
+        429
+      ],
+      "selector": "ref:C2",
+      "selectorNodeIndex": 429
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C20",
+      "renderableNodeIndex": 699,
+      "renderableNodeIndices": [
+        699
+      ],
+      "selector": "ref:C20",
+      "selectorNodeIndex": 699
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C21",
+      "renderableNodeIndex": 701,
+      "renderableNodeIndices": [
+        701
+      ],
+      "selector": "ref:C21",
+      "selectorNodeIndex": 701
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C22",
+      "renderableNodeIndex": 673,
+      "renderableNodeIndices": [
+        673
+      ],
+      "selector": "ref:C22",
+      "selectorNodeIndex": 673
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C23",
+      "renderableNodeIndex": 671,
+      "renderableNodeIndices": [
+        671
+      ],
+      "selector": "ref:C23",
+      "selectorNodeIndex": 671
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C24",
+      "renderableNodeIndex": 675,
+      "renderableNodeIndices": [
+        675
+      ],
+      "selector": "ref:C24",
+      "selectorNodeIndex": 675
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C25",
+      "renderableNodeIndex": 729,
+      "renderableNodeIndices": [
+        729
+      ],
+      "selector": "ref:C25",
+      "selectorNodeIndex": 729
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C26",
+      "renderableNodeIndex": 721,
+      "renderableNodeIndices": [
+        721
+      ],
+      "selector": "ref:C26",
+      "selectorNodeIndex": 721
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C27",
+      "renderableNodeIndex": 697,
+      "renderableNodeIndices": [
+        697
+      ],
+      "selector": "ref:C27",
+      "selectorNodeIndex": 697
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C28",
+      "renderableNodeIndex": 399,
+      "renderableNodeIndices": [
+        399
+      ],
+      "selector": "ref:C28",
+      "selectorNodeIndex": 399
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C29",
+      "renderableNodeIndex": 679,
+      "renderableNodeIndices": [
+        679
+      ],
+      "selector": "ref:C29",
+      "selectorNodeIndex": 679
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C3",
+      "renderableNodeIndex": 506,
+      "renderableNodeIndices": [
+        506
+      ],
+      "selector": "ref:C3",
+      "selectorNodeIndex": 506
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C30",
+      "renderableNodeIndex": 105,
+      "renderableNodeIndices": [
+        105
+      ],
+      "selector": "ref:C30",
+      "selectorNodeIndex": 105
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C31",
+      "renderableNodeIndex": 727,
+      "renderableNodeIndices": [
+        727
+      ],
+      "selector": "ref:C31",
+      "selectorNodeIndex": 727
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C32",
+      "renderableNodeIndex": 296,
+      "renderableNodeIndices": [
+        296
+      ],
+      "selector": "ref:C32",
+      "selectorNodeIndex": 296
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C33",
+      "renderableNodeIndex": 703,
+      "renderableNodeIndices": [
+        703
+      ],
+      "selector": "ref:C33",
+      "selectorNodeIndex": 703
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C34",
+      "renderableNodeIndex": 539,
+      "renderableNodeIndices": [
+        539
+      ],
+      "selector": "ref:C34",
+      "selectorNodeIndex": 539
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C35",
+      "renderableNodeIndex": 713,
+      "renderableNodeIndices": [
+        713
+      ],
+      "selector": "ref:C35",
+      "selectorNodeIndex": 713
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C36",
+      "renderableNodeIndex": 237,
+      "renderableNodeIndices": [
+        237
+      ],
+      "selector": "ref:C36",
+      "selectorNodeIndex": 237
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C38",
+      "renderableNodeIndex": 252,
+      "renderableNodeIndices": [
+        252
+      ],
+      "selector": "ref:C38",
+      "selectorNodeIndex": 252
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C39",
+      "renderableNodeIndex": 93,
+      "renderableNodeIndices": [
+        93
+      ],
+      "selector": "ref:C39",
+      "selectorNodeIndex": 93
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C4",
+      "renderableNodeIndex": 586,
+      "renderableNodeIndices": [
+        586
+      ],
+      "selector": "ref:C4",
+      "selectorNodeIndex": 586
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C40",
+      "renderableNodeIndex": 383,
+      "renderableNodeIndices": [
+        383
+      ],
+      "selector": "ref:C40",
+      "selectorNodeIndex": 383
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C41",
+      "renderableNodeIndex": 10,
+      "renderableNodeIndices": [
+        10
+      ],
+      "selector": "ref:C41",
+      "selectorNodeIndex": 10
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C42",
+      "renderableNodeIndex": 601,
+      "renderableNodeIndices": [
+        601
+      ],
+      "selector": "ref:C42",
+      "selectorNodeIndex": 601
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C43",
+      "renderableNodeIndex": 280,
+      "renderableNodeIndices": [
+        280
+      ],
+      "selector": "ref:C43",
+      "selectorNodeIndex": 280
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C44",
+      "renderableNodeIndex": 192,
+      "renderableNodeIndices": [
+        192
+      ],
+      "selector": "ref:C44",
+      "selectorNodeIndex": 192
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C45",
+      "renderableNodeIndex": 113,
+      "renderableNodeIndices": [
+        113
+      ],
+      "selector": "ref:C45",
+      "selectorNodeIndex": 113
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C46",
+      "renderableNodeIndex": 268,
+      "renderableNodeIndices": [
+        268
+      ],
+      "selector": "ref:C46",
+      "selectorNodeIndex": 268
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C47",
+      "renderableNodeIndex": 122,
+      "renderableNodeIndices": [
+        122
+      ],
+      "selector": "ref:C47",
+      "selectorNodeIndex": 122
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C48",
+      "renderableNodeIndex": 494,
+      "renderableNodeIndices": [
+        494
+      ],
+      "selector": "ref:C48",
+      "selectorNodeIndex": 494
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C49",
+      "renderableNodeIndex": 640,
+      "renderableNodeIndices": [
+        640
+      ],
+      "selector": "ref:C49",
+      "selectorNodeIndex": 640
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C5",
+      "renderableNodeIndex": 111,
+      "renderableNodeIndices": [
+        111
+      ],
+      "selector": "ref:C5",
+      "selectorNodeIndex": 111
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C50",
+      "renderableNodeIndex": 457,
+      "renderableNodeIndices": [
+        457
+      ],
+      "selector": "ref:C50",
+      "selectorNodeIndex": 457
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C51",
+      "renderableNodeIndex": 418,
+      "renderableNodeIndices": [
+        418
+      ],
+      "selector": "ref:C51",
+      "selectorNodeIndex": 418
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C52",
+      "renderableNodeIndex": 54,
+      "renderableNodeIndices": [
+        54
+      ],
+      "selector": "ref:C52",
+      "selectorNodeIndex": 54
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C53",
+      "renderableNodeIndex": 115,
+      "renderableNodeIndices": [
+        115
+      ],
+      "selector": "ref:C53",
+      "selectorNodeIndex": 115
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C54",
+      "renderableNodeIndex": 204,
+      "renderableNodeIndices": [
+        204
+      ],
+      "selector": "ref:C54",
+      "selectorNodeIndex": 204
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C55",
+      "renderableNodeIndex": 479,
+      "renderableNodeIndices": [
+        479
+      ],
+      "selector": "ref:C55",
+      "selectorNodeIndex": 479
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C56",
+      "renderableNodeIndex": 248,
+      "renderableNodeIndices": [
+        248
+      ],
+      "selector": "ref:C56",
+      "selectorNodeIndex": 248
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C57",
+      "renderableNodeIndex": 176,
+      "renderableNodeIndices": [
+        176
+      ],
+      "selector": "ref:C57",
+      "selectorNodeIndex": 176
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C58",
+      "renderableNodeIndex": 44,
+      "renderableNodeIndices": [
+        44
+      ],
+      "selector": "ref:C58",
+      "selectorNodeIndex": 44
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C59",
+      "renderableNodeIndex": 669,
+      "renderableNodeIndices": [
+        669
+      ],
+      "selector": "ref:C59",
+      "selectorNodeIndex": 669
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C6",
+      "renderableNodeIndex": 416,
+      "renderableNodeIndices": [
+        416
+      ],
+      "selector": "ref:C6",
+      "selectorNodeIndex": 416
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C60",
+      "renderableNodeIndex": 431,
+      "renderableNodeIndices": [
+        431
+      ],
+      "selector": "ref:C60",
+      "selectorNodeIndex": 431
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C61",
+      "renderableNodeIndex": 36,
+      "renderableNodeIndices": [
+        36
+      ],
+      "selector": "ref:C61",
+      "selectorNodeIndex": 36
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C62",
+      "renderableNodeIndex": 590,
+      "renderableNodeIndices": [
+        590
+      ],
+      "selector": "ref:C62",
+      "selectorNodeIndex": 590
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C63",
+      "renderableNodeIndex": 531,
+      "renderableNodeIndices": [
+        531
+      ],
+      "selector": "ref:C63",
+      "selectorNodeIndex": 531
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C64",
+      "renderableNodeIndex": 348,
+      "renderableNodeIndices": [
+        348
+      ],
+      "selector": "ref:C64",
+      "selectorNodeIndex": 348
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C65",
+      "renderableNodeIndex": 515,
+      "renderableNodeIndices": [
+        515
+      ],
+      "selector": "ref:C65",
+      "selectorNodeIndex": 515
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C66",
+      "renderableNodeIndex": 356,
+      "renderableNodeIndices": [
+        356
+      ],
+      "selector": "ref:C66",
+      "selectorNodeIndex": 356
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C67",
+      "renderableNodeIndex": 18,
+      "renderableNodeIndices": [
+        18
+      ],
+      "selector": "ref:C67",
+      "selectorNodeIndex": 18
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C68",
+      "renderableNodeIndex": 202,
+      "renderableNodeIndices": [
+        202
+      ],
+      "selector": "ref:C68",
+      "selectorNodeIndex": 202
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C69",
+      "renderableNodeIndex": 621,
+      "renderableNodeIndices": [
+        621
+      ],
+      "selector": "ref:C69",
+      "selectorNodeIndex": 621
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C7",
+      "renderableNodeIndex": 151,
+      "renderableNodeIndices": [
+        151
+      ],
+      "selector": "ref:C7",
+      "selectorNodeIndex": 151
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C70",
+      "renderableNodeIndex": 420,
+      "renderableNodeIndices": [
+        420
+      ],
+      "selector": "ref:C70",
+      "selectorNodeIndex": 420
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C71",
+      "renderableNodeIndex": 661,
+      "renderableNodeIndices": [
+        661
+      ],
+      "selector": "ref:C71",
+      "selectorNodeIndex": 661
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C72",
+      "renderableNodeIndex": 619,
+      "renderableNodeIndices": [
+        619
+      ],
+      "selector": "ref:C72",
+      "selectorNodeIndex": 619
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C73",
+      "renderableNodeIndex": 120,
+      "renderableNodeIndices": [
+        120
+      ],
+      "selector": "ref:C73",
+      "selectorNodeIndex": 120
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C74",
+      "renderableNodeIndex": 198,
+      "renderableNodeIndices": [
+        198
+      ],
+      "selector": "ref:C74",
+      "selectorNodeIndex": 198
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C75",
+      "renderableNodeIndex": 292,
+      "renderableNodeIndices": [
+        292
+      ],
+      "selector": "ref:C75",
+      "selectorNodeIndex": 292
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C76",
+      "renderableNodeIndex": 89,
+      "renderableNodeIndices": [
+        89
+      ],
+      "selector": "ref:C76",
+      "selectorNodeIndex": 89
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C77",
+      "renderableNodeIndex": 235,
+      "renderableNodeIndices": [
+        235
+      ],
+      "selector": "ref:C77",
+      "selectorNodeIndex": 235
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C78",
+      "renderableNodeIndex": 278,
+      "renderableNodeIndices": [
+        278
+      ],
+      "selector": "ref:C78",
+      "selectorNodeIndex": 278
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C79",
+      "renderableNodeIndex": 58,
+      "renderableNodeIndices": [
+        58
+      ],
+      "selector": "ref:C79",
+      "selectorNodeIndex": 58
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C8",
+      "renderableNodeIndex": 408,
+      "renderableNodeIndices": [
+        408
+      ],
+      "selector": "ref:C8",
+      "selectorNodeIndex": 408
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C80",
+      "renderableNodeIndex": 544,
+      "renderableNodeIndices": [
+        544
+      ],
+      "selector": "ref:C80",
+      "selectorNodeIndex": 544
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C81",
+      "renderableNodeIndex": 595,
+      "renderableNodeIndices": [
+        595
+      ],
+      "selector": "ref:C81",
+      "selectorNodeIndex": 595
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C82",
+      "renderableNodeIndex": 298,
+      "renderableNodeIndices": [
+        298
+      ],
+      "selector": "ref:C82",
+      "selectorNodeIndex": 298
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C83",
+      "renderableNodeIndex": 85,
+      "renderableNodeIndices": [
+        85
+      ],
+      "selector": "ref:C83",
+      "selectorNodeIndex": 85
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C85",
+      "renderableNodeIndex": 340,
+      "renderableNodeIndices": [
+        340
+      ],
+      "selector": "ref:C85",
+      "selectorNodeIndex": 340
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C86",
+      "renderableNodeIndex": 523,
+      "renderableNodeIndices": [
+        523
+      ],
+      "selector": "ref:C86",
+      "selectorNodeIndex": 523
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C87",
+      "renderableNodeIndex": 184,
+      "renderableNodeIndices": [
+        184
+      ],
+      "selector": "ref:C87",
+      "selectorNodeIndex": 184
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C88",
+      "renderableNodeIndex": 609,
+      "renderableNodeIndices": [
+        609
+      ],
+      "selector": "ref:C88",
+      "selectorNodeIndex": 609
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C9",
+      "renderableNodeIndex": 709,
+      "renderableNodeIndices": [
+        709
+      ],
+      "selector": "ref:C9",
+      "selectorNodeIndex": 709
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C90",
+      "renderableNodeIndex": 256,
+      "renderableNodeIndices": [
+        256
+      ],
+      "selector": "ref:C90",
+      "selectorNodeIndex": 256
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C94",
+      "renderableNodeIndex": 648,
+      "renderableNodeIndices": [
+        648
+      ],
+      "selector": "ref:C94",
+      "selectorNodeIndex": 648
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C95",
+      "renderableNodeIndex": 206,
+      "renderableNodeIndices": [
+        206
+      ],
+      "selector": "ref:C95",
+      "selectorNodeIndex": 206
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C96",
+      "renderableNodeIndex": 487,
+      "renderableNodeIndices": [
+        487
+      ],
+      "selector": "ref:C96",
+      "selectorNodeIndex": 487
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C97",
+      "renderableNodeIndex": 250,
+      "renderableNodeIndices": [
+        250
+      ],
+      "selector": "ref:C97",
+      "selectorNodeIndex": 250
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C98",
+      "renderableNodeIndex": 178,
+      "renderableNodeIndices": [
+        178
+      ],
+      "selector": "ref:C98",
+      "selectorNodeIndex": 178
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "C99",
+      "renderableNodeIndex": 208,
+      "renderableNodeIndices": [
+        208
+      ],
+      "selector": "ref:C99",
+      "selectorNodeIndex": 208
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "D1",
+      "renderableNodeIndex": 547,
+      "renderableNodeIndices": [
+        547
+      ],
+      "selector": "ref:D1",
+      "selectorNodeIndex": 547
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D10",
+      "renderableNodeIndex": 652,
+      "renderableNodeIndices": [
+        652
+      ],
+      "selector": "ref:D10",
+      "selectorNodeIndex": 652
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D11",
+      "renderableNodeIndex": 667,
+      "renderableNodeIndices": [
+        667
+      ],
+      "selector": "ref:D11",
+      "selectorNodeIndex": 667
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D12",
+      "renderableNodeIndex": 145,
+      "renderableNodeIndices": [
+        145
+      ],
+      "selector": "ref:D12",
+      "selectorNodeIndex": 145
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "D13",
+      "renderableNodeIndex": 34,
+      "renderableNodeIndices": [
+        34
+      ],
+      "selector": "ref:D13",
+      "selectorNodeIndex": 34
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D14",
+      "renderableNodeIndex": 444,
+      "renderableNodeIndices": [
+        444
+      ],
+      "selector": "ref:D14",
+      "selectorNodeIndex": 444
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "D2",
+      "renderableNodeIndex": 137,
+      "renderableNodeIndices": [
+        137
+      ],
+      "selector": "ref:D2",
+      "selectorNodeIndex": 137
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D3",
+      "renderableNodeIndex": 262,
+      "renderableNodeIndices": [
+        262
+      ],
+      "selector": "ref:D3",
+      "selectorNodeIndex": 262
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "D4",
+      "renderableNodeIndex": 513,
+      "renderableNodeIndices": [
+        513
+      ],
+      "selector": "ref:D4",
+      "selectorNodeIndex": 513
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D6",
+      "renderableNodeIndex": 561,
+      "renderableNodeIndices": [
+        561
+      ],
+      "selector": "ref:D6",
+      "selectorNodeIndex": 561
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D7",
+      "renderableNodeIndex": 40,
+      "renderableNodeIndices": [
+        40
+      ],
+      "selector": "ref:D7",
+      "selectorNodeIndex": 40
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D8",
+      "renderableNodeIndex": 642,
+      "renderableNodeIndices": [
+        642
+      ],
+      "selector": "ref:D8",
+      "selectorNodeIndex": 642
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "diode_or_led",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "D9",
+      "renderableNodeIndex": 70,
+      "renderableNodeIndices": [
+        70
+      ],
+      "selector": "ref:D9",
+      "selectorNodeIndex": 70
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J1",
+      "renderableNodeIndex": 264,
+      "renderableNodeIndices": [
+        264
+      ],
+      "selector": "ref:J1",
+      "selectorNodeIndex": 264
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_unqualified",
+      "needs3dBody": true,
+      "reference": "J10",
+      "renderableNodeIndex": 156,
+      "renderableNodeIndices": [
+        156
+      ],
+      "selector": "ref:J10",
+      "selectorNodeIndex": 156
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_unqualified",
+      "needs3dBody": true,
+      "reference": "J11",
+      "renderableNodeIndex": 246,
+      "renderableNodeIndices": [
+        246
+      ],
+      "selector": "ref:J11",
+      "selectorNodeIndex": 246
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J12",
+      "renderableNodeIndex": 194,
+      "renderableNodeIndices": [
+        194
+      ],
+      "selector": "ref:J12",
+      "selectorNodeIndex": 194
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J13",
+      "renderableNodeIndex": 565,
+      "renderableNodeIndices": [
+        565
+      ],
+      "selector": "ref:J13",
+      "selectorNodeIndex": 565
+    },
+    {
+      "assemblyStateClaim": "not_fitted",
+      "categoryClaim": "unpopulated_footprint",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": false,
+      "modelQualityClaim": "not_fitted_by_explicit_source_override",
+      "needs3dBody": false,
+      "reference": "J14",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J15",
+      "renderableNodeIndex": 665,
+      "renderableNodeIndices": [
+        665
+      ],
+      "selector": "ref:J15",
+      "selectorNodeIndex": 665
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J16",
+      "renderableNodeIndex": 588,
+      "renderableNodeIndices": [
+        588
+      ],
+      "selector": "ref:J16",
+      "selectorNodeIndex": 588
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J17",
+      "renderableNodeIndex": 258,
+      "renderableNodeIndices": [
+        258
+      ],
+      "selector": "ref:J17",
+      "selectorNodeIndex": 258
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J19",
+      "renderableNodeIndex": 302,
+      "renderableNodeIndices": [
+        302
+      ],
+      "selector": "ref:J19",
+      "selectorNodeIndex": 302
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J2",
+      "renderableNodeIndex": 174,
+      "renderableNodeIndices": [
+        174
+      ],
+      "selector": "ref:J2",
+      "selectorNodeIndex": 174
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J20",
+      "renderableNodeIndex": 328,
+      "renderableNodeIndices": [
+        328
+      ],
+      "selector": "ref:J20",
+      "selectorNodeIndex": 328
+    },
+    {
+      "assemblyStateClaim": "not_fitted",
+      "categoryClaim": "unpopulated_footprint",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": false,
+      "modelQualityClaim": "not_fitted_by_explicit_source_override",
+      "needs3dBody": false,
+      "reference": "J21",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J3",
+      "renderableNodeIndex": 628,
+      "renderableNodeIndices": [
+        628
+      ],
+      "selector": "ref:J3",
+      "selectorNodeIndex": 628
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J4",
+      "renderableNodeIndex": 91,
+      "renderableNodeIndices": [
+        91
+      ],
+      "selector": "ref:J4",
+      "selectorNodeIndex": 91
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J5",
+      "renderableNodeIndex": 109,
+      "renderableNodeIndices": [
+        109
+      ],
+      "selector": "ref:J5",
+      "selectorNodeIndex": 109
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J6",
+      "renderableNodeIndex": 571,
+      "renderableNodeIndices": [
+        571
+      ],
+      "selector": "ref:J6",
+      "selectorNodeIndex": 571
+    },
+    {
+      "assemblyStateClaim": "not_fitted",
+      "categoryClaim": "unpopulated_footprint",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": false,
+      "modelQualityClaim": "not_fitted_by_explicit_source_override",
+      "needs3dBody": false,
+      "reference": "J7",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J8",
+      "renderableNodeIndex": 314,
+      "renderableNodeIndices": [
+        314
+      ],
+      "selector": "ref:J8",
+      "selectorNodeIndex": 314
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "connector_or_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "J9",
+      "renderableNodeIndex": 284,
+      "renderableNodeIndices": [
+        284
+      ],
+      "selector": "ref:J9",
+      "selectorNodeIndex": 284
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP1",
+      "renderableNodeIndex": 220,
+      "renderableNodeIndices": [
+        220
+      ],
+      "selector": "ref:JP1",
+      "selectorNodeIndex": 220
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP2",
+      "renderableNodeIndex": 537,
+      "renderableNodeIndices": [
+        537
+      ],
+      "selector": "ref:JP2",
+      "selectorNodeIndex": 537
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP3",
+      "renderableNodeIndex": 466,
+      "renderableNodeIndices": [
+        466
+      ],
+      "selector": "ref:JP3",
+      "selectorNodeIndex": 466
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP4",
+      "renderableNodeIndex": 216,
+      "renderableNodeIndices": [
+        216
+      ],
+      "selector": "ref:JP4",
+      "selectorNodeIndex": 216
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP5",
+      "renderableNodeIndex": 286,
+      "renderableNodeIndices": [
+        286
+      ],
+      "selector": "ref:JP5",
+      "selectorNodeIndex": 286
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP6",
+      "renderableNodeIndex": 38,
+      "renderableNodeIndices": [
+        38
+      ],
+      "selector": "ref:JP6",
+      "selectorNodeIndex": 38
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP7",
+      "renderableNodeIndex": 448,
+      "renderableNodeIndices": [
+        448
+      ],
+      "selector": "ref:JP7",
+      "selectorNodeIndex": 448
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "jumper",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "JP8",
+      "renderableNodeIndex": 103,
+      "renderableNodeIndices": [
+        103
+      ],
+      "selector": "ref:JP8",
+      "selectorNodeIndex": 103
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L1",
+      "renderableNodeIndex": 705,
+      "renderableNodeIndices": [
+        705
+      ],
+      "selector": "ref:L1",
+      "selectorNodeIndex": 705
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L10",
+      "renderableNodeIndex": 182,
+      "renderableNodeIndices": [
+        182
+      ],
+      "selector": "ref:L10",
+      "selectorNodeIndex": 182
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L11",
+      "renderableNodeIndex": 326,
+      "renderableNodeIndices": [
+        326
+      ],
+      "selector": "ref:L11",
+      "selectorNodeIndex": 326
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L12",
+      "renderableNodeIndex": 62,
+      "renderableNodeIndices": [
+        62
+      ],
+      "selector": "ref:L12",
+      "selectorNodeIndex": 62
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L13",
+      "renderableNodeIndex": 372,
+      "renderableNodeIndices": [
+        372
+      ],
+      "selector": "ref:L13",
+      "selectorNodeIndex": 372
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L14",
+      "renderableNodeIndex": 603,
+      "renderableNodeIndices": [
+        603
+      ],
+      "selector": "ref:L14",
+      "selectorNodeIndex": 603
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L15",
+      "renderableNodeIndex": 318,
+      "renderableNodeIndices": [
+        318
+      ],
+      "selector": "ref:L15",
+      "selectorNodeIndex": 318
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "L2",
+      "renderableNodeIndex": 427,
+      "renderableNodeIndices": [
+        427
+      ],
+      "selector": "ref:L2",
+      "selectorNodeIndex": 427
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L3",
+      "renderableNodeIndex": 29,
+      "renderableNodeIndices": [
+        29
+      ],
+      "selector": "ref:L3",
+      "selectorNodeIndex": 29
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L4",
+      "renderableNodeIndex": 654,
+      "renderableNodeIndices": [
+        654
+      ],
+      "selector": "ref:L4",
+      "selectorNodeIndex": 654
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L6",
+      "renderableNodeIndex": 599,
+      "renderableNodeIndices": [
+        599
+      ],
+      "selector": "ref:L6",
+      "selectorNodeIndex": 599
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L7",
+      "renderableNodeIndex": 158,
+      "renderableNodeIndices": [
+        158
+      ],
+      "selector": "ref:L7",
+      "selectorNodeIndex": 158
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L8",
+      "renderableNodeIndex": 172,
+      "renderableNodeIndices": [
+        172
+      ],
+      "selector": "ref:L8",
+      "selectorNodeIndex": 172
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "inductor_or_ferrite",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "L9",
+      "renderableNodeIndex": 79,
+      "renderableNodeIndices": [
+        79
+      ],
+      "selector": "ref:L9",
+      "selectorNodeIndex": 79
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "transistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "Q1",
+      "renderableNodeIndex": 374,
+      "renderableNodeIndices": [
+        374
+      ],
+      "selector": "ref:Q1",
+      "selectorNodeIndex": 374
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "transistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "Q2",
+      "renderableNodeIndex": 542,
+      "renderableNodeIndices": [
+        542
+      ],
+      "selector": "ref:Q2",
+      "selectorNodeIndex": 542
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R100",
+      "renderableNodeIndex": 362,
+      "renderableNodeIndices": [
+        362
+      ],
+      "selector": "ref:R100",
+      "selectorNodeIndex": 362
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R101",
+      "renderableNodeIndex": 68,
+      "renderableNodeIndices": [
+        68
+      ],
+      "selector": "ref:R101",
+      "selectorNodeIndex": 68
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R102",
+      "renderableNodeIndex": 549,
+      "renderableNodeIndices": [
+        549
+      ],
+      "selector": "ref:R102",
+      "selectorNodeIndex": 549
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R103",
+      "renderableNodeIndex": 464,
+      "renderableNodeIndices": [
+        464
+      ],
+      "selector": "ref:R103",
+      "selectorNodeIndex": 464
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R104",
+      "renderableNodeIndex": 379,
+      "renderableNodeIndices": [
+        379
+      ],
+      "selector": "ref:R104",
+      "selectorNodeIndex": 379
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R105",
+      "renderableNodeIndex": 77,
+      "renderableNodeIndices": [
+        77
+      ],
+      "selector": "ref:R105",
+      "selectorNodeIndex": 77
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R106",
+      "renderableNodeIndex": 270,
+      "renderableNodeIndices": [
+        270
+      ],
+      "selector": "ref:R106",
+      "selectorNodeIndex": 270
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R107",
+      "renderableNodeIndex": 630,
+      "renderableNodeIndices": [
+        630
+      ],
+      "selector": "ref:R107",
+      "selectorNodeIndex": 630
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R108",
+      "renderableNodeIndex": 72,
+      "renderableNodeIndices": [
+        72
+      ],
+      "selector": "ref:R108",
+      "selectorNodeIndex": 72
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R109",
+      "renderableNodeIndex": 282,
+      "renderableNodeIndices": [
+        282
+      ],
+      "selector": "ref:R109",
+      "selectorNodeIndex": 282
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R110",
+      "renderableNodeIndex": 324,
+      "renderableNodeIndices": [
+        324
+      ],
+      "selector": "ref:R110",
+      "selectorNodeIndex": 324
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R111",
+      "renderableNodeIndex": 330,
+      "renderableNodeIndices": [
+        330
+      ],
+      "selector": "ref:R111",
+      "selectorNodeIndex": 330
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R112",
+      "renderableNodeIndex": 294,
+      "renderableNodeIndices": [
+        294
+      ],
+      "selector": "ref:R112",
+      "selectorNodeIndex": 294
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R113",
+      "renderableNodeIndex": 535,
+      "renderableNodeIndices": [
+        535
+      ],
+      "selector": "ref:R113",
+      "selectorNodeIndex": 535
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R116",
+      "renderableNodeIndex": 584,
+      "renderableNodeIndices": [
+        584
+      ],
+      "selector": "ref:R116",
+      "selectorNodeIndex": 584
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R117",
+      "renderableNodeIndex": 510,
+      "renderableNodeIndices": [
+        510
+      ],
+      "selector": "ref:R117",
+      "selectorNodeIndex": 510
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R118",
+      "renderableNodeIndex": 276,
+      "renderableNodeIndices": [
+        276
+      ],
+      "selector": "ref:R118",
+      "selectorNodeIndex": 276
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R119",
+      "renderableNodeIndex": 636,
+      "renderableNodeIndices": [
+        636
+      ],
+      "selector": "ref:R119",
+      "selectorNodeIndex": 636
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R12",
+      "renderableNodeIndex": 650,
+      "renderableNodeIndices": [
+        650
+      ],
+      "selector": "ref:R12",
+      "selectorNodeIndex": 650
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R120",
+      "renderableNodeIndex": 525,
+      "renderableNodeIndices": [
+        525
+      ],
+      "selector": "ref:R120",
+      "selectorNodeIndex": 525
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R121",
+      "renderableNodeIndex": 389,
+      "renderableNodeIndices": [
+        389
+      ],
+      "selector": "ref:R121",
+      "selectorNodeIndex": 389
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R122",
+      "renderableNodeIndex": 83,
+      "renderableNodeIndices": [
+        83
+      ],
+      "selector": "ref:R122",
+      "selectorNodeIndex": 83
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R125",
+      "renderableNodeIndex": 391,
+      "renderableNodeIndices": [
+        391
+      ],
+      "selector": "ref:R125",
+      "selectorNodeIndex": 391
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R126",
+      "renderableNodeIndex": 56,
+      "renderableNodeIndices": [
+        56
+      ],
+      "selector": "ref:R126",
+      "selectorNodeIndex": 56
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R127",
+      "renderableNodeIndex": 332,
+      "renderableNodeIndices": [
+        332
+      ],
+      "selector": "ref:R127",
+      "selectorNodeIndex": 332
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R13",
+      "renderableNodeIndex": 455,
+      "renderableNodeIndices": [
+        455
+      ],
+      "selector": "ref:R13",
+      "selectorNodeIndex": 455
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R130",
+      "renderableNodeIndex": 381,
+      "renderableNodeIndices": [
+        381
+      ],
+      "selector": "ref:R130",
+      "selectorNodeIndex": 381
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R132",
+      "renderableNodeIndex": 358,
+      "renderableNodeIndices": [
+        358
+      ],
+      "selector": "ref:R132",
+      "selectorNodeIndex": 358
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R133",
+      "renderableNodeIndex": 6,
+      "renderableNodeIndices": [
+        6
+      ],
+      "selector": "ref:R133",
+      "selectorNodeIndex": 6
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R134",
+      "renderableNodeIndex": 462,
+      "renderableNodeIndices": [
+        462
+      ],
+      "selector": "ref:R134",
+      "selectorNodeIndex": 462
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R135",
+      "renderableNodeIndex": 529,
+      "renderableNodeIndices": [
+        529
+      ],
+      "selector": "ref:R135",
+      "selectorNodeIndex": 529
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R136",
+      "renderableNodeIndex": 188,
+      "renderableNodeIndices": [
+        188
+      ],
+      "selector": "ref:R136",
+      "selectorNodeIndex": 188
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R137",
+      "renderableNodeIndex": 521,
+      "renderableNodeIndices": [
+        521
+      ],
+      "selector": "ref:R137",
+      "selectorNodeIndex": 521
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R139",
+      "renderableNodeIndex": 342,
+      "renderableNodeIndices": [
+        342
+      ],
+      "selector": "ref:R139",
+      "selectorNodeIndex": 342
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R14",
+      "renderableNodeIndex": 166,
+      "renderableNodeIndices": [
+        166
+      ],
+      "selector": "ref:R14",
+      "selectorNodeIndex": 166
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R140",
+      "renderableNodeIndex": 147,
+      "renderableNodeIndices": [
+        147
+      ],
+      "selector": "ref:R140",
+      "selectorNodeIndex": 147
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R141",
+      "renderableNodeIndex": 508,
+      "renderableNodeIndices": [
+        508
+      ],
+      "selector": "ref:R141",
+      "selectorNodeIndex": 508
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R142",
+      "renderableNodeIndex": 306,
+      "renderableNodeIndices": [
+        306
+      ],
+      "selector": "ref:R142",
+      "selectorNodeIndex": 306
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R143",
+      "renderableNodeIndex": 360,
+      "renderableNodeIndices": [
+        360
+      ],
+      "selector": "ref:R143",
+      "selectorNodeIndex": 360
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R144",
+      "renderableNodeIndex": 366,
+      "renderableNodeIndices": [
+        366
+      ],
+      "selector": "ref:R144",
+      "selectorNodeIndex": 366
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R145",
+      "renderableNodeIndex": 310,
+      "renderableNodeIndices": [
+        310
+      ],
+      "selector": "ref:R145",
+      "selectorNodeIndex": 310
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R146",
+      "renderableNodeIndex": 354,
+      "renderableNodeIndices": [
+        354
+      ],
+      "selector": "ref:R146",
+      "selectorNodeIndex": 354
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R147",
+      "renderableNodeIndex": 370,
+      "renderableNodeIndices": [
+        370
+      ],
+      "selector": "ref:R147",
+      "selectorNodeIndex": 370
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R148",
+      "renderableNodeIndex": 132,
+      "renderableNodeIndices": [
+        132
+      ],
+      "selector": "ref:R148",
+      "selectorNodeIndex": 132
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R149",
+      "renderableNodeIndex": 186,
+      "renderableNodeIndices": [
+        186
+      ],
+      "selector": "ref:R149",
+      "selectorNodeIndex": 186
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R15",
+      "renderableNodeIndex": 632,
+      "renderableNodeIndices": [
+        632
+      ],
+      "selector": "ref:R15",
+      "selectorNodeIndex": 632
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R150",
+      "renderableNodeIndex": 42,
+      "renderableNodeIndices": [
+        42
+      ],
+      "selector": "ref:R150",
+      "selectorNodeIndex": 42
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R153",
+      "renderableNodeIndex": 290,
+      "renderableNodeIndices": [
+        290
+      ],
+      "selector": "ref:R153",
+      "selectorNodeIndex": 290
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R154",
+      "renderableNodeIndex": 496,
+      "renderableNodeIndices": [
+        496
+      ],
+      "selector": "ref:R154",
+      "selectorNodeIndex": 496
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R155",
+      "renderableNodeIndex": 312,
+      "renderableNodeIndices": [
+        312
+      ],
+      "selector": "ref:R155",
+      "selectorNodeIndex": 312
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R156",
+      "renderableNodeIndex": 563,
+      "renderableNodeIndices": [
+        563
+      ],
+      "selector": "ref:R156",
+      "selectorNodeIndex": 563
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R157",
+      "renderableNodeIndex": 404,
+      "renderableNodeIndices": [
+        404
+      ],
+      "selector": "ref:R157",
+      "selectorNodeIndex": 404
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R158",
+      "renderableNodeIndex": 557,
+      "renderableNodeIndices": [
+        557
+      ],
+      "selector": "ref:R158",
+      "selectorNodeIndex": 557
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R159",
+      "renderableNodeIndex": 334,
+      "renderableNodeIndices": [
+        334
+      ],
+      "selector": "ref:R159",
+      "selectorNodeIndex": 334
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R160",
+      "renderableNodeIndex": 260,
+      "renderableNodeIndices": [
+        260
+      ],
+      "selector": "ref:R160",
+      "selectorNodeIndex": 260
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R161",
+      "renderableNodeIndex": 551,
+      "renderableNodeIndices": [
+        551
+      ],
+      "selector": "ref:R161",
+      "selectorNodeIndex": 551
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R162",
+      "renderableNodeIndex": 52,
+      "renderableNodeIndices": [
+        52
+      ],
+      "selector": "ref:R162",
+      "selectorNodeIndex": 52
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R163",
+      "renderableNodeIndex": 212,
+      "renderableNodeIndices": [
+        212
+      ],
+      "selector": "ref:R163",
+      "selectorNodeIndex": 212
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R164",
+      "renderableNodeIndex": 160,
+      "renderableNodeIndices": [
+        160
+      ],
+      "selector": "ref:R164",
+      "selectorNodeIndex": 160
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R166",
+      "renderableNodeIndex": 397,
+      "renderableNodeIndices": [
+        397
+      ],
+      "selector": "ref:R166",
+      "selectorNodeIndex": 397
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R167",
+      "renderableNodeIndex": 143,
+      "renderableNodeIndices": [
+        143
+      ],
+      "selector": "ref:R167",
+      "selectorNodeIndex": 143
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R168",
+      "renderableNodeIndex": 502,
+      "renderableNodeIndices": [
+        502
+      ],
+      "selector": "ref:R168",
+      "selectorNodeIndex": 502
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R169",
+      "renderableNodeIndex": 60,
+      "renderableNodeIndices": [
+        60
+      ],
+      "selector": "ref:R169",
+      "selectorNodeIndex": 60
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R170",
+      "renderableNodeIndex": 214,
+      "renderableNodeIndices": [
+        214
+      ],
+      "selector": "ref:R170",
+      "selectorNodeIndex": 214
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R171",
+      "renderableNodeIndex": 393,
+      "renderableNodeIndices": [
+        393
+      ],
+      "selector": "ref:R171",
+      "selectorNodeIndex": 393
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R172",
+      "renderableNodeIndex": 559,
+      "renderableNodeIndices": [
+        559
+      ],
+      "selector": "ref:R172",
+      "selectorNodeIndex": 559
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R173",
+      "renderableNodeIndex": 222,
+      "renderableNodeIndices": [
+        222
+      ],
+      "selector": "ref:R173",
+      "selectorNodeIndex": 222
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R174",
+      "renderableNodeIndex": 615,
+      "renderableNodeIndices": [
+        615
+      ],
+      "selector": "ref:R174",
+      "selectorNodeIndex": 615
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R175",
+      "renderableNodeIndex": 453,
+      "renderableNodeIndices": [
+        453
+      ],
+      "selector": "ref:R175",
+      "selectorNodeIndex": 453
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R176",
+      "renderableNodeIndex": 368,
+      "renderableNodeIndices": [
+        368
+      ],
+      "selector": "ref:R176",
+      "selectorNodeIndex": 368
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R178",
+      "renderableNodeIndex": 498,
+      "renderableNodeIndices": [
+        498
+      ],
+      "selector": "ref:R178",
+      "selectorNodeIndex": 498
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R179",
+      "renderableNodeIndex": 8,
+      "renderableNodeIndices": [
+        8
+      ],
+      "selector": "ref:R179",
+      "selectorNodeIndex": 8
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R18",
+      "renderableNodeIndex": 27,
+      "renderableNodeIndices": [
+        27
+      ],
+      "selector": "ref:R18",
+      "selectorNodeIndex": 27
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R180",
+      "renderableNodeIndex": 239,
+      "renderableNodeIndices": [
+        239
+      ],
+      "selector": "ref:R180",
+      "selectorNodeIndex": 239
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R181",
+      "renderableNodeIndex": 395,
+      "renderableNodeIndices": [
+        395
+      ],
+      "selector": "ref:R181",
+      "selectorNodeIndex": 395
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R182",
+      "renderableNodeIndex": 14,
+      "renderableNodeIndices": [
+        14
+      ],
+      "selector": "ref:R182",
+      "selectorNodeIndex": 14
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R183",
+      "renderableNodeIndex": 338,
+      "renderableNodeIndices": [
+        338
+      ],
+      "selector": "ref:R183",
+      "selectorNodeIndex": 338
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R184",
+      "renderableNodeIndex": 95,
+      "renderableNodeIndices": [
+        95
+      ],
+      "selector": "ref:R184",
+      "selectorNodeIndex": 95
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R185",
+      "renderableNodeIndex": 582,
+      "renderableNodeIndices": [
+        582
+      ],
+      "selector": "ref:R185",
+      "selectorNodeIndex": 582
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R186",
+      "renderableNodeIndex": 23,
+      "renderableNodeIndices": [
+        23
+      ],
+      "selector": "ref:R186",
+      "selectorNodeIndex": 23
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R187",
+      "renderableNodeIndex": 555,
+      "renderableNodeIndices": [
+        555
+      ],
+      "selector": "ref:R187",
+      "selectorNodeIndex": 555
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R188",
+      "renderableNodeIndex": 644,
+      "renderableNodeIndices": [
+        644
+      ],
+      "selector": "ref:R188",
+      "selectorNodeIndex": 644
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R189",
+      "renderableNodeIndex": 433,
+      "renderableNodeIndices": [
+        433
+      ],
+      "selector": "ref:R189",
+      "selectorNodeIndex": 433
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R190",
+      "renderableNodeIndex": 569,
+      "renderableNodeIndices": [
+        569
+      ],
+      "selector": "ref:R190",
+      "selectorNodeIndex": 569
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R191",
+      "renderableNodeIndex": 346,
+      "renderableNodeIndices": [
+        346
+      ],
+      "selector": "ref:R191",
+      "selectorNodeIndex": 346
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R197",
+      "renderableNodeIndex": 410,
+      "renderableNodeIndices": [
+        410
+      ],
+      "selector": "ref:R197",
+      "selectorNodeIndex": 410
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R2",
+      "renderableNodeIndex": 414,
+      "renderableNodeIndices": [
+        414
+      ],
+      "selector": "ref:R2",
+      "selectorNodeIndex": 414
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R202",
+      "renderableNodeIndex": 406,
+      "renderableNodeIndices": [
+        406
+      ],
+      "selector": "ref:R202",
+      "selectorNodeIndex": 406
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R203",
+      "renderableNodeIndex": 272,
+      "renderableNodeIndices": [
+        272
+      ],
+      "selector": "ref:R203",
+      "selectorNodeIndex": 272
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R204",
+      "renderableNodeIndex": 153,
+      "renderableNodeIndices": [
+        153
+      ],
+      "selector": "ref:R204",
+      "selectorNodeIndex": 153
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R206",
+      "renderableNodeIndex": 580,
+      "renderableNodeIndices": [
+        580
+      ],
+      "selector": "ref:R206",
+      "selectorNodeIndex": 580
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R207",
+      "renderableNodeIndex": 227,
+      "renderableNodeIndices": [
+        227
+      ],
+      "selector": "ref:R207",
+      "selectorNodeIndex": 227
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R210",
+      "renderableNodeIndex": 567,
+      "renderableNodeIndices": [
+        567
+      ],
+      "selector": "ref:R210",
+      "selectorNodeIndex": 567
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R211",
+      "renderableNodeIndex": 128,
+      "renderableNodeIndices": [
+        128
+      ],
+      "selector": "ref:R211",
+      "selectorNodeIndex": 128
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R213",
+      "renderableNodeIndex": 623,
+      "renderableNodeIndices": [
+        623
+      ],
+      "selector": "ref:R213",
+      "selectorNodeIndex": 623
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R214",
+      "renderableNodeIndex": 656,
+      "renderableNodeIndices": [
+        656
+      ],
+      "selector": "ref:R214",
+      "selectorNodeIndex": 656
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R216",
+      "renderableNodeIndex": 4,
+      "renderableNodeIndices": [
+        4
+      ],
+      "selector": "ref:R216",
+      "selectorNodeIndex": 4
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R22",
+      "renderableNodeIndex": 254,
+      "renderableNodeIndices": [
+        254
+      ],
+      "selector": "ref:R22",
+      "selectorNodeIndex": 254
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R23",
+      "renderableNodeIndex": 685,
+      "renderableNodeIndices": [
+        685
+      ],
+      "selector": "ref:R23",
+      "selectorNodeIndex": 685
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R24",
+      "renderableNodeIndex": 725,
+      "renderableNodeIndices": [
+        725
+      ],
+      "selector": "ref:R24",
+      "selectorNodeIndex": 725
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R25",
+      "renderableNodeIndex": 12,
+      "renderableNodeIndices": [
+        12
+      ],
+      "selector": "ref:R25",
+      "selectorNodeIndex": 12
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R257",
+      "renderableNodeIndex": 130,
+      "renderableNodeIndices": [
+        130
+      ],
+      "selector": "ref:R257",
+      "selectorNodeIndex": 130
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R265",
+      "renderableNodeIndex": 304,
+      "renderableNodeIndices": [
+        304
+      ],
+      "selector": "ref:R265",
+      "selectorNodeIndex": 304
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R276",
+      "renderableNodeIndex": 553,
+      "renderableNodeIndices": [
+        553
+      ],
+      "selector": "ref:R276",
+      "selectorNodeIndex": 553
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R278",
+      "renderableNodeIndex": 440,
+      "renderableNodeIndices": [
+        440
+      ],
+      "selector": "ref:R278",
+      "selectorNodeIndex": 440
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R294",
+      "renderableNodeIndex": 442,
+      "renderableNodeIndices": [
+        442
+      ],
+      "selector": "ref:R294",
+      "selectorNodeIndex": 442
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R295",
+      "renderableNodeIndex": 164,
+      "renderableNodeIndices": [
+        164
+      ],
+      "selector": "ref:R295",
+      "selectorNodeIndex": 164
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R297",
+      "renderableNodeIndex": 180,
+      "renderableNodeIndices": [
+        180
+      ],
+      "selector": "ref:R297",
+      "selectorNodeIndex": 180
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R298",
+      "renderableNodeIndex": 481,
+      "renderableNodeIndices": [
+        481
+      ],
+      "selector": "ref:R298",
+      "selectorNodeIndex": 481
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R299",
+      "renderableNodeIndex": 663,
+      "renderableNodeIndices": [
+        663
+      ],
+      "selector": "ref:R299",
+      "selectorNodeIndex": 663
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R31",
+      "renderableNodeIndex": 124,
+      "renderableNodeIndices": [
+        124
+      ],
+      "selector": "ref:R31",
+      "selectorNodeIndex": 124
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R32",
+      "renderableNodeIndex": 48,
+      "renderableNodeIndices": [
+        48
+      ],
+      "selector": "ref:R32",
+      "selectorNodeIndex": 48
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R33",
+      "renderableNodeIndex": 101,
+      "renderableNodeIndices": [
+        101
+      ],
+      "selector": "ref:R33",
+      "selectorNodeIndex": 101
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R34",
+      "renderableNodeIndex": 46,
+      "renderableNodeIndices": [
+        46
+      ],
+      "selector": "ref:R34",
+      "selectorNodeIndex": 46
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R35",
+      "renderableNodeIndex": 597,
+      "renderableNodeIndices": [
+        597
+      ],
+      "selector": "ref:R35",
+      "selectorNodeIndex": 597
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R36",
+      "renderableNodeIndex": 168,
+      "renderableNodeIndices": [
+        168
+      ],
+      "selector": "ref:R36",
+      "selectorNodeIndex": 168
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R37",
+      "renderableNodeIndex": 210,
+      "renderableNodeIndices": [
+        210
+      ],
+      "selector": "ref:R37",
+      "selectorNodeIndex": 210
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R38",
+      "renderableNodeIndex": 31,
+      "renderableNodeIndices": [
+        31
+      ],
+      "selector": "ref:R38",
+      "selectorNodeIndex": 31
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R39",
+      "renderableNodeIndex": 229,
+      "renderableNodeIndices": [
+        229
+      ],
+      "selector": "ref:R39",
+      "selectorNodeIndex": 229
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R4",
+      "renderableNodeIndex": 300,
+      "renderableNodeIndices": [
+        300
+      ],
+      "selector": "ref:R4",
+      "selectorNodeIndex": 300
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R40",
+      "renderableNodeIndex": 575,
+      "renderableNodeIndices": [
+        575
+      ],
+      "selector": "ref:R40",
+      "selectorNodeIndex": 575
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R43",
+      "renderableNodeIndex": 126,
+      "renderableNodeIndices": [
+        126
+      ],
+      "selector": "ref:R43",
+      "selectorNodeIndex": 126
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R44",
+      "renderableNodeIndex": 352,
+      "renderableNodeIndices": [
+        352
+      ],
+      "selector": "ref:R44",
+      "selectorNodeIndex": 352
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R49",
+      "renderableNodeIndex": 139,
+      "renderableNodeIndices": [
+        139
+      ],
+      "selector": "ref:R49",
+      "selectorNodeIndex": 139
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R5",
+      "renderableNodeIndex": 322,
+      "renderableNodeIndices": [
+        322
+      ],
+      "selector": "ref:R5",
+      "selectorNodeIndex": 322
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R50",
+      "renderableNodeIndex": 288,
+      "renderableNodeIndices": [
+        288
+      ],
+      "selector": "ref:R50",
+      "selectorNodeIndex": 288
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R53",
+      "renderableNodeIndex": 218,
+      "renderableNodeIndices": [
+        218
+      ],
+      "selector": "ref:R53",
+      "selectorNodeIndex": 218
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R54",
+      "renderableNodeIndex": 471,
+      "renderableNodeIndices": [
+        471
+      ],
+      "selector": "ref:R54",
+      "selectorNodeIndex": 471
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R55",
+      "renderableNodeIndex": 492,
+      "renderableNodeIndices": [
+        492
+      ],
+      "selector": "ref:R55",
+      "selectorNodeIndex": 492
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R56",
+      "renderableNodeIndex": 107,
+      "renderableNodeIndices": [
+        107
+      ],
+      "selector": "ref:R56",
+      "selectorNodeIndex": 107
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R57",
+      "renderableNodeIndex": 364,
+      "renderableNodeIndices": [
+        364
+      ],
+      "selector": "ref:R57",
+      "selectorNodeIndex": 364
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R6",
+      "renderableNodeIndex": 634,
+      "renderableNodeIndices": [
+        634
+      ],
+      "selector": "ref:R6",
+      "selectorNodeIndex": 634
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R64",
+      "renderableNodeIndex": 715,
+      "renderableNodeIndices": [
+        715
+      ],
+      "selector": "ref:R64",
+      "selectorNodeIndex": 715
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R67",
+      "renderableNodeIndex": 500,
+      "renderableNodeIndices": [
+        500
+      ],
+      "selector": "ref:R67",
+      "selectorNodeIndex": 500
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R69",
+      "renderableNodeIndex": 316,
+      "renderableNodeIndices": [
+        316
+      ],
+      "selector": "ref:R69",
+      "selectorNodeIndex": 316
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R7",
+      "renderableNodeIndex": 477,
+      "renderableNodeIndices": [
+        477
+      ],
+      "selector": "ref:R7",
+      "selectorNodeIndex": 477
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R70",
+      "renderableNodeIndex": 64,
+      "renderableNodeIndices": [
+        64
+      ],
+      "selector": "ref:R70",
+      "selectorNodeIndex": 64
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R71",
+      "renderableNodeIndex": 607,
+      "renderableNodeIndices": [
+        607
+      ],
+      "selector": "ref:R71",
+      "selectorNodeIndex": 607
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R72",
+      "renderableNodeIndex": 504,
+      "renderableNodeIndices": [
+        504
+      ],
+      "selector": "ref:R72",
+      "selectorNodeIndex": 504
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R73",
+      "renderableNodeIndex": 387,
+      "renderableNodeIndices": [
+        387
+      ],
+      "selector": "ref:R73",
+      "selectorNodeIndex": 387
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R74",
+      "renderableNodeIndex": 683,
+      "renderableNodeIndices": [
+        683
+      ],
+      "selector": "ref:R74",
+      "selectorNodeIndex": 683
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R75",
+      "renderableNodeIndex": 677,
+      "renderableNodeIndices": [
+        677
+      ],
+      "selector": "ref:R75",
+      "selectorNodeIndex": 677
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R76",
+      "renderableNodeIndex": 134,
+      "renderableNodeIndices": [
+        134
+      ],
+      "selector": "ref:R76",
+      "selectorNodeIndex": 134
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R77",
+      "renderableNodeIndex": 695,
+      "renderableNodeIndices": [
+        695
+      ],
+      "selector": "ref:R77",
+      "selectorNodeIndex": 695
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R78",
+      "renderableNodeIndex": 141,
+      "renderableNodeIndices": [
+        141
+      ],
+      "selector": "ref:R78",
+      "selectorNodeIndex": 141
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R79",
+      "renderableNodeIndex": 162,
+      "renderableNodeIndices": [
+        162
+      ],
+      "selector": "ref:R79",
+      "selectorNodeIndex": 162
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R8",
+      "renderableNodeIndex": 196,
+      "renderableNodeIndices": [
+        196
+      ],
+      "selector": "ref:R8",
+      "selectorNodeIndex": 196
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R80",
+      "renderableNodeIndex": 97,
+      "renderableNodeIndices": [
+        97
+      ],
+      "selector": "ref:R80",
+      "selectorNodeIndex": 97
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R81",
+      "renderableNodeIndex": 200,
+      "renderableNodeIndices": [
+        200
+      ],
+      "selector": "ref:R81",
+      "selectorNodeIndex": 200
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R82",
+      "renderableNodeIndex": 438,
+      "renderableNodeIndices": [
+        438
+      ],
+      "selector": "ref:R82",
+      "selectorNodeIndex": 438
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R83",
+      "renderableNodeIndex": 485,
+      "renderableNodeIndices": [
+        485
+      ],
+      "selector": "ref:R83",
+      "selectorNodeIndex": 485
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R84",
+      "renderableNodeIndex": 617,
+      "renderableNodeIndices": [
+        617
+      ],
+      "selector": "ref:R84",
+      "selectorNodeIndex": 617
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R85",
+      "renderableNodeIndex": 424,
+      "renderableNodeIndices": [
+        424
+      ],
+      "selector": "ref:R85",
+      "selectorNodeIndex": 424
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R86",
+      "renderableNodeIndex": 385,
+      "renderableNodeIndices": [
+        385
+      ],
+      "selector": "ref:R86",
+      "selectorNodeIndex": 385
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R87",
+      "renderableNodeIndex": 2,
+      "renderableNodeIndices": [
+        2
+      ],
+      "selector": "ref:R87",
+      "selectorNodeIndex": 2
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R88",
+      "renderableNodeIndex": 638,
+      "renderableNodeIndices": [
+        638
+      ],
+      "selector": "ref:R88",
+      "selectorNodeIndex": 638
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R89",
+      "renderableNodeIndex": 233,
+      "renderableNodeIndices": [
+        233
+      ],
+      "selector": "ref:R89",
+      "selectorNodeIndex": 233
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R90",
+      "renderableNodeIndex": 605,
+      "renderableNodeIndices": [
+        605
+      ],
+      "selector": "ref:R90",
+      "selectorNodeIndex": 605
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R91",
+      "renderableNodeIndex": 527,
+      "renderableNodeIndices": [
+        527
+      ],
+      "selector": "ref:R91",
+      "selectorNodeIndex": 527
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R92",
+      "renderableNodeIndex": 149,
+      "renderableNodeIndices": [
+        149
+      ],
+      "selector": "ref:R92",
+      "selectorNodeIndex": 149
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R93",
+      "renderableNodeIndex": 50,
+      "renderableNodeIndices": [
+        50
+      ],
+      "selector": "ref:R93",
+      "selectorNodeIndex": 50
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R94",
+      "renderableNodeIndex": 190,
+      "renderableNodeIndices": [
+        190
+      ],
+      "selector": "ref:R94",
+      "selectorNodeIndex": 190
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R95",
+      "renderableNodeIndex": 81,
+      "renderableNodeIndices": [
+        81
+      ],
+      "selector": "ref:R95",
+      "selectorNodeIndex": 81
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R96",
+      "renderableNodeIndex": 573,
+      "renderableNodeIndices": [
+        573
+      ],
+      "selector": "ref:R96",
+      "selectorNodeIndex": 573
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R97",
+      "renderableNodeIndex": 266,
+      "renderableNodeIndices": [
+        266
+      ],
+      "selector": "ref:R97",
+      "selectorNodeIndex": 266
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R98",
+      "renderableNodeIndex": 274,
+      "renderableNodeIndices": [
+        274
+      ],
+      "selector": "ref:R98",
+      "selectorNodeIndex": 274
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "R99",
+      "renderableNodeIndex": 519,
+      "renderableNodeIndices": [
+        519
+      ],
+      "selector": "ref:R99",
+      "selectorNodeIndex": 519
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "SJ1",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "SJ2",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "SJ3",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "SJ4",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": null,
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "SJ5",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "switch",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "SW1",
+      "renderableNodeIndex": 451,
+      "renderableNodeIndices": [
+        451
+      ],
+      "selector": "ref:SW1",
+      "selectorNodeIndex": 451
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "switch",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "SW2",
+      "renderableNodeIndex": 377,
+      "renderableNodeIndices": [
+        377
+      ],
+      "selector": "ref:SW2",
+      "selectorNodeIndex": 377
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "switch",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "SW3",
+      "renderableNodeIndex": 21,
+      "renderableNodeIndices": [
+        21
+      ],
+      "selector": "ref:SW3",
+      "selectorNodeIndex": 21
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP10",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP11",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP12",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP13",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP14",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP15",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP16",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP17",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP18",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP19",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP2",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP20",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP21",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP22",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP23",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP24",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP25",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP26",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP27",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP28",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP29",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP30",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP31",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP32",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP5",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP6",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP8",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "non_populated_reference",
+      "componentClassClaim": "test_point",
+      "modelAvailable": false,
+      "modelQualityClaim": null,
+      "needs3dBody": false,
+      "reference": "TP9",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U1",
+      "renderableNodeIndex": 469,
+      "renderableNodeIndices": [
+        469
+      ],
+      "selector": "ref:U1",
+      "selectorNodeIndex": 469
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U10",
+      "renderableNodeIndex": 490,
+      "renderableNodeIndices": [
+        490
+      ],
+      "selector": "ref:U10",
+      "selectorNodeIndex": 490
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "verified_package_approximation",
+      "needs3dBody": true,
+      "reference": "U11",
+      "renderableNodeIndex": 243,
+      "renderableNodeIndices": [
+        243
+      ],
+      "selector": "ref:U11",
+      "selectorNodeIndex": 243
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "U12",
+      "renderableNodeIndex": 646,
+      "renderableNodeIndices": [
+        646
+      ],
+      "selector": "ref:U12",
+      "selectorNodeIndex": 646
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U2",
+      "renderableNodeIndex": 436,
+      "renderableNodeIndices": [
+        436
+      ],
+      "selector": "ref:U2",
+      "selectorNodeIndex": 436
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "U3",
+      "renderableNodeIndex": 99,
+      "renderableNodeIndices": [
+        99
+      ],
+      "selector": "ref:U3",
+      "selectorNodeIndex": 99
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U4",
+      "renderableNodeIndex": 402,
+      "renderableNodeIndices": [
+        402
+      ],
+      "selector": "ref:U4",
+      "selectorNodeIndex": 402
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U41",
+      "renderableNodeIndex": 578,
+      "renderableNodeIndices": [
+        578
+      ],
+      "selector": "ref:U41",
+      "selectorNodeIndex": 578
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U5",
+      "renderableNodeIndex": 118,
+      "renderableNodeIndices": [
+        118
+      ],
+      "selector": "ref:U5",
+      "selectorNodeIndex": 118
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U6",
+      "renderableNodeIndex": 225,
+      "renderableNodeIndices": [
+        225
+      ],
+      "selector": "ref:U6",
+      "selectorNodeIndex": 225
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U7",
+      "renderableNodeIndex": 659,
+      "renderableNodeIndices": [
+        659
+      ],
+      "selector": "ref:U7",
+      "selectorNodeIndex": 659
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_unqualified",
+      "needs3dBody": true,
+      "reference": "U8",
+      "renderableNodeIndex": 75,
+      "renderableNodeIndices": [
+        75
+      ],
+      "selector": "ref:U8",
+      "selectorNodeIndex": 75
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "integrated_circuit",
+      "modelAvailable": true,
+      "modelQualityClaim": "dimension_accurate_placeholder",
+      "needs3dBody": true,
+      "reference": "U9",
+      "renderableNodeIndex": 460,
+      "renderableNodeIndices": [
+        460
+      ],
+      "selector": "ref:U9",
+      "selectorNodeIndex": 460
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "crystal_or_oscillator",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "Y1",
+      "renderableNodeIndex": 170,
+      "renderableNodeIndices": [
+        170
+      ],
+      "selector": "ref:Y1",
+      "selectorNodeIndex": 170
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "crystal_or_oscillator",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "Y2",
+      "renderableNodeIndex": 25,
+      "renderableNodeIndices": [
+        25
+      ],
+      "selector": "ref:Y2",
+      "selectorNodeIndex": 25
+    },
+    {
+      "assemblyStateClaim": null,
+      "categoryClaim": "physical_component",
+      "componentClassClaim": "crystal_or_oscillator",
+      "modelAvailable": true,
+      "modelQualityClaim": "exact_package_geometry",
+      "needs3dBody": true,
+      "reference": "Y3",
+      "renderableNodeIndex": 231,
+      "renderableNodeIndices": [
+        231
+      ],
+      "selector": "ref:Y3",
+      "selectorNodeIndex": 231
+    }
+  ],
+  "directRenderableSelectors": 351,
+  "geometryBoundsComparedWithManifest": false,
+  "missingRequiredModelCount": 0,
+  "multiMeshComponentCount": 0,
+  "physicalFitVerified": false,
+  "positionalGuidanceAllowed": false,
+  "renderableCount": 351,
+  "renderableMeshNodeCount": 351,
+  "schema": "tokito.component-selection-index.v1",
+  "sourceSha256": {
+    "componentMap": "e1671095e68b048da74eb44747ef9223ba924592a5ece41ba3ea67404f09f80f",
+    "glb": "49bac35c3941ebc403cf0faa40fb6fb21d31fdb104083c90eb5964014ca8b43a",
+    "manifest": "2af48d70a4d5f3a1c6c7efc2bac2cc510885978a9ebb070a0c885340a80b4ef1"
+  },
+  "unmappedRenderableNodes": [
+    {
+      "meshIndex": 354,
+      "name": "=>[0:1:1:112]",
+      "nodeIndex": 732
+    }
+  ]
+}

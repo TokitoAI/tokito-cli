@@ -3,9 +3,11 @@
 mod assembly;
 mod association;
 mod board_inputs;
+mod drill;
 mod embedded;
 mod pose_inputs;
 mod records;
+mod substrate;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -151,13 +153,65 @@ fn inspect(path: &Path) -> Result<Value, String> {
 
 fn main() {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "inspect-drill") {
+        let result = if args.len() == 2 {
+            (|| -> Result<Value, String> {
+                let mut bytes = Vec::new();
+                std::fs::File::open(&args[1])
+                    .map_err(|e| e.to_string())?
+                    .take(1024 * 1024 + 1)
+                    .read_to_end(&mut bytes)
+                    .map_err(|e| e.to_string())?;
+                let text = std::str::from_utf8(&bytes).map_err(|_| "drill_encoding")?;
+                let mut report = drill::inspect(text)?;
+                report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+                report["admitted"] = json!(false);
+                Ok(report)
+            })()
+        } else {
+            Err("usage: tokito-altium-evaluation inspect-drill <explicit-format.Excellon>".into())
+        };
+        println!(
+            "{}",
+            result.unwrap_or_else(|e| json!({"error":e,"admitted":false}))
+        );
+        std::process::exit(2);
+    }
     if args.first().is_some_and(|a| a == "export-prototype") {
         let result = if args.len() == 5 && args[4] == "--allow-partial" {
             inspect(Path::new(&args[1])).and_then(|source| {
                 assembly::export(&source, Path::new(&args[2]), Path::new(&args[3]))
             })
+        } else if (7..=22).contains(&args.len())
+            && args[4] == "--allow-partial"
+            && args[5] == "--drills-board-relative"
+        {
+            (|| -> Result<Value, String> {
+                let source = inspect(Path::new(&args[1]))?;
+                let mut drills = Vec::new();
+                for path in &args[6..] {
+                    let mut bytes = Vec::new();
+                    std::fs::File::open(path)
+                        .map_err(|e| e.to_string())?
+                        .take(1024 * 1024 + 1)
+                        .read_to_end(&mut bytes)
+                        .map_err(|e| e.to_string())?;
+                    let mut report =
+                        drill::inspect(std::str::from_utf8(&bytes).map_err(|_| "drill_encoding")?)?;
+                    report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+                    report["sourceFileName"] =
+                        json!(Path::new(path).file_name().and_then(|s| s.to_str()));
+                    drills.push(report);
+                }
+                assembly::export_with_drills(
+                    &source,
+                    Path::new(&args[2]),
+                    Path::new(&args[3]),
+                    &drills,
+                )
+            })()
         } else {
-            Err("usage: tokito-altium-evaluation export-prototype <materialized.PcbDoc> <positioned-mesh-report-directory> <new-output-directory> --allow-partial; qualified assembly unavailable".into())
+            Err("usage: tokito-altium-evaluation export-prototype <materialized.PcbDoc> <positioned-mesh-report-directory> <new-output-directory> --allow-partial [--drills-board-relative <drill-file>...]; qualified assembly unavailable".into())
         };
         match result {
             Ok(report) => {

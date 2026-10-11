@@ -12,3 +12,4 @@ tests/fixtures/open-source/** -text -whitespace
 tests/fixtures/compat-v0/** -text -whitespace
 # Frozen demo hashes cover exact viewer/manifest/model bytes on every platform.
 demo/** -text -whitespace
+docs/evidence/nxp-refined-local-verification-20261011.json -text -whitespace

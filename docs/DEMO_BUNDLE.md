@@ -9,6 +9,7 @@ build caches, executable binaries, photos and bulk STEP datasets are excluded.
 | ESP8266 NodeMCU source reference | 34 | 34 | Physical pose/surfaces, pads/drills/silkscreen and AR unqualified |
 | ESP32 community-layout reference | 26 | 23 | CP2102 U3 missing; photographed clone correspondence and physical geometry unverified |
 | Ultimainboard 2.1.4 | 574 | 310 | Four package bodies and four spacers unresolved; physical fit and registration unverified |
+| NXP refined accepted prototype | 391 | 351 | 20 placeholders remain; J7/J14/J21 not fitted; physical/AR unqualified |
 | NXP Rev C source-reference baseline | 391 | 354 | Physical population/geometry unverified; latest dataset PR #21 intake is separate |
 
 ESP32 is a Rust CLI-generated partial assembly using source PCB placements and

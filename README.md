@@ -145,3 +145,5 @@ CLI geometry and the App's calibrated AR presentation.
 source-bound component/body/model inventory and remaining assembly gates.
 [Placement research](docs/ESP8266_PLACEMENT_RESEARCH.md) explains body-specific
 pose inputs and why model-library rotations must not be applied twice.
+
+Use `demo/nxp-refined/` for the accepted NXP prototype: 391 references and 351 selectable bodies. See [source evidence](docs/NXP_REALISM_UPGRADE.md) and [Afan integration prompt](docs/AFAN_CODEX_INTEGRATION_PROMPT.md). Physical geometry and AR admission remain unqualified.

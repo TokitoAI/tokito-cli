@@ -1,0 +1,14 @@
+[package]
+name = "tokito-twin-refinement"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+tokito-cli = { path = "../.." }
+gltf = { version = "=1.4.1", default-features = false }
+serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }
+sha2 = "=0.10.9"
+serde = "=1.0.229"

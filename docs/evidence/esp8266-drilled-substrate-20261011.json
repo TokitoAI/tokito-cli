@@ -1,0 +1,16 @@
+{
+  "schema": "tokito.drilled-substrate-e2e.v1",
+  "passed": true,
+  "glbSha256": "e747110af5564df662fec0ac17a1a0f140c696246abe06c3a3df3cb3a9dac4b7",
+  "holes": 279,
+  "slots": 2,
+  "substrateTriangles": 36424,
+  "closedOrientedEdgeManifold": true,
+  "topAreaMm2": 1156.839848974925,
+  "bottomAreaMm2": 1156.839848974925,
+  "floatExportAreaBoundMm2": 0.8178860677118008,
+  "allOpeningCentresUncovered": true,
+  "physicalFitVerified": false,
+  "testedBinarySha256": "f436aa47aefeb851d8be4fd3ddeab9ac70cee891ce435c2c04715b6fa244d539",
+  "sourceVerificationReceiptSha256": "f7c511064b4ec606b541ddff2b89b48541ece93f2d895328d3ce980a77f8fffc"
+}

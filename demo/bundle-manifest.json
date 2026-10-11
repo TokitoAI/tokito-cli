@@ -216,6 +216,96 @@
       "bytes": 331,
       "sha256": "f98649864e91bc888be5263d7ea29f6b9a9dce2358f9ac4a97c9e30cda8c99bc",
       "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/browser-acceptance.json"
+    },
+    {
+      "path": "nxp-refined/active.digital-twin.glb",
+      "bytes": 25398668,
+      "sha256": "49bac35c3941ebc403cf0faa40fb6fb21d31fdb104083c90eb5964014ca8b43a",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/active.digital-twin.glb"
+    },
+    {
+      "path": "nxp-refined/active.digital-twin.json",
+      "bytes": 1424,
+      "sha256": "2af48d70a4d5f3a1c6c7efc2bac2cc510885978a9ebb070a0c885340a80b4ef1",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/active.digital-twin.json"
+    },
+    {
+      "path": "nxp-refined/component-map.json",
+      "bytes": 298871,
+      "sha256": "e1671095e68b048da74eb44747ef9223ba924592a5ece41ba3ea67404f09f80f",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/component-map.json"
+    },
+    {
+      "path": "nxp-refined/component-index.json",
+      "bytes": 164041,
+      "sha256": "40d25ad2d6b890837eb9f0df721076939d07b298180161996c98b362301513c6",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/component-index.json"
+    },
+    {
+      "path": "nxp-refined/index.html",
+      "bytes": 34008771,
+      "sha256": "bab0e1c814cf3fe5657e3ff9dfac99a6f0133c6c410566dc9b735527f355fb47",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/index.html"
+    },
+    {
+      "path": "nxp-refined/prepare-report.json",
+      "bytes": 278962,
+      "sha256": "f57585e4b08a4cf1d1f61b02b580988133a8fe5f64e22358199409b228e24c2b",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prepare-report.json"
+    },
+    {
+      "path": "nxp-refined/nxp-refined-4k.png",
+      "bytes": 341926,
+      "sha256": "f86ff187dbdac98b80d32f6b5b58e512a2d99dd2c8af99af8c0647b7a35effc2",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/nxp-refined-4k.png"
+    },
+    {
+      "path": "nxp-refined/refinement-e2e.json",
+      "bytes": 1011,
+      "sha256": "a7669cfb06da005da3df1f5b87a2dc2b234cb1467e8f2f6e855a8b616b780abc",
+      "sourceArtifact": "target/local-verification/20261011T034606Z-c4820f16a66949eb9194cb16a837ab02/nxp-refinement-e2e/refinement-e2e.json"
+    },
+    {
+      "path": "nxp-refined/browser-acceptance.json",
+      "bytes": 572,
+      "sha256": "cbf3e289056a2fe8f2739de2af41e7d98c19bc46ad2a30ca06d28eeab86894e4",
+      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/browser-acceptance.json"
+    },
+    {
+      "path": "nxp-refined/refinement.json",
+      "bytes": 10829,
+      "sha256": "95a9cca1c6218620125aa8661cb1de81821e898aa5351aacf39098679a4df2d3",
+      "sourceArtifact": "target/component-intake/nxp-refinement-20261011/refinement.json"
+    },
+    {
+      "path": "nxp-refined/native-components.json",
+      "bytes": 1336608,
+      "sha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "sourceArtifact": "target/component-intake/nxp-refinement-20261011/native-components.json"
+    },
+    {
+      "path": "nxp-refined/U8-mesh.json",
+      "bytes": 15752584,
+      "sha256": "f5495514092901b2cf43b6aa65edc753466a1b242fa567a61600293c6db721ee",
+      "sourceArtifact": "target/component-intake/nxp-refinement-20261011/U8-mesh.json"
+    },
+    {
+      "path": "nxp-refined/J10-mesh.json",
+      "bytes": 1905663,
+      "sha256": "ed4b3e1fe44652c8d6deba0c25ffd46706d11659582f03e6a00f41f7e33c83ab",
+      "sourceArtifact": "target/component-intake/nxp-refinement-20261011/J10-mesh.json"
+    },
+    {
+      "path": "nxp-refined/J11-mesh.json",
+      "bytes": 1905663,
+      "sha256": "ed4b3e1fe44652c8d6deba0c25ffd46706d11659582f03e6a00f41f7e33c83ab",
+      "sourceArtifact": "target/component-intake/nxp-refinement-20261011/J11-mesh.json"
+    },
+    {
+      "path": "nxp-refined/evaluated-step-reference.json",
+      "bytes": 2280,
+      "sha256": "d6d98afebe479561c2237c1ae3ba0d32ee6cfe307e1a8a0969043d4790044946",
+      "sourceArtifact": "target/component-intake/nxp-independent-evaluated-reference.json"
     }
   ],
   "bytes": 78804176,

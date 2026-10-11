@@ -1,0 +1,38 @@
+{
+  "schema": "tokito.nxp-refinement-e2e.v1",
+  "passed": true,
+  "outputGlbSha256": "49bac35c3941ebc403cf0faa40fb6fb21d31fdb104083c90eb5964014ca8b43a",
+  "comparisons": [
+    {
+      "reference": "U8",
+      "triangles": 134832,
+      "exactZeroOmitted": 196,
+      "sourceCoordinatesColoursNormalsCompared": true,
+      "pcbPadOriginXYCompared": true
+    },
+    {
+      "reference": "J10",
+      "triangles": 16510,
+      "exactZeroOmitted": 20,
+      "sourceCoordinatesColoursNormalsCompared": true,
+      "pcbPadOriginXYCompared": true
+    },
+    {
+      "reference": "J11",
+      "triangles": 16510,
+      "exactZeroOmitted": 20,
+      "sourceCoordinatesColoursNormalsCompared": true,
+      "pcbPadOriginXYCompared": true
+    }
+  ],
+  "notFittedBodiesRemoved": [
+    "J7",
+    "J14",
+    "J21"
+  ],
+  "negativeJourneys": 7,
+  "unchangedOtherNodes": true,
+  "binaryPrefixPreserved": true,
+  "physicalFitVerified": false,
+  "shippingCliImportAndPrototypePassed": true
+}

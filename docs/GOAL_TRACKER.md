@@ -539,3 +539,19 @@ world placement and the full delivery gate are still incomplete.
 
 KiCad parity #13, footprint/library #24, physical AR, product-level STEP/Altium
 and schematic-to-physical-layout remain incomplete. Goal remains active.
+
+### Source-derived board openings checkpoint
+
+| Owner | Dependencies | State | Evidence / review | Next action |
+|---|---|---|---|---|
+| Main | Pinned V4 Excellon sources | Original bounded Rust inventory implemented locally | 37 experimental Rust tests passed; actual subprocess compared 279 holes and 2 slots to Decimal arithmetic; 5 refusals passed | Validate frame, containment and overlapping openings |
+| Independent PR auditor | Parser and real-file test | No demonstrated runtime blocker; two test assertion gaps corrected | Coordinate lengths and unique tool counts now checked; real-file journey reran successfully | Review substrate triangulation and normals |
+| Main | Current source and complete inputs | Local verification flow extended; no new push | New drill E2E gate registered; previous 35-gate receipt does not cover this slice | Fresh complete verification before delivery |
+
+See [the source profile and geometry gate](EXCELLON_SOURCE_INVENTORY.md).
+The frozen ESP8266 demo remains solid; the separate drilled v4 candidate passed edge, area and opening-centre checks. No physical, AR, full
+KiCad parity or product completion is claimed.
+
+### Accepted NXP v3 checkpoint
+
+391 reference records, 351 selectable bodies; U8/J10/J11 source-body replacements and J7/J14/J21 not-fitted suppression. Actual source E2E, seven refusal journeys and all 351 browser selections passed. All 41 fresh local delivery gates passed, plus a separate fresh-binary drilled-substrate E2E. Twenty source placeholders, physical geometry and AR qualification remain open. See [source evidence](NXP_REALISM_UPGRADE.md) and [Afan prompt](AFAN_CODEX_INTEGRATION_PROMPT.md).
