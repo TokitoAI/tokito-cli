@@ -2,7 +2,7 @@
 
 This review selects ideas and observable behavior, not copied source. The shipping CLI remains an original pure-Rust implementation with no KiCad or native CAD runtime dependency.
 
-This is a bounded workflow assessment, not completed reverse engineering of every generator or a complete Rust footprint implementation. The current generation code produces a nominal cuboid WRL only. Land-pattern rules, terminal/pad families, tolerance-aware geometry, .kicad_mod serialization and independent manufacturer/reference comparisons remain unimplemented. The new twin preparation module operates on existing GLB geometry; it does not fill those generator gaps.
+This is a bounded workflow assessment, not completed reverse engineering of every generator or a complete Rust footprint implementation. The original cuboid WRL is still only a body envelope. The first Rust 0603 footprint slice now serializes a two-pad .kicad_mod candidate with typed geometry and a pinned KiCad 10.0.5 library comparison; see [its evidence and limits](PROJECT_INTAKE_AND_FOOTPRINT.md). Manufacturer land-pattern qualification, other pad/package families, terminals/body surfaces and full library-tool behavior remain open. The twin preparation module operates on existing GLB geometry and does not fill those gaps.
 
 | Project/reference | Pinned version or revision | Useful behavior | Limit and Tokito decision |
 |---|---|---|---|

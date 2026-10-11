@@ -421,6 +421,50 @@ fn component_model_envelope_command(args: &[String]) -> Result<(), CliError> {
     Ok(())
 }
 
+fn component_footprint_command(args: &[String]) -> Result<(), CliError> {
+    if !matches!(args.len(), 5 | 6)
+        || args[1] != "footprint"
+        || args[2] != "r0603"
+        || args[3] != "--output"
+        || (args.len() == 6 && args[5] != "--json")
+    {
+        return Err(CliError::new(
+            "usage: tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]",
+        ));
+    }
+    let spec = footprint_family::TwoTerminalChipSpec::r0603_nominal();
+    let data = spec
+        .to_kicad_mod()
+        .map_err(|error| CliError::new(error.to_string()))?;
+    write_new_file(Path::new(&args[4]), data.as_bytes())?;
+    if args.len() == 6 {
+        let report = serde_json::json!({
+            "schema": "tokito.footprint-family-report.v1",
+            "status": "library-geometry-candidate",
+            "family": "two-terminal-chip",
+            "footprint": spec.name,
+            "padCount": 2,
+            "units": "mm",
+            "sourceReference": "KiCad 10.0.5 R_0603_1608Metric.kicad_mod, SHA-256 03fc7902b2661df01b4d828fdb6eab9eddf974e7130ed2b98892607387a50c4b",
+            "manufacturerLandPatternQualified": false,
+            "componentBodyGenerated": false,
+            "componentModelQualified": false,
+            "boardPlacementVerified": false
+        });
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|error| CliError::new(error.to_string()))?
+        );
+    } else {
+        println!(
+            "Wrote {} library-geometry footprint candidate to {}",
+            spec.name, args[4]
+        );
+    }
+    Ok(())
+}
+
 fn print_help() {
     println!(
         "Tokito CLI 0.1.0\n\
@@ -432,6 +476,7 @@ fn print_help() {
          \ttokito-cli version\n\
          \ttokito-cli help [COMMAND...]\n\
          \ttokito-cli pcb [--help]\n\
+         \ttokito-cli project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--json]\n\
          \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
@@ -440,6 +485,7 @@ fn print_help() {
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
+         \ttokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n\
          \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
@@ -449,9 +495,10 @@ fn print_help() {
          \n\
          COMMAND GROUPS:\n\
          \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
+         \tproject  Inspect existing project sources and select one physical PCB.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
          \tbom      Reconcile dataset BOM references with PCB identities.\n\
-         \tcomponent Generate an evidence-bound provisional component body envelope.\n\
+         \tcomponent Generate a 0603 footprint candidate or provisional body envelope.\n\
          \ttwin     Audit and prepare per-component renderable selectors, or query authored labels.\n\
          \tdataset  Lock and verify explicitly listed offline dataset assets.\n\
          \tpackage  Build or verify a Tokito source-and-inventory package.\n\
@@ -500,6 +547,9 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
     {
         [] => print_help(),
         ["version"] => println!("USAGE: tokito-cli version\nPrint the Tokito CLI version."),
+        ["project"] | ["project", "inspect"] => println!(
+            "USAGE: tokito-cli project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--json]\nLists only top-level KiCad PCB and schematic files. Selects the sole PCB or requires an exact --board filename when ambiguous. Validates and hashes the selected PCB through the Rust engine; --expect-sha256 refuses a different revision. Schematic files are inventoried only; no layout or geometry is inferred."
+        ),
         ["inspect"] => println!(
             "USAGE: tokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\nReads supported board metadata, inventory and import diagnostics."
         ),
@@ -519,6 +569,9 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ),
         ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
+        ),
+        ["component", "footprint"] | ["component", "footprint", "r0603"] => println!(
+            "USAGE: tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\nGenerates a deterministic two-pad 0603 library-geometry candidate. Manufacturer land pattern, body model and board fit are not qualified."
         ),
         ["dataset"]
         | ["dataset", "inventory"]
@@ -614,6 +667,69 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         println!("tokito-cli 0.1.0");
         return Ok(());
     }
+    if args[0] == "project" {
+        if args.get(1).map(String::as_str) != Some("inspect") || args.len() < 3 {
+            return Err(CliError::new("use tokito-cli help project"));
+        }
+        let mut board = None;
+        let mut expected_sha256 = None;
+        let mut json = false;
+        let mut index = 3;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--board" if board.is_none() && index + 1 < args.len() => {
+                    board = Some(args[index + 1].as_str());
+                    index += 2;
+                }
+                "--expect-sha256" if expected_sha256.is_none() && index + 1 < args.len() => {
+                    expected_sha256 = Some(args[index + 1].as_str());
+                    index += 2;
+                }
+                "--json" if !json => {
+                    json = true;
+                    index += 1;
+                }
+                _ => return Err(CliError::new("use tokito-cli help project")),
+            }
+        }
+        let report = project_intake::inspect_project_with_sha256(
+            Path::new(&args[2]),
+            board,
+            expected_sha256,
+        )?;
+        if json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!("Project: {}", args[2]);
+            println!("PCB candidates: {}", report.boards.len());
+            for candidate in &report.boards {
+                println!("  {} ({} bytes)", candidate.relative_path, candidate.bytes);
+            }
+            println!("Schematic candidates: {}", report.schematics.len());
+            for candidate in &report.schematics {
+                println!("  {} ({} bytes)", candidate.relative_path, candidate.bytes);
+            }
+            if let Some(selected) = &report.selected_board {
+                println!(
+                    "Selected: {} (sha256:{})",
+                    selected.relative_path, selected.sha256
+                );
+            }
+            for diagnostic in &report.diagnostics {
+                println!("Diagnostic: {diagnostic}");
+            }
+        }
+        if !report.accepted() {
+            return Err(CliError::new(
+                "project inspection refused; inspect diagnostics",
+            ));
+        }
+        return Ok(());
+    }
     if args[0] == "pcb" {
         if args.len() == 1
             || args
@@ -653,6 +769,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         return inspect_model(args);
     }
     if args[0] == "component" {
+        if args.get(1).map(String::as_str) == Some("footprint") {
+            return component_footprint_command(args);
+        }
         return component_model_envelope_command(args);
     }
     if args[0] == "twin" {
