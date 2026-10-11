@@ -7,6 +7,7 @@ build caches, executable binaries, photos and bulk STEP datasets are excluded.
 | Bundle | Component records | Selectable bodies/groups | Remaining qualification |
 |---|---:|---:|---|
 | ESP8266 NodeMCU source reference | 34 | 34 | Physical pose/surfaces, pads/drills/silkscreen and AR unqualified |
+| ESP32 natural presentation | 26 | 23 | Same source geometry with explicit materials; CP2102 U3 and specimen qualification remain open |
 | ESP32 community-layout reference | 26 | 23 | CP2102 U3 missing; photographed clone correspondence and physical geometry unverified |
 | Ultimainboard 2.1.4 | 574 | 310 | Four package bodies and four spacers unresolved; physical fit and registration unverified |
 | NXP refined accepted prototype | 391 | 351 | 20 placeholders remain; J7/J14/J21 not fitted; physical/AR unqualified |
@@ -72,3 +73,5 @@ binary uploads remain unused. Physical fit, App import, YOLO identity matching
 and registered phone AR remain separate unfinished acceptance gates.
 
 See [the final ESP8266 acceptance and Afan handover](AFAN_INTEGRATION_HANDOVER.md#esp8266-delivery-acceptance--11-october-2026) for the new 35-gate receipt, real browser tests, evaluated bounds comparisons and remaining limitations. Open `/esp8266/index.html` when serving `demo/`.
+
+The preferred ESP32 presentation is `demo/esp32-natural/`; [source detail and material evidence](ESP32_NATURAL_MATERIALS.md) preserves its baseline, palette and comparison gates.

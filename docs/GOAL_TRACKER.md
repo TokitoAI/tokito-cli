@@ -555,3 +555,14 @@ KiCad parity or product completion is claimed.
 ### Accepted NXP v3 checkpoint
 
 391 reference records, 351 selectable bodies; U8/J10/J11 source-body replacements and J7/J14/J21 not-fitted suppression. Actual source E2E, seven refusal journeys and all 351 browser selections passed. All 41 fresh local delivery gates passed, plus a separate fresh-binary drilled-substrate E2E. Twenty source placeholders, physical geometry and AR qualification remain open. See [source evidence](NXP_REALISM_UPGRADE.md) and [Afan prompt](AFAN_CODEX_INTEGRATION_PROMPT.md).
+
+### ESP32 source detail and documentation delivery
+
+| Owner | Dependencies | State | Evidence / QA | Next action |
+|---|---|---|---|---|
+| Main | Verified 23-body source baseline and material profile | Full source detail preferred over older 19-body colour preview | Geometry/transforms/IDs unchanged; USB, switches, LED and module retained; all23selectors and4K browser passed | Physical qualification and missing U3 |
+| Documentation maintainer | Actual modules/assets/contracts | README rebuilt with previews, architecture, commands and full versioned-file map | Local links and all63 artifact hashes checked | Independent release review and PR |
+| Main | Current Rust source, cached build dependencies | Formatting, tests, Clippy, release and real CLI E2E passed | docs/evidence/esp32-presentation-local-verification-20261011.json | Push via PR; no Actions |
+
+KiCad parity and qualified phone AR remain open. This is a prototype presentation
+and documentation delivery; the wider engine goal remains active.

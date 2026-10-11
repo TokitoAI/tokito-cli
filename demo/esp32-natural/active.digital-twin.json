@@ -1,0 +1,33 @@
+{
+  "arRegistrationVerified": false,
+  "assemblyContextRevision": "explicit-exact-zero-face-derivation-d5db5cea",
+  "assetId": "tokito-selectable-c4df5130efafe198106f95b4661651b3",
+  "axes": "RIGHT_HANDED_Y_UP",
+  "boardIdentity": "esp32-community-layout-reference",
+  "boardOriginMetres": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "boardRevision": "d5a70c26a4c4",
+  "boundsMetres": {
+    "maximum": {
+      "x": 0.023504791781306267,
+      "y": 0.003939993679523468,
+      "z": 0.014592300169169903
+    },
+    "minimum": {
+      "x": -0.029349185526371002,
+      "y": -0.00937948003411293,
+      "z": -0.014592300169169903
+    }
+  },
+  "componentNodePrefix": "ref:",
+  "defaultOpacity": 0.42,
+  "glbBytes": 4676124,
+  "glbSha256": "sha256:c4df5130efafe198106f95b4661651b34eebf6a8bd38d59b4116c15e87525fb7",
+  "physicalGeometryVerified": false,
+  "releaseEligible": false,
+  "schemaVersion": "1.0",
+  "units": "METRE"
+}

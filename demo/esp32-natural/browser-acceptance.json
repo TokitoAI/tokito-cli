@@ -1,0 +1,18 @@
+{
+  "schema": "tokito.browser-acceptance.v1",
+  "passed": true,
+  "glbSha256": "c4df5130efafe198106f95b4661651b34eebf6a8bd38d59b4116c15e87525fb7",
+  "allAvailableSelectionsPassed": 23,
+  "componentCount": 26,
+  "sourceTriangleCount": 30754,
+  "offlineInteractionAfterLoad": true,
+  "orbitZoomReset": true,
+  "referenceBomComparisonVisible": true,
+  "viewerError": "",
+  "screenshotResolution": [
+    3840,
+    2160
+  ],
+  "physicalFitVerified": false,
+  "freshFileProtocolAutomation": "skipped: browser tool blocks file protocol; offline interaction after HTTP page load passed"
+}
