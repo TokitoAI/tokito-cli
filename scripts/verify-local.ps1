@@ -145,6 +145,8 @@ try {
         @{ name = 'bom-e2e'; command = $pythonCommand.Source; arguments = @('tests/bom_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'project-intake-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_intake_e2e.py', '--bin', $binaryPath) },
+        @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },

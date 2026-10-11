@@ -1,11 +1,11 @@
 # Versioned repository file map
 
-Snapshot prepared on 11 October 2026 for the ESP32/readme delivery. This lists
+Snapshot updated on 11 October 2026 for project intake and the 0603 footprint slice. This lists
 source, documentation, scripts, fixtures and frozen models; ignored build caches,
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-292 versioned/planned delivery files, including this map.
+299 versioned/planned delivery files, including this map.
 
 ```text
 tokito_cli/
@@ -136,6 +136,8 @@ tokito_cli/
 │   ├── PCB_TOPOLOGY.md
 │   ├── PERSONAL_AI_HANDOFF.md
 │   ├── PR9_CI_DIAGNOSIS.md
+│   ├── PRODUCT_COMPLETION_PLAN.md
+│   ├── PROJECT_INTAKE_AND_FOOTPRINT.md
 │   ├── REPOSITORY_MAP.md
 │   ├── SELECTABLE_PROTOTYPE.md
 │   ├── SELECTABLE_PROTOTYPE_QA.md
@@ -207,6 +209,7 @@ tokito_cli/
 │   ├── dataset_git.rs
 │   ├── digital_twin.rs
 │   ├── document.rs
+│   ├── footprint_family.rs
 │   ├── geometry.rs
 │   ├── glb.rs
 │   ├── lib.rs
@@ -217,6 +220,7 @@ tokito_cli/
 │   ├── model_resolver.rs
 │   ├── package_input.rs
 │   ├── population_audit.rs
+│   ├── project_intake.rs
 │   ├── source_candidate.rs
 │   ├── strict_json.rs
 │   ├── topology.rs
@@ -327,6 +331,8 @@ tokito_cli/
 │   ├── esp8266_drill_inventory_e2e.py
 │   ├── esp8266_drilled_substrate_e2e.py
 │   ├── esp8266_prototype_e2e.py
+│   ├── footprint_family.rs
+│   ├── footprint_family_e2e.py
 │   ├── geometry_e2e.py
 │   ├── glb_api.rs
 │   ├── glb_e2e.py
@@ -338,6 +344,7 @@ tokito_cli/
 │   ├── model_resolver_api.rs
 │   ├── nxp_refinement_e2e.py
 │   ├── prototype_browser.js
+│   ├── project_intake_e2e.py
 │   ├── source_candidate_e2e.py
 │   ├── step_candidate_mesh_e2e.py
 │   ├── step_face_coverage_e2e.py

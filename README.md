@@ -11,7 +11,7 @@ KiCad parity, schematic-to-PCB automation and qualified phone AR remain unfinish
 [Try the demos](#selectable-3d-prototypes) · [Quick start](#quick-start) ·
 [Commands](#implemented-commands) · [Architecture](#architecture) ·
 [Codebase](#codebase-map) · [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) ·
-[Roadmap](docs/GOAL_TRACKER.md)
+[Roadmap](docs/PRODUCT_COMPLETION_PLAN.md)
 
 ## Selectable 3D prototypes
 
@@ -128,6 +128,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | Command | Actual operation |
 |---|---|
 | `inspect` | Supported PCB/package metadata, identity and placement inventory |
+| `project inspect` | Bounded read-only KiCad project-folder discovery, exact PCB choice and source SHA-256 pinning |
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
 | `export svg` | Partial top/bottom physical-scale view with layer selection |
@@ -141,11 +142,13 @@ shape is not a declaration of complete KiCad command compatibility.
 | `dataset inventory/lock/verify/bind/bind-external` | Explicit immutable Git/LFS/local asset inventory, locks and provenance binding |
 | `package build/verify` | v0.1 source-and-inventory package and integrity checks |
 | `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
+| `component footprint r0603` | Deterministic two-pad 0603 library-geometry candidate; not a qualified manufacturer land pattern |
 
 Example physical-layout journey, using a supported routed PCB and **new** output
 paths:
 
 ```powershell
+./target/release/tokito-cli.exe project inspect board-project --board board.kicad_pcb --json
 ./target/release/tokito-cli.exe inspect board.kicad_pcb --json
 ./target/release/tokito-cli.exe validate outline board.kicad_pcb --json
 ./target/release/tokito-cli.exe export placements board.kicad_pcb --output placements.csv
@@ -334,7 +337,9 @@ tokito_cli/
 | Board prototypes | [Demo bundle](docs/DEMO_BUNDLE.md), [ESP32](docs/ESP32_POPULATION_AUDIT.md), [ESP8266](docs/ESP8266_SOURCE_ASSEMBLY.md), [NXP](docs/NXP_REALISM_UPGRADE.md), [Ultimaker](docs/ULTIMAKER_SELECTABLE_PROTOTYPE.md) |
 | Selection and integration | [Digital twins](docs/DIGITAL_TWIN_SELECTION.md), [board/AR audit](docs/BOARD_AR_DATASET_AUDIT.md), [ecosystem map](docs/ECOSYSTEM_CONTRACT_MAP.md), [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) |
 | Component generation | [Forge architecture](docs/COMPONENT_FORGE_ARCHITECTURE.md), [qualification](docs/COMPONENT_FORGE_QUALIFICATION.md), [BOM plan](docs/BOM_COMPONENT_QUALIFICATION.md) |
+| Project and footprint intake | [Bounded project selection and 0603 candidate](docs/PROJECT_INTAKE_AND_FOOTPRINT.md) |
 | KiCad research | [Behavior](docs/KICAD_CLI_BEHAVIOR.md), [parity matrix](docs/KICAD_CLI_PARITY_MATRIX.md), [completion gates](docs/KICAD_COMPLETION_GATES.md), [3D quality gates](docs/KICAD_3D_QUALITY_GATES.md) |
+| Product completion | [Dependency-ordered plan](docs/PRODUCT_COMPLETION_PLAN.md), [active goal history](docs/GOAL_TRACKER.md) |
 | Testing and delivery | [Local verifier](docs/CI_AND_DELIVERY.md), [fixture provenance](docs/PCB_FIXTURE_CORPUS.md), [output locations](docs/LOCAL_OUTPUT_LOCATIONS.md), [goal tracker](docs/GOAL_TRACKER.md) |
 
 Some progress documents preserve earlier checkpoints. Use their dated evidence,
@@ -392,4 +397,5 @@ explicit provenance. Current canonical workspace:
   Rust implementations and independent reference comparisons.
 
 A rendered board or successful selector does not complete the engineering
-product. [The active goal](docs/GOAL_TRACKER.md) tracks the remaining gates.
+product. [The product completion plan](docs/PRODUCT_COMPLETION_PLAN.md) tracks the
+remaining gates; [goal history](docs/GOAL_TRACKER.md) retains earlier evidence.

@@ -33,7 +33,7 @@ The CLI currently exposes Tokito-native command names; it does not implement the
 | KiCad 10.0 family / operation | KiCad documented scope | Tokito CLI today | Compatibility status and next decision |
 |---|---|---|---|
 | Root help and `version` | Six command groups; scoped help; version formats | Tokito global help/version and contextual help for implemented commands; no KiCad version-format variants | Partial discoverability only; Tokito does not implement KiCad's six root groups. |
-| `fp export svg`, `fp upgrade` | Footprint-library SVG and library conversion/upgrade | None | Defer; separate library adapter, unrelated to physical board conversion. |
+| `fp export svg`, `fp upgrade` | Footprint-library SVG and library conversion/upgrade | No equivalent KiCad command; a separate original-Rust `component footprint r0603` writes one two-pad library geometry candidate | The generated footprint was read and plotted by installed KiCad 10.0.5 during reference QA. This does not implement KiCad `fp` syntax, manufacturer qualification, or broad library generation. |
 | `jobset run` | Run selected or all project export jobs with stop-on-error behavior | None | Defer until individual outputs and their manifest are stable; later map a typed job manifest onto shared engine operations. |
 | `pcb drc` | Electrical/manufacturing design-rule analysis and reports | `validate outline` checks a narrow physical-contour topology subset | Not equivalent. Outline validation is not DRC, connectivity checking, schematic parity, or manufacturability approval. |
 | PCB 2D / manufacturing exports | Gerber, drill, DXF, GenCAD, IPC-2581, IPC-D-356, ODB++, PDF, PostScript, SVG, and related plot options | Partial SVG; source-frame placement inventory CSV | No manufacturing parity. SVG omits full KiCad plot/font semantics. CSV is not KiCad POS: it does not implement manufacturing origin, units, side filtering, bottom-side mirroring, or exclusion semantics. |
@@ -46,6 +46,8 @@ The CLI currently exposes Tokito-native command names; it does not implement the
 | `sym export svg`, `sym upgrade` | Symbol-library SVG and conversion/upgrade | None | Defer as a separate symbol-library adapter. Tokito MCP/catalog integration is not a local KiCad symbol CLI implementation. |
 
 The KiCad manual includes an HPGL export entry marked nonfunctional for the documented 10.0 release. The matrix follows implemented behavior, not command-list presence. Recheck the manual and pinned behavior fixtures when the reference release changes.
+
+The new Tokito-native `project inspect` command provides bounded, explicit PCB selection and source hashing. It does not implement KiCad project manager/jobset behavior, and it does not use schematics to invent a physical board. See [its exact scope and 0603 footprint candidate](PROJECT_INTAKE_AND_FOOTPRINT.md).
 
 ## Recommended implementation order
 
