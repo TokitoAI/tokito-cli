@@ -100,6 +100,64 @@ pub struct OutlineReport {
 }
 
 impl OutlineReport {
+    /// Assess endpoint chaining only; never repairs or certifies an outline.
+    pub fn compare_chaining(
+        &self,
+        tolerance_mm: f64,
+    ) -> Result<serde_json::Value, crate::EngineError> {
+        if ![0.001, 0.01, 0.1].contains(&tolerance_mm) {
+            return Err(crate::EngineError::new(
+                "comparison tolerance must be 0.001, 0.01 or 0.1 mm",
+            ));
+        }
+        let mut points = Vec::new();
+        for (primitive, item) in self.primitives.iter().enumerate() {
+            if let Some((start, end)) = endpoints(&item.shape) {
+                points.push((primitive, false, start));
+                points.push((primitive, true, end));
+            }
+        }
+        let mut work = 0;
+        let mut peers = vec![Vec::new(); points.len()];
+        for i in 0..points.len() {
+            for j in i + 1..points.len() {
+                if !work_tick(&mut work) {
+                    return Err(crate::EngineError::new(
+                        "chaining comparison work budget exceeded",
+                    ));
+                }
+                if points[i].0 != points[j].0 && distance(points[i].2, points[j].2) <= tolerance_mm
+                {
+                    peers[i].push(j);
+                    peers[j].push(i);
+                }
+            }
+        }
+        let mut joins = Vec::new();
+        let mut missing = Vec::new();
+        let mut ambiguous = Vec::new();
+        for (i, candidates) in peers.iter().enumerate() {
+            let endpoint = serde_json::json!({"primitiveIndex":points[i].0,"endpoint":if points[i].1 {"end"} else {"start"}});
+            if candidates.is_empty() {
+                missing.push(endpoint);
+            } else if candidates.len() != 1 {
+                ambiguous.push(endpoint);
+            } else {
+                let j = candidates[0];
+                if i < j && peers[j].len() == 1 {
+                    joins.push(serde_json::json!({"a":endpoint,"b":{"primitiveIndex":points[j].0,"endpoint":if points[j].1 {"end"} else {"start"}},"gapMm":distance(points[i].2,points[j].2)}));
+                }
+            }
+        }
+        Ok(
+            serde_json::json!({"schema":"tokito.outline-chaining-comparison.v1","toleranceMm":tolerance_mm,
+            "strictToleranceMm":self.join_tolerance_mm,"endpointCount":points.len(),"uniqueJoinCandidates":joins,
+            "unmatchedEndpoints":missing,"ambiguousEndpoints":ambiguous,
+            "allEndpointsHaveUniqueMatch":!points.is_empty()&&missing.is_empty()&&ambiguous.is_empty(),
+            "strictOutlineValid":self.is_valid(),"physicalOutlineValidated":false,"sourceCoordinatesChanged":false,
+            "workSteps":work,"scope":"endpoint-distance compatibility only; not contour, intersection, area or mesh validation"}),
+        )
+    }
     pub fn is_valid(&self) -> bool {
         self.diagnostics.is_empty() && !self.contours.is_empty()
     }
@@ -277,12 +335,19 @@ fn transform(g: &Graphic, e: &EngineeringData, q: Option<Point2>) -> Option<Poin
 }
 
 pub(crate) fn from_engineering(engineering: &EngineeringData) -> OutlineReport {
+    from_engineering_with_tolerance(engineering, JOIN_TOLERANCE_MM)
+}
+
+pub(crate) fn from_engineering_with_tolerance(
+    engineering: &EngineeringData,
+    tolerance_mm: f64,
+) -> OutlineReport {
     let mut report = OutlineReport {
         primitives: Vec::new(),
         contours: Vec::new(),
         bounds: None,
         diagnostics: Vec::new(),
-        join_tolerance_mm: JOIN_TOLERANCE_MM,
+        join_tolerance_mm: tolerance_mm,
     };
     for pad in &engineering.pads {
         if pad.layers.iter().any(|layer| layer == "Edge.Cuts") {
@@ -708,6 +773,7 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
     }
     let mut work = 0;
     let mut neighbours = vec![Vec::new(); endpoints_list.len()];
+    let mut nearest = vec![None::<(f64, usize)>; endpoints_list.len()];
     for i in 0..endpoints_list.len() {
         for j in i + 1..endpoints_list.len() {
             if !work_tick(&mut work) {
@@ -718,7 +784,18 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
                 );
                 return report;
             }
-            if near(endpoints_list[i].2, endpoints_list[j].2) {
+            let gap = distance(endpoints_list[i].2, endpoints_list[j].2);
+            // Reuse the bounded comparison pass; diagnostics never weld or
+            // mutate endpoints. Exclude the other end of the same primitive.
+            if endpoints_list[i].0 != endpoints_list[j].0 {
+                if nearest[i].is_none_or(|(best, _)| gap < best) {
+                    nearest[i] = Some((gap, j));
+                }
+                if nearest[j].is_none_or(|(best, _)| gap < best) {
+                    nearest[j] = Some((gap, i));
+                }
+            }
+            if gap <= report.join_tolerance_mm {
                 neighbours[i].push(j);
                 neighbours[j].push(i);
             }
@@ -727,11 +804,30 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
     for (i, peers) in neighbours.iter().enumerate() {
         let source = report.primitives[endpoints_list[i].0].source.clone();
         if peers.is_empty() {
-            report.fail(
-                OutlineDiagnosticCode::OpenContour,
-                Some(&source),
-                "An outline endpoint has no matching endpoint within tolerance.",
+            let point = endpoints_list[i].2;
+            let nearest_detail = nearest[i]
+                .map(|(gap, other)| {
+                    format!(
+                        " Nearest other primitive {} {} endpoint is {:.9} mm away.",
+                        endpoints_list[other].0,
+                        if endpoints_list[other].1 {
+                            "end"
+                        } else {
+                            "start"
+                        },
+                        gap
+                    )
+                })
+                .unwrap_or_else(|| " No other primitive endpoint exists.".to_owned());
+            let message = format!(
+                "Outline {} endpoint at ({:.9}, {:.9}) mm has no match within {:.9} mm.{} Source coordinates were not changed.",
+                if endpoints_list[i].1 { "end" } else { "start" },
+                point.x,
+                point.y,
+                report.join_tolerance_mm,
+                nearest_detail
             );
+            report.fail(OutlineDiagnosticCode::OpenContour, Some(&source), &message);
         } else if peers.len() > 1 {
             report.fail(
                 OutlineDiagnosticCode::Branch,
@@ -765,8 +861,8 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
                     .is_some_and(|((a, b), (c, d))| {
                         [(a, false), (b, true)].iter().any(|(pa, ea)| {
                             [(c, false), (d, true)].iter().any(|(pb, eb)| {
-                                near(*pa, point)
-                                    && near(*pb, point)
+                                distance(*pa, point) <= report.join_tolerance_mm
+                                    && distance(*pb, point) <= report.join_tolerance_mm
                                     && joins[i * 2 + usize::from(*ea)] == Some((j, *eb))
                             })
                         })
@@ -838,7 +934,7 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
             }
         }
         let area_origin = sample_point(&report.primitives[edges[0].primitive_index].shape);
-        let area = edges
+        let mut area = edges
             .iter()
             .map(|edge| {
                 signed_area(
@@ -848,6 +944,23 @@ fn validate(mut report: OutlineReport) -> OutlineReport {
                 )
             })
             .sum::<f64>();
+        // A tolerance-connected contour includes short straight connections
+        // between saved endpoints. Include their line integrals rather than
+        // describing an open primitive sum as the exact enclosed area.
+        if report.join_tolerance_mm > JOIN_TOLERANCE_MM {
+            for k in 0..edges.len() {
+                let a = &edges[k];
+                let b = &edges[(k + 1) % edges.len()];
+                if let Some(((a0, a1), (b0, b1))) =
+                    endpoints(&report.primitives[a.primitive_index].shape)
+                        .zip(endpoints(&report.primitives[b.primitive_index].shape))
+                {
+                    let end = if a.reversed { a0 } else { a1 };
+                    let start = if b.reversed { b1 } else { b0 };
+                    area += cross(sub(end, area_origin), sub(start, area_origin)) / 2.;
+                }
+            }
+        }
         if !area.is_finite() || area.abs() <= JOIN_TOLERANCE_MM * JOIN_TOLERANCE_MM {
             report.fail(
                 OutlineDiagnosticCode::DegeneratePrimitive,
@@ -1102,6 +1215,90 @@ mod tests {
             })
         );
         assert_eq!(r.contours[0].signed_area_mm2, 80.);
+    }
+    #[test]
+    fn chaining_comparison_keeps_strict_refusal_and_reports_ambiguity() {
+        let r = report(vec![
+            OutlineShape::Line {
+                start: p(0., 0.),
+                end: p(1., 0.),
+            },
+            OutlineShape::Line {
+                start: p(1.005, 0.),
+                end: p(0.005, 0.),
+            },
+        ]);
+        assert!(!r.is_valid());
+        let tight = r.compare_chaining(0.001).unwrap();
+        assert_eq!(tight["allEndpointsHaveUniqueMatch"], false);
+        let standard = r.compare_chaining(0.01).unwrap();
+        assert_eq!(standard["allEndpointsHaveUniqueMatch"], true);
+        assert_eq!(standard["strictOutlineValid"], false);
+        assert_eq!(standard["physicalOutlineValidated"], false);
+        assert_eq!(standard["sourceCoordinatesChanged"], false);
+        assert!(r.compare_chaining(f64::NAN).is_err());
+        assert!(r.compare_chaining(1.).is_err());
+        let ambiguous = report(vec![
+            OutlineShape::Line {
+                start: p(0., 0.),
+                end: p(1., 0.),
+            },
+            OutlineShape::Line {
+                start: p(1.005, 0.),
+                end: p(0.005, 0.),
+            },
+            OutlineShape::Line {
+                start: p(1.006, 0.),
+                end: p(0.006, 0.),
+            },
+        ]);
+        let c = ambiguous.compare_chaining(0.01).unwrap();
+        assert_eq!(c["allEndpointsHaveUniqueMatch"], false);
+        assert!(!c["ambiguousEndpoints"].as_array().unwrap().is_empty());
+    }
+    #[test]
+    fn open_endpoint_diagnostic_measures_gap_without_repairing_source() {
+        let shapes = vec![
+            OutlineShape::Line {
+                start: p(0., 0.),
+                end: p(10., 0.),
+            },
+            OutlineShape::Line {
+                start: p(10.0002, 0.),
+                end: p(10., 8.),
+            },
+            OutlineShape::Line {
+                start: p(10., 8.),
+                end: p(0., 8.),
+            },
+            OutlineShape::Line {
+                start: p(0., 8.),
+                end: p(0., 0.),
+            },
+        ];
+        let r = report(shapes.clone());
+        assert!(!r.is_valid());
+        let gaps: Vec<_> = r
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == OutlineDiagnosticCode::OpenContour)
+            .collect();
+        assert_eq!(gaps.len(), 2);
+        assert!(
+            gaps.iter()
+                .all(|d| d.message.contains("0.000200000 mm away"))
+        );
+        assert!(
+            gaps.iter()
+                .all(|d| d.message.contains("Source coordinates were not changed"))
+        );
+        assert_eq!(
+            r.primitives
+                .iter()
+                .map(|p| p.shape.clone())
+                .collect::<Vec<_>>(),
+            shapes
+        );
     }
     #[test]
     fn complementary_arcs_form_a_circle() {

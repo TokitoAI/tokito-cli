@@ -13,5 +13,5 @@ path = "src/main.rs"
 gix = { version = "=0.83.0", default-features = false, features = ["sha1", "zlib-rs"] }
 earcut = "=0.4.11"
 gltf = { version = "=1.4.1", default-features = false }
-serde = "=1.0.229"
+serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }

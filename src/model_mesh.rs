@@ -3,6 +3,8 @@
 //! Source coordinates require an explicit unit declaration; output is local millimetres.
 use crate::EngineError;
 use std::collections::{BTreeMap, BTreeSet};
+mod zero_area;
+pub use zero_area::derive_without_zero_area_faces;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelUnits {
@@ -96,6 +98,15 @@ pub fn parse_vrml_mesh(
     units: ModelUnits,
     limits: MeshLimits,
 ) -> Result<ModelMesh, EngineError> {
+    parse_mesh_internal(input, units, limits, false)
+}
+
+fn parse_mesh_internal(
+    input: &[u8],
+    units: ModelUnits,
+    limits: MeshLimits,
+    topology_only: bool,
+) -> Result<ModelMesh, EngineError> {
     let ceilings = MeshLimits::default();
     if limits.max_bytes > ceilings.max_bytes
         || limits.max_tokens > ceilings.max_tokens
@@ -123,6 +134,7 @@ pub fn parse_vrml_mesh(
         materials: BTreeMap::new(),
         vertices: 0,
         triangles: 0,
+        topology_only,
     };
     let mut parts = Vec::new();
     let mut shape_count = 0;
@@ -210,6 +222,140 @@ fn tokenize(text: &str, limits: MeshLimits) -> Result<Vec<&str>, EngineError> {
     }
     Ok(tokens)
 }
+
+/// Explicit, bounded derivation for the flat WRL profile. Original bytes stay
+/// untouched. It removes only appearance-only root Shapes whose never-used
+/// material is outside the strict parser's numeric ranges. Other unused palette
+/// entries, geometry-bearing Shapes and used definitions stay byte-exact.
+pub fn derive_without_unused_invalid_materials(
+    input: &[u8],
+    units: ModelUnits,
+) -> Result<(Vec<u8>, serde_json::Value), EngineError> {
+    let (derived, mut report) = palette_derivation(input)?;
+    let mesh = parse_vrml_mesh(&derived, units, MeshLimits::default())?;
+    report["derivedMeshParts"] = serde_json::json!(mesh.parts.len());
+    report["derivedTriangles"] =
+        serde_json::json!(mesh.parts.iter().map(|p| p.triangles.len()).sum::<usize>());
+    Ok((derived, report))
+}
+
+fn palette_derivation(input: &[u8]) -> Result<(Vec<u8>, serde_json::Value), EngineError> {
+    let limits = MeshLimits::default();
+    if input.len() > limits.max_bytes {
+        return Err(fail("byte budget exceeded"));
+    }
+    let text = std::str::from_utf8(input).map_err(|_| fail("input is not UTF-8"))?;
+    if text.lines().next().map(str::trim_end) != Some("#VRML V2.0 utf8") {
+        return Err(fail("expected VRML97 header"));
+    }
+    let tokens = tokenize(text, limits)?;
+    let mut defined = BTreeSet::new();
+    let mut used = BTreeSet::new();
+    for (i, token) in tokens.iter().enumerate() {
+        if *token == "DEF" {
+            let id = *tokens.get(i + 1).ok_or_else(|| fail("missing DEF name"))?;
+            if tokens.get(i + 2) != Some(&"Material") || !defined.insert(id) {
+                return Err(fail("derivation requires unique Material definitions"));
+            }
+            if defined.len() > limits.max_material_definitions {
+                return Err(fail("material definition budget exceeded"));
+            }
+        } else if *token == "USE" {
+            used.insert(*tokens.get(i + 1).ok_or_else(|| fail("missing USE name"))?);
+        }
+    }
+    if !used.is_subset(&defined) {
+        return Err(fail("undefined USE in source"));
+    }
+    let mut cursor = 0;
+    let mut shapes = 0;
+    let mut spans = Vec::new();
+    let mut removals = Vec::new();
+    while cursor < tokens.len() {
+        if shapes >= limits.max_shapes {
+            return Err(fail("shape budget exceeded"));
+        }
+        let start = cursor;
+        if tokens.get(start) != Some(&"Shape") || tokens.get(start + 1) != Some(&"{") {
+            return Err(fail("derivation requires flat root Shapes"));
+        }
+        cursor += 2;
+        let mut depth = 1;
+        while depth > 0 {
+            match *tokens
+                .get(cursor)
+                .ok_or_else(|| fail("unclosed root Shape"))?
+            {
+                "{" => depth += 1,
+                "}" => depth -= 1,
+                _ => (),
+            }
+            cursor += 1;
+        }
+        let shape = &tokens[start..cursor];
+        let prefix = [
+            "Shape",
+            "{",
+            "appearance",
+            "Appearance",
+            "{",
+            "material",
+            "DEF",
+        ];
+        if shape.starts_with(&prefix)
+            && shape.len() >= 13
+            && shape[8..10] == ["Material", "{"]
+            && shape[shape.len() - 3..] == ["}", "}", "}"]
+            && !used.contains(shape[7])
+        {
+            // Strict grammar for an unused numeric Material definition. No
+            // geometry, ROUTE, nested node or unknown field can disappear.
+            let mut at = 10;
+            let end = shape.len() - 3;
+            let mut fields = BTreeSet::new();
+            let mut values_supported = true;
+            while at < end {
+                let field = shape[at];
+                at += 1;
+                let count = match field {
+                    "ambientIntensity" | "shininess" | "transparency" => 1,
+                    "diffuseColor" | "specularColor" | "emissiveColor" => 3,
+                    _ => return Err(fail("unsupported unused palette field")),
+                };
+                if !fields.insert(field) || at + count > end {
+                    return Err(fail("malformed unused palette Material"));
+                }
+                for token in &shape[at..at + count] {
+                    let value = token
+                        .parse::<f64>()
+                        .map_err(|_| fail("unused palette value must be numeric"))?;
+                    values_supported &= value.is_finite() && (0.0..=1.0).contains(&value);
+                }
+                at += count;
+            }
+            if !values_supported {
+                let begin = shape[0].as_ptr() as usize - text.as_ptr() as usize;
+                let finish = shape.last().unwrap().as_ptr() as usize - text.as_ptr() as usize + 1;
+                spans.push((begin, finish));
+                removals.push(serde_json::json!({"materialDef":shape[7],"sourceRootShapeOrdinal":shapes,"startByte":begin,"endByteExclusive":finish,"removedBytesSha256":crate::sha256_hex(&input[begin..finish]),"useCount":0}));
+            }
+        }
+        shapes += 1;
+    }
+    if spans.is_empty() {
+        return Err(fail("no unused out-of-range palette Material Shapes"));
+    }
+    let mut derived = Vec::with_capacity(input.len());
+    let mut begin = 0;
+    for (start, end) in &spans {
+        derived.extend_from_slice(&input[begin..*start]);
+        begin = *end;
+    }
+    derived.extend_from_slice(&input[begin..]);
+    let report = serde_json::json!({"schema":"tokito.vrml-unused-invalid-material-derivation.v1","sourceSha256":crate::sha256_hex(input),"derivedSha256":crate::sha256_hex(&derived),"sourceBytes":input.len(),"derivedBytes":derived.len(),"removedPaletteShapes":removals,"retainedBytesUnchanged":true,"geometryModified":false,"usedMaterialDefinitionsModified":false,"physicalFitVerified":false,"placementVerified":false,"cadSolidVerified":false});
+    Ok((derived, report))
+}
+
 struct Parser<'a> {
     tokens: Vec<&'a str>,
     cursor: usize,
@@ -218,6 +364,7 @@ struct Parser<'a> {
     materials: BTreeMap<String, MeshMaterial>,
     vertices: usize,
     triangles: usize,
+    topology_only: bool,
 }
 impl<'a> Parser<'a> {
     fn take(&mut self) -> Result<&'a str, EngineError> {
@@ -462,11 +609,15 @@ impl<'a> Parser<'a> {
             if !ccw {
                 triangle.swap(1, 2);
             }
-            normals.push(normal(
-                positions[triangle[0] as usize],
-                positions[triangle[1] as usize],
-                positions[triangle[2] as usize],
-            )?);
+            normals.push(if self.topology_only {
+                [0.0, 0.0, 1.0]
+            } else {
+                normal(
+                    positions[triangle[0] as usize],
+                    positions[triangle[1] as usize],
+                    positions[triangle[2] as usize],
+                )?
+            });
         }
         Ok(ModelMeshPart {
             source_shape_ordinal: ordinal,
@@ -504,4 +655,42 @@ fn normal(a: [f64; 3], b: [f64; 3], c: [f64; 3]) -> Result<[f64; 3], EngineError
         return Err(fail("degenerate triangle"));
     }
     Ok([cross[0] / length, cross[1] / length, cross[2] / length])
+}
+
+#[cfg(test)]
+mod derivation_tests {
+    use super::*;
+
+    const TRIANGLE: &str = "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0, 1 0 0, 0 1 0] } coordIndex [0, 1, 2, -1] solid TRUE } }";
+    fn sample(invalid: &str, uses: &str) -> Vec<u8> {
+        format!("#VRML V2.0 utf8\nShape {{ appearance Appearance {{ material DEF VALID Material {{ diffuseColor 0.2 0.3 0.4 }} }} geometry IndexedFaceSet {{ coord Coordinate {{ point [0 0 0, 1 0 0, 0 1 0] }} coordIndex [0, 1, 2, -1] solid TRUE }} }}\nShape {{ appearance Appearance {{ material DEF UNUSED Material {{ diffuseColor 0.2 0.3 0.4 }} }} }}\nShape {{ appearance Appearance {{ material DEF BAD Material {{ ambientIntensity {invalid} }} }} }}\n{uses}\n{TRIANGLE}\n").into_bytes()
+    }
+    #[test]
+    fn removes_only_unused_out_of_range_palette_preserves_valid_palette_and_geometry() {
+        let input = sample(
+            "2.0",
+            "Shape { appearance Appearance { material USE VALID } }",
+        );
+        let (output, report) =
+            derive_without_unused_invalid_materials(&input, ModelUnits::Millimetres).unwrap();
+        let text = std::str::from_utf8(&output).unwrap();
+        assert!(text.contains("DEF VALID"));
+        assert!(text.contains("DEF UNUSED"));
+        assert!(!text.contains("DEF BAD"));
+        assert_eq!(report["removedPaletteShapes"].as_array().unwrap().len(), 1);
+        assert_eq!(report["geometryModified"], false);
+        assert_eq!(report["derivedMeshParts"], 2);
+    }
+    #[test]
+    fn used_invalid_material_and_unsupported_material_node_refuse() {
+        let used = sample(
+            "2.0",
+            "Shape { appearance Appearance { material USE BAD } }",
+        );
+        assert!(derive_without_unused_invalid_materials(&used, ModelUnits::Millimetres).is_err());
+        let unsupported=b"#VRML V2.0 utf8\nShape { appearance Appearance { texture ImageTexture { url \"x\" } } }";
+        assert!(
+            derive_without_unused_invalid_materials(unsupported, ModelUnits::Millimetres).is_err()
+        );
+    }
 }

@@ -20,7 +20,7 @@ pub struct ValidatedTwin {
     manifest: Value,
     map: Value,
     components: Vec<Value>,
-    bindings: Vec<(usize, usize, String)>,
+    bindings: Vec<(usize, Vec<usize>, String)>,
     source_hashes: Value,
     missing_models: usize,
 }
@@ -279,6 +279,7 @@ impl ValidatedTwin {
                 .as_bool()
                 .ok_or_else(|| error("missing needs_3d_body state"))?;
             let mut renderable = None;
+            let mut renderable_nodes = Vec::new();
             let mut selector_root = None;
             if !row["glb_selector"].is_null() {
                 let selector = text(row, "glb_selector", 260)?;
@@ -317,13 +318,17 @@ impl ValidatedTwin {
                         }
                     }
                 }
-                if renderables.len() != 1 {
+                if renderables.is_empty() {
                     return Err(error(
-                        "component must contain exactly one mesh-bearing node; multi-mesh normalization unsupported",
+                        "component selector subtree contains no mesh-bearing nodes",
                     ));
                 }
-                renderable = Some(renderables[0]);
-                bindings.push((root, renderables[0], reference.clone()));
+                renderables.sort_unstable();
+                if renderables.len() == 1 {
+                    renderable = Some(renderables[0]);
+                }
+                renderable_nodes = renderables.clone();
+                bindings.push((root, renderables, reference.clone()));
             } else if needs_model {
                 missing_models += 1;
             }
@@ -331,7 +336,8 @@ impl ValidatedTwin {
                 "reference": reference, "componentClassClaim": class,
                 "selector": row["glb_selector"], "selectorNodeIndex": selector_root,
                 "renderableNodeIndex": renderable, "modelQualityClaim": row["model_quality"],
-                "modelAvailable": renderable.is_some(), "needs3dBody": needs_model
+                "renderableNodeIndices": renderable_nodes,
+                "modelAvailable": !renderable_nodes.is_empty(), "needs3dBody": needs_model
             }));
         }
         if selectors.keys().cloned().collect::<BTreeSet<_>>() != expected
@@ -355,10 +361,18 @@ impl ValidatedTwin {
         let compatible = self
             .bindings
             .iter()
-            .filter(|(root, mesh, _)| root == mesh)
+            .filter(|(root, meshes, _)| meshes.len() == 1 && meshes[0] == *root)
             .count();
-        let component_mesh_nodes: BTreeSet<_> =
-            self.bindings.iter().map(|(_, mesh, _)| *mesh).collect();
+        let component_mesh_nodes: BTreeSet<_> = self
+            .bindings
+            .iter()
+            .flat_map(|(_, meshes, _)| meshes.iter().copied())
+            .collect();
+        let multi_mesh = self
+            .bindings
+            .iter()
+            .filter(|(_, meshes, _)| meshes.len() > 1)
+            .count();
         let unmapped: Vec<_> = self.document["nodes"].as_array().unwrap().iter().enumerate()
             .filter(|(index, node)| node.get("mesh").is_some() && !component_mesh_nodes.contains(index))
             .map(|(index, node)| json!({"nodeIndex":index,"name":node["name"],"meshIndex":node["mesh"]}))
@@ -369,6 +383,7 @@ impl ValidatedTwin {
             "assetId": self.manifest["assetId"], "assemblyContextRevisionClaim": self.manifest["assemblyContextRevision"],
             "sourceSha256": self.source_hashes, "componentCount": self.components.len(),
             "renderableCount": self.bindings.len(), "directRenderableSelectors": compatible,
+            "renderableMeshNodeCount": component_mesh_nodes.len(), "multiMeshComponentCount": multi_mesh,
             "appNameFilterCompatible": compatible == self.bindings.len(), "missingRequiredModelCount": self.missing_models,
             "components": self.components, "physicalFitVerified": false, "arRegistrationVerified": false,
             "boardReferenceContextVerified": false, "positionalGuidanceAllowed": false
@@ -425,10 +440,10 @@ impl ValidatedTwin {
         let source_hashes = self.source_hashes.clone();
         let original = Glb::from_slice(&self.glb).map_err(|e| error(e.to_string()))?;
         let mut changed = 0;
-        for (root, renderable, reference) in &self.bindings {
-            if root != renderable {
+        for (root, renderables, reference) in &self.bindings {
+            if renderables.len() == 1 && *root != renderables[0] {
                 self.document["nodes"][*root]["name"] = json!(format!("placement:{reference}"));
-                self.document["nodes"][*renderable]["name"] = json!(format!("ref:{reference}"));
+                self.document["nodes"][renderables[0]]["name"] = json!(format!("ref:{reference}"));
                 changed += 1;
             }
         }
@@ -461,6 +476,9 @@ impl ValidatedTwin {
             "outputGlbSha256": digest, "renamedComponentSubtrees": changed,
             "binaryGeometryPayloadUnchanged": true, "nodeTransformsUnchanged": true,
             "componentCount": self.components.len(), "renderableCount": self.bindings.len(),
+            "renderableMeshNodeCount": index["renderableMeshNodeCount"],
+            "multiMeshComponentCount": index["multiMeshComponentCount"],
+            "retainedGroupSelectors": index["multiMeshComponentCount"],
             "partialConsent": allow_partial, "missingRequiredModelCount": self.missing_models,
             "appNameFilterCompatible": index["appNameFilterCompatible"],
             "physicalFitVerified": false, "arRegistrationVerified": false,
@@ -473,5 +491,130 @@ impl ValidatedTwin {
             index,
             report,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn twin(nodes: Value, meshes: Value) -> Result<ValidatedTwin, EngineError> {
+        let bin: Vec<u8> = [0f32, 0., 0., 1., 0., 0., 0., 1., 0.]
+            .into_iter()
+            .flat_map(f32::to_le_bytes)
+            .collect();
+        let document = json!({"asset":{"version":"2.0"},"buffers":[{"byteLength":36}],
+            "bufferViews":[{"buffer":0,"byteLength":36}],
+            "accessors":[{"bufferView":0,"componentType":5126,"type":"VEC3","count":3,"min":[0.,0.,0.],"max":[1.,1.,0.]}],
+            "meshes":meshes,"nodes":nodes,"scenes":[{"nodes":[0]}],"scene":0});
+        let glb = Glb {
+            header: Header {
+                magic: *b"glTF",
+                version: 2,
+                length: 0,
+            },
+            json: Cow::Owned(serde_json::to_vec(&document).unwrap()),
+            bin: Some(Cow::Owned(bin)),
+        }
+        .to_vec()
+        .unwrap();
+        let manifest = json!({"schemaVersion":"1.0","assetId":"fixture","boardIdentity":"fixture-board",
+            "boardRevision":"reference","assemblyContextRevision":"fixture-1","units":"METRE",
+            "axes":"RIGHT_HANDED_Y_UP","componentNodePrefix":"ref:","glbBytes":glb.len(),
+            "glbSha256":sha256_hex(&glb),"boardOriginMetres":{"x":0.,"y":0.,"z":0.},
+            "boundsMetres":{"minimum":{"x":-1.,"y":-1.,"z":-1.},"maximum":{"x":2.,"y":2.,"z":2.}},"defaultOpacity":0.5});
+        let map = json!({"board_id":"fixture-board","board_revision":"reference","asset_id":"fixture",
+            "component_count":1,"renderable_count":1,"components":[{"reference":"D1","component_class":"diode",
+                "needs_3d_body":true,"glb_selector":"ref:D1","model_quality":"unverified-source"}]});
+        ValidatedTwin::from_bytes(
+            glb,
+            &serde_json::to_vec(&map).unwrap(),
+            &serde_json::to_vec(&manifest).unwrap(),
+        )
+    }
+
+    fn meshes(count: usize) -> Value {
+        Value::Array(
+            (0..count)
+                .map(|_| json!({"primitives":[{"attributes":{"POSITION":0}}]}))
+                .collect(),
+        )
+    }
+
+    #[test]
+    fn multi_mesh_selection_retains_geometry_transforms_and_group_identity() {
+        let original = twin(
+            json!([{"name":"ref:D1","children":[1,2],"translation":[0.25,0.5,0.]},
+            {"mesh":0,"translation":[0.01,0.,0.]},{"mesh":1,"rotation":[0.,0.,0.,1.]}]),
+            meshes(2),
+        )
+        .unwrap();
+        let original_doc = original.document.clone();
+        let original_bin = Glb::from_slice(&original.glb)
+            .unwrap()
+            .bin
+            .unwrap()
+            .into_owned();
+        let index = original.index_json();
+        assert_eq!(
+            index["components"][0]["renderableNodeIndices"],
+            json!([1, 2])
+        );
+        assert!(index["components"][0]["renderableNodeIndex"].is_null());
+        assert_eq!(index["renderableMeshNodeCount"], 2);
+        assert_eq!(index["multiMeshComponentCount"], 1);
+        assert_eq!(index["appNameFilterCompatible"], false);
+        assert_eq!(index["unmappedRenderableNodes"], json!([]));
+        assert_eq!(
+            original.select(Some("D1"), None).unwrap()["status"],
+            "unique_candidate"
+        );
+        let prepared = original.prepare(false).unwrap();
+        let after = Glb::from_slice(&prepared.glb).unwrap();
+        assert_eq!(after.bin.unwrap().as_ref(), original_bin);
+        let after_doc: Value = serde_json::from_slice(&after.json).unwrap();
+        assert_eq!(after_doc, original_doc);
+        assert_eq!(prepared.report["retainedGroupSelectors"], 1);
+        assert_eq!(prepared.report["renamedComponentSubtrees"], 0);
+    }
+
+    #[test]
+    fn single_mesh_wrapper_still_normalizes_direct_selector() {
+        let prepared = twin(
+            json!([{"name":"ref:D1","children":[1],"translation":[0.25,0.5,0.]},
+            {"mesh":0,"translation":[0.01,0.,0.]}]),
+            meshes(1),
+        )
+        .unwrap()
+        .prepare(false)
+        .unwrap();
+        assert_eq!(prepared.index["appNameFilterCompatible"], true);
+        assert_eq!(prepared.index["components"][0]["selectorNodeIndex"], 1);
+        assert_eq!(
+            prepared.index["components"][0]["renderableNodeIndices"],
+            json!([1])
+        );
+        assert_eq!(prepared.report["renamedComponentSubtrees"], 1);
+    }
+
+    #[test]
+    fn empty_and_shared_mesh_groups_are_rejected() {
+        assert!(
+            twin(json!([{"name":"ref:D1"}]), meshes(1))
+                .err()
+                .unwrap()
+                .to_string()
+                .contains("no mesh")
+        );
+        assert!(
+            twin(
+                json!([{"name":"ref:D1","children":[1,2]}, {"mesh":0},{"mesh":0}]),
+                meshes(1)
+            )
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("shared")
+        );
     }
 }

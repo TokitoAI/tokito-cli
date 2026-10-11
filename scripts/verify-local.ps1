@@ -10,7 +10,15 @@ param(
     [string]$DatasetTwinGlb = '',
     [string]$DatasetTwinComponentMap = '',
     [string]$DatasetTwinManifest = '',
-    [string]$DatasetTwinProvenance = ''
+    [string]$DatasetTwinProvenance = '',
+    [string]$SourceCandidateRoot = '',
+    [string]$Esp32CandidateRoot = '',
+    [string]$Esp32ReferenceBom = '',
+    [string]$Esp32Pcb = '',
+    [string]$Esp32ModelLibrary = '',
+    [string]$Esp8266SourceRoot = '',
+    [string]$Esp8266UnitReceipt = '',
+    [string]$Esp8266FreecadReference = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -141,8 +149,45 @@ try {
         @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'torus-inverse-regression'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'torus_inverse_regression', '--offline', '--locked') },
-        @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') }
+        @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
+        @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'altium-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--all', '--check') },
+        @{ name = 'altium-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
+        @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') }
     )
+    $esp32Inputs = @($Esp32CandidateRoot, $Esp32ReferenceBom, $Esp32Pcb, $Esp32ModelLibrary)
+    $esp32Count = @($esp32Inputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    if ($esp32Count -notin @(0,4)) { throw 'All four ESP32 source inputs must be supplied together.' }
+    if ($esp32Count -eq 4) {
+        foreach ($path in $esp32Inputs) { Assert-NoLinkedPath $path; if (-not (Test-Path -LiteralPath $path)) { throw "Missing ESP32 input: $path" } }
+        $esp32Prototype = Join-Path $env:CARGO_TARGET_DIR 'esp32-candidate-e2e'
+        $esp32Native = Join-Path $env:CARGO_TARGET_DIR 'esp32-native-e2e'
+        $checks += @{ name='esp32-candidate-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp32_candidate_e2e.py','--binary',$binaryPath,'--source',$Esp32CandidateRoot,'--reference-bom',$Esp32ReferenceBom,'--output',$esp32Prototype); receiptPath=(Join-Path $esp32Prototype 'e2e-receipt.json') }
+        $checks += @{ name='esp32-native-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp32_chaining_e2e.py','--binary',$binaryPath,'--board',$Esp32Pcb,'--library',$Esp32ModelLibrary,'--library-profile','kicad9-wrl','--reference-bom',$Esp32ReferenceBom,'--output',$esp32Native); receiptPath=(Join-Path $esp32Native 'receipt.json') }
+        $esp32Switches = Join-Path $env:CARGO_TARGET_DIR 'esp32-switches-e2e'
+        $checks += @{ name='esp32-switches-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp32_switch_e2e.py','--binary',$binaryPath,'--board',$Esp32Pcb,'--library',$Esp32ModelLibrary,'--baseline',(Join-Path $esp32Native 'derived-module'),'--bom',$Esp32ReferenceBom,'--output',$esp32Switches); receiptPath=(Join-Path $esp32Switches 'receipt.json') }
+        $esp32ZeroArea = Join-Path $env:CARGO_TARGET_DIR 'esp32-zero-area-e2e'
+        $checks += @{ name='esp32-zero-area-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp32_zero_area_e2e.py','--binary',$binaryPath,'--board',$Esp32Pcb,'--library',$Esp32ModelLibrary,'--baseline',$esp32Switches,'--bom',$Esp32ReferenceBom,'--output',$esp32ZeroArea); receiptPath=(Join-Path $esp32ZeroArea 'receipt.json') }
+    }
+    $esp8266Inputs = @($Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference)
+    $esp8266InputCount = @($esp8266Inputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    if ($esp8266InputCount -notin @(0,3)) { throw 'ESP8266 source, independent unit receipt and FreeCAD reference must be supplied together.' }
+    if ($esp8266InputCount -eq 3) {
+        foreach ($path in @($Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference)) { Assert-NoLinkedPath $path; if (-not (Test-Path -LiteralPath $path)) { throw "Missing ESP8266 input: $path" } }
+        $stepOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-units-e2e'
+        $occurrenceOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-occurrence-world-e2e'
+        $altiumOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-altium-e2e'
+        $stepBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-step-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $altiumBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-altium-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $checks += @{ name='esp8266-step-units-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_units_e2e.py','--binary',$stepBinary,'--models',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--source-receipt',$Esp8266UnitReceipt,'--output',$stepOutput); receiptPath=(Join-Path $stepOutput 'receipt.json') }
+        $checks += @{ name='esp8266-step-occurrence-world-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_occurrence_world_e2e.py','--binary',$stepBinary,'--models-root',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--reference',$Esp8266FreecadReference,'--source-receipt',(Join-Path $stepOutput 'receipt.json'),'--output',$occurrenceOutput); receiptPath=(Join-Path $occurrenceOutput 'receipt.json') }
+        $candidateMeshOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-candidate-mesh-e2e'
+        $checks += @{ name='esp8266-step-candidate-mesh-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_candidate_mesh_e2e.py','--binary',$stepBinary,'--models',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--reference',$Esp8266FreecadReference,'--output',$candidateMeshOutput); receiptPath=(Join-Path $candidateMeshOutput 'receipt.json') }
+        $checks += @{ name='esp8266-altium-e2e'; command=$pythonCommand.Source; arguments=@('tests/altium_source_e2e.py','--binary',$altiumBinary,'--source',$Esp8266SourceRoot,'--output',$altiumOutput); receiptPath=(Join-Path $altiumOutput 'receipt.json') }
+        $associationOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-associations-e2e'
+        $checks += @{ name='esp8266-associations-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_assembly_candidates_e2e.py','--binary',$altiumBinary,'--source',$Esp8266SourceRoot,'--output',$associationOutput); receiptPath=(Join-Path $associationOutput 'receipt.json') }
+    }
     if ([string]::IsNullOrWhiteSpace($DatasetRepo) -xor [string]::IsNullOrWhiteSpace($DatasetBomReport)) {
         throw 'DatasetRepo and DatasetBomReport must be supplied together.'
     }
@@ -197,6 +242,18 @@ try {
                 '--output-root', $targetParent, '--binary', $binaryPath
             )
         }
+        if (-not [string]::IsNullOrWhiteSpace($DatasetRepo)) {
+            $checks[-1].arguments += @('--dataset-repo', $DatasetRepo)
+        }
+    }
+    if (-not [string]::IsNullOrWhiteSpace($SourceCandidateRoot)) {
+        Assert-NoLinkedPath $SourceCandidateRoot
+        $checks += @{
+            name = 'source-candidate-e2e'
+            command = $pythonCommand.Source
+            arguments = @('tests/source_candidate_e2e.py', '--binary', $binaryPath,
+                '--source-root', $SourceCandidateRoot, '--output-dir', (Join-Path $targetParent "source-candidate-e2e/verification-$verificationRun"))
+        }
     }
     $datasetTwinHashesBefore = $null
     if ($datasetTwinInputCount -eq 4) {
@@ -235,6 +292,13 @@ try {
         }
         $timer.Stop()
         $checkResult = @{ name = $check.name; passed = $true; seconds = $timer.Elapsed.TotalSeconds }
+        if ($check.ContainsKey('receiptPath')) {
+            $evidencePath = $check.receiptPath
+            if (-not (Test-Path -LiteralPath $evidencePath -PathType Leaf)) { throw "Missing E2E receipt: $evidencePath" }
+            $evidence = Get-Content -LiteralPath $evidencePath -Raw | ConvertFrom-Json
+            if ($evidence.passed -ne $true) { throw "E2E receipt did not pass: $evidencePath" }
+            $checkResult.evidence = @{ receiptPath=[System.IO.Path]::GetRelativePath($projectRoot,$evidencePath).Replace('\','/'); receiptSha256=(Get-FileHash -LiteralPath $evidencePath -Algorithm SHA256).Hash.ToLowerInvariant() }
+        }
         if ($check.name -eq 'component-dataset-e2e') {
             $datasetE2eReceiptPath = Join-Path $targetParent "component-forge-dataset/verification-$verificationRun/e2e-receipt.json"
             if (-not (Test-Path -LiteralPath $datasetE2eReceiptPath -PathType Leaf)) {
@@ -346,6 +410,11 @@ try {
         cargoVersion = "$cargoVersion"
         rustcVersion = $rustcVersion -join "`n"
         pythonVersion = "$pythonVersion"
+        buildConfiguration = @{
+            devDebug = $env:CARGO_PROFILE_DEV_DEBUG
+            testDebug = $env:CARGO_PROFILE_TEST_DEBUG
+            incremental = $env:CARGO_INCREMENTAL
+        }
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }

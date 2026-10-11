@@ -47,6 +47,7 @@ pub enum ModelAssemblyStatus {
     UnsupportedAssetFormat,
     MeshRejected,
     PlacementRejected,
+    GlbPrecisionRejected,
     AggregateGeometryBudgetExceeded,
 }
 
@@ -65,6 +66,7 @@ impl ModelAssemblyStatus {
             Self::UnsupportedAssetFormat => "unsupported_asset_format",
             Self::MeshRejected => "mesh_rejected",
             Self::PlacementRejected => "placement_rejected",
+            Self::GlbPrecisionRejected => "glb_precision_rejected",
             Self::AggregateGeometryBudgetExceeded => "aggregate_geometry_budget_exceeded",
         }
     }
@@ -111,11 +113,10 @@ pub fn assemble_supported_vrml_models(
         .stackup
         .as_ref()
         .and_then(|stackup| stackup.outer_copper_planes_mm().ok());
-    let stackup_matches_shell = planes.is_some_and(|planes| {
-        board.thickness_mm().is_some_and(|thickness| {
-            (planes.front_copper_surface_z_mm - planes.back_copper_surface_z_mm - thickness).abs()
-                <= 0.000_001
-        })
+    let stackup_matches_shell = board.engineering().stackup.as_ref().is_some_and(|stackup| {
+        board
+            .thickness_mm()
+            .is_some_and(|t| stackup.matches_nominal_thickness_mm(t))
     });
     let origin = board.outline().bounds.map(|bounds| {
         [
@@ -307,6 +308,17 @@ pub fn assemble_supported_vrml_models(
             );
             continue;
         };
+        if crate::glb::validate_component_mesh_for_glb(&mesh).is_err() {
+            record_diagnostic(
+                &mut result,
+                diagnostic(
+                    model,
+                    Some(component),
+                    ModelAssemblyStatus::GlbPrecisionRejected,
+                ),
+            );
+            continue;
+        }
         aggregate_triangles = next_aggregate_triangles;
         result.emitted.push(AssembledComponentMesh {
             component_source: component.source.clone(),
@@ -473,6 +485,36 @@ mod tests {
             "eadfec9e71c67b1dd3910c72b45d811a06f0ab5397d0609354b10e9a3a4c1fdd"
         );
         assert_eq!(emitted.mesh.parts.len(), 26);
+        let masked_text = fs::read_to_string(&board_path).unwrap()
+            .replace("(stackup (layer", "(stackup (layer \"F.Mask\" (type \"Top Solder Mask\") (thickness 0.01)) (layer")
+            .replace("(thickness 1.53)", "(thickness 1.51)")
+            .replace("(thickness 0.035))))", "(thickness 0.035)) (layer \"B.Mask\" (type \"Bottom Solder Mask\") (thickness 0.01))))");
+        fs::write(&board_path, &masked_text).unwrap();
+        let masked = load_kicad_board(&board_path).unwrap();
+        let mask_assembly = assemble_supported_vrml_models(&masked, &resolver);
+        assert!(mask_assembly.diagnostics.is_empty());
+        assert_eq!(mask_assembly.emitted.len(), 1);
+        let minimum_y = mask_assembly.emitted[0]
+            .mesh
+            .parts
+            .iter()
+            .flat_map(|p| &p.positions_m)
+            .map(|p| p[1])
+            .fold(f64::INFINITY, f64::min);
+        // Independent two-layer arithmetic: 1.51/2 + .035 copper + .05 clearance.
+        assert!((minimum_y - 0.000_840).abs() < 1e-12);
+        fs::write(
+            &board_path,
+            masked_text.replace("(general (thickness 1.6))", "(general (thickness 1.58))"),
+        )
+        .unwrap();
+        let wrong_total = load_kicad_board(&board_path).unwrap();
+        let refused = assemble_supported_vrml_models(&wrong_total, &resolver);
+        assert!(refused.emitted.is_empty());
+        assert_eq!(
+            refused.diagnostics[0].status,
+            ModelAssemblyStatus::StackupThicknessMismatch
+        );
         let export = board
             .export_glb_with_models(&resolver, crate::GlbExportOptions::default())
             .expect("supported component assembly GLB");
@@ -493,6 +535,23 @@ mod tests {
         assert_eq!(selector["extras"]["tokito"]["componentUuid"], "component");
         assert_eq!(selector["extras"]["tokito"]["selectable"], true);
         assert_eq!(selector["mesh"], 1);
+        let primitives = document["meshes"][1]["primitives"].as_array().unwrap();
+        let mut colours = std::collections::BTreeSet::new();
+        let mut material_ids = std::collections::BTreeSet::new();
+        for primitive in primitives {
+            let material_id = primitive["material"].as_u64().unwrap() as usize;
+            material_ids.insert(material_id);
+            colours.insert(
+                document["materials"][material_id]["pbrMetallicRoughness"]["baseColorFactor"]
+                    .to_string(),
+            );
+        }
+        // Literal values independently read from the pinned resistor asset's
+        // PIN-01 and RES-SMD-01 definitions; do not accept the old generic gold.
+        assert!(colours.contains("[0.824,0.82,0.781,1.0]"));
+        assert!(colours.contains("[0.082,0.086,0.094,1.0]"));
+        assert_eq!(material_ids.len(), 3);
+        assert_eq!(document["materials"].as_array().unwrap().len(), 5);
         assert_eq!(
             document["meshes"][1]["primitives"]
                 .as_array()

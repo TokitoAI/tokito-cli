@@ -2,6 +2,23 @@ use super::*;
 
 fn dataset_command(args: &[String]) -> Result<(), CliError> {
     let value = match args.get(1).map(String::as_str) {
+        Some("bind-external")
+            if args.len() == 9
+                && args[3] == "--assets-root"
+                && args[5] == "--request"
+                && args[7] == "--output" =>
+        {
+            let request = dataset::load_json(Path::new(&args[6]))?;
+            let binding = dataset_external::bind_external(
+                Path::new(&args[2]),
+                Path::new(&args[4]),
+                &request,
+            )?;
+            let bytes =
+                serde_json::to_vec_pretty(&binding).map_err(|e| CliError::new(e.to_string()))?;
+            write_new_file(Path::new(&args[8]), &bytes)?;
+            binding
+        }
         Some("inventory") if args.len() == 5 && args[3] == "--revision" => {
             dataset_git::inventory(Path::new(&args[2]), &args[4])?
         }
@@ -51,9 +68,76 @@ fn dataset_command(args: &[String]) -> Result<(), CliError> {
 }
 
 fn twin_command(args: &[String]) -> Result<(), CliError> {
+    if args.get(1).map(String::as_str) == Some("audit-population") {
+        if args.len() != 9
+            || args[3] != "--component-map"
+            || args[5] != "--manifest"
+            || args[7] != "--reference-bom"
+        {
+            return Err(CliError::new(
+                "usage: twin audit-population <GLB> --component-map <JSON> --manifest <JSON> --reference-bom <esp32-csv>",
+            ));
+        }
+        let twin = digital_twin::ValidatedTwin::load(
+            Path::new(&args[2]),
+            Path::new(&args[4]),
+            Path::new(&args[6]),
+        )?;
+        let reference = bom::load_bom(Path::new(&args[8]), bom::BomFormat::Esp32Csv)?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&population_audit::compare_esp32_reference(
+                &twin, &reference
+            )?)
+            .map_err(|e| CliError::new(e.to_string()))?
+        );
+        return Ok(());
+    }
+    if args.get(1).map(String::as_str) == Some("adapt-source") {
+        if args.len() != 17
+            || args[3] != "--component-map"
+            || args[5] != "--geometry-index"
+            || args[7] != "--provenance"
+            || args[9] != "--coverage"
+            || args[11] != "--board-id"
+            || args[13] != "--board-revision"
+            || args[15] != "--output"
+        {
+            return Err(CliError::new("use tokito-cli help twin adapt-source"));
+        }
+        let candidate = source_candidate::load(
+            Path::new(&args[2]),
+            Path::new(&args[4]),
+            Path::new(&args[6]),
+            Path::new(&args[8]),
+            Path::new(&args[10]),
+            &args[12],
+            &args[14],
+        )?;
+        let output = Path::new(&args[16]);
+        fs::create_dir(output)
+            .map_err(|e| CliError::new(format!("cannot create new candidate directory: {e}")))?;
+        write_new_file(&output.join("active.digital-twin.glb"), &candidate.glb)?;
+        for (name, value) in [
+            ("active.digital-twin.json", &candidate.manifest),
+            ("component-map.json", &candidate.map),
+            ("adaptation-report.json", &candidate.report),
+        ] {
+            write_new_file(
+                &output.join(name),
+                &serde_json::to_vec_pretty(value).map_err(|e| CliError::new(e.to_string()))?,
+            )?;
+        }
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&candidate.report)
+                .map_err(|e| CliError::new(e.to_string()))?
+        );
+        return Ok(());
+    }
     if args.len() < 7 || args[3] != "--component-map" || args[5] != "--manifest" {
         return Err(CliError::new(
-            "usage: twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <AUTHORED_LABEL>]",
+            "usage: twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <AUTHORED_LABEL>]",
         ));
     }
     let twin = digital_twin::ValidatedTwin::load(
@@ -79,11 +163,47 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
             };
             println!("{}", String::from_utf8(json_bytes(&result)?).unwrap());
         }
-        "prepare"
-            if (args.len() == 9 || args.len() == 10 && args[9] == "--allow-partial")
-                && args[7] == "--output" =>
-        {
-            let prepared = twin.prepare(args.len() == 10)?;
+        "prepare" | "prototype" if args.len() >= 9 && args[7] == "--output" => {
+            let mut allow_partial = false;
+            let mut reference_bom = None;
+            let mut i = 9;
+            while i < args.len() {
+                match args[i].as_str() {
+                    "--allow-partial" if !allow_partial => {
+                        allow_partial = true;
+                        i += 1;
+                    }
+                    "--reference-bom"
+                        if args[1] == "prototype"
+                            && reference_bom.is_none()
+                            && i + 1 < args.len() =>
+                    {
+                        reference_bom = Some(bom::load_bom(
+                            Path::new(&args[i + 1]),
+                            bom::BomFormat::Esp32Csv,
+                        )?);
+                        i += 2;
+                    }
+                    _ => {
+                        return Err(CliError::new(
+                            "unknown, duplicate or incomplete twin output option",
+                        ));
+                    }
+                }
+            }
+            let mut prepared = twin.prepare(allow_partial)?;
+            let population = reference_bom
+                .as_ref()
+                .map(|bom| population_audit::compare_esp32_index(&prepared.index, bom))
+                .transpose()?;
+            if let Some(ref population) = population {
+                prepared.index["referencePopulationComparison"] = population.clone();
+            }
+            let viewer = if args[1] == "prototype" {
+                Some(twin_viewer::generate(&prepared.glb, &prepared.index).map_err(CliError::new)?)
+            } else {
+                None
+            };
             let output = Path::new(&args[8]);
             // Exclusive creation prevents reuse or replacement of a user's folder.
             fs::create_dir(output).map_err(|e| {
@@ -97,6 +217,15 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
                 ("prepare-report.json", &prepared.report),
             ] {
                 write_new_file(&output.join(name), &json_bytes(value)?)?;
+            }
+            if let Some(viewer) = viewer {
+                write_new_file(&output.join("index.html"), viewer.as_bytes())?;
+            }
+            if let Some(population) = population {
+                write_new_file(
+                    &output.join("reference-population-audit.json"),
+                    &json_bytes(&population)?,
+                )?;
             }
             println!(
                 "{}",
@@ -181,6 +310,47 @@ fn model_assignments_command(args: &[String]) -> Result<(), CliError> {
             "usage: model assignments template <BOARD> --output <JSON> | verify <BOARD> --manifest <JSON> --project-root <DIR> [--json]",
         )),
     }
+}
+
+fn model_derive_wrl_command(args: &[String]) -> Result<(), CliError> {
+    let flags = args.get(7..).unwrap_or(&[]);
+    let palette = flags
+        .iter()
+        .any(|s| s == "--remove-unused-invalid-materials");
+    let zero_area = flags.iter().any(|s| s == "--remove-zero-area-faces");
+    if args.len() < 8
+        || args.len() > 9
+        || args[3] != "--output"
+        || args[5] != "--units"
+        || flags
+            .iter()
+            .any(|s| s != "--remove-unused-invalid-materials" && s != "--remove-zero-area-faces")
+        || flags.len() != usize::from(palette) + usize::from(zero_area)
+    {
+        return Err(CliError::new(
+            "usage: model derive-wrl <INPUT.wrl> --output <NEW.wrl> --units millimetres|kicad-wrl [--remove-unused-invalid-materials] [--remove-zero-area-faces] (at least one required)",
+        ));
+    }
+    let units = match args[6].as_str() {
+        "millimetres" => model_mesh::ModelUnits::Millimetres,
+        "kicad-wrl" => model_mesh::ModelUnits::KiCadLegacyWrlDeciinch,
+        _ => return Err(CliError::new("unsupported explicit model units")),
+    };
+    let input = read_bounded_file(
+        Path::new(&args[2]),
+        model_mesh::MeshLimits::default().max_bytes,
+    )?;
+    let (derived, report) = if zero_area {
+        model_mesh::derive_without_zero_area_faces(&input, units, palette)?
+    } else {
+        model_mesh::derive_without_unused_invalid_materials(&input, units)?
+    };
+    write_new_file(Path::new(&args[4]), &derived)?;
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&report).map_err(|e| CliError::new(e.to_string()))?
+    );
+    Ok(())
 }
 
 fn component_model_envelope_command(args: &[String]) -> Result<(), CliError> {
@@ -269,7 +439,7 @@ fn print_help() {
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
-         \ttokito-cli twin inspect|prepare|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
+         \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
          \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
@@ -336,7 +506,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\nJoins exact source references and reports identity/population conflicts; model geometry, placement and board revision remain unverified."
         ),
         ["validate"] | ["validate", "outline"] => println!(
-            "USAGE: tokito-cli validate outline <BOARD|TOKITO_PACKAGE_DIRECTORY> [--json]\nValidates the supported physical Edge.Cuts topology."
+            "USAGE: tokito-cli validate outline <BOARD|TOKITO_PACKAGE_DIRECTORY> [--json]\n       tokito-cli validate outline <BOARD|PACKAGE> --compare-chaining 0.001|0.01|0.1 --json\nValidates the supported physical Edge.Cuts topology. Comparison reports endpoint-distance candidates only; it does not repair or certify an outline."
         ),
         ["resolve"] | ["resolve", "models"] => println!(
             "USAGE: tokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\nCaptures local model assets under caller-approved roots; it does not decode them."
@@ -352,14 +522,23 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["dataset"]
         | ["dataset", "inventory"]
         | ["dataset", "bind"]
+        | ["dataset", "bind-external"]
         | ["dataset", "lock"]
         | ["dataset", "verify"] => {
             println!(
-                "USAGE: tokito-cli dataset inventory <GIT_ROOT> --revision <FULL_COMMIT> [--assets-root <ROOT>]\n       tokito-cli dataset bind <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nInventory/bind verify local immutable source object and payload identities; lock/verify retain a caller-declared revision. None authenticate publishers, qualify CAD geometry or admit an App package."
+                "USAGE: tokito-cli dataset inventory <GIT_ROOT> --revision <FULL_COMMIT> [--assets-root <ROOT>]\n       tokito-cli dataset bind <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset bind-external <GIT_ROOT> --assets-root <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset lock <ROOT> --request <JSON> --output <NEW_JSON>\n       tokito-cli dataset verify <ROOT> --lock <JSON>\nInventory/bind verify local immutable source object and payload identities. bind-external checks a local payload against source-pinned provenance hash/size claims, without fetching URLs. lock/verify retain a caller-declared revision. None authenticate publishers, qualify CAD geometry or admit an App package."
             )
         }
-        ["twin"] | ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "select"] => println!(
-            "USAGE: tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nMoves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+        ["twin", "audit-population"] => println!(
+            "USAGE: tokito-cli twin audit-population <GLB> --component-map <JSON> --manifest <JSON> --reference-bom <esp32-csv>\nCompares rendered authored classes with a reference BOM. Reports coverage gaps and reused-label conflicts. Does not assert that the reference design matches the photographed board."
+        ),
+        ["twin"]
+        | ["twin", "inspect"]
+        | ["twin", "prepare"]
+        | ["twin", "prototype"]
+        | ["twin", "adapt-source"]
+        | ["twin", "select"] => println!(
+            "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
         ),
         ["model"] | ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
@@ -371,7 +550,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\nWrites a partial SVG view from supported board geometry."
         ),
         ["export", "glb"] => println!(
-            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
         ["package"] | ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
@@ -464,6 +643,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "model" && args.get(1).is_some_and(|value| value == "assignments") {
         return model_assignments_command(args);
     }
+    if args[0] == "model" && args.get(1).is_some_and(|value| value == "derive-wrl") {
+        return model_derive_wrl_command(args);
+    }
     if args[0] == "model" && args.get(1).is_some_and(|value| value == "inspect") {
         return inspect_model(args);
     }
@@ -541,6 +723,19 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         return Ok(());
     }
     if args[0] == "validate" && args.get(1).is_some_and(|value| value == "outline") {
+        if args.len() == 6 && args[3] == "--compare-chaining" && args[5] == "--json" {
+            let tolerance = args[4]
+                .parse::<f64>()
+                .map_err(|_| CliError::new("invalid chaining tolerance"))?;
+            let board = load_board_input(Path::new(&args[2]))?;
+            let mut report = board.outline().compare_chaining(tolerance)?;
+            report["sourceSha256"] = serde_json::json!(board.source_sha256);
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report).map_err(|e| CliError::new(e.to_string()))?
+            );
+            return Ok(());
+        }
         if !(args.len() == 3 || args.len() == 4 && args[3] == "--json") {
             return Err(CliError::new(
                 "usage: tokito-cli validate outline <BOARD|PACKAGE> [--json]",
@@ -661,12 +856,23 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         let mut json_report = false;
         let mut assemble_wrl = false;
         let mut assignments_path = None;
+        let mut chaining_tolerance = None;
         let mut project_root = None;
         let mut library_roots = Vec::new();
         let mut variables = std::collections::BTreeMap::new();
         let mut index = 3;
         while index < args.len() {
             match args[index].as_str() {
+                "--outline-chaining-tolerance"
+                    if index + 1 < args.len() && chaining_tolerance.is_none() =>
+                {
+                    chaining_tolerance = Some(
+                        args[index + 1]
+                            .parse::<f64>()
+                            .map_err(|_| CliError::new("invalid outline chaining tolerance"))?,
+                    );
+                    index += 2;
+                }
                 "--output" if index + 1 < args.len() && output_path.is_none() => {
                     output_path = Some(PathBuf::from(&args[index + 1]));
                     index += 2;
@@ -729,6 +935,11 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         }
         let board = load_board_input(Path::new(&args[2]))?;
         if let Some(path) = assignments_path {
+            let board = if let Some(tolerance) = chaining_tolerance {
+                board.with_outline_chaining_tolerance(tolerance)?
+            } else {
+                board
+            };
             if assemble_wrl {
                 return Err(CliError::new(
                     "--model-assignments and --assemble-wrl are separate export modes",
@@ -761,6 +972,11 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             }
             return Ok(());
         }
+        let board = if let Some(tolerance) = chaining_tolerance {
+            board.with_outline_chaining_tolerance(tolerance)?
+        } else {
+            board
+        };
         let export = if assemble_wrl {
             use crate::model_resolver::{ModelResolver, ModelResolverConfig};
             let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {

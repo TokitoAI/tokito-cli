@@ -1,0 +1,478 @@
+{
+  "appNameFilterCompatible": true,
+  "arRegistrationVerified": false,
+  "assemblyContextRevisionClaim": "explicit-exact-zero-face-derivation-d5db5cea",
+  "assetId": "tokito-selectable-6a8d2eeaef65bb28879a94a816b1a50c",
+  "boardIdentity": "esp32-community-layout-reference",
+  "boardReferenceContextVerified": false,
+  "boardRevision": "d5a70c26a4c4",
+  "completeComponentCoverageVerified": false,
+  "componentCount": 26,
+  "components": [
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R6",
+      "renderableNodeIndex": 1,
+      "renderableNodeIndices": [
+        1
+      ],
+      "selector": "ref:R6",
+      "selectorNodeIndex": 1
+    },
+    {
+      "componentClassClaim": "diode",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "D1",
+      "renderableNodeIndex": 2,
+      "renderableNodeIndices": [
+        2
+      ],
+      "selector": "ref:D1",
+      "selectorNodeIndex": 2
+    },
+    {
+      "componentClassClaim": "connector",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "J1",
+      "renderableNodeIndex": 3,
+      "renderableNodeIndices": [
+        3
+      ],
+      "selector": "ref:J1",
+      "selectorNodeIndex": 3
+    },
+    {
+      "componentClassClaim": "switch",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "SW1",
+      "renderableNodeIndex": 4,
+      "renderableNodeIndices": [
+        4
+      ],
+      "selector": "ref:SW1",
+      "selectorNodeIndex": 4
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C6",
+      "renderableNodeIndex": 5,
+      "renderableNodeIndices": [
+        5
+      ],
+      "selector": "ref:C6",
+      "selectorNodeIndex": 5
+    },
+    {
+      "componentClassClaim": "switch",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "SW2",
+      "renderableNodeIndex": 6,
+      "renderableNodeIndices": [
+        6
+      ],
+      "selector": "ref:SW2",
+      "selectorNodeIndex": 6
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R5",
+      "renderableNodeIndex": 7,
+      "renderableNodeIndices": [
+        7
+      ],
+      "selector": "ref:R5",
+      "selectorNodeIndex": 7
+    },
+    {
+      "componentClassClaim": "transistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "Q1",
+      "renderableNodeIndex": 8,
+      "renderableNodeIndices": [
+        8
+      ],
+      "selector": "ref:Q1",
+      "selectorNodeIndex": 8
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R1",
+      "renderableNodeIndex": 9,
+      "renderableNodeIndices": [
+        9
+      ],
+      "selector": "ref:R1",
+      "selectorNodeIndex": 9
+    },
+    {
+      "componentClassClaim": "led",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "D2",
+      "renderableNodeIndex": 10,
+      "renderableNodeIndices": [
+        10
+      ],
+      "selector": "ref:D2",
+      "selectorNodeIndex": 10
+    },
+    {
+      "componentClassClaim": "interface_ic",
+      "modelAvailable": false,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "U3",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C4",
+      "renderableNodeIndex": 11,
+      "renderableNodeIndices": [
+        11
+      ],
+      "selector": "ref:C4",
+      "selectorNodeIndex": 11
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C2",
+      "renderableNodeIndex": 12,
+      "renderableNodeIndices": [
+        12
+      ],
+      "selector": "ref:C2",
+      "selectorNodeIndex": 12
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C1",
+      "renderableNodeIndex": 13,
+      "renderableNodeIndices": [
+        13
+      ],
+      "selector": "ref:C1",
+      "selectorNodeIndex": 13
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C5",
+      "renderableNodeIndex": 14,
+      "renderableNodeIndices": [
+        14
+      ],
+      "selector": "ref:C5",
+      "selectorNodeIndex": 14
+    },
+    {
+      "componentClassClaim": "transistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "Q2",
+      "renderableNodeIndex": 15,
+      "renderableNodeIndices": [
+        15
+      ],
+      "selector": "ref:Q2",
+      "selectorNodeIndex": 15
+    },
+    {
+      "componentClassClaim": "rf_module",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "U1",
+      "renderableNodeIndex": 16,
+      "renderableNodeIndices": [
+        16
+      ],
+      "selector": "ref:U1",
+      "selectorNodeIndex": 16
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R3",
+      "renderableNodeIndex": 17,
+      "renderableNodeIndices": [
+        17
+      ],
+      "selector": "ref:R3",
+      "selectorNodeIndex": 17
+    },
+    {
+      "componentClassClaim": "voltage_regulator",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "U2",
+      "renderableNodeIndex": 18,
+      "renderableNodeIndices": [
+        18
+      ],
+      "selector": "ref:U2",
+      "selectorNodeIndex": 18
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R2",
+      "renderableNodeIndex": 19,
+      "renderableNodeIndices": [
+        19
+      ],
+      "selector": "ref:R2",
+      "selectorNodeIndex": 19
+    },
+    {
+      "componentClassClaim": "capacitor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "C3",
+      "renderableNodeIndex": 20,
+      "renderableNodeIndices": [
+        20
+      ],
+      "selector": "ref:C3",
+      "selectorNodeIndex": 20
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "R4",
+      "renderableNodeIndex": 21,
+      "renderableNodeIndices": [
+        21
+      ],
+      "selector": "ref:R4",
+      "selectorNodeIndex": 21
+    },
+    {
+      "componentClassClaim": "pin_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "J3",
+      "renderableNodeIndex": 22,
+      "renderableNodeIndices": [
+        22
+      ],
+      "selector": "ref:J3",
+      "selectorNodeIndex": 22
+    },
+    {
+      "componentClassClaim": "resistor",
+      "modelAvailable": false,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": false,
+      "reference": "REF**",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    },
+    {
+      "componentClassClaim": "pin_header",
+      "modelAvailable": true,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": true,
+      "reference": "J2",
+      "renderableNodeIndex": 23,
+      "renderableNodeIndices": [
+        23
+      ],
+      "selector": "ref:J2",
+      "selectorNodeIndex": 23
+    },
+    {
+      "componentClassClaim": "unclassified_reference",
+      "modelAvailable": false,
+      "modelQualityClaim": "source_library_candidate_physical_fit_unverified",
+      "needs3dBody": false,
+      "reference": "G***",
+      "renderableNodeIndex": null,
+      "renderableNodeIndices": [],
+      "selector": null,
+      "selectorNodeIndex": null
+    }
+  ],
+  "directRenderableSelectors": 23,
+  "geometryBoundsComparedWithManifest": false,
+  "missingRequiredModelCount": 1,
+  "multiMeshComponentCount": 0,
+  "physicalFitVerified": false,
+  "positionalGuidanceAllowed": false,
+  "referencePopulationComparison": {
+    "candidateComponentRecords": 26,
+    "candidateSourceHashes": {
+      "componentMap": "a60bd705758f8e4f4e496908b44a5724876dbbbf69eb230f5f5e63367198b366",
+      "glb": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+      "manifest": "a6d2b79c5bbaa09826e53332e1cf118f705635c4b7a8e2af628d2a067f76aa3e"
+    },
+    "classCoverageComparison": [
+      {
+        "classClaim": "capacitor",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 6,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 6
+      },
+      {
+        "classClaim": "connector",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 1
+      },
+      {
+        "classClaim": "diode",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 1
+      },
+      {
+        "classClaim": "interface_ic",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 1,
+        "renderedCandidateCount": 0
+      },
+      {
+        "classClaim": "led",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 1
+      },
+      {
+        "classClaim": "pin_header",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 2,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 2
+      },
+      {
+        "classClaim": "resistor",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 6,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 6
+      },
+      {
+        "classClaim": "rf_module",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 1
+      },
+      {
+        "classClaim": "switch",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 2,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 2
+      },
+      {
+        "classClaim": "transistor",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 2,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 2
+      },
+      {
+        "classClaim": "voltage_regulator",
+        "physicalMissingPartsVerified": false,
+        "referenceBOMCount": 1,
+        "referenceCountDeficit": 0,
+        "renderedCandidateCount": 1
+      }
+    ],
+    "completePopulationVerified": false,
+    "identityJoinsVerified": false,
+    "limitations": [
+      "Reference BOM is not the photographed specimen BOM. Counts and equal labels do not prove identical parts or positions.",
+      "BOM classification is a source-field heuristic; missing photo parts require reviewed source joins."
+    ],
+    "physicalFitVerified": false,
+    "referenceBOMComponents": 24,
+    "referenceBOMSha256": "e2268bb49933e7e03b455b51b4a8e003d4d2f221bd1e37124edb3dc78a676e99",
+    "referenceLabelsAbsentFromCandidate": [],
+    "renderedCandidateClassCounts": {
+      "capacitor": 6,
+      "connector": 1,
+      "diode": 1,
+      "led": 1,
+      "pin_header": 2,
+      "resistor": 6,
+      "rf_module": 1,
+      "switch": 2,
+      "transistor": 2,
+      "voltage_regulator": 1
+    },
+    "sameLabelClassConflicts": [],
+    "samePhysicalBoardVerified": false,
+    "schema": "tokito.reference-population-audit.v1"
+  },
+  "renderableCount": 23,
+  "renderableMeshNodeCount": 23,
+  "schema": "tokito.component-selection-index.v1",
+  "sourceSha256": {
+    "componentMap": "a60bd705758f8e4f4e496908b44a5724876dbbbf69eb230f5f5e63367198b366",
+    "glb": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+    "manifest": "a6d2b79c5bbaa09826e53332e1cf118f705635c4b7a8e2af628d2a067f76aa3e"
+  },
+  "unmappedRenderableNodes": [
+    {
+      "meshIndex": 0,
+      "name": "Board shell",
+      "nodeIndex": 0
+    }
+  ]
+}

@@ -10,3 +10,5 @@ tests/fixtures/open-source/** -text -whitespace
 # Historical compatibility snapshots are compared byte-for-byte; preserve their
 # working-tree bytes on Windows as well as on Unix-like systems.
 tests/fixtures/compat-v0/** -text -whitespace
+# Frozen demo hashes cover exact viewer/manifest/model bytes on every platform.
+demo/** -text -whitespace

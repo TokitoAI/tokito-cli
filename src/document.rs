@@ -285,7 +285,145 @@ pub struct OuterCopperPlanesMm {
     pub back_copper_surface_z_mm: f64,
 }
 
+/// Distinct declared physical dimensions, in the board-body-centred frame.
+/// A nominal envelope is not a dielectric-body or patterned copper mesh.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StackupPhysicalExtentsMm {
+    pub body_thickness_mm: f64,
+    pub outer_copper_span_mm: f64,
+    pub declared_total_thickness_mm: f64,
+    pub front_mask_thickness_mm: f64,
+    pub back_mask_thickness_mm: f64,
+}
+
 impl Stackup {
+    /// Validate declared material thicknesses separately from copper placement.
+    /// No default mask thickness is inferred when a declared mask lacks one.
+    pub fn physical_extents_mm(&self) -> Result<StackupPhysicalExtentsMm, crate::EngineError> {
+        let planes = self.outer_copper_planes_mm()?;
+        let mut total = 0.0;
+        let mut front_copper = None;
+        let mut back_copper = None;
+        let mut front_mask = None;
+        let mut back_mask = None;
+        let front_index = self
+            .layers
+            .iter()
+            .position(|l| l.name.as_deref() == Some("F.Cu"))
+            .ok_or_else(|| crate::EngineError::new("missing front copper layer"))?;
+        let back_index = self
+            .layers
+            .iter()
+            .position(|l| l.name.as_deref() == Some("B.Cu"))
+            .ok_or_else(|| crate::EngineError::new("missing back copper layer"))?;
+        let mut copper_names = std::collections::BTreeSet::new();
+        let mut previous_copper_rank = None;
+        for (index, layer) in self.layers.iter().enumerate() {
+            let name = layer.name.as_deref().unwrap_or("");
+            let kind = layer.kind.as_deref().unwrap_or("").to_ascii_lowercase();
+            let mask = matches!(name, "F.Mask" | "B.Mask");
+            if (name == "F.Mask" && (index >= front_index || kind != "top solder mask"))
+                || (name == "B.Mask" && (index <= back_index || kind != "bottom solder mask"))
+                || (matches!(kind.as_str(), "core" | "prepreg")
+                    && (index <= front_index || index >= back_index))
+            {
+                return Err(crate::EngineError::new(
+                    "physical stackup material order or side is invalid",
+                ));
+            }
+            if kind == "copper" {
+                let rank = match name {
+                    "F.Cu" => Some(0),
+                    "B.Cu" => Some(31),
+                    _ => name
+                        .strip_prefix("In")
+                        .and_then(|n| n.strip_suffix(".Cu"))
+                        .and_then(|n| n.parse::<u8>().ok())
+                        .filter(|n| (1..=30).contains(n)),
+                }
+                .ok_or_else(|| {
+                    crate::EngineError::new("unsupported physical copper layer identity")
+                })?;
+                if !copper_names.insert(name)
+                    || previous_copper_rank.is_some_and(|last| last >= rank)
+                {
+                    return Err(crate::EngineError::new(
+                        "duplicate or unordered physical copper layers",
+                    ));
+                }
+                previous_copper_rank = Some(rank);
+            }
+            if mask || matches!(kind.as_str(), "copper" | "core" | "prepreg") {
+                let t = layer
+                    .thickness_mm
+                    .filter(|t| {
+                        t.is_finite() && *t <= 1000.0 && if mask { *t >= 0.0 } else { *t > 0.0 }
+                    })
+                    .ok_or_else(|| {
+                        crate::EngineError::new(
+                            "physical stackup layer has missing or invalid thickness",
+                        )
+                    })?;
+                if mask && !matches!(kind.as_str(), "top solder mask" | "bottom solder mask") {
+                    return Err(crate::EngineError::new(
+                        "mask layer has unsupported material type",
+                    ));
+                }
+                total += t;
+                let slot = match name {
+                    "F.Cu" => Some(&mut front_copper),
+                    "B.Cu" => Some(&mut back_copper),
+                    "F.Mask" => Some(&mut front_mask),
+                    "B.Mask" => Some(&mut back_mask),
+                    _ => None,
+                };
+                if let Some(slot) = slot {
+                    if slot.replace(t).is_some() {
+                        return Err(crate::EngineError::new(
+                            "duplicate outer physical stackup layer",
+                        ));
+                    }
+                }
+            } else if !is_technical_layer(name) {
+                return Err(crate::EngineError::new(
+                    "unsupported physical stackup material",
+                ));
+            }
+        }
+        let copper_span = planes.front_copper_surface_z_mm - planes.back_copper_surface_z_mm;
+        let front_copper = front_copper
+            .ok_or_else(|| crate::EngineError::new("missing front copper thickness"))?;
+        let back_copper =
+            back_copper.ok_or_else(|| crate::EngineError::new("missing back copper thickness"))?;
+        let front_mask = front_mask.unwrap_or(0.0);
+        let back_mask = back_mask.unwrap_or(0.0);
+        let body = copper_span - front_copper - back_copper;
+        if !total.is_finite()
+            || total > 1000.0
+            || body <= 0.0
+            || (total - copper_span - front_mask - back_mask).abs() > 0.000_001
+        {
+            return Err(crate::EngineError::new(
+                "declared stackup total and copper placement span disagree",
+            ));
+        }
+        Ok(StackupPhysicalExtentsMm {
+            body_thickness_mm: body,
+            outer_copper_span_mm: copper_span,
+            declared_total_thickness_mm: total,
+            front_mask_thickness_mm: front_mask,
+            back_mask_thickness_mm: back_mask,
+        })
+    }
+
+    pub fn matches_nominal_thickness_mm(&self, nominal: f64) -> bool {
+        nominal.is_finite()
+            && nominal > 0.0
+            && self
+                .physical_extents_mm()
+                .is_ok_and(|e| (e.declared_total_thickness_mm - nominal).abs() <= 0.000_001)
+    }
+
     /// Derive the two mounting surfaces using the pinned KiCad STEP walk: it
     /// starts at B.Cu, walks the declared physical stack upward, and treats
     /// only copper, core and prepreg records as board material. Missing or
@@ -1563,6 +1701,52 @@ mod tests {
             .expect("outer copper planes");
         assert!((planes.front_copper_surface_z_mm - 0.79).abs() < 1e-12);
         assert!((planes.back_copper_surface_z_mm + 0.79).abs() < 1e-12);
+        let e = stackup.physical_extents_mm().unwrap();
+        assert!((e.body_thickness_mm - 1.51).abs() < 1e-12);
+        assert!((e.outer_copper_span_mm - 1.58).abs() < 1e-12);
+        assert!((e.declared_total_thickness_mm - 1.6).abs() < 1e-12);
+        assert!(stackup.matches_nominal_thickness_mm(1.6));
+        assert!(!stackup.matches_nominal_thickness_mm(1.58));
+        assert!(!stackup.matches_nominal_thickness_mm(f64::NAN));
+        let mut missing_mask = stackup.clone();
+        missing_mask.layers[0].thickness_mm = None;
+        assert!(missing_mask.physical_extents_mm().is_err());
+        let mut duplicate = stackup.clone();
+        duplicate.layers.push(duplicate.layers[0].clone());
+        assert!(duplicate.physical_extents_mm().is_err());
+        let mut negative = stackup.clone();
+        negative.layers[0].thickness_mm = Some(-0.01);
+        assert!(negative.physical_extents_mm().is_err());
+    }
+
+    #[test]
+    fn physical_extents_refuse_wrong_mask_sides_order_and_unknown_materials() {
+        let text = r#"(kicad_pcb (setup (stackup
+            (layer "F.Mask" (type "Top Solder Mask") (thickness 0.01))
+            (layer "F.Cu" (type "copper") (thickness 0.035))
+            (layer "dielectric 1" (type "core") (thickness 1.51))
+            (layer "B.Cu" (type "copper") (thickness 0.035))
+            (layer "B.Mask" (type "Bottom Solder Mask") (thickness 0.01)))))"#;
+        let data = source(text);
+        let good = data.stackup.unwrap();
+        let mut wrong_side = good.clone();
+        wrong_side.layers[0].kind = Some("Bottom Solder Mask".into());
+        assert!(wrong_side.physical_extents_mm().is_err());
+        let mut wrong_order = good.clone();
+        wrong_order.layers.swap(0, 1);
+        assert!(wrong_order.physical_extents_mm().is_err());
+        let mut unknown = good.clone();
+        let mut layer = unknown.layers[2].clone();
+        layer.kind = Some("unknown".into());
+        layer.thickness_mm = None;
+        unknown.layers.insert(2, layer);
+        assert!(unknown.physical_extents_mm().is_err());
+        let mut duplicate_inner = good;
+        let mut inner = duplicate_inner.layers[1].clone();
+        inner.name = Some("In1.Cu".into());
+        duplicate_inner.layers.insert(3, inner.clone());
+        duplicate_inner.layers.insert(4, inner);
+        assert!(duplicate_inner.physical_extents_mm().is_err());
     }
 
     #[test]

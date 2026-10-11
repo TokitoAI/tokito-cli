@@ -11,6 +11,7 @@ mod cli;
 pub mod component_forge;
 pub mod component_pose;
 pub mod dataset;
+pub mod dataset_external;
 pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
@@ -21,8 +22,11 @@ pub mod model_assignments;
 pub mod model_mesh;
 pub mod model_resolver;
 mod package_input;
+pub mod population_audit;
+pub mod source_candidate;
 mod strict_json;
 pub mod topology;
+pub mod twin_viewer;
 
 const MAX_INPUT_BYTES: usize = 256 * 1024 * 1024;
 const MIN_REVIEWED_BOARD_FORMAT_VERSION: u64 = 20211014;
@@ -233,6 +237,30 @@ impl PhysicalBoardDocument {
     /// frozen v0.1 drawing bounds/diagnostics and overall CAD coverage.
     pub fn outline(&self) -> &topology::OutlineReport {
         &self.outline
+    }
+    /// Opt into bounded endpoint chaining without editing saved source geometry.
+    /// Unsupported diagnostics cannot be bypassed by this policy.
+    pub fn with_outline_chaining_tolerance(
+        mut self,
+        tolerance_mm: f64,
+    ) -> Result<Self, EngineError> {
+        if ![topology::JOIN_TOLERANCE_MM, 0.001, 0.01].contains(&tolerance_mm) {
+            return Err(EngineError::new(
+                "export chaining tolerance must be 0.000001, 0.001 or 0.01 mm",
+            ));
+        }
+        if self
+            .outline
+            .diagnostics
+            .iter()
+            .any(|d| d.code != topology::OutlineDiagnosticCode::OpenContour)
+        {
+            return Err(EngineError::new(
+                "chaining cannot bypass non-endpoint outline diagnostics",
+            ));
+        }
+        self.outline = topology::from_engineering_with_tolerance(&self.engineering, tolerance_mm);
+        Ok(self)
     }
     /// Separate physical-outline report; the v0.1 inspection schema is unchanged.
     pub fn outline_json(&self) -> String {

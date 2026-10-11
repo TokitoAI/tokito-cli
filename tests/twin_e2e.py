@@ -92,6 +92,19 @@ def run(binary):
         before = new_glb.read_bytes()
         invoke(binary, "twin", "prepare", *common, "--output", output, "--allow-partial", succeeds=False)
         assert new_glb.read_bytes() == before
+        # Prototype shares consent/no-overwrite gates and embeds the actual mesh bytes.
+        prototype = root / "prototype"
+        invoke(binary, "twin", "prototype", *common, "--output", prototype, succeeds=False)
+        assert not prototype.exists()
+        invoke(binary, "twin", "prototype", *common, "--output", prototype, "--allow-partial")
+        import base64
+        html = (prototype / "index.html").read_text(encoding="utf-8")
+        assert base64.b64encode((prototype / "active.digital-twin.glb").read_bytes()).decode() in html
+        assert "https://" not in html and "<script src=" not in html
+        assert "Reference candidate" in html and 'id="view"' in html
+        original_html = (prototype / "index.html").read_bytes()
+        invoke(binary, "twin", "prototype", *common, "--output", prototype, "--allow-partial", succeeds=False)
+        assert (prototype / "index.html").read_bytes() == original_html
         # Manifest byte binding, duplicate JSON keys and shared-mesh hierarchy must refuse.
         manifest["glbSha256"] = "0" * 64
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")

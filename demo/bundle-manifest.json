@@ -1,0 +1,155 @@
+{
+  "schema": "tokito.frozen-demo-bundle.v1",
+  "files": [
+    {
+      "path": "esp32/index.html",
+      "bytes": 6267148,
+      "sha256": "275e97fbe0f2aa203df23ee13ca851f40d8fe2a576653377b47cb90aba391314",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/index.html"
+    },
+    {
+      "path": "esp32/active.digital-twin.glb",
+      "bytes": 4676188,
+      "sha256": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/active.digital-twin.glb"
+    },
+    {
+      "path": "esp32/active.digital-twin.json",
+      "bytes": 920,
+      "sha256": "a6d2b79c5bbaa09826e53332e1cf118f705635c4b7a8e2af628d2a067f76aa3e",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/active.digital-twin.json"
+    },
+    {
+      "path": "esp32/component-map.json",
+      "bytes": 11737,
+      "sha256": "a60bd705758f8e4f4e496908b44a5724876dbbbf69eb230f5f5e63367198b366",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/component-map.json"
+    },
+    {
+      "path": "esp32/component-index.json",
+      "bytes": 14045,
+      "sha256": "3fd4f67cc6d39cf4a828f1158b4d762c914bbbefb08f21441ee9e75ecc8c86d5",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/component-index.json"
+    },
+    {
+      "path": "esp32/prepare-report.json",
+      "bytes": 1016,
+      "sha256": "65cc0c7ea9d5d2da8c791978e0497b30a7f950a3d4da8d2fa80669770cf643e6",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/prepare-report.json"
+    },
+    {
+      "path": "esp32/reference-population-audit.json",
+      "bytes": 3321,
+      "sha256": "d282b92f29d127ff32f9f541f9e61a2e674b567de6fb71c11f61c733ef032dbe",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/reference-population-audit.json"
+    },
+    {
+      "path": "esp32/native-selected-resistor-4k.png",
+      "bytes": 351074,
+      "sha256": "fc564b3cdc0a7d71a7992e9f407980c9cc80ad4ba233f8c073ac5fc83861b219",
+      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/native-selected-resistor-4k.png"
+    },
+    {
+      "path": "ultimaker/index.html",
+      "bytes": 30562267,
+      "sha256": "297472e40f81eac22d506fcdb6a7a3890bc62b93b5ace5959bd3e9f3acd2d451",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/index.html"
+    },
+    {
+      "path": "ultimaker/active.digital-twin.glb",
+      "bytes": 22809076,
+      "sha256": "b005375032a454d04fd9bc75071c37c93e1999bf2285f8a189af33db0737b712",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/active.digital-twin.glb"
+    },
+    {
+      "path": "ultimaker/active.digital-twin.json",
+      "bytes": 817,
+      "sha256": "e0fe51470f92c01bd83e8757ff987cdfc78631d9d3f9106f1416a8e5f316f9ee",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/active.digital-twin.json"
+    },
+    {
+      "path": "ultimaker/component-map.json",
+      "bytes": 175199,
+      "sha256": "94dfe883e4f850996cd1b0a663d8fc92a66c93c8bbde6502e9aeca5c6110f744",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/component-map.json"
+    },
+    {
+      "path": "ultimaker/component-index.json",
+      "bytes": 186170,
+      "sha256": "b4963e5b94b0eee3ded8af8dcc438df309f8034d7a8feba195c12cc7b0514f64",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/component-index.json"
+    },
+    {
+      "path": "ultimaker/prepare-report.json",
+      "bytes": 1073,
+      "sha256": "dc194ad685d5ab55055b6a224e882388c3f2851ded0209c8dad2ce8a6cb8f549",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/prepare-report.json"
+    },
+    {
+      "path": "ultimaker/browser-acceptance.json",
+      "bytes": 1320,
+      "sha256": "1ebc0a24e26ca3fb93783f94321eac3484b1edc3d4a821e27fd09f2c28143253",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/browser-acceptance.json"
+    },
+    {
+      "path": "ultimaker/selected-ic-4k.png",
+      "bytes": 650075,
+      "sha256": "da1deec07c5bedcd3b5fb1f28e0a140e74d4c0b61b25963c168d7ece142102d9",
+      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/selected-ic-4k.png"
+    },
+    {
+      "path": "nxp-reference/index.html",
+      "bytes": 7114556,
+      "sha256": "60068bc3768cdd28f71671c664dfce226f5b351409f82ba58b8d8b227fa99465",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/index.html"
+    },
+    {
+      "path": "nxp-reference/active.digital-twin.glb",
+      "bytes": 5251516,
+      "sha256": "9113e74057ca87f3ed3910b6e8ea5989bdb54f17bbdb98fccdc8d58d71b7be5b",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/active.digital-twin.glb"
+    },
+    {
+      "path": "nxp-reference/active.digital-twin.json",
+      "bytes": 1275,
+      "sha256": "e61cc8d21a198b37c96a32c4115d0844b9b3bd4c6a53bf83c66eaf02535d5be6",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/active.digital-twin.json"
+    },
+    {
+      "path": "nxp-reference/component-map.json",
+      "bytes": 291896,
+      "sha256": "7677e29fda7ed6fbb28c3a4b7778898391ac851d1f984f045fc9dc4c3b66af49",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/component-map.json"
+    },
+    {
+      "path": "nxp-reference/component-index.json",
+      "bytes": 132960,
+      "sha256": "a5b5b7c32cdda813b8628427122ad385a600128ac8de78261942134e22aca549",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/component-index.json"
+    },
+    {
+      "path": "nxp-reference/prepare-report.json",
+      "bytes": 1022,
+      "sha256": "33753a77f02850817015a406f907da4b26e3e05c7f7a87bef527db75149785b7",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/prepare-report.json"
+    },
+    {
+      "path": "nxp-reference/browser-acceptance.json",
+      "bytes": 1314,
+      "sha256": "174ca515ed45760ba0196d83eeb5fd827a3e2ff82ac38ca77eab788108f4d0c0",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/browser-acceptance.json"
+    },
+    {
+      "path": "nxp-reference/selected-ic-4k.png",
+      "bytes": 298191,
+      "sha256": "63430dbb80b121b888f5d4033440a1147b8e8108e4cf93161d754dd4f137efab",
+      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/selected-ic-4k.png"
+    }
+  ],
+  "bytes": 78804176,
+  "physicalFitVerified": false,
+  "arRegistrationVerified": false,
+  "productionReady": false,
+  "esp8266AssembledBoardIncluded": false,
+  "scope": "Byte-identical frozen CLI prototype outputs; historical browser evidence retained, no new browser run claimed."
+}

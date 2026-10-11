@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import math
+import shutil
 from pathlib import Path
 
 from glb_e2e import parse_glb, invoke
@@ -11,6 +12,7 @@ from glb_e2e import parse_glb, invoke
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_PROVENANCE_COMMIT = "ab1420fb08e813d4c761c6454fbba16cceaaa5dc"
 EXPECTED_PROVENANCE_SHA256 = "3f9741e47ca5a4093e1694b4280c735249c0a8bd48084e1035aca684ebe97572"
+EXTERNAL_SOURCE_COMMIT = "5283bc059e30e51f4d3a81a674425936fc213214"
 
 
 def sha256(path: Path) -> str:
@@ -64,7 +66,7 @@ def subtree_geometry(document: dict, root_index: int, claimed_nodes: set[int], c
     return len(local_nodes), len(local_meshes)
 
 
-def run(glb_path: Path, map_path: Path, manifest_path: Path, provenance_path: Path, output_path: Path, output_root: Path, binary: Path | None = None) -> None:
+def run(glb_path: Path, map_path: Path, manifest_path: Path, provenance_path: Path, output_path: Path, output_root: Path, binary: Path | None = None, dataset_repo: Path | None = None) -> None:
     for source in (glb_path, map_path, manifest_path, provenance_path):
         if not source.is_file():
             raise FileNotFoundError(source)
@@ -162,6 +164,33 @@ def run(glb_path: Path, map_path: Path, manifest_path: Path, provenance_path: Pa
     output_path = bounded_output(output_path, output_root)
     output_path.mkdir(parents=True)
     preparation_evidence = None
+    external_evidence = None
+    if dataset_repo is not None:
+        if binary is None:
+            raise ValueError("source-pinned external journey requires the Rust binary")
+        stage = output_path / "external-candidate"
+        source_relative = "data/board-sources/nxp-frdm-mcxn236/ar-reference/provenance.json"
+        descriptor = stage / source_relative
+        descriptor.parent.mkdir(parents=True)
+        shutil.copyfile(provenance_path, descriptor)
+        local_model = stage / glb_path.name
+        shutil.copyfile(glb_path, local_model)
+        request = {"schema": "tokito.dataset-external-request.v1", "repository": "https://github.com/TokitoAI/tokito-app-dataset",
+                   "revision": EXTERNAL_SOURCE_COMMIT, "assets": [{"boardId": manifest["boardIdentity"], "role": "model",
+                   "path": local_model.name, "provenancePath": source_relative, "claimPointer": "/geometry_asset"}]}
+        request_path = output_path / "external-request.json"
+        request_path.write_text(json.dumps(request, indent=2), encoding="utf-8")
+        binding_path = output_path / "external-binding.json"
+        binding = json.loads(invoke(binary, "dataset", "bind-external", dataset_repo, "--assets-root", stage,
+                                    "--request", request_path, "--output", binding_path).stdout)
+        assert binding["sourceBinding"]["commit"] == EXTERNAL_SOURCE_COMMIT
+        assert binding["sourceBinding"]["sourceAssets"][0]["gitObjectId"] == "1ced5133dc8fc81e044e0ea3c35b67d4dd5dc7d6"
+        assert binding["externalAssets"][0]["sha256"] == sha256(glb_path)
+        assert binding["externalAssets"][0]["bytes"] == glb_path.stat().st_size
+        assert binding["externalAssets"][0]["payloadMatchesSourceClaim"] is True
+        assert not binding["geometryQualified"] and not binding["urlOriginVerified"]
+        external_evidence = {"commit": EXTERNAL_SOURCE_COMMIT, "selectedPayloads": 1, "bindingSha256": sha256(binding_path),
+                             "sourceDescriptorGitObjectVerifiedByCli": True, "geometryQualified": False}
     if binary is not None:
         common = (glb_path, "--component-map", map_path, "--manifest", manifest_path)
         source_index = json.loads(invoke(binary, "twin", "inspect", *common).stdout)
@@ -201,7 +230,8 @@ def run(glb_path: Path, map_path: Path, manifest_path: Path, provenance_path: Pa
                                 "appImportOrDeviceTested": False}
     receipt = {
         "schema": "tokito.dataset-digital-twin-e2e.v1",
-        "datasetPullRequestHead": EXPECTED_PROVENANCE_COMMIT,
+        "provenanceOriginallyInspectedAtCommit": EXPECTED_PROVENANCE_COMMIT,
+        "datasetPullRequestHead": EXTERNAL_SOURCE_COMMIT if external_evidence else None,
         "boardIdentity": manifest["boardIdentity"],
         "boardRevision": manifest["boardRevision"],
         "assetId": manifest["assetId"],
@@ -220,6 +250,7 @@ def run(glb_path: Path, map_path: Path, manifest_path: Path, provenance_path: Pa
         "noCrossComponentNodeOrMeshSharing": True,
         "modelQualityClaimsFromDataset": quality_counts,
         "rustCliPreparation": preparation_evidence,
+        "rustExternalSourceBinding": external_evidence,
         "limitations": [
             "This checks dataset self-contained hashes, names, selector coverage and mesh isolation; it does not qualify package accuracy or compare geometry to a physical specimen.",
             "The dataset does not bind this map to an imported PCB SHA-256 or footprint UUIDs; a production CLI assignment still needs a hash-bound crosswalk.",
@@ -240,5 +271,6 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, default=ROOT / "target")
     parser.add_argument("--binary", type=Path)
+    parser.add_argument("--dataset-repo", type=Path)
     args = parser.parse_args()
-    run(args.glb, args.component_map, args.manifest, args.provenance, args.output_dir, args.output_root, args.binary)
+    run(args.glb, args.component_map, args.manifest, args.provenance, args.output_dir, args.output_root, args.binary, args.dataset_repo)

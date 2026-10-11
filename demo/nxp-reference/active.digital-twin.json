@@ -1,0 +1,64 @@
+{
+  "assemblyContextRevision": "nxp-frdm-mcxn236-guide-reference-v1@sha256:560e4c45a57bbd4b9362d56a4b3e620c04bf8a2a785ce61b79dc356a713acc71",
+  "assetId": "tokito-selectable-9113e74057ca87f3ed3910b6e8ea5989",
+  "axes": "RIGHT_HANDED_Y_UP",
+  "boardIdentity": "nxp-frdm-mcxn236",
+  "boardOriginMetres": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "boardPlaneBoundsMetres": {
+    "maximum": {
+      "x": 0.115,
+      "y": 0.00151,
+      "z": 0.003
+    },
+    "minimum": {
+      "x": -0.003,
+      "y": 0.0,
+      "z": -0.052
+    }
+  },
+  "boardPlaneCornerPointsMetres": [
+    {
+      "x": -0.003,
+      "y": 0.0,
+      "z": 0.003
+    },
+    {
+      "x": -0.003,
+      "y": 0.0,
+      "z": -0.052
+    },
+    {
+      "x": 0.115,
+      "y": 0.0,
+      "z": -0.052
+    },
+    {
+      "x": 0.115,
+      "y": 0.0,
+      "z": 0.003
+    }
+  ],
+  "boardRevision": "C",
+  "boundsMetres": {
+    "maximum": {
+      "x": 0.115,
+      "y": 0.010135,
+      "z": 0.009406
+    },
+    "minimum": {
+      "x": -0.005555,
+      "y": -0.001505,
+      "z": -0.052
+    }
+  },
+  "componentNodePrefix": "ref:",
+  "defaultOpacity": 0.42,
+  "glbBytes": 5251516,
+  "glbSha256": "sha256:9113e74057ca87f3ed3910b6e8ea5989bdb54f17bbdb98fccdc8d58d71b7be5b",
+  "schemaVersion": "1.0",
+  "units": "METRE"
+}

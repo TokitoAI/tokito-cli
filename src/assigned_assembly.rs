@@ -64,10 +64,10 @@ pub fn assemble_assigned_models(
         .stackup
         .as_ref()
         .and_then(|s| s.outer_copper_planes_mm().ok());
-    let stackup_matches = planes.is_some_and(|p| {
-        board.thickness_mm().is_some_and(|t| {
-            (p.front_copper_surface_z_mm - p.back_copper_surface_z_mm - t).abs() <= 0.000_001
-        })
+    let stackup_matches = board.engineering().stackup.as_ref().is_some_and(|stackup| {
+        board
+            .thickness_mm()
+            .is_some_and(|t| stackup.matches_nominal_thickness_mm(t))
     });
     let origin = board
         .outline()
@@ -131,6 +131,9 @@ pub fn assemble_assigned_models(
                                             .filter(|n| *n <= MAX_TRIANGLES)
                                         {
                                             match place_model_mesh_in_glb_m(&parsed, placement) {
+                                                Ok(mesh) if crate::glb::validate_component_mesh_for_glb(&mesh).is_err() => {
+                                                    "glb_precision_rejected".to_owned()
+                                                }
                                                 Ok(mesh) => {
                                                     triangle_count = total;
                                                     emitted.push(AssignedComponentMesh {
