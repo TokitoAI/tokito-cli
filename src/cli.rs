@@ -477,6 +477,8 @@ fn print_help() {
          \ttokito-cli help [COMMAND...]\n\
          \ttokito-cli pcb [--help]\n\
          \ttokito-cli project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--json]\n\
+         \ttokito-cli project build <DIR> --output <NEW_DIRECTORY> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--allow-partial] [--assemble-wrl --library-root <DIR> [--model-var NAME=DIR]] [--json]\n\
+         \ttokito-cli project verify <BUNDLE_DIRECTORY> [--json]\n\
          \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
@@ -496,7 +498,7 @@ fn print_help() {
          \n\
          COMMAND GROUPS:\n\
          \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
-         \tproject  Inspect existing project sources and select one physical PCB.\n\
+         \tproject  Inspect a project, build a source-bound export bundle, or verify a bundle.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
          \tbom      Reconcile dataset BOM references with PCB identities.\n\
          \tcomponent Generate a 0603 footprint candidate or provisional body envelope.\n\
@@ -549,8 +551,17 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
     {
         [] => print_help(),
         ["version"] => println!("USAGE: tokito-cli version\nPrint the Tokito CLI version."),
-        ["project"] | ["project", "inspect"] => println!(
+        ["project"] => println!(
+            "USAGE: tokito-cli project inspect|build|verify ...\nInspect and select an existing physical PCB, build a hashed offline export bundle, or verify one. Schematic files are inventoried only; physical geometry is never inferred from a schematic."
+        ),
+        ["project", "inspect"] => println!(
             "USAGE: tokito-cli project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--json]\nLists only top-level KiCad PCB and schematic files. Selects the sole PCB or requires an exact --board filename when ambiguous. Validates and hashes the selected PCB through the Rust engine; --expect-sha256 refuses a different revision. Schematic files are inventoried only; no layout or geometry is inferred."
+        ),
+        ["project", "build"] => println!(
+            "USAGE: tokito-cli project build <DIR> --output <NEW_DIRECTORY> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--allow-partial] [--assemble-wrl --library-root <DIR> [--model-var NAME=DIR]] [--json]\nWrites a new source-bound bundle with top/bottom SVG, placement and identity inventories, outline diagnostics and GLB. Missing component models refuse output unless --allow-partial is explicit. The bundle records hashes and omissions; it is not accepted by the App digital-twin importer until a matching board-context contract is verified."
+        ),
+        ["project", "verify"] => println!(
+            "USAGE: tokito-cli project verify <BUNDLE_DIRECTORY> [--json]\nRechecks bundle paths, payload digests and the imported source board identity. Integrity verification does not qualify model geometry, App compatibility, or AR registration."
         ),
         ["inspect"] => println!(
             "USAGE: tokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\nReads supported board metadata, inventory and import diagnostics."
@@ -828,6 +839,135 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             return Err(CliError::new("usage: tokito-cli version"));
         }
         println!("tokito-cli 0.1.0");
+        return Ok(());
+    }
+    if args[0] == "project" && args.get(1).map(String::as_str) == Some("build") {
+        if args.len() < 5 {
+            return Err(CliError::new(
+                "usage: tokito-cli project build <DIR> --output <NEW_DIRECTORY> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--allow-partial] [--assemble-wrl --library-root <DIR> [--model-var NAME=DIR]] [--json]",
+            ));
+        }
+        let project_root = PathBuf::from(&args[2]);
+        let mut output = None;
+        let mut board = None;
+        let mut expected_sha256 = None;
+        let mut allow_partial = false;
+        let mut assemble_wrl = false;
+        let mut library_roots = Vec::new();
+        let mut variables = std::collections::BTreeMap::new();
+        let mut json = false;
+        let mut index = 3;
+        while index < args.len() {
+            match args[index].as_str() {
+                "--output" if index + 1 < args.len() && output.is_none() => {
+                    output = Some(PathBuf::from(&args[index + 1]));
+                    index += 2;
+                }
+                "--board" if index + 1 < args.len() && board.is_none() => {
+                    board = Some(args[index + 1].as_str());
+                    index += 2;
+                }
+                "--expect-sha256" if index + 1 < args.len() && expected_sha256.is_none() => {
+                    expected_sha256 = Some(args[index + 1].as_str());
+                    index += 2;
+                }
+                "--allow-partial" if !allow_partial => {
+                    allow_partial = true;
+                    index += 1;
+                }
+                "--assemble-wrl" if !assemble_wrl => {
+                    assemble_wrl = true;
+                    index += 1;
+                }
+                "--library-root" if index + 1 < args.len() && library_roots.len() < 63 => {
+                    library_roots.push(PathBuf::from(&args[index + 1]));
+                    index += 2;
+                }
+                "--model-var" if index + 1 < args.len() && variables.len() < 64 => {
+                    let (name, path) = args[index + 1]
+                        .split_once('=')
+                        .ok_or_else(|| CliError::new("--model-var must use NAME=DIR"))?;
+                    if name.is_empty()
+                        || path.is_empty()
+                        || variables
+                            .insert(name.to_owned(), PathBuf::from(path))
+                            .is_some()
+                    {
+                        return Err(CliError::new("empty or duplicate model directory variable"));
+                    }
+                    index += 2;
+                }
+                "--json" if !json => {
+                    json = true;
+                    index += 1;
+                }
+                option => {
+                    return Err(CliError::new(format!(
+                        "unknown, duplicate, or incomplete project build option: {option}"
+                    )));
+                }
+            }
+        }
+        let output = output.ok_or_else(|| CliError::new("project build requires --output"))?;
+        if !assemble_wrl && (!library_roots.is_empty() || !variables.is_empty()) {
+            return Err(CliError::new(
+                "model roots require --assemble-wrl; no model files are read otherwise",
+            ));
+        }
+        let resolver = if assemble_wrl {
+            let mut config = model_resolver::ModelResolverConfig::new(&project_root);
+            config.library_roots = library_roots;
+            config.directory_variables = variables;
+            Some(model_resolver::ModelResolver::new(config)?)
+        } else {
+            None
+        };
+        let report =
+            project_bundle::build_project_bundle(project_bundle::ProjectBundleBuildOptions {
+                project_root: &project_root,
+                board_filename: board,
+                expected_sha256,
+                output: &output,
+                allow_partial,
+                model_resolver: resolver.as_ref(),
+            })?;
+        if json {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!(
+                "Built source-bound project bundle at {} ({}; App import and AR registration remain unverified)",
+                output.display(),
+                report["source"]["sha256"]
+                    .as_str()
+                    .unwrap_or("source digest recorded")
+            );
+        }
+        return Ok(());
+    }
+    if args[0] == "project" && args.get(1).map(String::as_str) == Some("verify") {
+        if args.len() != 3 && !(args.len() == 4 && args[3] == "--json") {
+            return Err(CliError::new(
+                "usage: tokito-cli project verify <BUNDLE_DIRECTORY> [--json]",
+            ));
+        }
+        let report = project_bundle::verify_project_bundle(Path::new(&args[2]))?;
+        if args.get(3).map(String::as_str) == Some("--json") {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!(
+                "Verified Tokito export bundle: {} artifacts, source sha256:{}",
+                report["artifactCount"].as_u64().unwrap_or_default(),
+                report["sourceSha256"].as_str().unwrap_or("unknown")
+            );
+        }
         return Ok(());
     }
     if args[0] == "project" {

@@ -11,7 +11,7 @@ KiCad parity, schematic-to-PCB automation and qualified phone AR remain unfinish
 [Try the demos](#selectable-3d-prototypes) · [Quick start](#quick-start) ·
 [Commands](#implemented-commands) · [Architecture](#architecture) ·
 [Codebase](#codebase-map) · [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) ·
-[Roadmap](docs/PRODUCT_COMPLETION_PLAN.md)
+[Roadmap](docs/PRODUCT_COMPLETION_PLAN.md) · [Project export bundle](docs/PROJECT_EXPORT_BUNDLE.md)
 
 ## Selectable 3D prototypes
 
@@ -129,6 +129,7 @@ shape is not a declaration of complete KiCad command compatibility.
 |---|---|
 | `inspect` | Supported PCB/package metadata, identity and placement inventory |
 | `project inspect` | Bounded read-only KiCad project-folder discovery, exact PCB choice and source SHA-256 pinning |
+| `project build/verify` | Source-pinned offline bundle with placements, outline, top/bottom SVG, GLB coverage, component UUID/selector map and integrity verification; not yet App-importable |
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
 | `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
@@ -161,6 +162,19 @@ paths:
 ./target/release/tokito-cli.exe package build board.kicad_pcb --output new-board-package
 ./target/release/tokito-cli.exe package verify new-board-package --json
 ```
+
+Build a source-pinned, offline export bundle from a selected existing PCB:
+
+```powershell
+./target/release/tokito-cli.exe project build C:\Boards\MyProject --board MyProject.kicad_pcb --expect-sha256 <64-hex-source-digest> --output D:\TokitoExports\MyProject --allow-partial --json
+./target/release/tokito-cli.exe project verify D:\TokitoExports\MyProject --json
+```
+
+`--allow-partial` is required when component models are missing or unsupported.
+The bundle is not yet accepted by the Tokito App importer and does not claim
+qualified physical geometry or registered AR. See
+[Project export bundle](docs/PROJECT_EXPORT_BUNDLE.md) for its schema, limits
+and acceptance journey.
 
 A shell is always partial. Missing/unsupported models refuse assembly by default;
 partial output requires explicit `--allow-partial`. Assembly resolves only under

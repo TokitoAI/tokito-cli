@@ -1,12 +1,12 @@
 # Project intake and first footprint family
 
-Status: first bounded product slices, 2026-10-11. Both operations are original Rust and work offline. They do not make the CLI compatible with KiCad's full command set.
+Status: bounded project intake and initial offline export bundle, 2026-10-11. The Rust `project build/verify` path is implemented as local unmerged work. These features do not make the CLI compatible with KiCad's full command set.
 
 ## Existing PCB project intake
 
 `project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <64-HEX>] [--json]` lists only immediate regular `.kicad_pcb` and `.kicad_sch` files. It will not scan recursively, include symlink entries seen during discovery, or write into the project. Discovery is capped at 4,096 directory entries and 256 source candidates. Candidates are sorted by filename. The selection is reopened by path; a different process changing that directory concurrently can change what is read. Use an immutable/trusted project snapshot and `--expect-sha256` when pinning a source revision.
 
-The sole PCB is selected automatically. More than one PCB requires an exact top-level filename, and a schematic-only project is refused with an explicit diagnostic. The selected PCB is parsed by the existing reviewed-format importer, and its actual parsed bytes supply the reported SHA-256 and format version. `--expect-sha256` rejects a different board revision. A schematic is inventoried only; its symbol positions cannot supply component placement, routing, stackup or 3D geometry. This command prepares a trustworthy handoff for later project export; it does not yet generate a batch of output artifacts.
+The sole PCB is selected automatically. More than one PCB requires an exact top-level filename, and a schematic-only project is refused with an explicit diagnostic. The selected PCB is parsed by the existing reviewed-format importer, and its actual parsed bytes supply the reported SHA-256 and format version. `--expect-sha256` rejects a different board revision. A schematic is inventoried only; its symbol positions cannot supply component placement, routing, stackup or 3D geometry. `project build` now packages the selected PCB together with derived inspection, placement, outline, SVG, GLB coverage and component-selector data; see [Project export bundle](PROJECT_EXPORT_BUNDLE.md). This is an offline CLI handoff, not an App-importable digital twin or AR registration result.
 
 Example:
 

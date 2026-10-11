@@ -25,6 +25,7 @@ pub mod model_resolver;
 mod package_input;
 pub mod population_audit;
 pub mod pos_export;
+pub mod project_bundle;
 pub mod project_intake;
 pub mod source_candidate;
 mod strict_json;
