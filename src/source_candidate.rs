@@ -85,9 +85,10 @@ pub fn load(
     index_path: &Path,
     provenance_path: &Path,
     coverage_path: &Path,
-    board_id: &str,
-    revision: &str,
+    identity: (&str, &str),
+    board_plane_node: Option<&str>,
 ) -> Result<Adapted, EngineError> {
+    let (board_id, revision) = identity;
     let glb = bounded(glb_path, 64 * 1024 * 1024)?;
     let map_bytes = bounded(map_path, 4 * 1024 * 1024)?;
     let index_bytes = bounded(index_path, 4 * 1024 * 1024)?;
@@ -247,7 +248,7 @@ pub fn load(
     }
     let renderable = refs.len();
     let count = components.len();
-    let bounds = world_bounds(&glb)?;
+    let (bounds, plane_bounds) = world_bounds(&glb, board_plane_node)?;
     let context = sha256_hex(&provenance_bytes);
     let asset_id = format!("source-candidate-{context}");
     map["board_id"] = json!(board_id);
@@ -255,13 +256,17 @@ pub fn load(
     map["asset_id"] = json!(asset_id);
     map["component_count"] = json!(count);
     map["renderable_count"] = json!(renderable);
-    let manifest = json!({"schemaVersion":"1.0","assetId":asset_id,"boardIdentity":board_id,"boardRevision":revision,"assemblyContextRevision":context,"units":"METRE","axes":"RIGHT_HANDED_Y_UP","componentNodePrefix":"ref:","glbSha256":sha256_hex(&glb),"glbBytes":glb.len(),"boardOriginMetres":{"x":0.,"y":0.,"z":0.},"boundsMetres":{"minimum":{"x":bounds[0][0],"y":bounds[0][1],"z":bounds[0][2]},"maximum":{"x":bounds[1][0],"y":bounds[1][1],"z":bounds[1][2]}},"defaultOpacity":0.5});
+    let mut manifest = json!({"schemaVersion":"1.0","assetId":asset_id,"boardIdentity":board_id,"boardRevision":revision,"assemblyContextRevision":context,"units":"METRE","axes":"RIGHT_HANDED_Y_UP","componentNodePrefix":"ref:","glbSha256":sha256_hex(&glb),"glbBytes":glb.len(),"boardOriginMetres":{"x":0.,"y":0.,"z":0.},"boundsMetres":{"minimum":{"x":bounds[0][0],"y":bounds[0][1],"z":bounds[0][2]},"maximum":{"x":bounds[1][0],"y":bounds[1][1],"z":bounds[1][2]}},"defaultOpacity":0.5});
+    if let Some(plane) = plane_bounds {
+        manifest["boardPlaneBoundsMetres"] = json!({"minimum":{"x":plane[0][0],"y":plane[0][1],"z":plane[0][2]},"maximum":{"x":plane[1][0],"y":plane[1][1],"z":plane[1][2]}});
+        manifest["boardPlaneSourceNode"] = json!(board_plane_node);
+    }
     ValidatedTwin::from_bytes(
         glb.clone(),
         &serde_json::to_vec(&map).map_err(|e| err(e.to_string()))?,
         &serde_json::to_vec(&manifest).map_err(|e| err(e.to_string()))?,
     )?;
-    let report = json!({"schema":"tokito.source-candidate-adaptation.v1","componentCount":count,"renderableCount":renderable,"missingPackageBodies":missing_packages,"unknownMechanicalSpacers":unknown_spacers,"sourceCategories":categories,"sourcePcbSha256":provenance["source_pcb_sha256"],"sourceProvenanceSha256":context,"coverageSha256":sha256_hex(&coverage_bytes),"coveragePublisherProvenanceVerified":false,"coverageOriginAuthenticated":false,"classificationSourceClaimsOnly":true,"frameDeclaration":"dataset source profile: METRE / RIGHT_HANDED_Y_UP","originMeaning":"asset-frame zero; not measured board plane","physicalGeometryVerified":false,"photoRegistrationVerified":false,"releaseEligible":false});
+    let report = json!({"schema":"tokito.source-candidate-adaptation.v1","componentCount":count,"renderableCount":renderable,"missingPackageBodies":missing_packages,"unknownMechanicalSpacers":unknown_spacers,"sourceCategories":categories,"sourcePcbSha256":provenance["source_pcb_sha256"],"sourceProvenanceSha256":context,"coverageSha256":sha256_hex(&coverage_bytes),"coveragePublisherProvenanceVerified":false,"coverageOriginAuthenticated":false,"classificationSourceClaimsOnly":true,"frameDeclaration":"dataset source profile: METRE / RIGHT_HANDED_Y_UP","originMeaning":"asset-frame zero; not measured board plane","boardPlaneSourceNode":board_plane_node,"boardPlaneBoundsDecoded":plane_bounds.is_some(),"physicalGeometryVerified":false,"photoRegistrationVerified":false,"releaseEligible":false});
     Ok(Adapted {
         glb,
         map,
@@ -370,11 +375,32 @@ fn local_matrix(node: &Value) -> Result<Matrix, EngineError> {
     }
     Ok(matrix)
 }
-fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
+type Bounds = [[f64; 3]; 2];
+fn world_bounds(
+    bytes: &[u8],
+    plane_node: Option<&str>,
+) -> Result<(Bounds, Option<Bounds>), EngineError> {
     let gltf = gltf::Gltf::from_slice(bytes).map_err(|e| err(e.to_string()))?;
     let container = gltf::binary::Glb::from_slice(bytes).map_err(|e| err(e.to_string()))?;
     let document = parse(&container.json)?;
     let source_nodes = array(&document, "nodes")?;
+    let plane_index = if let Some(name) = plane_node {
+        if name.is_empty() || name.len() > 512 || name.chars().any(char::is_control) {
+            return Err(err("invalid board-plane source node name"));
+        }
+        let matches: Vec<_> = source_nodes
+            .iter()
+            .enumerate()
+            .filter(|(_, node)| node["name"].as_str() == Some(name))
+            .map(|(index, _)| index)
+            .collect();
+        if matches.len() != 1 {
+            return Err(err("board-plane source node must resolve uniquely"));
+        }
+        Some(matches[0])
+    } else {
+        None
+    };
     let bin = gltf
         .blob
         .as_ref()
@@ -388,11 +414,14 @@ fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
         [0., 0., 1., 0.],
         [0., 0., 0., 1.],
     ];
-    let mut pending: Vec<_> = scene.nodes().map(|n| (n, identity)).collect();
+    let mut pending: Vec<_> = scene.nodes().map(|n| (n, identity, false)).collect();
     let mut seen = BTreeSet::new();
     let mut bounds = [[f64::INFINITY; 3], [f64::NEG_INFINITY; 3]];
+    let mut plane_bounds = bounds;
+    let mut plane_count = 0usize;
     let mut count = 0usize;
-    while let Some((node, parent)) = pending.pop() {
+    while let Some((node, parent, inside_plane)) = pending.pop() {
+        let inside_plane = inside_plane || plane_index == Some(node.index());
         if !seen.insert(node.index()) || seen.len() > 100_000 {
             return Err(err("shared/cyclic scene or node limit exceeded"));
         }
@@ -405,7 +434,7 @@ fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
         if world.iter().flatten().any(|v| !v.is_finite()) {
             return Err(err("nonfinite transform"));
         }
-        pending.extend(node.children().map(|n| (n, world)));
+        pending.extend(node.children().map(|n| (n, world, inside_plane)));
         if let Some(mesh) = node.mesh() {
             for primitive in mesh.primitives() {
                 let accessor = primitive
@@ -432,6 +461,9 @@ fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
                     .checked_add(accessor.offset())
                     .ok_or_else(|| err("position offset overflow"))?;
                 for i in 0..accessor.count() {
+                    if inside_plane {
+                        plane_count += 1;
+                    }
                     count = count
                         .checked_add(1)
                         .ok_or_else(|| err("vertex count overflow"))?;
@@ -468,6 +500,10 @@ fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
                         }
                         bounds[0][axis] = bounds[0][axis].min(v);
                         bounds[1][axis] = bounds[1][axis].max(v);
+                        if inside_plane {
+                            plane_bounds[0][axis] = plane_bounds[0][axis].min(v);
+                            plane_bounds[1][axis] = plane_bounds[1][axis].max(v);
+                        }
                     }
                 }
             }
@@ -476,7 +512,14 @@ fn world_bounds(bytes: &[u8]) -> Result<[[f64; 3]; 2], EngineError> {
     if count == 0 || (0..3).any(|i| bounds[0][i] >= bounds[1][i]) {
         return Err(err("empty or degenerate scene bounds"));
     }
-    Ok(bounds)
+    if plane_index.is_some()
+        && (plane_count == 0 || (0..3).any(|i| plane_bounds[0][i] >= plane_bounds[1][i]))
+    {
+        return Err(err(
+            "board-plane source subtree is inactive, empty or degenerate",
+        ));
+    }
+    Ok((bounds, plane_index.map(|_| plane_bounds)))
 }
 
 #[cfg(test)]
@@ -484,13 +527,15 @@ mod tests {
     use super::*;
     use std::borrow::Cow;
     fn fixture() -> (std::path::PathBuf, Vec<u8>) {
+        static NEXT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
         let path = std::env::temp_dir().join(format!(
-            "tokito-source-candidate-{}-{}",
+            "tokito-source-candidate-{}-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap()
-                .as_nanos()
+                .as_nanos(),
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         std::fs::create_dir(&path).unwrap();
         let bin: Vec<u8> = [0f32, 0., 0., 0.01, 0., 0., 0., 0.02, 0.03]
@@ -531,9 +576,91 @@ mod tests {
             &path.join("index.json"),
             &path.join("provenance.json"),
             &path.join("coverage.json"),
-            "fixture",
-            "r1",
+            ("fixture", "r1"),
+            None,
         )
+    }
+    fn edited_glb(bytes: &[u8], edit: impl FnOnce(&mut Value)) -> Vec<u8> {
+        let source = gltf::binary::Glb::from_slice(bytes).unwrap();
+        let mut document: Value = serde_json::from_slice(&source.json).unwrap();
+        edit(&mut document);
+        gltf::binary::Glb {
+            header: source.header,
+            json: Cow::Owned(serde_json::to_vec(&document).unwrap()),
+            bin: source.bin,
+        }
+        .to_vec()
+        .unwrap()
+    }
+    #[test]
+    fn plane_subtree_uses_world_transforms_without_connector_overhang() {
+        let (path, bytes) = fixture();
+        let bytes = edited_glb(&bytes, |doc| {
+            doc["nodes"].as_array_mut().unwrap().extend([
+                json!({"name":"substrate","translation":[-0.2,0.,0.],"children":[2]}),
+                json!({"mesh":0,"translation":[0.,0.001,0.]}),
+            ]);
+            doc["scenes"][0]["nodes"] = json!([0, 1]);
+        });
+        let (overall, plane) = world_bounds(&bytes, Some("substrate")).unwrap();
+        let plane = plane.unwrap();
+        assert!((plane[0][0] + 0.2).abs() < 1e-9);
+        assert!((plane[1][0] + 0.19).abs() < 1e-8);
+        assert!((plane[0][1] - 0.001).abs() < 1e-9);
+        assert!((overall[1][0] - 0.11).abs() < 1e-8);
+        std::fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
+    fn plane_selector_rejects_missing_duplicate_inactive_and_empty_nodes() {
+        let (path, bytes) = fixture();
+        assert!(world_bounds(&bytes, Some("missing")).is_err());
+        assert!(world_bounds(&bytes, Some("\n")).is_err());
+        for (nodes, roots) in [
+            (
+                json!([{"name":"substrate","mesh":0},{"name":"substrate","mesh":0}]),
+                json!([0, 1]),
+            ),
+            (
+                json!([{"mesh":0},{"name":"substrate","mesh":0}]),
+                json!([0]),
+            ),
+            (json!([{"mesh":0},{"name":"substrate"}]), json!([0, 1])),
+        ] {
+            let invalid = edited_glb(&bytes, |doc| {
+                doc["nodes"] = nodes;
+                doc["scenes"][0]["nodes"] = roots;
+            });
+            assert!(world_bounds(&invalid, Some("substrate")).is_err());
+        }
+        std::fs::remove_dir_all(path).unwrap();
+    }
+    #[test]
+    fn explicit_plane_does_not_grant_physical_qualification() {
+        let (path, _) = fixture();
+        let result = load(
+            &path.join("model.glb"),
+            &path.join("map.json"),
+            &path.join("index.json"),
+            &path.join("provenance.json"),
+            &path.join("coverage.json"),
+            ("fixture", "r1"),
+            Some("ref:Q7"),
+        )
+        .unwrap();
+        assert_eq!(result.manifest["boardPlaneSourceNode"], "ref:Q7");
+        assert_eq!(
+            result.manifest["boardPlaneBoundsMetres"],
+            result.manifest["boundsMetres"]
+        );
+        assert_eq!(result.report["boardPlaneBoundsDecoded"], true);
+        for gate in [
+            "physicalGeometryVerified",
+            "photoRegistrationVerified",
+            "releaseEligible",
+        ] {
+            assert_eq!(result.report[gate], false);
+        }
+        std::fs::remove_dir_all(path).unwrap();
     }
     #[test]
     fn source_ids_categories_and_decoded_translated_bounds_are_preserved() {
