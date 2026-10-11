@@ -1,149 +1,395 @@
 # Tokito CLI
 
-[Completion gates](docs/KICAD_COMPLETION_GATES.md) track full KiCad behavior and footprint-library implementation, component geometry/selection and 4K rendering evidence. [ESP8266 intake](docs/ESP8266_SOURCE_INTAKE.md) records the current reference sources and qualification gaps. [External source binding](docs/DATASET_EXTERNAL_BINDING.md) links local model bytes to pinned dataset provenance without certifying geometry.
+**Offline Rust tooling for turning existing PCB layouts and source models into inspectable, selectable board artifacts.**
 
-Tokito CLI is a new Rust project for importing existing PCB layouts and preparing board artifacts for the Tokito ecosystem. Its first supported input is a declared subset of KiCad `.kicad_pcb` files whose format date is between `20211014` (KiCad 6) and `20260206` (the version reviewed in KiCad 10.0.7). Older, newer, or missing format versions are rejected until their structure is reviewed. Schematic-to-PCB design comes later.
+Tokito CLI is the physical-board preparation layer of the Tokito ecosystem. It
+shares a reusable Rust engine with its command-line front end, preserves source
+component identities, and reports incomplete geometry explicitly. The crate
+version is **0.1.0**; no GitHub release is published. Selectable reference prototypes are available, while full
+KiCad parity, schematic-to-PCB automation and qualified phone AR remain unfinished.
 
-The canonical local workspace is `D:\kannan\projects\tokito ecosystem\tokito_cli`. The ecosystem copy was verified byte-for-byte before activating D:; the old F: copy remains pending cleanup. Sibling repositories remain read-only. See [local output locations](docs/LOCAL_OUTPUT_LOCATIONS.md).
+[Try the demos](#selectable-3d-prototypes) · [Quick start](#quick-start) ·
+[Commands](#implemented-commands) · [Architecture](#architecture) ·
+[Codebase](#codebase-map) · [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) ·
+[Roadmap](docs/GOAL_TRACKER.md)
 
-The [App/API native bridge audit](docs/APP_API_BRIDGE_AUDIT.md) pins the updated GitHub sources, distinguishes physical-session sync from board-package import, and records the remaining cloud/mobile contracts. [Team handoff](docs/TEAM_HANDOFF.md) lists what the App and dataset owners need to provide.
+## Selectable 3D prototypes
 
-All boards in the dataset are intended targets, with support tracked per exact
-revision and adapter. The [Ultimainboard sample audit and dataset intake](docs/DATASET_BOARD_HANDOFF.md)
-record the pinned metadata checks, mixed STEP units, unverified model assignments
-and remaining offline/registration requirements. Dataset availability does not
-mean native Altium/STEP import or full-board AR is implemented.
+These are actual generated/adapted artifacts, not concept images. Each directory
+contains a GLB, identity map, twin manifest, preparation report and standalone
+viewer. Reference counts include records without package bodies; they are not
+physical fitted-component counts.
 
-## Current status
+| Board | References | Selectable bodies/groups | Current boundary |
+|---|---:|---:|---|
+| [ESP32 natural-material reference](demo/esp32-natural/) | 26 | 23 | Full source baseline with central module, passives, USB and switches; CP2102 U3 remains missing; photographed variant unqualified |
+| [ESP8266 NodeMCU source reference](demo/esp8266/) | 34 | 34 | 62 source body instances from the Rust Altium/STEP experiment; physical pose, surfaces and specimen match unqualified |
+| [NXP FRDM-MCXN236 refined](demo/nxp-refined/) | 391 | 351 | U8 and USB connectors replaced with source STEP geometry; 20 placeholders remain; J7/J14/J21 explicitly not fitted |
+| [Ultimainboard 2.1.4](demo/ultimaker/) | 574 | 310 | Source assembly with multi-mesh component groups; four package bodies and four spacers unresolved |
+| [NXP earlier baseline](demo/nxp-reference/) | 391 | 354 | Retained for comparison; use the refined asset for corrected population/placement |
 
-The ESP32 selectable candidate is **not fully populated**: it renders 15 bodies,
-including no resistors and two capacitors. Its separate community-reference BOM
-has six resistors and six capacitors, with conflicting U1/U2 identities. The Rust
-`twin audit-population` command reports this comparison. `twin prototype` accepts
-`--reference-bom <esp32-csv>` to bundle the hash-bound report and display it in the
-offline viewer. No component placement is inferred from counts. See the
-[ESP32 population audit and remaining work](docs/ESP32_POPULATION_AUDIT.md).
+### ESP32
 
-`bom reconcile` reads the reviewed dataset NXP JSON or ESP32 CSV schemas and
-joins exact references to unique PCB UUIDs. It retains source hashes, candidate
-part numbers, DNP/assembly uncertainty, quantity conflicts and missing identities.
-Actual MCXN236/ESP32 runs matched 391/24 BOM references. The additional records
-are 190 anonymous MCXN236 footprints and two ESP32 placeholder references, not
-evidence of missing physical bodies. This is identity reconciliation, not generated
-component CAD or verified physical assembly. See the [BOM qualification plan](docs/BOM_COMPONENT_QUALIFICATION.md).
+![ESP32 natural-material source-reference assembly](demo/esp32-natural/esp32-natural-4k.png)
 
-Milestones A and B provide a reusable `tokito_cli` Rust library with a typed `PhysicalBoardDocument` and a physical `OutlineReport`. Milestone C includes a board-shell GLB and a bounded assembly path: `export glb --assemble-wrl` resolves caller-approved local paths, accepts only the flat triangle VRML97 profile, derives supported copper/core/prepreg mounting planes, and emits one renderable node named `ref:<reference>` per uniquely identified component. That node owns a mesh with separate primitives for imported model parts and includes footprint UUID/source metadata. This matches the App's documented prefix-plus-reference selector shape; App package import and Android selection have not been tested. Missing, ambiguous, hidden, unsupported, STEP, glTF, and GLB models are reported with explicit reasons. Aggregate triangle and report limits bound output. A repeatable external KiCad 10.0.5 GLB capture establishes one non-origin 90-degree component-placement baseline, but it is not 10.0.7 parity. Complete component coverage and an independent KiCad-export geometry comparison remain open. Inspection, placement, package, SVG and GLB share source identities; CLI dispatch stays separate. See the [architecture](docs/ARCHITECTURE.md), [public API](docs/CANONICAL_ENGINE.md), [topology limits](docs/PCB_TOPOLOGY.md), [model operations](docs/MODEL_RESOLUTION.md), [GLB export architecture](docs/GLB_EXPORT_ARCHITECTURE.md), and [external GLB reference](docs/KICAD_GLB_REFERENCE.md).
+The ESP32 assembly is generated by the Rust CLI using source PCB placements and
+a bounded local VRML library. The natural-material version retains all geometry,
+transforms and 23 selectable components from the full source baseline, including
+J1 USB, SW1/SW2 switches, D2 LED and U1 module. Eleven explicit material overrides
+provide dark solder mask, silver terminals/shield, charcoal parts and copper/gold
+tones; these are presentation approximations, not measured reflectance or texture
+maps. All 23 browser selections passed in the
+[material receipt](demo/esp32-natural/material-acceptance.json).
+The [original source-colour demo](demo/esp32/) remains a regression baseline;
+neither presentation fills the missing U3 or fabricates new geometry/silkscreen.
+See [population audit](docs/ESP32_POPULATION_AUDIT.md) and
+[material preview](docs/ESP32_NATURAL_MATERIALS.md).
 
-The executable reads bounded KiCad PCB S-expressions, reports source/component inventory, exports placement CSV, and exports partial physical-scale SVG with layer selection and top/bottom views. `validate outline` provides a separate JSON or text physical topology report; unsupported, open, crossed, overlapping or ambiguous outlines are rejected for physical SVG and GLB export while their source inventory remains inspectable. `export glb` triangulates and extrudes a validated board shell, then independently validates the self-contained GLB container. A shell-only export always requires `--allow-partial`; an assembled export also refuses unresolved models unless the user explicitly permits partial output. Geometry includes supported footprint graphics/text, simple pads/drills, segments/arcs, vias, and stored filled-zone polygons. SVG retains source IDs and parent footprint UUIDs. Text uses approximate SVG fonts; full KiCad plot fidelity and DRC are unverified.
+### ESP8266
 
-`package build` preserves the source and inventory with SHA-256 digests. `package verify` validates the v0.1 contract, artifact/source integrity and source consistency; inspection, placement, SVG, and GLB exports can also consume that Tokito package directory. It remains a source-and-inventory package with no generated SVG/GLB/STEP embedded and is not accepted by the phone. Placement CSV retains excluded and placeholder footprints and uses raw source anchors; it is not a manufacturing-position file. `pcb` is a command group alias for the existing routed-board commands; it mirrors KiCad's discoverable structure without claiming KiCad's unimplemented schematic, symbol, footprint, jobset, Gerber or STEP operations. Tokito is an original Rust implementation and does not invoke KiCad or copy/translate its code.
+![ESP8266 source-derived assembly with selected module](demo/esp8266/esp8266-selected-module-4k.png)
 
-The pinned corpus includes SparkFun Basic, Pico/UNO community conversions, NXP MCXA ESC, the Raspberry Pi Press RP2040 Game Controller, an official KiCad NFC demo, the routed Porcupine board, and unchanged original LumenPnP vacuum-adapter PCB/stored profile. The RP2040 source and same-commit KiCad 7 Gerber profile match all 644 valid outline lines exactly; the NFC profile remains a 22-entity reference for an intentionally open outline that the validator rejects. Porcupine has five cutouts and 607 routed copper arcs. The original LumenPnP reference validates eight curved/circular outline entities and emitted SVG path/circle geometry; renderer fidelity remains unverified. These fixtures are not certified Tokito product boards. See [fixture provenance](docs/PCB_FIXTURE_CORPUS.md).
+The Rust experimental pipeline decodes native Altium identities, embedded STEP
+bytes and source body instances, then exports a selectable partial source
+assembly. It is not proof that the photographed clone has identical geometry
+or population. The frozen model remains separate from later drilled-substrate
+work. See [source assembly](docs/ESP8266_SOURCE_ASSEMBLY.md),
+[placement evidence](docs/ESP8266_PLACEMENT_RESEARCH.md) and
+[drill inventory](docs/EXCELLON_SOURCE_INVENTORY.md).
 
-The CLI's v0.1 Tokito package schema and source/inventory writer are implemented. This is an initial exchange format, not the complete canonical board package or a phone import contract. The App remote snapshot inspected on 2026-10-10 defines native GLB/context validation and reference-based selection, but its mobile bridge has no board-package import operation. See [the package contract and limits](docs/TOKITO_BOARD_PACKAGE_V0.md) and the [pinned ecosystem contract map](docs/ECOSYSTEM_CONTRACT_MAP.md). Other vendor formats remain separate, explicitly scoped adapters.
+### NXP FRDM-MCXN236
 
-### Component Forge: bounded prototype
+![Refined NXP source-reference assembly](demo/nxp-refined/nxp-refined-4k.png)
 
-The first pure-Rust component-generation command accepts an explicit nominal body specification and writes a deterministic rectangular VRML envelope. The generic subprocess test binds the candidate to a fixture PCB identity and emits one selectable partial-GLB component node. On the pinned FRDM-MCXN236 dataset case, U11 has existing custom footprint pads and a missing model; no footprint is rewritten. Its nominal NXP body envelope is generated and assigned as a candidate, but the current board lacks canonical stackup and the assigned U11 model is withheld from the board GLB under the combined stackup-or-outline gate. This prototype is not a qualified component model. See [architecture](docs/COMPONENT_FORGE_ARCHITECTURE.md), [specification](docs/COMPONENT_FORGE_SPECIFICATION.md), [dataset qualification](docs/COMPONENT_FORGE_QUALIFICATION.md), and [open-source review](docs/COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md).
+The refiner replaces U8 and J10/J11 with pinned source package geometry and
+corrects their footprint origins. J7/J14/J21 remain semantic records marked
+not fitted; no fake connector bodies replace the empty footprints. Other DNP
+assembly options and source placeholders remain unresolved for the specimen.
+See [refinement sources, transforms and acceptance](docs/NXP_REALISM_UPGRADE.md).
 
-## Architecture and data flow
+### Ultimainboard
 
-The pure-Rust twin commands audit an existing GLB/map/manifest, prepare isolated mesh-bearing reference selectors, and query exact references or authored component-class labels. Preparation preserves geometry and transforms, updates hashes, and reports missing/unmapped geometry. It creates an unregistered reference candidate; colour highlighting, board-reference admission, mobile import and physical AR registration remain separate App stages. See [the CLI flow, architecture and acceptance roadmap](docs/DIGITAL_TWIN_SELECTION.md).
+![Ultimainboard component selection](demo/ultimaker/selected-ic-4k.png)
+
+The CLI adapts dataset source geometry into individually selectable component
+groups. Ninety-four components span multiple meshes, so App selection must
+resolve groups rather than assuming every reference is one direct mesh node.
+See [multi-mesh prototype](docs/ULTIMAKER_SELECTABLE_PROTOTYPE.md).
+
+All displayed boards are **unregistered reference prototypes**. Physical
+geometry, board/photo fit and AR guidance require their own acceptance gates.
+3840×2160 screenshots demonstrate visualization resolution, not CAD accuracy
+or phone performance. [Demo provenance and limitations](docs/DEMO_BUNDLE.md)
+explain the source and evidence boundaries.
+
+## Quick start
+
+Use Rust with Cargo; the crate declares Rust 1.85 and edition 2024. Recorded
+Windows checks used a newer toolchain and do not establish the minimum-version
+or Linux acceptance gates. PowerShell 7 and Python are needed for the local
+verification runner; a browser is sufficient to inspect the checked-in demos.
+
+```powershell
+cargo build --release --locked
+./target/release/tokito-cli.exe --version
+./target/release/tokito-cli.exe --help
+./target/release/tokito-cli.exe help twin
+```
+
+Add `--offline` to Cargo commands after the locked dependencies are cached.
+The production engine uses pure Rust dependencies and does not invoke KiCad
+or require C/C++ CAD bindings. FreeCAD/KiCad comparisons are separate development
+reference checks.
+
+Inspect a delivered model and select an exact reference:
+
+```powershell
+./target/release/tokito-cli.exe twin inspect demo/esp32-natural/active.digital-twin.glb --component-map demo/esp32-natural/component-map.json --manifest demo/esp32-natural/active.digital-twin.json
+./target/release/tokito-cli.exe twin select demo/esp32-natural/active.digital-twin.glb --component-map demo/esp32-natural/component-map.json --manifest demo/esp32-natural/active.digital-twin.json --reference U1
+```
+
+Run the standalone viewers locally:
+
+```powershell
+python -m http.server 8765 --bind 127.0.0.1 --directory demo
+```
+
+Open `/esp32-natural/index.html`, `/esp8266/index.html`, `/nxp-refined/index.html` or
+`/ultimaker/index.html` at `http://127.0.0.1:8765`. Select a reference, click
+geometry, orbit, zoom and reset. The HTML includes its GLB payload and requires
+no CDN. This loopback server is a desktop demo, not the phone import interface.
+
+## Implemented commands
+
+Use `help <COMMAND...>` or command-specific `--help` for accepted options.
+The `pcb` group aliases the supported physical-board commands; its familiar
+shape is not a declaration of complete KiCad command compatibility.
+
+| Command | Actual operation |
+|---|---|
+| `inspect` | Supported PCB/package metadata, identity and placement inventory |
+| `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
+| `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
+| `export svg` | Partial top/bottom physical-scale view with layer selection |
+| `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
+| `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments |
+| `model assignments template/verify` | Explicit source-bound model assignment records and checks |
+| `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
+| `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer and queries |
+| `twin adapt-source` | Source adaptation, with optional reviewed `--board-plane-node` bounds |
+| `twin audit-population` | ESP32 reference-BOM comparison without inferring physical placement |
+| `dataset inventory/lock/verify/bind/bind-external` | Explicit immutable Git/LFS/local asset inventory, locks and provenance binding |
+| `package build/verify` | v0.1 source-and-inventory package and integrity checks |
+| `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
+
+Example physical-layout journey, using a supported routed PCB and **new** output
+paths:
+
+```powershell
+./target/release/tokito-cli.exe inspect board.kicad_pcb --json
+./target/release/tokito-cli.exe validate outline board.kicad_pcb --json
+./target/release/tokito-cli.exe export placements board.kicad_pcb --output placements.csv
+./target/release/tokito-cli.exe export svg board.kicad_pcb --side top --output top.svg
+./target/release/tokito-cli.exe export svg board.kicad_pcb --side bottom --output bottom.svg
+./target/release/tokito-cli.exe export glb board.kicad_pcb --output shell.glb --allow-partial --json-report
+./target/release/tokito-cli.exe package build board.kicad_pcb --output new-board-package
+./target/release/tokito-cli.exe package verify new-board-package --json
+```
+
+A shell is always partial. Missing/unsupported models refuse assembly by default;
+partial output requires explicit `--allow-partial`. Assembly resolves only under
+approved local roots and supports a bounded flat-triangle VRML profile. Unknown
+models are reported rather than replaced by silent cuboids.
+
+## Inputs, outputs and compatibility
+
+| Boundary | Supported today | Important limit |
+|---|---|---|
+| KiCad `.kicad_pcb` | Reviewed format-date range `20211014`–`20260206`, bounded S-expression import | A supported subset, not full version/feature parity; out-of-range or missing dates refused |
+| Tokito package v0.1 | Preserved source, inspection and placement inventory with digests | `mobileImportReady: false`; no embedded SVG/GLB/STEP; not the App context/twin format |
+| GLB + component map + manifest | Self-contained selectable candidate validation/preparation | Selection and integrity do not qualify physical geometry or AR pose |
+| Dataset/BOM assets | Explicit source locks, Git/LFS inventory and reviewed schema joins | Same name/count does not establish board variant or photo-to-CAD identity |
+| Altium and STEP | Original Rust experimental source/mesh pipelines and pinned comparisons | Not general production import/export support |
+| Desktop schematic JSON | Future adapter / design-stage input | Symbol coordinates do not define physical footprints, routing or board geometry |
+
+The physical engine retains source UUIDs/native identities, units, model
+references and diagnostics. A malformed, unsupported or unqualified feature
+remains explicit. No zone filling, DRC, autorouting, universal STEP export,
+complete schematic renderer or production footprint-library generator is claimed.
+See [package contract](docs/TOKITO_BOARD_PACKAGE_V0.md),
+[topology limits](docs/PCB_TOPOLOGY.md), [model handling](docs/MODEL_RESOLUTION.md)
+and [KiCad completion gates](docs/KICAD_COMPLETION_GATES.md).
+
+## Architecture
 
 ```mermaid
 flowchart LR
-    PCB[Existing routed PCB file] --> PARSE[Version-gated Rust importer]
-    DATA[Dataset repository<br/>CAD, Gerber, BOM, models, photos] -. reviewed source files staged by a person .-> PCB
-    PARSE --> DOC[Canonical PhysicalBoardDocument]
-    DOC --> CHECK[Outline and source diagnostics]
-    DOC --> MODELS[Optional local model resolution<br/>approved roots only]
-    CHECK --> OUT[SVG, placement CSV, board-shell GLB]
-    MODELS --> OUT2[GLB with supported VRML assembly]
-    DOC --> PKG[Tokito package v0.1<br/>source + inventory]
-    CLI[tokito-cli help / pcb / export / package] --> LIB[Reusable Rust library]
-    LIB --> PARSE
-    OUT --> DISK[Local output files and reports]
-    OUT2 --> DISK
-    PKG --> DISK
-    DESKTOP[Tokito Desktop<br/>schematic, netlist, BOM] -. future physical-layout handoff .-> LIB
-    DISK -. future verified package importer .-> APP[Tokito App<br/>local twin renderer and AR runtime]
-    MCP[Tokito MCP catalog] -. current symbol lookup is separate .-> DESKTOP
-    API[Tokito API] -. no board-artifact transport implemented .-> APP
+    Input[Existing PCB / source package] --> Import[Version-gated Rust import]
+    Import --> Document[PhysicalBoardDocument]
+    Document --> Geometry[Outline, primitives and source transforms]
+    Document --> Identity[Components, pads, nets and diagnostics]
+    Models[Approved local model roots] --> Resolve[Bounded model resolution]
+    Resolve --> Export[SVG / CSV / GLB / inventory package]
+    Geometry --> Export
+    Identity --> Export
+    Source[Dataset GLB + map + provenance] --> Twin[Source adaptation and twin validation]
+    Twin --> View[Selectable GLB + offline viewer]
+    CLI[CLI command dispatch] --> Engine[Reusable Rust engine]
+    Engine --> Import
+    Engine --> Twin
 ```
 
-The dataset provides candidate engineering and photo assets; the CLI does not automatically crawl or import that repository. Desktop schematic, netlist, and BOM data do not define footprint placement, board outline, stackup, or routing. The dashed Desktop/App/API paths are integration work, not existing workflows. For the current module map and step-by-step behavior, see [Architecture](docs/ARCHITECTURE.md).
+`src/main.rs` owns process entry, `src/cli.rs` command dispatch, and `src/lib.rs`
+the public engine boundary. `load_kicad_board`, `load_board_input` and
+`PhysicalBoardDocument` provide import, typed engineering inventory, supported
+geometry, outline validation and exports without launching a subprocess.
+[Canonical API](docs/CANONICAL_ENGINE.md) documents semantics and compatibility.
 
-## Research
+### Component selection and AR separation
 
-- [BOM-driven component geometry and validation plan](docs/BOM_COMPONENT_QUALIFICATION.md)
-- [Offline model assignments, selectable bodies and qualification receipts](docs/MODEL_ASSIGNMENTS.md)
-- [Component Forge architecture, specification, dataset qualification, and upstream review](docs/COMPONENT_FORGE_ARCHITECTURE.md)
-- [Offline dataset source locks, integrity verification, and remaining intake gates](docs/DATASET_SOURCE_LOCK.md)
-- [Immutable local Git/LFS object inventory and partial dataset states](docs/DATASET_GIT_INVENTORY.md)
+```mermaid
+flowchart TD
+    Map[Source component ID + reference] --> Selector[Reviewed GLB selector / mesh group]
+    Selector --> Inspect[Offline inspection and colour highlight]
+    Camera[Raw camera observation] --> Detect[Detector and crop classifier]
+    Detect --> Crosswalk[Reviewed photo-to-source identity crosswalk]
+    Calibration[Measured CameraX transforms and board registration] --> Frames[Revisioned expiring frame graph]
+    Crosswalk --> Scene[Typed latest-only AR scene]
+    Frames --> Scene
+    Scene --> Overlay[App projection / rendering]
+    Missing[Unknown identity, stale pose or missing transform] --> Abstain[Suppress geometry and explain]
+```
 
-- [KiCad-quality 3D gates and actual dataset comparison](docs/KICAD_3D_QUALITY_GATES.md)
-- [KiCad CLI behavior analysis](docs/KICAD_CLI_BEHAVIOR.md)
-- [KiCad CLI compatibility matrix](docs/KICAD_CLI_PARITY_MATRIX.md) (10.0.7 is proposed as the behavior baseline pending confirmation)
-- [Tokito ecosystem integration boundaries](docs/ECOSYSTEM_INTEGRATION.md)
-- [Tokito ecosystem contract map](docs/ECOSYSTEM_CONTRACT_MAP.md)
-- [Implementation gates](docs/IMPLEMENTATION_GATES.md)
-- [Native formats and 3D architecture](docs/NATIVE_FORMAT_ARCHITECTURE.md)
-- [Canonical Rust engine API](docs/CANONICAL_ENGINE.md)
-- [Current results and personal-AI handoff](docs/PERSONAL_AI_HANDOFF.md)
+The CLI exports identity and geometry; the App owns camera lifecycle, local
+inference, registration and presentation. Manual 3D inspection creates no pose.
+Detector class, photo annotation, source UUID/native ID and GLB selector are
+separate identities; accepted correspondence must join them. Missing or stale
+registration suppresses positional guidance.
 
-Build locally with `cargo check --offline --locked` after dependencies are cached. The pure-Rust dependency graph includes pinned `earcut` for contour triangulation and `gltf` for independent GLB parsing, plus pinned `serde` and `serde_json`; it has no native CAD dependency. Run `cargo test --offline --locked`, `cargo fmt --all --check`, and `cargo clippy --offline --locked --all-targets -- -D warnings`.
+### Tokito ecosystem
 
-Verification and binary delivery stay local to conserve the GitHub Actions quota. The repository's workflow file was removed before PR creation; the PowerShell 7 runner performs the full local gates, release build, E2E and historical compatibility checks. Binaries and receipts default to ignored target/delivery/local/; TargetBase and DeliveryBase can put build/test outputs and delivery evidence on a chosen local volume such as F:. See [local delivery](docs/CI_AND_DELIVERY.md).
+```mermaid
+flowchart LR
+    Desktop[Tokito Desktop / schematic core] --> Layout[Physical placement, routing and stackup stage]
+    Layout -. future accepted physical input .-> CLI[Tokito CLI shared Rust engine]
+    Dataset[tokito-app-dataset CAD, BOM, photos, labels] --> CLI
+    CLI --> Bundle[GLB, component map, manifest and coverage]
+    Bundle -. explicit verified import .-> App[tokito-app offline inspection / AR]
+    Dataset --> YOLO[Reviewed training and model evidence]
+    YOLO --> App
+    MCP[tokito-mcp / catalog] -. proposed physical-engine tools .-> CLI
+    API[tokito-api project sync / optional artifact transport] -. agreed transport contract .-> App
+    DS[DS-ViRe datasheet evidence] -. optional part / pin evidence .-> Dataset
+```
+
+The phone remains the primary local runtime; PC preparation is currently
+accepted. Desktop can adopt the same Rust engine once its physical-input
+contract is agreed. Schematic-to-PCB needs a real layout stage. API sync or
+artifact storage does not by itself install/validate a twin, and DS-ViRe is
+part evidence rather than physical placement authority.
+
+Friends actively maintain the App and dataset. Consume immutable commits and
+materialized assets from [tokito-app-dataset](https://github.com/TokitoAI/tokito-app-dataset);
+`devboard_ar_dataset` is not the active corpus. Exact ownership, import files,
+revision/expiry gates, YOLO joins and productization steps are in the
+[Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) and
+[pasteable integration prompt](docs/AFAN_CODEX_INTEGRATION_PROMPT.md).
+
+## Codebase map
+
+This map covers the application modules and supporting trees. The linked
+folders retain full per-fixture, per-board and historical evidence inventories;
+`target/` is ignored local output rather than distributable source.
+The [versioned repository map](docs/REPOSITORY_MAP.md) lists the full tracked tree.
 
 ```text
-tokito-cli --help
-tokito-cli help pcb export glb
-tokito-cli help export glb
-tokito-cli pcb export glb -h
-tokito-cli pcb export glb --help
-tokito-cli --version
-tokito-cli inspect board.kicad_pcb --json
-tokito-cli bom reconcile board.kicad_pcb --bom bom-items.json --format nxp-json --json
-tokito-cli bom reconcile board.kicad_pcb --bom bom-components.csv --format esp32-csv --json
-tokito-cli pcb --help
-tokito-cli pcb inspect board.kicad_pcb --json
-tokito-cli resolve models board.kicad_pcb --project-root "F:\boards\project" --library-root "F:\models\KiCad8" --model-var "KICAD8_3DMODEL_DIR=F:\models\KiCad8" --json
-tokito-cli model inspect resistor.wrl --units kicad-wrl --json
-tokito-cli validate outline board.kicad_pcb --json
-tokito-cli export svg board.kicad_pcb --side top --output top.svg
-tokito-cli export svg board.kicad_pcb --side bottom --output bottom.svg
-tokito-cli export glb board.kicad_pcb --output board-shell.glb --allow-partial --json-report
-tokito-cli export glb board.kicad_pcb --output board-assembly.glb --assemble-wrl --project-root "F:\models\kicad" --model-var "KICAD8_3DMODEL_DIR=F:\models\kicad" --allow-partial --json-report
-tokito-cli package build board.kicad_pcb --output new-package
-tokito-cli package verify new-package --json
-tokito-cli inspect new-package --json
-tokito-cli export svg new-package --side top --output package-top.svg
-tokito-cli export glb new-package --output package-shell.glb --allow-partial --json-report
+tokito_cli/
+├── Cargo.toml / Cargo.lock       Locked Rust crate and binary
+├── AGENTS.md                    Repository instructions
+├── README.md                    Product and developer entry point
+├── src/
+│   ├── main.rs                  Process entry and exit
+│   ├── cli.rs                   Command parsing, help and dispatch
+│   ├── lib.rs                   Public physical engine API
+│   ├── document.rs              Typed source-semantic board document
+│   ├── geometry.rs / topology.rs Supported render geometry and contours
+│   ├── glb.rs                   Board-shell GLB generation
+│   ├── component_pose.rs        Source/model coordinate composition
+│   ├── model_resolver.rs        Approved-root local model resolution
+│   ├── model_mesh.rs            Bounded VRML geometry/material reader
+│   ├── model_mesh/zero_area.rs  Explicit exact-zero-face derivation
+│   ├── model_assembly.rs        Supported component assembly
+│   ├── model_assignments.rs     Evidence-bound model assignment contract
+│   ├── assigned_assembly.rs     Assigned candidate bodies
+│   ├── component_forge.rs       Provisional envelope generation
+│   ├── digital_twin.rs          Twin admission, identities and selectors
+│   ├── source_candidate.rs      Source adaptation and substrate bounds
+│   ├── twin_viewer.rs           Offline selectable viewer generation
+│   ├── bom.rs / population_audit.rs BOM identity and coverage comparison
+│   ├── dataset.rs              Source lock and local integrity
+│   ├── dataset_git.rs          Immutable Git/LFS inventory
+│   ├── dataset_external.rs     External asset provenance binding
+│   └── package_input.rs / strict_json.rs Package parsing and strict JSON
+├── examples/inspect_engine.rs   Separate Rust library consumer
+├── experiments/
+│   ├── altium-evaluation/       Native records, embedded STEP, pose,
+│   │   └── src/                association, board inputs, drills/substrate
+│   ├── step-evaluation/         Units, occurrences, faces, candidate meshes
+│   │   ├── src/                Bounded experimental STEP evaluation
+│   │   ├── tests/              Unit/negative CLI regressions
+│   │   └── examples/           Analytic torus reference checks
+│   └── twin-refinement/         Source-mesh replacement and presentation
+│       ├── src/                Original Rust refiner and strict JSON
+│       └── profiles/           Pinned explicit material specifications
+├── scripts/
+│   ├── verify-local.ps1        Isolated builds, checks and evidence receipts
+│   ├── real-cli-e2e.ps1        Actual release CLI acceptance
+│   └── evaluate-step-reference.py Off-device independent CAD QA
+├── tests/
+│   ├── *_api.rs / engine_api.rs Rust consumer/geometry/identity tests
+│   ├── *_e2e.py                Actual subprocess and dataset journeys
+│   ├── *_browser.js            Real-browser selection and viewer checks
+│   └── fixtures/              Pinned CAD, old-package and negative inputs
+├── demo/
+│   ├── bundle-manifest.json    Frozen artifact hashes and provenance
+│   ├── esp32/                 23-body source-reference demo
+│   ├── esp32-natural/         Same 23-body geometry, explicit material profile
+│   ├── esp8266/               34-component source-reference demo
+│   ├── nxp-refined/           351-body refined prototype and evidence
+│   ├── nxp-reference/         Earlier baseline
+│   └── ultimaker/             Multi-mesh source assembly
+├── docs/                      Architecture, contracts, research, handover
+│   └── evidence/              Scoped checked-in verification receipts
+└── target/                    Ignored builds, intakes, prototypes, receipts
 ```
 
-Desktop-native schematic JSON, project archives and symbol libraries are distinct document kinds whose adapters remain future work; accepting a Tokito board package does not imply they already produce physical PCBs.
+## Documentation index
 
-The input-byte ceiling limits bytes read from disk; parser tokens and the in-memory syntax tree can consume more memory than the source file size.
+| Area | Start here |
+|---|---|
+| Architecture and public API | [Architecture](docs/ARCHITECTURE.md), [canonical engine](docs/CANONICAL_ENGINE.md), [native formats](docs/NATIVE_FORMAT_ARCHITECTURE.md) |
+| Full repository tree | [Versioned source and artifact map](docs/REPOSITORY_MAP.md) |
+| Physical exports | [Topology](docs/PCB_TOPOLOGY.md), [GLB](docs/GLB_EXPORT_ARCHITECTURE.md), [model roots](docs/MODEL_RESOLUTION.md), [assignments](docs/MODEL_ASSIGNMENTS.md) |
+| Dataset provenance | [Board intake](docs/DATASET_BOARD_HANDOFF.md), [source locks](docs/DATASET_SOURCE_LOCK.md), [Git/LFS](docs/DATASET_GIT_INVENTORY.md), [external binding](docs/DATASET_EXTERNAL_BINDING.md) |
+| Board prototypes | [Demo bundle](docs/DEMO_BUNDLE.md), [ESP32](docs/ESP32_POPULATION_AUDIT.md), [ESP8266](docs/ESP8266_SOURCE_ASSEMBLY.md), [NXP](docs/NXP_REALISM_UPGRADE.md), [Ultimaker](docs/ULTIMAKER_SELECTABLE_PROTOTYPE.md) |
+| Selection and integration | [Digital twins](docs/DIGITAL_TWIN_SELECTION.md), [board/AR audit](docs/BOARD_AR_DATASET_AUDIT.md), [ecosystem map](docs/ECOSYSTEM_CONTRACT_MAP.md), [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) |
+| Component generation | [Forge architecture](docs/COMPONENT_FORGE_ARCHITECTURE.md), [qualification](docs/COMPONENT_FORGE_QUALIFICATION.md), [BOM plan](docs/BOM_COMPONENT_QUALIFICATION.md) |
+| KiCad research | [Behavior](docs/KICAD_CLI_BEHAVIOR.md), [parity matrix](docs/KICAD_CLI_PARITY_MATRIX.md), [completion gates](docs/KICAD_COMPLETION_GATES.md), [3D quality gates](docs/KICAD_3D_QUALITY_GATES.md) |
+| Testing and delivery | [Local verifier](docs/CI_AND_DELIVERY.md), [fixture provenance](docs/PCB_FIXTURE_CORPUS.md), [output locations](docs/LOCAL_OUTPUT_LOCATIONS.md), [goal tracker](docs/GOAL_TRACKER.md) |
 
-## Constraints
+Some progress documents preserve earlier checkpoints. Use their dated evidence,
+current artifacts and source hashes rather than treating an old count as today's
+capability. Documentation is not an independent test receipt.
 
-- Pure Rust dependency graph; no C/C++ bindings or native CAD runtime.
-- Existing board layouts first; schematic-to-PCB later.
-- Offline package generation and local phone use must not depend on sign-in or network.
-- Unsupported geometry or missing models must produce explicit diagnostics; partial data must not be labeled a faithful digital twin.
-- KiCad format documentation and behavior can guide compatibility. KiCad source code remains GPL-licensed and is not copied or translated here.
+## Verification and delivery
 
-Offline interactive inspection: [Selectable prototype](docs/SELECTABLE_PROTOTYPE.md). Generate it with `tokito-cli twin prototype` from a supported dataset GLB, component map and hash manifest.
+```powershell
+cargo fmt --all --check
+cargo test --offline --locked
+cargo clippy --offline --locked --all-targets -- -D warnings
+pwsh -File scripts/verify-local.ps1
+```
 
-[Ultimaker multi-mesh prototype](docs/ULTIMAKER_SELECTABLE_PROTOTYPE.md) · [Local output locations](docs/LOCAL_OUTPUT_LOCATIONS.md). All build and delivery outputs now live under this CLI checkout's `target` folder.
+The PowerShell 7 runner creates isolated build and delivery directories under
+`target/`, fingerprints source inputs and the release binary, runs subprocess
+journeys and writes a receipt only when selected gates pass. Real dataset
+profiles need their explicit paths, source locks and reference reports; running
+the base profile does not establish every board's acceptance. Use
+`Get-Help scripts/verify-local.ps1` and [delivery documentation](docs/CI_AND_DELIVERY.md)
+for profile inputs. Browser and physical-device checks are separate gates.
 
-[Dataset AR handoff and identity gates](docs/DATASET_AR_HANDOFF.md) documents the
-working dataset contract, per-board uncertainty and the boundary between selectable
-CLI geometry and the App's calibrated AR presentation.
+The accepted NXP checkpoint has a [41-gate Windows receipt](docs/evidence/nxp-refined-local-verification-20261011.json)
+and [351-selector browser receipt](demo/nxp-refined/browser-acceptance.json).
+Those receipts bind their recorded inputs; they do not certify later edits,
+Linux/MSRV, surfaces, physical population, App import or AR. New source changes
+require fresh relevant verification and independent review before pushing.
 
-[ESP8266 parallel pipeline](docs/ESP8266_PARALLEL_PROGRESS.md) records the current
-source-bound component/body/model inventory and remaining assembly gates.
-[Placement research](docs/ESP8266_PLACEMENT_RESEARCH.md) explains body-specific
-pose inputs and why model-library rotations must not be applied twice.
+The subsequent [ESP32 presentation/documentation receipt](docs/evidence/esp32-presentation-local-verification-20261011.json)
+records rerun formatting, Rust tests, warnings-as-errors Clippy, release build
+and actual CLI subprocess acceptance on unchanged implementation source. It
+also binds the material/geometry comparison, all 23 selections, 4K output and
+offline interaction after HTTP load. Fresh `file://` automation was unavailable
+and remains skipped; the full historical 41-gate suite was not rerun for this
+presentation slice. App import and physical AR remain unverified.
 
-Use `demo/nxp-refined/` for the accepted NXP prototype: 391 references and 351 selectable bodies. See [source evidence](docs/NXP_REALISM_UPGRADE.md) and [Afan integration prompt](docs/AFAN_CODEX_INTEGRATION_PROMPT.md). Physical geometry and AR admission remain unqualified.
+GitHub Actions and hosted artifact uploads are unused by request. Delivery uses
+feature branches and PRs rather than direct main pushes. Keep binary builds,
+bulk input datasets and transient caches local; committed demo artifacts have
+explicit provenance. Current canonical workspace:
+`D:\kannan\projects\tokito ecosystem\tokito_cli`.
+
+## Next milestones
+
+- Complete missing component bodies, terminals, pads/drills, source transforms
+  and independent surface/placement comparisons for each exact board variant.
+- Reconcile fitted population and reviewed photo/source/selector identities.
+- Stabilize offline App import, group-aware selection and versioned asset updates.
+- Qualify YOLO correspondence and calibrated AR on real devices, including
+  lifecycle loss, orientation/flip, uncertainty, memory and thermal behavior.
+- Integrate the shared Rust engine into Desktop/MCP without duplicating geometry.
+- Build the physical placement/routing stage for schematic-to-board generation.
+- Complete the agreed KiCad command and footprint-library matrix through original
+  Rust implementations and independent reference comparisons.
+
+A rendered board or successful selector does not complete the engineering
+product. [The active goal](docs/GOAL_TRACKER.md) tracks the remaining gates.

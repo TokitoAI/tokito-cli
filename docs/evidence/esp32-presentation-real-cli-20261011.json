@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "tokito.real-cli-e2e.v1",
+  "verifiedAtUtc": "2026-10-11T04:53:25.7426587Z",
+  "passed": true,
+  "binarySha256": "0e7b6a40b2a7f6de702b905ba45ed7f86e9c708af1935cd00f79b6c4a1f02ec4",
+  "binaryBytes": 4190720,
+  "fixtures": {
+    "positive": "tests/fixtures/open-source/porcupine-routed/porcupine_routed.kicad_pcb",
+    "invalidOutline": "tests/fixtures/open-source/kicad-royalblue54l-nfc/RoyalBlue54L-NFC-Antenna.kicad_pcb"
+  },
+  "checks": [
+    {
+      "name": "inspect",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "inspect",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--json"
+      ],
+      "stdoutFile": "inspect.stdout.txt",
+      "stderrFile": "inspect.stderr.txt"
+    },
+    {
+      "name": "validate-outline",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "validate",
+        "outline",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--json"
+      ],
+      "stdoutFile": "validate-outline.stdout.txt",
+      "stderrFile": "validate-outline.stderr.txt"
+    },
+    {
+      "name": "svg-top",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "export",
+        "svg",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--side",
+        "top",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-top.svg"
+      ],
+      "stdoutFile": "svg-top.stdout.txt",
+      "stderrFile": "svg-top.stderr.txt"
+    },
+    {
+      "name": "svg-bottom",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "export",
+        "svg",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--side",
+        "bottom",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-bottom.svg"
+      ],
+      "stdoutFile": "svg-bottom.stdout.txt",
+      "stderrFile": "svg-bottom.stderr.txt"
+    },
+    {
+      "name": "glb-default-refusal",
+      "expectedSuccess": false,
+      "exitCode": 2,
+      "passed": true,
+      "arguments": [
+        "export",
+        "glb",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\refused-default.glb"
+      ],
+      "stdoutFile": "glb-default-refusal.stdout.txt",
+      "stderrFile": "glb-default-refusal.stderr.txt"
+    },
+    {
+      "name": "glb-explicit-partial",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "export",
+        "glb",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-board-shell.glb",
+        "--allow-partial",
+        "--json-report"
+      ],
+      "stdoutFile": "glb-explicit-partial.stdout.txt",
+      "stderrFile": "glb-explicit-partial.stderr.txt"
+    },
+    {
+      "name": "glb-vrml-assembly",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "export",
+        "glb",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\assembly-e2e\\single-resistor.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\single-resistor-assembly.glb",
+        "--assemble-wrl",
+        "--project-root",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\kicad-resistor-models",
+        "--json-report"
+      ],
+      "stdoutFile": "glb-vrml-assembly.stdout.txt",
+      "stderrFile": "glb-vrml-assembly.stderr.txt"
+    },
+    {
+      "name": "glb-no-overwrite",
+      "expectedSuccess": false,
+      "exitCode": 2,
+      "passed": true,
+      "arguments": [
+        "export",
+        "glb",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-board-shell.glb",
+        "--allow-partial"
+      ],
+      "stdoutFile": "glb-no-overwrite.stdout.txt",
+      "stderrFile": "glb-no-overwrite.stderr.txt"
+    },
+    {
+      "name": "glb-invalid-outline",
+      "expectedSuccess": false,
+      "exitCode": 2,
+      "passed": true,
+      "arguments": [
+        "export",
+        "glb",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\kicad-royalblue54l-nfc\\RoyalBlue54L-NFC-Antenna.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\invalid-outline.glb",
+        "--allow-partial"
+      ],
+      "stdoutFile": "glb-invalid-outline.stdout.txt",
+      "stderrFile": "glb-invalid-outline.stderr.txt"
+    },
+    {
+      "name": "package-build",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "package",
+        "build",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\tests\\fixtures\\open-source\\porcupine-routed\\porcupine_routed.kicad_pcb",
+        "--output",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-package"
+      ],
+      "stdoutFile": "package-build.stdout.txt",
+      "stderrFile": "package-build.stderr.txt"
+    },
+    {
+      "name": "package-verify",
+      "expectedSuccess": true,
+      "exitCode": 0,
+      "passed": true,
+      "arguments": [
+        "package",
+        "verify",
+        "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\real-cli-e2e\\20261011T045319Z-b0eac6fd781b48ce9dff8ccfa170787e\\porcupine-package",
+        "--json"
+      ],
+      "stdoutFile": "package-verify.stdout.txt",
+      "stderrFile": "package-verify.stderr.txt"
+    }
+  ],
+  "limitations": [
+    "Direct local CLI process acceptance only.",
+    "No CAD viewer, Android device, AR registration, Desktop integration, or GUI computer-control test was run.",
+    "This release-binary acceptance case covers one bounded local VRML model; the full tests/e2e_cli.py suite separately checks one- and two-component selector nodes plus the exact-refdes visibility rule.",
+    "CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; STEP, glTF/GLB model input and general VRML remain unsupported.",
+    "This does not establish KiCad CLI behavior or artifact parity."
+  ]
+}

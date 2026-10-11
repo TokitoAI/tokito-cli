@@ -1,0 +1,381 @@
+{
+  "assemblyContextRevision": "explicit-exact-zero-face-derivation-d5db5cea",
+  "asset_id": "tokito-selectable-c4df5130efafe198106f95b4661651b3",
+  "board_id": "esp32-community-layout-reference",
+  "board_revision": "d5a70c26a4c4",
+  "calibration_eligible": false,
+  "component_count": 26,
+  "component_node_prefix": "ref:",
+  "components": [
+    {
+      "component_class": "resistor",
+      "component_id": "0d6d9e21-409c-4158-94cc-14372bdc84f4",
+      "glb_selector": "ref:R6",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R6",
+      "source_board_position_mm": {
+        "x": 151.5618,
+        "y": 108.9152
+      },
+      "source_rotation_degrees": -90
+    },
+    {
+      "component_class": "diode",
+      "component_id": "0e328cf5-7de3-46f8-831f-0e960014f7e6",
+      "glb_selector": "ref:D1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "D1",
+      "source_board_position_mm": {
+        "x": 160.655,
+        "y": 105.156
+      },
+      "source_rotation_degrees": 0
+    },
+    {
+      "component_class": "connector",
+      "component_id": "13f95f16-a21c-42cf-b48f-d4518e514a98",
+      "glb_selector": "ref:J1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "J1",
+      "source_board_position_mm": {
+        "x": 169.55,
+        "y": 106.35
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "switch",
+      "component_id": "3560aee4-fb80-4db5-b244-1f3f9074eb92",
+      "glb_selector": "ref:SW1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "SW1",
+      "source_board_position_mm": {
+        "x": 170.2,
+        "y": 98.4
+      },
+      "source_rotation_degrees": 0
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "37045ed9-beff-48d8-acf3-37b2c21d075f",
+      "glb_selector": "ref:C6",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C6",
+      "source_board_position_mm": {
+        "x": 149.9362,
+        "y": 97.3074
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "switch",
+      "component_id": "4a5d1e16-86f2-45eb-a239-0dee152e3663",
+      "glb_selector": "ref:SW2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "SW2",
+      "source_board_position_mm": {
+        "x": 170.2,
+        "y": 114.3
+      },
+      "source_rotation_degrees": 0
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "4c678286-dbb2-4cb4-8f7f-5cc182bb33f0",
+      "glb_selector": "ref:R5",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R5",
+      "source_board_position_mm": {
+        "x": 154.8243,
+        "y": 112.5982
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "transistor",
+      "component_id": "60f58257-57c2-4b8b-bfbe-88b2b6ad37c4",
+      "glb_selector": "ref:Q1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "Q1",
+      "source_board_position_mm": {
+        "x": 154.4574,
+        "y": 101.5238
+      },
+      "source_rotation_degrees": -90
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "6705ef25-fb4c-4671-8b64-9ede1124d35c",
+      "glb_selector": "ref:R1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R1",
+      "source_board_position_mm": {
+        "x": 150.0632,
+        "y": 112.395
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "led",
+      "component_id": "69f960b1-08ba-446b-923a-e6e6cee3e441",
+      "glb_selector": "ref:D2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "D2",
+      "source_board_position_mm": {
+        "x": 148.8948,
+        "y": 108.9152
+      },
+      "source_rotation_degrees": -90
+    },
+    {
+      "component_class": "interface_ic",
+      "component_id": "93f53e33-17ba-439c-9d9d-e4de4fef4826",
+      "glb_selector": null,
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "U3",
+      "source_board_position_mm": {
+        "x": 160.8582,
+        "y": 99.695
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "9c380efa-bdf8-421e-8070-7e7becf597e1",
+      "glb_selector": "ref:C4",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C4",
+      "source_board_position_mm": {
+        "x": 165.7858,
+        "y": 98.8822
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "b53c0cd2-498a-4ced-9343-c342650e6b6c",
+      "glb_selector": "ref:C2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C2",
+      "source_board_position_mm": {
+        "x": 154.7876,
+        "y": 115.2652
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "b6f711f4-5bea-44b8-b81f-703a49e10213",
+      "glb_selector": "ref:C1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C1",
+      "source_board_position_mm": {
+        "x": 154.8677,
+        "y": 105.2322
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "c39c16ec-a932-4a52-874e-72c3f169e495",
+      "glb_selector": "ref:C5",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C5",
+      "source_board_position_mm": {
+        "x": 169.5958,
+        "y": 118.5926
+      },
+      "source_rotation_degrees": 0
+    },
+    {
+      "component_class": "transistor",
+      "component_id": "d72766ff-095f-48c7-8a7f-d5f6237ef13e",
+      "glb_selector": "ref:Q2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "Q2",
+      "source_board_position_mm": {
+        "x": 154.8243,
+        "y": 109.093
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "rf_module",
+      "component_id": "d79e4b15-fb89-4eac-816a-e32e1a1b69b4",
+      "glb_selector": "ref:U1",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "U1",
+      "source_board_position_mm": {
+        "x": 136.545,
+        "y": 106.1265
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "dc1db294-d316-45d5-8708-903727f825c3",
+      "glb_selector": "ref:R3",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R3",
+      "source_board_position_mm": {
+        "x": 165.2778,
+        "y": 105.029
+      },
+      "source_rotation_degrees": -90
+    },
+    {
+      "component_class": "voltage_regulator",
+      "component_id": "dc88e78b-28b8-457d-88d1-db06252af746",
+      "glb_selector": "ref:U2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "U2",
+      "source_board_position_mm": {
+        "x": 160.8715,
+        "y": 111.7092
+      },
+      "source_rotation_degrees": -90
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "f05900c6-798a-4c23-8eca-426039e89874",
+      "glb_selector": "ref:R2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R2",
+      "source_board_position_mm": {
+        "x": 149.8854,
+        "y": 101.727
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "capacitor",
+      "component_id": "f40132f6-d9a3-4c7e-a924-07d13c86d93e",
+      "glb_selector": "ref:C3",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "C3",
+      "source_board_position_mm": {
+        "x": 150.0632,
+        "y": 115.2398
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "f7a7a3ce-4064-484f-8200-020de93ac370",
+      "glb_selector": "ref:R4",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "R4",
+      "source_board_position_mm": {
+        "x": 154.9146,
+        "y": 97.3074
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "pin_header",
+      "component_id": "52e8b920-1424-45d0-a62c-b127d4354822",
+      "glb_selector": "ref:J3",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "J3",
+      "source_board_position_mm": {
+        "x": 164.4092,
+        "y": 118.8466
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "resistor",
+      "component_id": "68e45d14-243c-4c3a-84bd-40d2a666631a",
+      "glb_selector": null,
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": false,
+      "reference": "REF**",
+      "source_board_position_mm": {
+        "x": 161.798,
+        "y": 112.5982
+      },
+      "source_rotation_degrees": 180
+    },
+    {
+      "component_class": "pin_header",
+      "component_id": "838010f2-ac9c-49ec-9fb1-cb29f1797395",
+      "glb_selector": "ref:J2",
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": true,
+      "reference": "J2",
+      "source_board_position_mm": {
+        "x": 164.5108,
+        "y": 93.345
+      },
+      "source_rotation_degrees": 90
+    },
+    {
+      "component_class": "unclassified_reference",
+      "component_id": "baabbf20-f244-45ac-b665-927bbd8a3cb7",
+      "glb_selector": null,
+      "identity_verified": false,
+      "model_quality": "source_library_candidate_physical_fit_unverified",
+      "needs_3d_body": false,
+      "reference": "G***",
+      "source_board_position_mm": {
+        "x": 136.881323,
+        "y": 100.742735
+      },
+      "source_rotation_degrees": 180
+    }
+  ],
+  "physicalGeometryVerified": false,
+  "physical_fit_verified": false,
+  "positional_guidance_allowed": false,
+  "release_eligible": false,
+  "renderable_count": 23,
+  "schema_version": "1.0"
+}

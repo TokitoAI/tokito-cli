@@ -354,3 +354,7 @@ or App/YOLO identity correspondence. This asset may be used for unregistered
 inspection; registered AR still requires Afan's admission, identity and calibration gates.
 
 Use `demo/nxp-refined/` for the accepted NXP prototype: 391 references and 351 selectable bodies. See [source evidence](NXP_REALISM_UPGRADE.md) and [Afan integration prompt](AFAN_CODEX_INTEGRATION_PROMPT.md). Physical geometry and AR admission remain unqualified.
+
+## ESP32 presentation update
+
+`demo/esp32-natural/` is the preferred presentation of the existing 23-body ESP32 source assembly. Use its own GLB, map, manifest and component index together; hashes differ from the earlier material baseline. It retains all source identities and geometry. See [material and browser evidence](ESP32_NATURAL_MATERIALS.md). U3 and physical/AR qualification remain open.

@@ -1,0 +1,17 @@
+{
+  "schema": "tokito.material-presentation-acceptance.v1",
+  "passed": true,
+  "baselineGlbSha256": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+  "outputGlbSha256": "c4df5130efafe198106f95b4661651b34eebf6a8bd38d59b4116c15e87525fb7",
+  "binaryGeometryUnchanged": true,
+  "nodesTransformsMeshesAccessorsUnchanged": true,
+  "componentRowsUnchanged": true,
+  "materialOverrideCount": 11,
+  "componentCount": 26,
+  "renderableCount": 23,
+  "missingRequiredModelCount": 1,
+  "sourceTriangleCount": 30754,
+  "browserAllAvailableSelectionsPassed": true,
+  "referenceBomComparisonPreserved": true,
+  "physicalReflectanceQualified": false
+}

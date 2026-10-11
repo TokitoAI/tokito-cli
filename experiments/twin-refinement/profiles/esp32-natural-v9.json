@@ -1,0 +1,119 @@
+{
+  "schema": "tokito.twin-refinement.v1",
+  "baselineGlbSha256": "d38b0fb91a6a86a2d6c9656d663cf6e5368332cfec5f4034dca8e4bb13e003f0",
+  "models": [],
+  "materialOverrides": [
+    {
+      "index": 0,
+      "expectedName": "Board nominal envelope",
+      "baseColor": [
+        0.035,
+        0.055,
+        0.045,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.78,
+      "reason": "ESP8266 dark solder-mask palette; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 2,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.65,
+        0.68,
+        0.7,
+        1
+      ],
+      "metallicFactor": 0.72,
+      "roughnessFactor": 0.3,
+      "reason": "Silver tin terminals and RF shield presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 3,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.095,
+        0.105,
+        0.115,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.8,
+      "reason": "Charcoal resistor ceramic presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 4,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.025,
+        0.03,
+        0.035,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.85,
+      "reason": "Dark resistor surface presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 5,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.027,
+        0.032,
+        0.038,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.76,
+      "reason": "Charcoal moulded plastic presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 8,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.6,
+        0.29,
+        0.075,
+        1
+      ],
+      "metallicFactor": 0.7,
+      "roughnessFactor": 0.36,
+      "reason": "Warm copper contact presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 9,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.035,
+        0.055,
+        0.045,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.78,
+      "reason": "Module substrate matched to dark board palette; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    },
+    {
+      "index": 10,
+      "expectedName": "VRML diffuse/opacity projection",
+      "baseColor": [
+        0.65,
+        0.49,
+        0.2,
+        1
+      ],
+      "metallicFactor": 0.7,
+      "roughnessFactor": 0.32,
+      "reason": "Gold plated pin presentation; user-requested visual approximation, not physical reflectance qualification",
+      "sourceUrl": "https://github.com/TokitoAI/tokito-cli/blob/main/demo/esp8266/active.digital-twin.glb"
+    }
+  ]
+}
