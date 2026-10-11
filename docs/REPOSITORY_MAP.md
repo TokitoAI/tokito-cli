@@ -5,7 +5,7 @@ source, documentation, scripts, fixtures and frozen models; ignored build caches
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-299 versioned/planned delivery files, including this map.
+313 versioned/planned delivery files, including this map.
 
 ```text
 tokito_cli/
@@ -127,6 +127,7 @@ tokito_cli/
 │   ├── KICAD_CLI_PARITY_MATRIX.md
 │   ├── KICAD_COMPLETION_GATES.md
 │   ├── KICAD_GLB_REFERENCE.md
+│   ├── PCB_POSITION_EXPORT.md
 │   ├── LOCAL_OUTPUT_LOCATIONS.md
 │   ├── MODEL_ASSIGNMENTS.md
 │   ├── MODEL_RESOLUTION.md
@@ -219,6 +220,7 @@ tokito_cli/
 │   ├── model_mesh.rs
 │   ├── model_resolver.rs
 │   ├── package_input.rs
+│   ├── pos_export.rs
 │   ├── population_audit.rs
 │   ├── project_intake.rs
 │   ├── source_candidate.rs
@@ -226,6 +228,9 @@ tokito_cli/
 │   ├── topology.rs
 │   └── twin_viewer.rs
 ├── tests/
+│   ├── reference/
+│   │   └── kicad-cli-10.0.5/
+│   │       └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
 │   ├── fixtures/
 │   │   ├── assembly-e2e/
 │   │   │   └── single-resistor.kicad_pcb

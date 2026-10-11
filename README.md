@@ -131,6 +131,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `project inspect` | Bounded read-only KiCad project-folder discovery, exact PCB choice and source SHA-256 pinning |
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
+| `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, SMD/THT and DNP filters; auxiliary origin and non-CSV formats are refused |
 | `export svg` | Partial top/bottom physical-scale view with layer selection |
 | `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
 | `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments |
@@ -152,6 +153,7 @@ paths:
 ./target/release/tokito-cli.exe inspect board.kicad_pcb --json
 ./target/release/tokito-cli.exe validate outline board.kicad_pcb --json
 ./target/release/tokito-cli.exe export placements board.kicad_pcb --output placements.csv
+./target/release/tokito-cli.exe pcb export pos board.kicad_pcb --format csv --units mm --side both --output manufacturing-positions.csv
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side top --output top.svg
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side bottom --output bottom.svg
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output shell.glb --allow-partial --json-report
@@ -163,6 +165,11 @@ A shell is always partial. Missing/unsupported models refuse assembly by default
 partial output requires explicit `--allow-partial`. Assembly resolves only under
 approved local roots and supports a bounded flat-triangle VRML profile. Unknown
 models are reported rather than replaced by silent cuboids.
+
+`export placements` is the original-source coordinate inventory. `pcb export
+pos` is a separate manufacturing CSV projection whose selected options and
+transforms have been compared with KiCad 10.0.5 reference outputs. See the
+[POS export contract](docs/PCB_POSITION_EXPORT.md) and [reference manifest](tests/reference/kicad-cli-10.0.5/pos/manifest.json).
 
 ## Inputs, outputs and compatibility
 
@@ -205,7 +212,9 @@ flowchart LR
 `src/main.rs` owns process entry, `src/cli.rs` command dispatch, and `src/lib.rs`
 the public engine boundary. `load_kicad_board`, `load_board_input` and
 `PhysicalBoardDocument` provide import, typed engineering inventory, supported
-geometry, outline validation and exports without launching a subprocess.
+geometry, outline validation, source-frame placement inventory and typed
+manufacturing-position CSV without launching a subprocess. The two CSV
+operations are separate by design; neither changes the v0.1 package schema.
 [Canonical API](docs/CANONICAL_ENGINE.md) documents semantics and compatibility.
 
 ### Component selection and AR separation

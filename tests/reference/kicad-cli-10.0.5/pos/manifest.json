@@ -1,0 +1,41 @@
+{
+  "schema": "tokito.kicad-cli-reference.v1",
+  "reference": {
+    "product": "KiCad CLI",
+    "version": "10.0.5",
+    "capturedOn": "2026-10-11",
+    "manual": "https://docs.kicad.org/10.0/en/cli/cli.html#pcb-export-pos",
+    "platformLineEnding": "CRLF",
+    "notes": [
+      "The Tokito test normalizes only line endings before semantic CSV comparison.",
+      "This evidence does not establish KiCad 10.0.7 parity."
+    ]
+  },
+  "sources": [
+    {
+      "path": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+      "sha256": "1b078b77026f4e8fd5de7cc6c7b6fff3daf454014e5e0873b7a6d0cdd77958f9"
+    },
+    {
+      "path": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "sha256": "d0edaed749ac81ccc2387c78fc78f2f1e035b798f3e6f3705490d270e2f90535"
+    },
+    {
+      "path": "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+      "sha256": "4ab99cd7db06be8e91e119a950a9ecc1f69bfd0d9a2ed975c5e57a0e319c8a83"
+    }
+  ],
+  "outputs": [
+    { "path": "uno-mm-both.csv", "rows": 54, "options": "--format csv --units mm", "sha256": "b8b6c52544fabd38d4973097923f9978ce4f9c3a6f6e541a5f0df91c1f583def" },
+    { "path": "uno-mm-smd.csv", "rows": 44, "options": "--format csv --units mm --smd-only", "sha256": "652e933226160a7f694e98279a8185bb131216d3fa92a5ea269bea38ccd3b08f" },
+    { "path": "uno-mm-exclude-fp-th.csv", "rows": 43, "options": "--format csv --units mm --exclude-fp-th", "sha256": "18fb83ce7f0c5b5ecd78777417650b8a41f918f9d7470e2f5cbc66cfd9650ead" },
+    { "path": "uno-mm-exclude-dnp.csv", "rows": 52, "options": "--format csv --units mm --exclude-dnp", "sha256": "da68600bb493a3dbb9f37a6e96496d57fdc5584b50f25aefad4703ccb42fdb66" },
+    { "path": "uno-in-both.csv", "rows": 54, "options": "--format csv", "sha256": "c10636acea69e793c3158a696f259613dc70af6a5749a69b2f8cfdb3f950086f" },
+    { "path": "nxp-mm-both.csv", "rows": 67, "options": "--format csv --units mm", "sha256": "bc8fd676f4f0f611632ca3034a94119652e96c2610d7b94ce618c5b2b7cdc11c" },
+    { "path": "nxp-mm-front.csv", "rows": 51, "options": "--format csv --units mm --side front", "sha256": "dae042a9d2a9b241c979ab93f3d2fdda34ff6b7027a6046699cb660e2b066252" },
+    { "path": "nxp-mm-back.csv", "rows": 16, "options": "--format csv --units mm --side back", "sha256": "192576903995e57f2ba271b15067c45b16e0276c0075333bfe37940b13d15d2b" },
+    { "path": "nxp-mm-bottom-negate.csv", "rows": 67, "options": "--format csv --units mm --bottom-negate-x", "sha256": "56ead387d7b92e9a00cc8e37b8fc5f5267ceb37d5f1f97ec9f7cd48ae219ef5f" },
+    { "path": "spark-mm-both.csv", "rows": 17, "options": "--format csv --units mm", "sha256": "6703e6664283d8bcea61ed26a8e24365099ee6b9caa5b93b7b0a199a91f4bfdf" },
+    { "path": "spark-mm-exclude-fp-th.csv", "rows": 13, "options": "--format csv --units mm --exclude-fp-th", "sha256": "5a80d4bf17e4a437f4b5c58484a7945ea04150a1e616cf46d9221d9c756b31ea" }
+  ]
+}
