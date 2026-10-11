@@ -18,7 +18,10 @@ param(
     [string]$Esp32ModelLibrary = '',
     [string]$Esp8266SourceRoot = '',
     [string]$Esp8266UnitReceipt = '',
-    [string]$Esp8266FreecadReference = ''
+    [string]$Esp8266FreecadReference = '',
+    [string]$NxpRefinementBaseline = '',
+    [string]$NxpRefinementSpec = '',
+    [string]$NxpRefinementPcb = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -156,6 +159,21 @@ try {
         @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') }
     )
+    $checks += @(
+        @{ name='twin-refinement-format'; command=$cargoCommand.Source; arguments=@('fmt','--manifest-path','experiments/twin-refinement/Cargo.toml','--all','--check') },
+        @{ name='twin-refinement-tests'; command=$cargoCommand.Source; arguments=@('test','--manifest-path','experiments/twin-refinement/Cargo.toml','--offline','--locked') },
+        @{ name='twin-refinement-clippy'; command=$cargoCommand.Source; arguments=@('clippy','--manifest-path','experiments/twin-refinement/Cargo.toml','--offline','--locked','--all-targets','--','-D','warnings') },
+        @{ name='twin-refinement-build'; command=$cargoCommand.Source; arguments=@('build','--manifest-path','experiments/twin-refinement/Cargo.toml','--offline','--locked') }
+    )
+    $nxpInputs=@($NxpRefinementBaseline,$NxpRefinementSpec,$NxpRefinementPcb)
+    $nxpInputCount=@($nxpInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    if ($nxpInputCount -notin @(0,3)) { throw 'NXP baseline, explicit refinement spec and PCB must be supplied together.' }
+    if ($nxpInputCount -eq 3) {
+        foreach ($path in $nxpInputs) { Assert-NoLinkedPath $path; if (-not (Test-Path -LiteralPath $path)) { throw "Missing NXP input: $path" } }
+        $nxpOutput=Join-Path $env:CARGO_TARGET_DIR 'nxp-refinement-e2e'
+        $nxpBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-twin-refinement' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $checks += @{ name='nxp-refinement-source-e2e'; command=$pythonCommand.Source; arguments=@('tests/nxp_refinement_e2e.py','--baseline',$NxpRefinementBaseline,'--spec',$NxpRefinementSpec,'--pcb',$NxpRefinementPcb,'--binary',$nxpBinary,'--cli-binary',$binaryPath,'--output',$nxpOutput,'--generate'); receiptPath=(Join-Path $nxpOutput 'refinement-e2e.json') }
+    }
     $esp32Inputs = @($Esp32CandidateRoot, $Esp32ReferenceBom, $Esp32Pcb, $Esp32ModelLibrary)
     $esp32Count = @($esp32Inputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
     if ($esp32Count -notin @(0,4)) { throw 'All four ESP32 source inputs must be supplied together.' }
@@ -188,6 +206,8 @@ try {
         $associationOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-associations-e2e'
         $checks += @{ name='esp8266-associations-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_assembly_candidates_e2e.py','--binary',$altiumBinary,'--source',$Esp8266SourceRoot,'--output',$associationOutput); receiptPath=(Join-Path $associationOutput 'receipt.json') }
         $prototypeOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-prototype-e2e'
+        $drillReceipt=Join-Path $env:CARGO_TARGET_DIR 'esp8266-drill-inventory-e2e.json'
+        $checks += @{ name='esp8266-drill-inventory-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_drill_inventory_e2e.py','--binary',$altiumBinary,'--source',(Join-Path $Esp8266SourceRoot 'gerbers-verified/NODEMCU_DEVKIT_V1.0_GERBER_V4'),'--output',$drillReceipt); receiptPath=$drillReceipt }
         $checks += @{ name='esp8266-prototype-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_prototype_e2e.py','--binary',$altiumBinary,'--pcb',(Join-Path $Esp8266SourceRoot 'NODEMCU_DEVKIT_V1.0.PcbDoc'),'--meshes',$candidateMeshOutput,'--output',$prototypeOutput,'--cli-binary',(Join-Path $env:CARGO_TARGET_DIR ('release/tokito-cli' + $(if ($IsWindows) { '.exe' } else { '' })))); receiptPath=(Join-Path $prototypeOutput 'e2e-receipt.json') }
     }
     if ([string]::IsNullOrWhiteSpace($DatasetRepo) -xor [string]::IsNullOrWhiteSpace($DatasetBomReport)) {

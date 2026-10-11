@@ -352,3 +352,5 @@ unqualified. Pads, drills, silkscreen and physical underside datum/pose are
 unfinished. Zero missing source models is not proof of complete fitted population
 or App/YOLO identity correspondence. This asset may be used for unregistered
 inspection; registered AR still requires Afan's admission, identity and calibration gates.
+
+Use `demo/nxp-refined/` for the accepted NXP prototype: 391 references and 351 selectable bodies. See [source evidence](NXP_REALISM_UPGRADE.md) and [Afan integration prompt](AFAN_CODEX_INTEGRATION_PROMPT.md). Physical geometry and AR admission remain unqualified.

@@ -1,0 +1,290 @@
+{
+  "schema": "tokito.twin-refinement.v1",
+  "baselineGlbSha256": "9113e74057ca87f3ed3910b6e8ea5989bdb54f17bbdb98fccdc8d58d71b7be5b",
+  "models": [
+    {
+      "reference": "U8",
+      "meshReport": "U8-mesh.json",
+      "meshReportSha256": "f5495514092901b2cf43b6aa65edc753466a1b242fa567a61600293c6db721ee",
+      "stepSha256": "333b8a84d84cee9d74c5eb6a9ebb00289627a96cd5efa05c45d930cf63dd7dd1",
+      "localTranslationMm": [
+        0,
+        0,
+        0
+      ],
+      "sourceUrl": "https://www.nxp.com/packages/SOT1982-1",
+      "mpn": "LPC55S69JEV98",
+      "declaredAxes": "STEP_XYZ_TO_GLTF_X_Z_NEG_Y",
+      "reason": "Replace placeholder with library package surface and restore source PCB pad-origin anchor; physical placement remains unqualified",
+      "placementOverride": {
+        "nodeIndex": 73,
+        "expectedTranslationMetres": [
+          0.022858307,
+          0.001595,
+          -0.025580802
+        ],
+        "translationMetres": [
+          0.022208007,
+          0.001595,
+          -0.024881002
+        ],
+        "sourceSha256": "c0d1389ce0710539104a3f2c4ca5f382c6b5fa2cce0edde315b4d73360f75b26",
+        "sourceLocator": "native imported footprint U8 at pad origin",
+        "reason": "Source footprint pad-origin correspondence; retain source top plane candidate and rotation"
+      },
+      "omitExactZeroAreaTriangles": true
+    },
+    {
+      "reference": "J10",
+      "meshReport": "J10-mesh.json",
+      "meshReportSha256": "ed4b3e1fe44652c8d6deba0c25ffd46706d11659582f03e6a00f41f7e33c83ab",
+      "stepSha256": "82235f7275d07f720e3c050f781397f4bef47fdc7e15dd507d68ccba861f1a35",
+      "localTranslationMm": [
+        0,
+        0,
+        0
+      ],
+      "sourceUrl": "https://gct.co/connector/usb4085",
+      "mpn": "USB4085-GF-A",
+      "declaredAxes": "STEP_XYZ_TO_GLTF_X_Z_NEG_Y",
+      "reason": "Replace placeholder with library package surface and restore source PCB pad-origin anchor; physical placement remains unqualified",
+      "placementOverride": {
+        "nodeIndex": 154,
+        "expectedTranslationMetres": [
+          -0.0009701170000000006,
+          0.001595,
+          -0.035594002000000007
+        ],
+        "translationMetres": [
+          0.003054883,
+          0.001595,
+          -0.036619002
+        ],
+        "sourceSha256": "c0d1389ce0710539104a3f2c4ca5f382c6b5fa2cce0edde315b4d73360f75b26",
+        "sourceLocator": "native imported footprint J10 at pad origin",
+        "reason": "Source footprint pad-origin correspondence; retain source top plane candidate and rotation"
+      },
+      "omitExactZeroAreaTriangles": true
+    },
+    {
+      "reference": "J11",
+      "meshReport": "J11-mesh.json",
+      "meshReportSha256": "ed4b3e1fe44652c8d6deba0c25ffd46706d11659582f03e6a00f41f7e33c83ab",
+      "stepSha256": "82235f7275d07f720e3c050f781397f4bef47fdc7e15dd507d68ccba861f1a35",
+      "localTranslationMm": [
+        0,
+        0,
+        0
+      ],
+      "sourceUrl": "https://gct.co/connector/usb4085",
+      "mpn": "USB4085-GF-A",
+      "declaredAxes": "STEP_XYZ_TO_GLTF_X_Z_NEG_Y",
+      "reason": "Replace placeholder with library package surface and restore source PCB pad-origin anchor; physical placement remains unqualified",
+      "placementOverride": {
+        "nodeIndex": 244,
+        "expectedTranslationMetres": [
+          -0.0009701170000000006,
+          0.001595,
+          -0.020481001999999998
+        ],
+        "translationMetres": [
+          0.003054883,
+          0.001595,
+          -0.021506002
+        ],
+        "sourceSha256": "c0d1389ce0710539104a3f2c4ca5f382c6b5fa2cce0edde315b4d73360f75b26",
+        "sourceLocator": "native imported footprint J11 at pad origin",
+        "reason": "Source footprint pad-origin correspondence; retain source top plane candidate and rotation"
+      },
+      "omitExactZeroAreaTriangles": true
+    }
+  ],
+  "materialOverrides": [
+    {
+      "index": 0,
+      "expectedName": "mat_0",
+      "baseColor": [
+        0.55,
+        0.56,
+        0.58,
+        1
+      ],
+      "metallicFactor": 0.75,
+      "roughnessFactor": 0.34,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 1,
+      "expectedName": "mat_1",
+      "baseColor": [
+        0.72,
+        0.69,
+        0.52,
+        1
+      ],
+      "metallicFactor": 0.8,
+      "roughnessFactor": 0.3,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 2,
+      "expectedName": "mat_2 (visibility-lifted)",
+      "baseColor": [
+        0.025,
+        0.028,
+        0.031,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.72,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 3,
+      "expectedName": "mat_3 (visibility-lifted)",
+      "baseColor": [
+        0.38,
+        0.23,
+        0.1,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.8,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 4,
+      "expectedName": "mat_4 (visibility-lifted)",
+      "baseColor": [
+        0.022,
+        0.025,
+        0.028,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.65,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 5,
+      "expectedName": "mat_5 (visibility-lifted)",
+      "baseColor": [
+        0.6,
+        0.62,
+        0.64,
+        1
+      ],
+      "metallicFactor": 0.85,
+      "roughnessFactor": 0.3,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 6,
+      "expectedName": "mat_6",
+      "baseColor": [
+        0.72,
+        0.49,
+        0.16,
+        1
+      ],
+      "metallicFactor": 0.85,
+      "roughnessFactor": 0.3,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 7,
+      "expectedName": "mat_7 (visibility-lifted)",
+      "baseColor": [
+        0.035,
+        0.035,
+        0.04,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.7,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 9,
+      "expectedName": "mat_9 (visibility-lifted)",
+      "baseColor": [
+        0.06,
+        0.07,
+        0.08,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.8,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 10,
+      "expectedName": "mat_10 (visibility-lifted)",
+      "baseColor": [
+        0.025,
+        0.03,
+        0.035,
+        1
+      ],
+      "metallicFactor": 0,
+      "roughnessFactor": 0.72,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    },
+    {
+      "index": 11,
+      "expectedName": "mat_11",
+      "baseColor": [
+        0.72,
+        0.49,
+        0.16,
+        1
+      ],
+      "metallicFactor": 0.85,
+      "roughnessFactor": 0.3,
+      "sourceUrl": "https://www.nxp.com/design/design-center/development-boards-and-designs/FRDM-MCXN236",
+      "reason": "Explicit prototype studio presentation approximation by mapped package/material role; physical colour/roughness unverified"
+    }
+  ],
+  "populationOverrides": [
+    {
+      "reference": "J7",
+      "assemblyState": "not_fitted",
+      "sourceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "evidenceFile": "native-components.json",
+      "evidenceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "bomItemId": "bom-item-034",
+      "sourceLocator": "SCH-90828_C worksheet row48 A48:K48",
+      "reason": "User confirms empty footprint; source BOM explicitly DNP, not a missing package model"
+    },
+    {
+      "reference": "J14",
+      "assemblyState": "not_fitted",
+      "sourceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "evidenceFile": "native-components.json",
+      "evidenceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "bomItemId": "bom-item-040",
+      "sourceLocator": "SCH-90828_C worksheet row54 A54:K54",
+      "reason": "User confirms empty footprint; source BOM explicitly DNP, not a missing package model"
+    },
+    {
+      "reference": "J21",
+      "assemblyState": "not_fitted",
+      "sourceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "evidenceFile": "native-components.json",
+      "evidenceSha256": "a96f612e11974dce7de88490ba25901c5547d845e2c26ccd2a52cd3d23a7436b",
+      "bomItemId": "bom-item-040",
+      "sourceLocator": "SCH-90828_C worksheet row54 A54:K54",
+      "reason": "User confirms empty footprint; source BOM explicitly DNP, not a missing package model"
+    }
+  ]
+}

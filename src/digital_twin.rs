@@ -337,7 +337,8 @@ impl ValidatedTwin {
                 "selector": row["glb_selector"], "selectorNodeIndex": selector_root,
                 "renderableNodeIndex": renderable, "modelQualityClaim": row["model_quality"],
                 "renderableNodeIndices": renderable_nodes,
-                "modelAvailable": !renderable_nodes.is_empty(), "needs3dBody": needs_model
+                "modelAvailable": !renderable_nodes.is_empty(), "needs3dBody": needs_model,
+                "assemblyStateClaim": row["assembly_state"], "categoryClaim": row["category"]
             }));
         }
         if selectors.keys().cloned().collect::<BTreeSet<_>>() != expected

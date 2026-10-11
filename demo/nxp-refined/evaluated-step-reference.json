@@ -1,0 +1,96 @@
+{
+  "schema": "tokito.independent-step-evaluation.v1",
+  "evaluator": "FreeCAD/OCCT, off-device QA only",
+  "evaluatorVersion": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "deflectionMm": 0.01,
+  "models": [
+    {
+      "file": "usb4085.step",
+      "sourceSha256": "82235f7275d07f720e3c050f781397f4bef47fdc7e15dd507d68ccba861f1a35",
+      "sourceBytes": 804970,
+      "boundsMm": {
+        "min": [
+          -1.495,
+          -8.61,
+          -2.11
+        ],
+        "max": [
+          7.445,
+          0.56,
+          3.45
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -1.495,
+          -8.61,
+          -2.11
+        ],
+        "max": [
+          7.445,
+          0.56,
+          3.45
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 60336,
+      "triangles": 120686,
+      "faces": 515,
+      "solids": 34,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    },
+    {
+      "file": "vfbga98.step",
+      "sourceSha256": "333b8a84d84cee9d74c5eb6a9ebb00289627a96cd5efa05c45d930cf63dd7dd1",
+      "sourceBytes": 106910,
+      "boundsMm": {
+        "min": [
+          -3.5,
+          -3.5,
+          -0.0075
+        ],
+        "max": [
+          3.5,
+          3.5,
+          0.972
+        ]
+      },
+      "boundsMethod": "evaluated-triangle-vertices",
+      "brepBoundsMm": {
+        "min": [
+          -3.5,
+          -3.5,
+          -0.0075
+        ],
+        "max": [
+          3.5,
+          3.5,
+          0.972
+        ]
+      },
+      "brepVersusEvaluatedDeltaMm": 0.0,
+      "vertices": 507812,
+      "triangles": 1015620,
+      "faces": 106,
+      "solids": 1,
+      "independentBrepValid": true,
+      "surfaceFidelityQualified": false,
+      "assemblyPoseQualified": false
+    }
+  ],
+  "geometryQualified": false,
+  "physicalFitVerified": false,
+  "scope": "independent B-rep validity and evaluated mesh bounds, not surface or assembly acceptance"
+}

@@ -5,6 +5,7 @@ Open a viewer or serve this directory locally:
 - [ESP8266](esp8266/index.html): 34 selectable source components, 62 actual body instances.
 - [ESP32](esp32/index.html): 23 selectable bodies; CP2102 U3 is missing.
 - [Ultimaker](ultimaker/index.html): 310 selectable component groups; partial source assembly.
+- [NXP refined](nxp-refined/index.html): accepted prototype, 351 selectable bodies; J7/J14/J21 not fitted, 20 placeholders remain.
 - [NXP reference](nxp-reference/index.html): 354 selectable source components; baseline reference candidate.
 
 Each folder contains a GLB, component map, asset manifest, viewer and 4K snapshot.

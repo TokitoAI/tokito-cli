@@ -196,7 +196,7 @@ impl Glb {
     }
 }
 
-fn board_mesh(board: &Value, origin: [f64; 2], thickness: f64) -> Result<Mesh, String> {
+fn board_contour(board: &Value) -> Result<Vec<[f64; 2]>, String> {
     let records = board["contourRecords"]
         .as_array()
         .filter(|r| r.len() <= 1024)
@@ -253,6 +253,11 @@ fn board_mesh(board: &Value, origin: [f64; 2], thickness: f64) -> Result<Mesh, S
     if sign < 0. {
         points.reverse();
     }
+    Ok(points)
+}
+
+fn board_mesh(board: &Value, origin: [f64; 2], thickness: f64) -> Result<Mesh, String> {
+    let points = board_contour(board)?;
     let center = [
         points.iter().map(|p| p[0]).sum::<f64>() / points.len() as f64,
         points.iter().map(|p| p[1]).sum::<f64>() / points.len() as f64,
@@ -284,7 +289,109 @@ fn board_mesh(board: &Value, origin: [f64; 2], thickness: f64) -> Result<Mesh, S
     Ok(mesh)
 }
 
+fn drilled_board_mesh(
+    board: &Value,
+    origin: [f64; 2],
+    thickness: f64,
+    drills: &[Value],
+) -> Result<(Mesh, Value), String> {
+    if drills.len() > 16 || !thickness.is_finite() || thickness <= 0. {
+        return Err("drilled_substrate_input_budget_or_thickness".into());
+    }
+    let outer: Vec<_> = board_contour(board)?
+        .into_iter()
+        .map(|p| [p[0] - origin[0], p[1] - origin[1]])
+        .collect();
+    let mut openings = Vec::new();
+    let mut hashes = BTreeSet::new();
+    let mut provenance = Vec::new();
+    for report in drills {
+        if report["schema"] != "tokito.excellon-source-inventory.v1" || report["lengthUnit"] != "mm"
+        {
+            return Err("unsupported_drill_inventory".into());
+        }
+        let hash = report["sourceSha256"]
+            .as_str()
+            .filter(|s| s.len() == 64 && s.bytes().all(|c| c.is_ascii_hexdigit()))
+            .ok_or("missing_drill_source_hash")?;
+        if !hashes.insert(hash) {
+            return Err("duplicate_drill_source".into());
+        }
+        let holes = report["holes"].as_array().ok_or("missing_drill_holes")?;
+        let slots = report["slots"].as_array().ok_or("missing_drill_slots")?;
+        if holes.len() + slots.len() > 512 || openings.len() + holes.len() + slots.len() > 512 {
+            return Err("substrate_opening_budget".into());
+        }
+        let point = |value: &Value| -> Result<[f64; 2], String> {
+            if value.as_array().map(Vec::len) != Some(2) {
+                return Err("invalid_drill_point".into());
+            }
+            Ok([num(&value[0])?, num(&value[1])?])
+        };
+        for row in holes {
+            let p = point(&row["positionMm"])?;
+            openings.push((p, p, num(&row["diameterMm"])? / 2.));
+        }
+        for row in slots {
+            openings.push((
+                point(&row["startMm"])?,
+                point(&row["endMm"])?,
+                num(&row["diameterMm"])? / 2.,
+            ));
+        }
+        provenance.push(report.clone());
+    }
+    if openings.is_empty() {
+        return Err("empty_drill_geometry".into());
+    }
+    let profile = crate::substrate::triangulate(&outer, &openings, 0.001)?;
+    let world = |p: [f64; 2], z: f64| [p[0] * 0.001, z * 0.001, -p[1] * 0.001];
+    let mut mesh = Mesh::default();
+    for tri in profile.indices.chunks_exact(3) {
+        let mut p = [
+            profile.points[tri[0] as usize],
+            profile.points[tri[1] as usize],
+            profile.points[tri[2] as usize],
+        ];
+        let cross =
+            (p[1][0] - p[0][0]) * (p[2][1] - p[0][1]) - (p[1][1] - p[0][1]) * (p[2][0] - p[0][0]);
+        if cross < 0. {
+            p.swap(1, 2);
+        }
+        mesh.triangle(p.map(|v| world(v, thickness)), [0.035, 0.055, 0.045, 1.])?;
+        mesh.triangle(
+            [world(p[0], 0.), world(p[2], 0.), world(p[1], 0.)],
+            [0.035, 0.055, 0.045, 1.],
+        )?;
+    }
+    for ring in &profile.rings {
+        for i in 0..ring.len() {
+            let a = ring[i];
+            let b = ring[(i + 1) % ring.len()];
+            mesh.triangle(
+                [world(a, 0.), world(b, 0.), world(b, thickness)],
+                [0.035, 0.055, 0.045, 1.],
+            )?;
+            mesh.triangle(
+                [world(a, 0.), world(b, thickness), world(a, thickness)],
+                [0.035, 0.055, 0.045, 1.],
+            )?;
+        }
+    }
+    let evidence = json!({"holesAndCutoutsIncluded":true,"openingCount":openings.len(),"drillCoordinateFrameDeclared":"board-origin-relative-xy-mm","sourceBoardFrameVerified":false,"physicalFitVerified":false,"maximumOpeningChordSagittaMm":profile.maximum_cutout_sagitta_mm,"requestedMaximumOpeningChordSagittaMm":0.001,"triangulatedMaterialAreaMm2":profile.triangulated_area_mm2,"sourcePolygonizedMaterialAreaMm2":profile.source_polygonized_material_area_mm2,"quantizedPolygonAreaDeltaMm2":profile.quantized_polygon_area_delta_mm2,"coordinateQuantizationMaximumMm":profile.coordinate_quantization_max_mm,"deliveryPrecision":profile.precision,"allSourceCutoutsIncluded":false,"outerContourSampling":"existing 24 subdivisions per source minor arc","polygonizedMaterialAreaMm2":profile.polygonized_area_mm2,"analyticCutoutAreaMm2":profile.analytic_cutout_area_mm2,"cutoutPolygonAreaErrorMm2":profile.cutout_polygon_error_mm2,"platedWallThicknessModelled":false,"sourceInventories":provenance});
+    Ok((mesh, evidence))
+}
+
 pub fn export(source: &Value, mesh_dir: &Path, out: &Path) -> Result<Value, String> {
+    export_with_drills(source, mesh_dir, out, &[])
+}
+
+pub fn export_with_drills(
+    source: &Value,
+    mesh_dir: &Path,
+    out: &Path,
+    drills: &[Value],
+) -> Result<Value, String> {
     if out.exists() {
         return Err("output_directory_exists".into());
     }
@@ -298,7 +405,15 @@ pub fn export(source: &Value, mesh_dir: &Path, out: &Path) -> Result<Value, Stri
     ];
     let thickness = num(&board["stack"]["copperAndCoreThicknessMm"])?;
     let mut glb = Glb::new();
-    glb.mesh("board:source-contour",&board_mesh(board,origin,thickness)?,json!({"holesAndCutoutsIncluded":false,"materialApproximate":true,"physicalThicknessVerified":false}))?;
+    let (substrate_mesh, substrate_report) = if drills.is_empty() {
+        (
+            board_mesh(board, origin, thickness)?,
+            json!({"holesAndCutoutsIncluded":false}),
+        )
+    } else {
+        drilled_board_mesh(board, origin, thickness, drills)?
+    };
+    glb.mesh("board:source-contour", &substrate_mesh, json!({"holesAndCutoutsIncluded":!drills.is_empty(),"materialApproximate":true,"physicalThicknessVerified":false,"drillEvidence":substrate_report}))?;
     let components = source["candidateAssociations"]["components"]
         .as_array()
         .filter(|c| c.len() <= 2048)
@@ -458,6 +573,22 @@ pub fn export(source: &Value, mesh_dir: &Path, out: &Path) -> Result<Value, Stri
     let manifest = json!({"schemaVersion":"1.0","assetId":asset_id,"boardIdentity":"esp8266-nodemcu-altium-reference","boardRevision":source["sourceSha256"].as_str().map(|s|&s[..12]),"assemblyContextRevision":revision,"units":"METRE","axes":"RIGHT_HANDED_Y_UP","boardOriginMetres":{"x":0,"y":0,"z":0},"boundsMetres":{"minimum":vector(minimum),"maximum":vector(maximum)},"glbBytes":bytes.len(),"glbSha256":format!("sha256:{digest}"),"componentNodePrefix":"ref:","defaultOpacity":0.42,"physicalGeometryVerified":false,"arRegistrationVerified":false,"releaseEligible":false});
     let map = json!({"schema":"tokito.component-map.v1","asset_id":asset_id,"board_id":"esp8266-nodemcu-altium-reference","board_revision":source["sourceSha256"].as_str().map(|s|&s[..12]),"assemblyContextRevision":revision,"component_node_prefix":"ref:","component_count":rows.len(),"renderable_count":rows.len(),"selectable_component_count":rows.len(),"components":rows,"physical_fit_verified":false,"calibration_eligible":false,"positional_guidance_allowed":false});
     let report = json!({"schema":"tokito.altium-prototype-assembly.v1","sourceSha256":source["sourceSha256"],"glbSha256":digest,"glbBytes":bytes.len(),"componentCount":components.len(),"bodyCount":body_count,"componentTriangles":triangles,"selectedModelCount":cache.len(),"prototypeExported":true,"assemblyAdmitted":false,"geometryQualified":false,"poseVerified":false,"positionalGuidanceAllowed":false,"boardThicknessMm":thickness,"boardOriginMm":origin,"boardTopZMm":thickness,"boardBottomZMm":0,"boardZDatumAssumed":true,"holesAndCutoutsIncluded":false,"modelsTablePoseApplied":false,"transformMethod":"body absolute XY minus board source origin; Rx then Ry then Rz(body.rz-body.angle); bottom z reflection; top copper/core surface or bottom zero candidate datum; glTF [x,z,-y] metres","diagnostics":["source_surface_fidelity_unqualified","source_body_component_index_semantics_unqualified","board_z_datum_and_bottom_projection_unqualified","pcb_pads_drills_silkscreen_not_exported","physical_photo_variant_unverified","independent_evaluated_surface_comparison_pending","step_occurrence_colour_override_application_unresolved"]});
+    let mut report = report;
+    if !drills.is_empty() {
+        report["holesAndCutoutsIncluded"] = json!(true);
+        report["drillEvidence"] = substrate_report;
+        if let Some(diagnostics) = report["diagnostics"].as_array_mut() {
+            for diagnostic in diagnostics.iter_mut() {
+                if *diagnostic == "pcb_pads_drills_silkscreen_not_exported" {
+                    *diagnostic =
+                        json!("pcb_pads_silkscreen_and_plated_wall_thickness_not_exported");
+                }
+            }
+            diagnostics.push(json!(
+                "drill_board_relative_frame_explicitly_declared_not_physically_verified"
+            ));
+        }
+    }
     // Exclusive directory/file creation also closes the exists-check race.
     std::fs::create_dir(out).map_err(|e| e.to_string())?;
     let write_new = |name: &str, bytes: &[u8]| -> Result<(), String> {
