@@ -311,12 +311,20 @@ fn rejects_windows_directory_junctions_without_symlink_privilege() {
     let link = fixture.project.join("linked-dir");
     let output = std::process::Command::new("cmd")
         .args(["/c", "mklink", "/J"])
-        .arg(&link)
-        .arg(&fixture.outside)
+        // CARGO_MANIFEST_DIR may use forward slashes; cmd's mklink treats
+        // those path segments as switches. Preserve Unicode while using
+        // native Windows separators for this fixture-only shell boundary.
+        .arg(link.to_str().unwrap().replace('/', "\\"))
+        .arg(fixture.outside.to_str().unwrap().replace('/', "\\"))
         .creation_flags(0x08000000)
         .output()
         .unwrap();
-    assert!(output.status.success(), "junction setup failed");
+    assert!(
+        output.status.success(),
+        "junction setup failed: {} / {}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
     let resolver = ModelResolver::new(fixture.config()).unwrap();
     assert_eq!(
         resolver.resolve(&model("linked-dir/real.step")).status,

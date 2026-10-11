@@ -1292,14 +1292,12 @@ impl Importer {
                                 DiagnosticCode::ConflictingNet,
                             ));
                         }
-                    } else {
-                        if unresolved.len() < MAX_DIAGNOSTICS {
-                            unresolved.push((
-                                source.clone(),
-                                id.to_string(),
-                                DiagnosticCode::UnresolvedNet,
-                            ));
-                        }
+                    } else if unresolved.len() < MAX_DIAGNOSTICS {
+                        unresolved.push((
+                            source.clone(),
+                            id.to_string(),
+                            DiagnosticCode::UnresolvedNet,
+                        ));
                     }
                 }
             }

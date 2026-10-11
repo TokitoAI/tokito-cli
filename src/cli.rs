@@ -94,7 +94,8 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
         return Ok(());
     }
     if args.get(1).map(String::as_str) == Some("adapt-source") {
-        if args.len() != 17
+        if !matches!(args.len(), 17 | 19)
+            || (args.len() == 19 && args[17] != "--board-plane-node")
             || args[3] != "--component-map"
             || args[5] != "--geometry-index"
             || args[7] != "--provenance"
@@ -111,8 +112,8 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
             Path::new(&args[6]),
             Path::new(&args[8]),
             Path::new(&args[10]),
-            &args[12],
-            &args[14],
+            (&args[12], &args[14]),
+            args.get(18).map(String::as_str),
         )?;
         let output = Path::new(&args[16]);
         fs::create_dir(output)
@@ -536,9 +537,11 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         | ["twin", "inspect"]
         | ["twin", "prepare"]
         | ["twin", "prototype"]
-        | ["twin", "adapt-source"]
         | ["twin", "select"] => println!(
             "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+        ),
+        ["twin", "adapt-source"] => println!(
+            "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR> [--board-plane-node <EXACT_SOURCE_NODE>]\nThe optional node must name one active, nonempty source subtree. Its decoded world bounds are retained separately from whole-scene bounds; author selection does not grant physical or pose qualification."
         ),
         ["model"] | ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."

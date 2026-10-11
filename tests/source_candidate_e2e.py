@@ -25,6 +25,20 @@ def run(binary, source, output):
     for side, values in zip(('minimum','maximum'), expected):
         for axis, value in zip(('x','y','z'), values):
             assert abs(manifest['boundsMetres'][side][axis]-value) < 1e-9
+    # Authored substrate node in this pinned source; not automatic largest-mesh guessing.
+    plane_output = output/'substrate-bound'
+    plane_report = json.loads(invoke(binary, 'twin', 'adapt-source', *common,
+                                    '--output', plane_output, '--board-plane-node', '=>[0:1:1:133]').stdout)
+    plane_manifest = json.loads((plane_output/'active.digital-twin.json').read_text())
+    assert plane_report['boardPlaneBoundsDecoded'] and not plane_report['physicalGeometryVerified']
+    assert plane_manifest['boardPlaneSourceNode'] == '=>[0:1:1:133]'
+    assert abs(plane_manifest['boardPlaneBoundsMetres']['minimum']['x'] + .08749999850988388) < 1e-9
+    assert plane_manifest['boardPlaneBoundsMetres']['minimum']['x'] > manifest['boundsMetres']['minimum']['x']
+    assert plane_manifest['boundsMetres'] == manifest['boundsMetres']
+    bad_plane = output/'missing-plane'
+    invoke(binary, 'twin', 'adapt-source', *common, '--output', bad_plane,
+           '--board-plane-node', 'not-present', succeeds=False)
+    assert not bad_plane.exists()
     twin = (adapted/'active.digital-twin.glb','--component-map',adapted/'component-map.json',
             '--manifest',adapted/'active.digital-twin.json')
     inspected = json.loads(invoke(binary,'twin','inspect',*twin).stdout)
