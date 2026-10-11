@@ -1,11 +1,11 @@
 # Versioned repository file map
 
-Snapshot updated on 11 October 2026 for project intake and the 0603 footprint slice. This lists
+Snapshot updated on 11 October 2026 for project intake, the 0603 footprint slice, and POS auxiliary-origin reference coverage. This lists
 source, documentation, scripts, fixtures and frozen models; ignored build caches,
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-313 versioned/planned delivery files, including this map.
+316 versioned/planned delivery files, including this map.
 
 ```text
 tokito_cli/

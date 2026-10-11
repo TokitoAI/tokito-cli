@@ -1,8 +1,8 @@
 //! Narrow, independently compared CSV position export.
 //!
 //! This is a manufacturing-position projection, separate from the frozen raw
-//! placement inventory. It supports only CSV with absolute board origin; other
-//! KiCad POS formats and origin/variant options remain explicit CLI refusals.
+//! placement inventory. It supports a bounded CSV subset with absolute or
+//! KiCad 10.0.5-observed auxiliary drill-file origin semantics.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
@@ -34,6 +34,20 @@ pub enum PositionUnits {
     Inches,
 }
 
+/// Coordinate origin used for the emitted position values.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum PositionExportOrigin {
+    /// Source-board absolute coordinates (the historical default).
+    Absolute,
+    /// KiCad drill-file origin. `declared` is false when the board has no
+    /// auxiliary origin, for which the observed CLI behavior is `(0, 0)`.
+    DrillFile {
+        x_mm: f64,
+        y_mm: f64,
+        declared: bool,
+    },
+}
+
 impl PositionUnits {
     fn value(self, millimetres: f64) -> f64 {
         match self {
@@ -58,6 +72,7 @@ pub struct PositionExportOptions {
     pub smd_only: bool,
     pub exclude_fp_th: bool,
     pub exclude_dnp: bool,
+    pub use_drill_file_origin: bool,
 }
 
 impl Default for PositionExportOptions {
@@ -69,6 +84,7 @@ impl Default for PositionExportOptions {
             smd_only: false,
             exclude_fp_th: false,
             exclude_dnp: false,
+            use_drill_file_origin: false,
         }
     }
 }
@@ -79,6 +95,7 @@ pub struct PositionExport {
     pub source_sha256: String,
     pub units: PositionUnits,
     pub side: PositionSide,
+    pub origin: PositionExportOrigin,
     pub row_count: usize,
 }
 
@@ -98,6 +115,13 @@ impl PhysicalBoardDocument {
         &self,
         options: PositionExportOptions,
     ) -> Result<PositionExport, EngineError> {
+        // Keep the legacy absolute-origin path byte-for-byte stable. Only
+        // inspect the source auxiliary origin when explicitly requested.
+        let origin = if options.use_drill_file_origin {
+            drill_file_origin(self)?
+        } else {
+            PositionExportOrigin::Absolute
+        };
         let mut classes = BTreeMap::<usize, FootprintClass>::new();
         for component in &self.engineering.components {
             if component.source.kind != "footprint" {
@@ -222,11 +246,12 @@ impl PhysicalBoardDocument {
                 )));
             }
 
-            let mut x = options.units.value(x_mm);
+            let (position_x_mm, position_y_mm) = translated_position(x_mm, y_mm, origin)?;
+            let mut x = options.units.value(position_x_mm);
             if options.bottom_negate_x && footprint.side == "back" {
                 x = -x;
             }
-            let y = options.units.value(-y_mm);
+            let y = options.units.value(position_y_mm);
             let package = footprint
                 .library_id
                 .rsplit_once(':')
@@ -269,9 +294,103 @@ impl PhysicalBoardDocument {
             source_sha256: self.source_sha256.clone(),
             units: options.units,
             side: options.side,
+            origin,
             row_count,
         })
     }
+}
+
+fn translated_position(
+    x_mm: f64,
+    y_mm: f64,
+    origin: PositionExportOrigin,
+) -> Result<(f64, f64), EngineError> {
+    match origin {
+        PositionExportOrigin::Absolute => Ok((x_mm, -y_mm)),
+        PositionExportOrigin::DrillFile {
+            x_mm: origin_x,
+            y_mm: origin_y,
+            ..
+        } => {
+            let x = x_mm - origin_x;
+            let y = origin_y - y_mm;
+            if !x.is_finite() || !y.is_finite() {
+                return Err(EngineError::new(
+                    "POS --use-drill-file-origin produced non-finite translated coordinates",
+                ));
+            }
+            Ok((x, y))
+        }
+    }
+}
+
+fn drill_file_origin(board: &PhysicalBoardDocument) -> Result<PositionExportOrigin, EngineError> {
+    // KiCad stores the auxiliary axis origin under the board's direct setup
+    // child. Search the full source tree so misplaced or duplicate declarations
+    // cannot be silently ignored, but only accept that exact parent node.
+    let board_setups: Vec<&crate::SourceNode> = board.source_document.children("setup").collect();
+    let mut stack = vec![(&board.source_document, None::<&crate::SourceNode>)];
+    let mut declarations = Vec::new();
+    while let Some((node, parent)) = stack.pop() {
+        if node.head() == Some("aux_axis_origin") {
+            let is_board_setup = parent.is_some_and(|parent| {
+                board_setups
+                    .iter()
+                    .any(|setup| std::ptr::eq(*setup, parent))
+            });
+            declarations.push((node, is_board_setup));
+            if declarations.len() > 1 {
+                return Err(EngineError::new(
+                    "POS --use-drill-file-origin refused duplicate or ambiguous auxiliary origins",
+                ));
+            }
+        }
+        if let Some(items) = node.items() {
+            stack.extend(items.iter().skip(1).map(|child| (child, Some(node))));
+        }
+    }
+
+    let Some((declaration, is_board_setup)) = declarations.first().copied() else {
+        return Ok(PositionExportOrigin::DrillFile {
+            x_mm: 0.0,
+            y_mm: 0.0,
+            declared: false,
+        });
+    };
+    if !is_board_setup || board_setups.len() != 1 {
+        return Err(EngineError::new(
+            "POS --use-drill-file-origin refused a malformed or ambiguous auxiliary origin outside the board's direct setup",
+        ));
+    }
+    if declaration.items().is_none_or(|items| items.len() != 3) {
+        return Err(EngineError::new(
+            "POS --use-drill-file-origin refused a malformed auxiliary origin; expected exactly two coordinates",
+        ));
+    }
+    let parse_coordinate = |index: usize, axis: &str| -> Result<f64, EngineError> {
+        let value = declaration
+            .value_at(index)
+            .ok_or_else(|| EngineError::new(format!(
+                "POS --use-drill-file-origin refused a malformed auxiliary origin: missing {axis} coordinate"
+            )))?
+            .parse::<f64>()
+            .map_err(|_| EngineError::new(format!(
+                "POS --use-drill-file-origin refused a malformed auxiliary origin: invalid {axis} coordinate"
+            )))?;
+        if !value.is_finite() {
+            return Err(EngineError::new(format!(
+                "POS --use-drill-file-origin refused a non-finite auxiliary {axis} coordinate"
+            )));
+        }
+        Ok(value)
+    };
+    let x_mm = parse_coordinate(1, "X")?;
+    let y_mm = parse_coordinate(2, "Y")?;
+    Ok(PositionExportOrigin::DrillFile {
+        x_mm,
+        y_mm,
+        declared: true,
+    })
 }
 
 fn csv_field(value: &str) -> String {
@@ -351,6 +470,191 @@ mod tests {
             units: PositionUnits::Millimetres,
             ..PositionExportOptions::default()
         }
+    }
+
+    fn export_source_text(
+        source: String,
+        options: PositionExportOptions,
+    ) -> Result<PositionExport, EngineError> {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "tokito-cli-pos-origin-{}-{unique}.kicad_pcb",
+            std::process::id()
+        ));
+        std::fs::write(&path, source).unwrap();
+        let result = load_kicad_board(&path).and_then(|board| board.export_pos_csv(options));
+        std::fs::remove_file(path).unwrap();
+        result
+    }
+
+    fn drill_origin_options() -> PositionExportOptions {
+        PositionExportOptions {
+            units: PositionUnits::Millimetres,
+            use_drill_file_origin: true,
+            ..PositionExportOptions::default()
+        }
+    }
+
+    #[test]
+    fn drill_origin_translation_refuses_overflow_from_finite_inputs() {
+        let error = translated_position(
+            f64::MAX,
+            0.0,
+            PositionExportOrigin::DrillFile {
+                x_mm: -f64::MAX,
+                y_mm: 0.0,
+                declared: true,
+            },
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("non-finite translated coordinates")
+        );
+    }
+
+    fn pos_rows_without_empty_reference_order(csv: &str) -> (Vec<&str>, Vec<&str>) {
+        let mut named_rows = Vec::new();
+        let mut empty_reference_rows = Vec::new();
+        for row in csv.lines().skip(1) {
+            if row.starts_with("\"\",") {
+                empty_reference_rows.push(row);
+            } else {
+                named_rows.push(row);
+            }
+        }
+        empty_reference_rows.sort_unstable();
+        (named_rows, empty_reference_rows)
+    }
+
+    #[test]
+    fn sparkfun_drill_origin_matches_kicad_10_0_5_reference() {
+        let output = fixture(
+            "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+        )
+        .export_pos_csv(drill_origin_options())
+        .unwrap();
+        assert_eq!(output.row_count, 17);
+        assert_eq!(
+            output.origin,
+            PositionExportOrigin::DrillFile {
+                x_mm: 115.57,
+                y_mm: 124.46,
+                declared: true,
+            }
+        );
+        assert_eq!(
+            output.csv,
+            reference("tests/reference/kicad-cli-10.0.5/pos/spark-mm-drill-origin.csv")
+        );
+    }
+
+    #[test]
+    fn pico_drill_origin_and_bottom_negation_match_kicad_10_0_5_references() {
+        let board = fixture(
+            "tests/fixtures/open-source/raspberry-pi-pico-community/RPI-PICO-R3a-PUBLIC - Official.kicad_pcb",
+        );
+        let output = board.export_pos_csv(drill_origin_options()).unwrap();
+        assert_eq!(output.row_count, 57);
+        let expected = reference("tests/reference/kicad-cli-10.0.5/pos/pico-mm-drill-origin.csv");
+        assert_eq!(
+            pos_rows_without_empty_reference_order(&output.csv),
+            pos_rows_without_empty_reference_order(&expected),
+            "all CSV values and named-reference order match; KiCad orders duplicate empty references differently"
+        );
+        let bottom_negated = board
+            .export_pos_csv(PositionExportOptions {
+                bottom_negate_x: true,
+                ..drill_origin_options()
+            })
+            .unwrap();
+        let expected = reference(
+            "tests/reference/kicad-cli-10.0.5/pos/pico-mm-drill-origin-bottom-negate.csv",
+        );
+        assert_eq!(
+            pos_rows_without_empty_reference_order(&bottom_negated.csv),
+            pos_rows_without_empty_reference_order(&expected),
+            "all CSV values and named-reference order match; KiCad orders duplicate empty references differently"
+        );
+    }
+
+    #[test]
+    fn absent_auxiliary_origin_uses_absolute_zero_origin() {
+        let output =
+            fixture("tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb")
+                .export_pos_csv(drill_origin_options())
+                .unwrap();
+        assert_eq!(
+            output.origin,
+            PositionExportOrigin::DrillFile {
+                x_mm: 0.0,
+                y_mm: 0.0,
+                declared: false,
+            }
+        );
+        assert_eq!(
+            output.csv,
+            reference("tests/reference/kicad-cli-10.0.5/pos/uno-mm-both.csv")
+        );
+    }
+
+    #[test]
+    fn malformed_nonfinite_duplicate_and_misplaced_auxiliary_origins_are_refused() {
+        let fixture_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(
+            "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+        );
+        let source = std::fs::read_to_string(fixture_path).unwrap();
+        let declaration = "(aux_axis_origin 115.57 124.46)";
+
+        let malformed = source.replacen(declaration, "(aux_axis_origin 115.57)", 1);
+        let error = export_source_text(malformed, drill_origin_options()).unwrap_err();
+        assert!(error.to_string().contains("malformed auxiliary origin"));
+
+        let nonfinite = source.replacen(declaration, "(aux_axis_origin nan 124.46)", 1);
+        let error = export_source_text(nonfinite, drill_origin_options()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("non-finite auxiliary X coordinate")
+        );
+
+        let duplicate = source.replacen(
+            declaration,
+            "(aux_axis_origin 115.57 124.46)\n\t\t(aux_axis_origin 1 2)",
+            1,
+        );
+        let error = export_source_text(duplicate, drill_origin_options()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("duplicate or ambiguous auxiliary origins")
+        );
+
+        let mut misplaced = source.replacen(declaration, "", 1);
+        let final_close = misplaced.rfind(')').unwrap();
+        misplaced.insert_str(final_close, "\n\t(aux_axis_origin 1 2)\n");
+        let error = export_source_text(misplaced, drill_origin_options()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("outside the board's direct setup")
+        );
+
+        let nested_setup = source.replacen(declaration, "", 1).replacen(
+            "\t\t(thickness 1.6)",
+            "\t\t(thickness 1.6)\n\t\t(setup (aux_axis_origin 1 2))",
+            1,
+        );
+        let error = export_source_text(nested_setup, drill_origin_options()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("outside the board's direct setup")
+        );
     }
 
     #[test]

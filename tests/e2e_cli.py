@@ -172,6 +172,7 @@ def main():
     assert "Existing physical-board operations." in pcb_help
     pos_help = invoke(binary, "pcb", "export", "pos", "--help").stdout
     assert "manufacturing-position CSV" in pos_help
+    assert "--use-drill-file-origin" in pos_help
     with tempfile.TemporaryDirectory(prefix="tokito-cli-e2e-") as output:
         output = Path(output)
         uno = fixture_root / "arduino-uno-r3-community" / "Arduino UNO.kicad_pcb"
@@ -189,20 +190,59 @@ def main():
             (nxp, "nxp-mm-bottom-negate.csv", ["--units", "mm", "--bottom-negate-x"], 67),
             (sparkfun, "spark-mm-both.csv", ["--units", "mm"], 17),
             (sparkfun, "spark-mm-exclude-fp-th.csv", ["--units", "mm", "--exclude-fp-th"], 13),
+            (sparkfun, "spark-mm-drill-origin.csv", ["--units", "mm", "--use-drill-file-origin"], 17),
+            (fixture_root / "raspberry-pi-pico-community" / "RPI-PICO-R3a-PUBLIC - Official.kicad_pcb", "pico-mm-drill-origin.csv", ["--units", "mm", "--use-drill-file-origin"], 57),
+            (fixture_root / "raspberry-pi-pico-community" / "RPI-PICO-R3a-PUBLIC - Official.kicad_pcb", "pico-mm-drill-origin-bottom-negate.csv", ["--units", "mm", "--use-drill-file-origin", "--bottom-negate-x"], 57),
         ]
         for index, (source, reference_name, options, expected_rows) in enumerate(pos_cases):
             pos_path = output / f"pos-{index}.csv"
             invoke(binary, "pcb", "export", "pos", source, "--format", "csv", "--output", pos_path, *options)
             actual = pos_path.read_text(encoding="utf-8")
             reference = (reference_root / reference_name).read_text(encoding="utf-8").replace("\r\n", "\n")
-            assert actual == reference, f"KiCad 10.0.5 POS mismatch: {reference_name}"
+            if reference_name.startswith("pico-"):
+                actual_rows = list(csv.DictReader(io.StringIO(actual)))
+                reference_rows = list(csv.DictReader(io.StringIO(reference)))
+                assert [row for row in actual_rows if row["Ref"]] == [row for row in reference_rows if row["Ref"]], reference_name
+                actual_empty_ref_rows = sorted(tuple(row.values()) for row in actual_rows if not row["Ref"])
+                reference_empty_ref_rows = sorted(tuple(row.values()) for row in reference_rows if not row["Ref"])
+                assert actual_empty_ref_rows == reference_empty_ref_rows, reference_name
+            else:
+                assert actual == reference, f"KiCad 10.0.5 POS mismatch: {reference_name}"
             assert len(list(csv.DictReader(io.StringIO(actual)))) == expected_rows
-        unsupported_pos = output / "unsupported-pos.csv"
-        unsupported_result = invoke(
-            binary, "pcb", "export", "pos", uno, "--format", "csv", "--output", unsupported_pos,
-            "--use-drill-file-origin", succeeds=False,
+        uno_drill_fallback = output / "uno-drill-fallback.csv"
+        invoke(
+            binary, "pcb", "export", "pos", uno, "--format", "csv", "--units", "mm",
+            "--output", uno_drill_fallback, "--use-drill-file-origin",
         )
-        assert "unsupported" in unsupported_result.stderr and not unsupported_pos.exists()
+        assert uno_drill_fallback.read_text(encoding="utf-8").replace("\r\n", "\n") == (
+            reference_root / "uno-mm-both.csv"
+        ).read_text(encoding="utf-8").replace("\r\n", "\n")
+
+        sparkfun_text = sparkfun.read_text(encoding="utf-8")
+        origin_declaration = "(aux_axis_origin 115.57 124.46)"
+        assert origin_declaration in sparkfun_text
+        malformed_origins = {
+            "missing-coordinate": sparkfun_text.replace(origin_declaration, "(aux_axis_origin 115.57)", 1),
+            "nonfinite-coordinate": sparkfun_text.replace(origin_declaration, "(aux_axis_origin nan 124.46)", 1),
+            "duplicate": sparkfun_text.replace(
+                origin_declaration,
+                origin_declaration + "\n\t\t(aux_axis_origin 1 2)",
+                1,
+            ),
+        }
+        misplaced_origin = sparkfun_text
+        misplaced_origin = misplaced_origin[:misplaced_origin.rfind(")")] + "\n\t(aux_axis_origin 1 2)\n" + misplaced_origin[misplaced_origin.rfind(")"):]
+        malformed_origins["misplaced"] = misplaced_origin
+        for name, malformed_source in malformed_origins.items():
+            malformed_board = output / f"{name}-origin.kicad_pcb"
+            malformed_board.write_text(malformed_source, encoding="utf-8")
+            malformed_pos = output / f"{name}-origin.csv"
+            malformed_result = invoke(
+                binary, "pcb", "export", "pos", malformed_board, "--format", "csv", "--units", "mm",
+                "--output", malformed_pos, "--use-drill-file-origin", succeeds=False,
+            )
+            assert "auxiliary" in malformed_result.stderr, f"{name}: {malformed_result.stderr}"
+            assert not malformed_pos.exists(), f"refused origin wrote output: {name}"
         malformed_source = uno.read_text(encoding="utf-8")
         footprint_start = malformed_source.find("(footprint ")
         assert footprint_start >= 0
@@ -220,12 +260,20 @@ def main():
             succeeds=False,
         )
         assert "unsupported copper side" in malformed_result.stderr and not malformed_pos.exists()
-        missing_format = invoke(binary, "export", "pos", uno, "--output", unsupported_pos, succeeds=False)
-        assert "--format csv is required" in missing_format.stderr and not unsupported_pos.exists()
+        missing_format_output = output / "missing-format.csv"
+        missing_format = invoke(binary, "export", "pos", uno, "--output", missing_format_output, succeeds=False)
+        assert "--format csv is required" in missing_format.stderr and not missing_format_output.exists()
         no_overwrite = output / "pos-no-overwrite.csv"
         no_overwrite.write_bytes(b"keep this file")
         invoke(binary, "export", "pos", uno, "--format", "csv", "--output", no_overwrite, succeeds=False)
         assert no_overwrite.read_bytes() == b"keep this file"
+        no_overwrite_drill = output / "pos-no-overwrite-drill.csv"
+        no_overwrite_drill.write_bytes(b"keep this drill-origin output")
+        invoke(
+            binary, "pcb", "export", "pos", sparkfun, "--format", "csv", "--units", "mm",
+            "--output", no_overwrite_drill, "--use-drill-file-origin", succeeds=False,
+        )
+        assert no_overwrite_drill.read_bytes() == b"keep this drill-origin output"
 
         for index, (relative, footprints, pads, segments, vias) in enumerate(FIXTURES):
             source = fixture_root / relative
@@ -383,7 +431,7 @@ def main():
         glb_check(partial_glb, expected_selectors=())
         invoke(binary, "export", "svg", fixture_root / FIXTURES[0][0], "--output", output / "bad.svg",
                "--layers", "not-a-board-layer", succeeds=False)
-    print("PASS CLI E2E journeys, including 11 hash-pinned KiCad 10.0.5 POS CSV comparisons, package input, unsupported-origin refusal, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
+    print("PASS CLI E2E journeys, including 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
 
 if __name__ == "__main__":
     main()

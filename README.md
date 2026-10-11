@@ -131,7 +131,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `project inspect` | Bounded read-only KiCad project-folder discovery, exact PCB choice and source SHA-256 pinning |
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
-| `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, SMD/THT and DNP filters; auxiliary origin and non-CSV formats are refused |
+| `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
 | `export svg` | Partial top/bottom physical-scale view with layer selection |
 | `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
 | `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments |
@@ -168,7 +168,8 @@ models are reported rather than replaced by silent cuboids.
 
 `export placements` is the original-source coordinate inventory. `pcb export
 pos` is a separate manufacturing CSV projection whose selected options and
-transforms have been compared with KiCad 10.0.5 reference outputs. See the
+transforms, including auxiliary-origin translation, have been compared with
+KiCad 10.0.5 reference outputs. See the
 [POS export contract](docs/PCB_POSITION_EXPORT.md) and [reference manifest](tests/reference/kicad-cli-10.0.5/pos/manifest.json).
 
 ## Inputs, outputs and compatibility
