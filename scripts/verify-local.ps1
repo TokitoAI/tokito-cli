@@ -187,6 +187,8 @@ try {
         $checks += @{ name='esp8266-altium-e2e'; command=$pythonCommand.Source; arguments=@('tests/altium_source_e2e.py','--binary',$altiumBinary,'--source',$Esp8266SourceRoot,'--output',$altiumOutput); receiptPath=(Join-Path $altiumOutput 'receipt.json') }
         $associationOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-associations-e2e'
         $checks += @{ name='esp8266-associations-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_assembly_candidates_e2e.py','--binary',$altiumBinary,'--source',$Esp8266SourceRoot,'--output',$associationOutput); receiptPath=(Join-Path $associationOutput 'receipt.json') }
+        $prototypeOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-prototype-e2e'
+        $checks += @{ name='esp8266-prototype-e2e'; command=$pythonCommand.Source; arguments=@('tests/esp8266_prototype_e2e.py','--binary',$altiumBinary,'--pcb',(Join-Path $Esp8266SourceRoot 'NODEMCU_DEVKIT_V1.0.PcbDoc'),'--meshes',$candidateMeshOutput,'--output',$prototypeOutput,'--cli-binary',(Join-Path $env:CARGO_TARGET_DIR ('release/tokito-cli' + $(if ($IsWindows) { '.exe' } else { '' })))); receiptPath=(Join-Path $prototypeOutput 'e2e-receipt.json') }
     }
     if ([string]::IsNullOrWhiteSpace($DatasetRepo) -xor [string]::IsNullOrWhiteSpace($DatasetBomReport)) {
         throw 'DatasetRepo and DatasetBomReport must be supplied together.'

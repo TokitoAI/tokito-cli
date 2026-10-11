@@ -1,0 +1,35 @@
+{
+  "assemblyAdmitted": false,
+  "boardBottomZMm": 0,
+  "boardOriginMm": [
+    78.23099923999999,
+    89.49250072
+  ],
+  "boardThicknessMm": 0.39115999999999995,
+  "boardTopZMm": 0.39115999999999995,
+  "boardZDatumAssumed": true,
+  "bodyCount": 62,
+  "componentCount": 34,
+  "componentTriangles": 405194,
+  "diagnostics": [
+    "source_surface_fidelity_unqualified",
+    "source_body_component_index_semantics_unqualified",
+    "board_z_datum_and_bottom_projection_unqualified",
+    "pcb_pads_drills_silkscreen_not_exported",
+    "physical_photo_variant_unverified",
+    "independent_evaluated_surface_comparison_pending",
+    "step_occurrence_colour_override_application_unresolved"
+  ],
+  "geometryQualified": false,
+  "glbBytes": 48699248,
+  "glbSha256": "e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1",
+  "holesAndCutoutsIncluded": false,
+  "modelsTablePoseApplied": false,
+  "poseVerified": false,
+  "positionalGuidanceAllowed": false,
+  "prototypeExported": true,
+  "schema": "tokito.altium-prototype-assembly.v1",
+  "selectedModelCount": 13,
+  "sourceSha256": "007d603df0effe46bc254c978def4d3225a9c5123803cd115ad99c087a26ea74",
+  "transformMethod": "body absolute XY minus board source origin; Rx then Ry then Rz(body.rz-body.angle); bottom z reflection; top copper/core surface or bottom zero candidate datum; glTF [x,z,-y] metres"
+}

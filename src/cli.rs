@@ -106,7 +106,7 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
         {
             return Err(CliError::new("use tokito-cli help twin adapt-source"));
         }
-        let candidate = source_candidate::load(
+        let candidate = source_candidate::load_with_board_plane(
             Path::new(&args[2]),
             Path::new(&args[4]),
             Path::new(&args[6]),

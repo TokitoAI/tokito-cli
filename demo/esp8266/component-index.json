@@ -1,0 +1,476 @@
+{
+  "appNameFilterCompatible": true,
+  "arRegistrationVerified": false,
+  "assemblyContextRevisionClaim": "altium-body-source-candidate-v1",
+  "assetId": "tokito-selectable-e929f29ff0fdc88e1b31c20e6820ff09",
+  "boardIdentity": "esp8266-nodemcu-altium-reference",
+  "boardReferenceContextVerified": false,
+  "boardRevision": "007d603df0ef",
+  "completeComponentCoverageVerified": false,
+  "componentCount": 34,
+  "components": [
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C2",
+      "renderableNodeIndex": 1,
+      "renderableNodeIndices": [
+        1
+      ],
+      "selector": "ref:C2",
+      "selectorNodeIndex": 1
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C4",
+      "renderableNodeIndex": 2,
+      "renderableNodeIndices": [
+        2
+      ],
+      "selector": "ref:C4",
+      "selectorNodeIndex": 2
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C5",
+      "renderableNodeIndex": 3,
+      "renderableNodeIndices": [
+        3
+      ],
+      "selector": "ref:C5",
+      "selectorNodeIndex": 3
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C6",
+      "renderableNodeIndex": 4,
+      "renderableNodeIndices": [
+        4
+      ],
+      "selector": "ref:C6",
+      "selectorNodeIndex": 4
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "D1",
+      "renderableNodeIndex": 5,
+      "renderableNodeIndices": [
+        5
+      ],
+      "selector": "ref:D1",
+      "selectorNodeIndex": 5
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "J1",
+      "renderableNodeIndex": 6,
+      "renderableNodeIndices": [
+        6
+      ],
+      "selector": "ref:J1",
+      "selectorNodeIndex": 6
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "J2",
+      "renderableNodeIndex": 7,
+      "renderableNodeIndices": [
+        7
+      ],
+      "selector": "ref:J2",
+      "selectorNodeIndex": 7
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "LED1",
+      "renderableNodeIndex": 8,
+      "renderableNodeIndices": [
+        8
+      ],
+      "selector": "ref:LED1",
+      "selectorNodeIndex": 8
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R9",
+      "renderableNodeIndex": 9,
+      "renderableNodeIndices": [
+        9
+      ],
+      "selector": "ref:R9",
+      "selectorNodeIndex": 9
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R3",
+      "renderableNodeIndex": 10,
+      "renderableNodeIndices": [
+        10
+      ],
+      "selector": "ref:R3",
+      "selectorNodeIndex": 10
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R11",
+      "renderableNodeIndex": 11,
+      "renderableNodeIndices": [
+        11
+      ],
+      "selector": "ref:R11",
+      "selectorNodeIndex": 11
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R1",
+      "renderableNodeIndex": 12,
+      "renderableNodeIndices": [
+        12
+      ],
+      "selector": "ref:R1",
+      "selectorNodeIndex": 12
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R2",
+      "renderableNodeIndex": 13,
+      "renderableNodeIndices": [
+        13
+      ],
+      "selector": "ref:R2",
+      "selectorNodeIndex": 13
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R5",
+      "renderableNodeIndex": 14,
+      "renderableNodeIndices": [
+        14
+      ],
+      "selector": "ref:R5",
+      "selectorNodeIndex": 14
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R12",
+      "renderableNodeIndex": 15,
+      "renderableNodeIndices": [
+        15
+      ],
+      "selector": "ref:R12",
+      "selectorNodeIndex": 15
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R13",
+      "renderableNodeIndex": 16,
+      "renderableNodeIndices": [
+        16
+      ],
+      "selector": "ref:R13",
+      "selectorNodeIndex": 16
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C3",
+      "renderableNodeIndex": 17,
+      "renderableNodeIndices": [
+        17
+      ],
+      "selector": "ref:C3",
+      "selectorNodeIndex": 17
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R14",
+      "renderableNodeIndex": 18,
+      "renderableNodeIndices": [
+        18
+      ],
+      "selector": "ref:R14",
+      "selectorNodeIndex": 18
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R6",
+      "renderableNodeIndex": 19,
+      "renderableNodeIndices": [
+        19
+      ],
+      "selector": "ref:R6",
+      "selectorNodeIndex": 19
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "S1",
+      "renderableNodeIndex": 20,
+      "renderableNodeIndices": [
+        20
+      ],
+      "selector": "ref:S1",
+      "selectorNodeIndex": 20
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "S2",
+      "renderableNodeIndex": 21,
+      "renderableNodeIndices": [
+        21
+      ],
+      "selector": "ref:S2",
+      "selectorNodeIndex": 21
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "U1",
+      "renderableNodeIndex": 22,
+      "renderableNodeIndices": [
+        22
+      ],
+      "selector": "ref:U1",
+      "selectorNodeIndex": 22
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "U3",
+      "renderableNodeIndex": 23,
+      "renderableNodeIndices": [
+        23
+      ],
+      "selector": "ref:U3",
+      "selectorNodeIndex": 23
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R7",
+      "renderableNodeIndex": 24,
+      "renderableNodeIndices": [
+        24
+      ],
+      "selector": "ref:R7",
+      "selectorNodeIndex": 24
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R8",
+      "renderableNodeIndex": 25,
+      "renderableNodeIndices": [
+        25
+      ],
+      "selector": "ref:R8",
+      "selectorNodeIndex": 25
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "VT1",
+      "renderableNodeIndex": 26,
+      "renderableNodeIndices": [
+        26
+      ],
+      "selector": "ref:VT1",
+      "selectorNodeIndex": 26
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "VT2",
+      "renderableNodeIndex": 27,
+      "renderableNodeIndices": [
+        27
+      ],
+      "selector": "ref:VT2",
+      "selectorNodeIndex": 27
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R10",
+      "renderableNodeIndex": 28,
+      "renderableNodeIndices": [
+        28
+      ],
+      "selector": "ref:R10",
+      "selectorNodeIndex": 28
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C1",
+      "renderableNodeIndex": 29,
+      "renderableNodeIndices": [
+        29
+      ],
+      "selector": "ref:C1",
+      "selectorNodeIndex": 29
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "R4",
+      "renderableNodeIndex": 30,
+      "renderableNodeIndices": [
+        30
+      ],
+      "selector": "ref:R4",
+      "selectorNodeIndex": 30
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "U2",
+      "renderableNodeIndex": 31,
+      "renderableNodeIndices": [
+        31
+      ],
+      "selector": "ref:U2",
+      "selectorNodeIndex": 31
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C7",
+      "renderableNodeIndex": 32,
+      "renderableNodeIndices": [
+        32
+      ],
+      "selector": "ref:C7",
+      "selectorNodeIndex": 32
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "C8",
+      "renderableNodeIndex": 33,
+      "renderableNodeIndices": [
+        33
+      ],
+      "selector": "ref:C8",
+      "selectorNodeIndex": 33
+    },
+    {
+      "componentClassClaim": null,
+      "modelAvailable": true,
+      "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
+      "needs3dBody": true,
+      "reference": "U4",
+      "renderableNodeIndex": 34,
+      "renderableNodeIndices": [
+        34
+      ],
+      "selector": "ref:U4",
+      "selectorNodeIndex": 34
+    }
+  ],
+  "directRenderableSelectors": 34,
+  "geometryBoundsComparedWithManifest": false,
+  "missingRequiredModelCount": 0,
+  "multiMeshComponentCount": 0,
+  "physicalFitVerified": false,
+  "positionalGuidanceAllowed": false,
+  "renderableCount": 34,
+  "renderableMeshNodeCount": 34,
+  "schema": "tokito.component-selection-index.v1",
+  "sourceSha256": {
+    "componentMap": "6265f2d8ae89e472b7788f034b2bb061144287c2fc9da5a35af5a0ed581027a7",
+    "glb": "e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1",
+    "manifest": "1b079e72cd168d536290bc5f80425d5cdbca5249e23c678a222e85d354f1c4a3"
+  },
+  "unmappedRenderableNodes": [
+    {
+      "meshIndex": 0,
+      "name": "board:source-contour",
+      "nodeIndex": 0
+    }
+  ]
+}

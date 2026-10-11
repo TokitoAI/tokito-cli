@@ -1,0 +1,33 @@
+{
+  "arRegistrationVerified": false,
+  "assemblyContextRevision": "altium-body-source-candidate-v1",
+  "assetId": "tokito-selectable-e929f29ff0fdc88e1b31c20e6820ff09",
+  "axes": "RIGHT_HANDED_Y_UP",
+  "boardIdentity": "esp8266-nodemcu-altium-reference",
+  "boardOriginMetres": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "boardRevision": "007d603df0ef",
+  "boundsMetres": {
+    "maximum": {
+      "x": 0.012889958918094635,
+      "y": 0.0036830001045018435,
+      "z": 0.03745095804333687
+    },
+    "minimum": {
+      "x": -0.012890040874481201,
+      "y": -0.008508999831974506,
+      "z": -0.011542392894625664
+    }
+  },
+  "componentNodePrefix": "ref:",
+  "defaultOpacity": 0.42,
+  "glbBytes": 48699248,
+  "glbSha256": "sha256:e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1",
+  "physicalGeometryVerified": false,
+  "releaseEligible": false,
+  "schemaVersion": "1.0",
+  "units": "METRE"
+}
