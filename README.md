@@ -132,7 +132,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
 | `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
-| `export svg` | Partial top/bottom physical-scale view with layer selection |
+| `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
 | `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
 | `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
@@ -155,6 +155,7 @@ paths:
 ./target/release/tokito-cli.exe export placements board.kicad_pcb --output placements.csv
 ./target/release/tokito-cli.exe pcb export pos board.kicad_pcb --format csv --units mm --side both --output manufacturing-positions.csv
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side top --output top.svg
+./target/release/tokito-cli.exe export svg board.kicad_pcb --layers F.Fab --hide-DNP-footprints-on-fab-layers --output fab-populated.svg
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side bottom --output bottom.svg
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output shell.glb --allow-partial --json-report
 ./target/release/tokito-cli.exe package build board.kicad_pcb --output new-board-package

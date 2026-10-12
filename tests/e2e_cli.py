@@ -48,6 +48,113 @@ def svg_check(path, side, footprints):
     assert selected_components and set(selected_components) <= component_ids
     return root
 
+
+def test_svg_hide_dnp_fab(binary, source, output):
+    inspection = json.loads(invoke(binary, "inspect", source, "--json").stdout)
+    dnp_ids = {footprint["uuid"] for footprint in inspection["footprints"] if footprint["dnp"]}
+    assert len(dnp_ids) == 2 and all(dnp_ids)
+
+    default_path = output / "uno-fab-default.svg"
+    hidden_path = output / "uno-fab-hide-dnp.svg"
+    invoke(binary, "export", "svg", source, "--layers", "F.Fab", "--output", default_path)
+    invoke(binary, "export", "svg", source, "--layers", "F.Fab", "--output", hidden_path,
+           "--hide-DNP-footprints-on-fab-layers")
+    default_root = ET.parse(default_path).getroot()
+    hidden_root = ET.parse(hidden_path).getroot()
+
+    def owned(root):
+        by_component = {}
+        for element in root.iter():
+            component_id = element.attrib.get("data-component-id")
+            if component_id:
+                by_component.setdefault(component_id, []).append(
+                    ET.tostring(element, encoding="unicode")
+                )
+        return {key: sorted(value) for key, value in by_component.items()}
+
+    before = owned(default_root)
+    after = owned(hidden_root)
+    assert dnp_ids <= before.keys(), "default SVG should retain both DNP footprint drawings"
+    assert not (dnp_ids & after.keys()), "opt-in DNP Fab export must omit DNP-owned elements"
+    for component_id in before.keys() - dnp_ids:
+        assert before[component_id] == after[component_id], "non-DNP Fab output changed"
+    dnp_values = [element.text for element in default_root.iter(NS + "text")
+                  if element.attrib.get("data-component-id") in dnp_ids]
+    assert dnp_values.count("1M") == 2
+    hidden_values = [element.text for element in hidden_root.iter(NS + "text")
+                     if element.attrib.get("data-component-id") in dnp_ids]
+    assert hidden_values == []
+
+    silk_default = output / "uno-silkscreen-default.svg"
+    silk_with_option = output / "uno-silkscreen-hide-dnp-option.svg"
+    invoke(binary, "export", "svg", source, "--layers", "F.SilkS", "--output", silk_default)
+    invoke(binary, "export", "svg", source, "--layers", "F.SilkS", "--output", silk_with_option,
+           "--hide-DNP-footprints-on-fab-layers")
+    assert silk_default.read_bytes() == silk_with_option.read_bytes(), "DNP Fab option affected a non-Fab layer"
+
+    missing_uuid_source = output / "uno-dnp-without-uuid.kicad_pcb"
+    source_text = source.read_text(encoding="utf-8")
+    first_dnp_uuid = next(footprint["uuid"] for footprint in inspection["footprints"] if footprint["dnp"])
+    source_text = source_text.replace(f'(uuid "{first_dnp_uuid}")', "", 1)
+    missing_uuid_source.write_text(source_text, encoding="utf-8")
+    refused_output = output / "uno-dnp-without-uuid.svg"
+    refusal = invoke(binary, "export", "svg", missing_uuid_source, "--layers", "F.Fab",
+                     "--output", refused_output, "--hide-DNP-footprints-on-fab-layers", succeeds=False)
+    assert "no source UUID" in refusal.stderr and not refused_output.exists()
+
+    populated_uuid = next(footprint["uuid"] for footprint in inspection["footprints"]
+                          if not footprint["dnp"] and footprint["uuid"])
+    ambiguous_source = output / "uno-dnp-ambiguous-uuid.kicad_pcb"
+    ambiguous_text = source.read_text(encoding="utf-8").replace(
+        f'(uuid "{populated_uuid}")', f'(uuid "{first_dnp_uuid}")', 1
+    )
+    ambiguous_source.write_text(ambiguous_text, encoding="utf-8")
+    ambiguous_output = output / "uno-dnp-ambiguous-uuid.svg"
+    ambiguous_refusal = invoke(
+        binary, "export", "svg", ambiguous_source, "--layers", "F.Fab", "--output",
+        ambiguous_output, "--hide-DNP-footprints-on-fab-layers", succeeds=False,
+    )
+    assert "footprint UUID is ambiguous" in ambiguous_refusal.stderr
+    assert not ambiguous_output.exists(), "ambiguous DNP identity must never publish an SVG"
+
+    duplicate_uuid_field_source = output / "uno-dnp-duplicate-uuid-field.kicad_pcb"
+    duplicate_uuid_field_text = source.read_text(encoding="utf-8").replace(
+        f'(uuid "{first_dnp_uuid}")',
+        f'(uuid "{first_dnp_uuid}") (uuid "{populated_uuid}")',
+        1,
+    )
+    assert duplicate_uuid_field_text != source.read_text(encoding="utf-8")
+    duplicate_uuid_field_source.write_text(duplicate_uuid_field_text, encoding="utf-8")
+    duplicate_uuid_field_output = output / "uno-dnp-duplicate-uuid-field.svg"
+    duplicate_uuid_field = invoke(
+        binary, "export", "svg", duplicate_uuid_field_source, "--layers", "F.Fab", "--output",
+        duplicate_uuid_field_output, "--hide-DNP-footprints-on-fab-layers", succeeds=False,
+    )
+    assert "multiple source UUID fields" in duplicate_uuid_field.stderr
+    assert not duplicate_uuid_field_output.exists(), "duplicate identity fields must never publish an SVG"
+
+    malformed_uuid_field_source = output / "uno-dnp-malformed-uuid-field.kicad_pcb"
+    original_source_text = source.read_text(encoding="utf-8")
+    malformed_uuid_field_text = original_source_text.replace(
+        f'(uuid "{first_dnp_uuid}")', f'(uuid "{first_dnp_uuid}" extra)', 1
+    )
+    assert malformed_uuid_field_text != original_source_text
+    malformed_uuid_field_source.write_text(malformed_uuid_field_text, encoding="utf-8")
+    malformed_uuid_field_output = output / "uno-dnp-malformed-uuid-field.svg"
+    malformed_uuid_field = invoke(
+        binary, "export", "svg", malformed_uuid_field_source, "--layers", "F.Fab", "--output",
+        malformed_uuid_field_output, "--hide-DNP-footprints-on-fab-layers", succeeds=False,
+    )
+    assert "malformed source UUID field" in malformed_uuid_field.stderr
+    assert not malformed_uuid_field_output.exists(), "malformed identity must never publish an SVG"
+
+    duplicate_flag_output = output / "uno-dnp-duplicate-option.svg"
+    duplicate_flag = invoke(binary, "export", "svg", source, "--layers", "F.Fab", "--output",
+                            duplicate_flag_output, "--hide-DNP-footprints-on-fab-layers",
+                            "--hide-DNP-footprints-on-fab-layers", succeeds=False)
+    assert "unknown or incomplete SVG option" in duplicate_flag.stderr
+    assert not duplicate_flag_output.exists()
+
 def glb_check(path, expected_selectors=("ref:R1",)):
     data = path.read_bytes()
     assert len(data) >= 28 and data[:4] == b"glTF"
@@ -150,12 +257,24 @@ def main():
     repo_root = test_root.parent
     fixture_root = test_root / "fixtures" / "open-source"
     reference_root = test_root / "reference" / "kicad-cli-10.0.5" / "pos"
+    svg_reference_root = test_root / "reference" / "kicad-cli-10.0.5" / "svg"
     reference_manifest = json.loads((reference_root / "manifest.json").read_text(encoding="utf-8"))
     assert reference_manifest["reference"]["version"] == "10.0.5"
     for source in reference_manifest["sources"]:
         assert hashlib.sha256((repo_root / source["path"]).read_bytes()).hexdigest() == source["sha256"]
     for reference in reference_manifest["outputs"]:
         assert hashlib.sha256((reference_root / reference["path"]).read_bytes()).hexdigest() == reference["sha256"]
+    svg_reference_manifest = json.loads((svg_reference_root / "manifest.json").read_text(encoding="utf-8"))
+    assert svg_reference_manifest["reference"]["version"] == "10.0.5"
+    svg_reference_source = repo_root / svg_reference_manifest["reference"]["source_path"]
+    assert hashlib.sha256(svg_reference_source.read_bytes()).hexdigest() == svg_reference_manifest["reference"]["source_sha256"]
+    for reference in svg_reference_manifest["outputs"]:
+        reference_path = svg_reference_root / reference["path"]
+        assert hashlib.sha256(reference_path.read_bytes()).hexdigest() == reference["sha256"]
+        reference_root_svg = ET.parse(reference_path).getroot()
+        assert sum(element.text == "1M" for element in reference_root_svg.iter(NS + "text")) == reference["text_1M_count"]
+    svg_reference_text_counts = [entry["text_1M_count"] for entry in svg_reference_manifest["outputs"]]
+    assert svg_reference_text_counts == [2, 0], "KiCad reference must hide both DNP Fab Value labels only when opted in"
     assert invoke(binary, "--version").stdout.strip() == "tokito-cli 0.1.0"
     assert invoke(binary, "-V").stdout.strip() == "tokito-cli 0.1.0"
     assert invoke(binary, "version").stdout.strip() == "tokito-cli 0.1.0"
@@ -173,11 +292,14 @@ def main():
     pos_help = invoke(binary, "pcb", "export", "pos", "--help").stdout
     assert "manufacturing-position CSV" in pos_help
     assert "--use-drill-file-origin" in pos_help
+    svg_help = invoke(binary, "help", "export", "svg").stdout
+    assert "--hide-DNP-footprints-on-fab-layers" in svg_help
     with tempfile.TemporaryDirectory(prefix="tokito-cli-e2e-") as output:
         output = Path(output)
         uno = fixture_root / "arduino-uno-r3-community" / "Arduino UNO.kicad_pcb"
         nxp = fixture_root / "nxp-mcxa-esc" / "MR-ESC-MCXA-AM32.kicad_pcb"
         sparkfun = fixture_root / "sparkfun-default-kicad" / "SparkFun_Basic_Board_Example.kicad_pcb"
+        test_svg_hide_dnp_fab(binary, uno, output)
         pos_cases = [
             (uno, "uno-mm-both.csv", ["--units", "mm"], 54),
             (uno, "uno-mm-smd.csv", ["--units", "mm", "--smd-only"], 44),
@@ -431,7 +553,7 @@ def main():
         glb_check(partial_glb, expected_selectors=())
         invoke(binary, "export", "svg", fixture_root / FIXTURES[0][0], "--output", output / "bad.svg",
                "--layers", "not-a-board-layer", succeeds=False)
-    print("PASS CLI E2E journeys, including 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
+    print("PASS CLI E2E journeys, including DNP Fab filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
 
 if __name__ == "__main__":
     main()

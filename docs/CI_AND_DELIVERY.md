@@ -1,46 +1,50 @@
 # Local verification and delivery
 
-The current runner also verifies the original Rust Altium experiment (format,
-tests, Clippy and build) and builds the STEP experiment explicitly. Supply all of
-`-Esp32CandidateRoot`, `-Esp32ReferenceBom`, `-Esp32Pcb`, `-Esp32ModelLibrary` to
-include the real provisional and native-reference ESP32 E2E journeys. The model
-library must carry the pinned KiCad9 intake receipt and exact source assets.
-Supply `-Esp8266SourceRoot`, `-Esp8266UnitReceipt` and `-Esp8266FreecadReference`
-together for the 17-model independent STEP unit comparisons, positioned candidate
-mesh diagnostics and original Altium record/embedded-byte audit. The unit receipt
-is the original source inventory with `models[].model` and `models[].sha256`,
-not a later unit-qualification report. The complete ESP32/ESP8266 profile runs
-34 gates; the portable profile alone runs 25. Historical counts below refer to
-earlier verifier versions.
-Each actual dataset journey must emit a passed receipt; the delivery receipt
-records its path and SHA-256. Missing paired inputs or failed tests refuse delivery.
-Without these optional inputs, the receipt establishes only the included checks.
-Browser and physical-device acceptance remain separate evidence.
+The owner has disabled GitHub Actions and hosted artifact uploads. Verification and binary delivery run locally; source delivery uses a feature branch and PR. A missing hosted check is never described as passed. Merge only after current-source local acceptance and independent review of the relevant head.
 
-Keep new output parents inside
-`D:\kannan\projects\tokito ecosystem\tokito_cli\target`. Earlier examples below
-of external `F:\TokitoCliBuilds`/`F:\TokitoCliDelivery` describe historical options;
-the owner moved those outputs under the canonical CLI directory.
+## Run the verifier
 
-The owner selected local builds and E2E to preserve the GitHub Actions quota. The repository workflow was removed by request; no hosted workflow runs on pushes or pull requests. Hosted CI and artifact upload results are not claimed. A later workflow can be added when the owner chooses.
-
-Run the PowerShell 7 script from any directory:
+Use PowerShell 7 from the D-drive checkout:
 
 ```powershell
-& 'D:\kannan\projects\tokito ecosystem\tokito_cli\scripts\verify-local.ps1' -CargoPath 'C:\Users\PC\.cargo\bin\cargo.exe'
+& 'D:\kannan\projects\tokito ecosystem\tokito_cli\scripts\verify-local.ps1' `
+  -CargoPath 'C:\Users\PC\.cargo\bin\cargo.exe'
 ```
 
-The script uses cached offline dependencies and creates a fresh isolated build directory under target/local-verification/<run-id>, preserving earlier outputs and avoiding replacement of potentially locked Windows executables. Use absolute alternate paths such as -TargetBase F:\TokitoCliBuilds and -DeliveryBase F:\TokitoCliDelivery when desired. TargetBase relocates Cargo build output plus geometry and optional dataset E2E receipts; the release binary and outer verification receipt stay under target/delivery/local unless DeliveryBase is supplied. External paths and existing parents are rejected if they contain reparse points. The portable runner has twenty gates: formatting, locked offline Rust tests, warnings-denied Clippy, release build, board/geometry/GLB/model-resolution E2Es, historical v0.1 compatibility, BOM and model-assignment E2Es, candidate-envelope E2E, real CLI acceptance, and isolated STEP-probe gates. To include the pinned dataset component journey, pass both `-DatasetRepo` and `-DatasetBomReport`; that adds a twenty-first gate. The dataset E2E checks the pinned MCXN236 commit and PCB hash, the available BOM report's U11 join, candidate envelope dimensions, assignment evidence, and the fail-closed shell-only result. The BOM source digest is a carried report claim because the raw BOM source is not materialized in this local checkout. The test does not prove that missing stackup is the only cause of the exporter's combined `missing_stackup_or_outline` condition. To audit the current NXP asset referenced by dataset PR #6, pass all of `-DatasetTwinGlb`, `-DatasetTwinComponentMap`, `-DatasetTwinManifest`, and `-DatasetTwinProvenance`; this adds another gate. It validates the pinned bytes, manifest, map, unique `ref:` selectors, and independently non-shared GLB component meshes. It does not certify package accuracy, board/photo registration, or a production footprint/PCB identity crosswalk. Neither profile drives a GUI, CAD viewer, or phone. The GLB journey checks container and mesh bounds/area/winding/closed edges, explicit partial consent, coverage, package input, determinism, no-overwrite and invalid-outline refusal. The real-model journey checks explicit roots, six UNO asset hashes, local WRL geometry/material inventory, units/bounds, byte budgets and malformed paths. Inputs and tested binary are fingerprinted; generated Python bytecode and __pycache__ paths are deliberately excluded from the source fingerprint. A receipt is written only if every selected gate passes.
+Default isolated runs use `target/local-verification/<run-id>` and deliver to `target/delivery/local/<run-id>`. To use the centralized artifact directories instead:
 
-Each verification.json records the local Windows architecture, actual Rust/Cargo/Python versions, passed checks, source-input SHA-256 values, and tested binary hash/size. The newest timestamped receipt under the selected delivery base is the current result; with the default, this is target/delivery/local/. Earlier receipts are historical.
+```powershell
+.\scripts\verify-local.ps1 `
+  -TargetBase 'D:\kannan\projects\tokito ecosystem\work\rust-target' `
+  -DeliveryBase 'D:\kannan\projects\tokito ecosystem\work\cli-delivery'
+```
 
-The isolated STEP-evaluation crate adds three gates: formatting, locked offline tests and warnings-denied Clippy. BOM subprocess E2E and the analytic torus-inverse regression add two gates; model-assignment, Component Forge and twin-selector fixture E2Es add three more. The portable verifier therefore runs twenty gates. The optional pinned MCXN236 U11 dataset case adds one, and the optional dataset PR #6 twin audit adds another, for up to twenty-two gates. Assignment tests inspect selectable body meshes, front/back coordinates, manifest provenance, population exclusions and hash refusal. BOM tests exercise exact identity joins, malformed and quoted CSV, UTF-8 BOM encoding and resource caps; they do not qualify 3D component geometry. Earlier ten- and thirteen-gate receipts cover only their original input snapshots and do not qualify this experiment or enable production STEP import.
-The full suite verifies the board-shell GLB, bounded model capture, flat-triangle WRL profile, pure-Rust point/mesh placement helpers, strict source-stackup derivation, one- and two-component assembly GLBs, exact-refdes selector behavior, unsupported-side diagnostics, and coverage truncation on Windows. The tests model the App's documented name filter but do not run the App importer or Android renderer/selection. The suite does not prove Linux/MSRV, hosted CI, general WRL/STEP, complete KiCad conformance, manufacturing validity, Desktop/MCP integration or AR. Placement and stackup tests are source-derived checks, not a KiCad-generated export comparison. Hashes establish integrity, not publisher identity. A verification receipt is authoritative only when its recorded source fingerprints match the final implementation/scripts/tests; narrative documentation can be updated afterward, but must not be represented as an input to that earlier receipt.
+Paths above are local examples, not required runtime locations. The runner requires absolute alternate parents and rejects reparse points. Each run gets a new directory and preserves prior receipts and binaries. [The migration path map](LOCAL_OUTPUT_LOCATIONS.md) resolves historical F and external-D receipts; do not rewrite historical execution telemetry.
 
-The recreated private TokitoAI/tokito-cli repository receives source through a feature branch and pull request; application code is not pushed directly to main. The user reviews and merges the PR. No hosted workflow runs on pushes or pull requests. The CLI-specific roadmap is linked from the repository's Projects tab at https://github.com/TokitoAI/tokito-cli/projects; the organization-wide ecosystem project remains separate and unchanged. Hosted CI, release, and binary upload are out of scope.
+## Current checks and evidence
 
-The former repository's PR #9, CI logs, issues, branches, and Git bundle remain under target/recovery/github-before-recreation-20261009T150910Z. They are historical recovery records, not live checks or pull requests on the recreated repository.
+The current baseline profile contains **31 checks**: format, locked offline tests, warnings-denied Clippy, release build; subprocess CLI, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, footprint-family, twin, dataset-source, dataset-Git and real-CLI acceptance; STEP experiment format/tests/torus regression/Clippy/build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in the receipt when selecting optional inputs. Older 19/20/22/25/34-check receipts describe their original source snapshots and profiles.
 
-When the optional dataset profile runs, its component E2E receipt binds the supplied BOM-report bytes by SHA-256. The outer `verification.json` records the dataset receipt's path and hash together with dataset commit, board hash, and BOM report hash. The receipt path is repository-relative when output is inside the checkout, and absolute for an external `-TargetBase`.
+The main E2E runs real subprocesses on four pinned open-source PCB fixtures. It checks SVG/package/placement output, no-overwrite and refusal behavior, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons and the bounded SVG DNP Fab-filter comparison. GLB tests check container structure, bounds, area, winding, closed edges, explicit partial consent and exact renderable component selectors. These fixtures are parser/export evidence, not proof that every dataset board is qualified.
 
-If the checkout volume cannot hold the delivered release executable and receipt, pass an absolute `-DeliveryBase` such as `F:\TokitoCliDelivery`. The script creates a fresh run directory there and rejects reparse-point parents. This moves only the local delivery copy and receipt; the project checkout and its existing evidence are preserved.
+The runner fingerprints source, tests, reference files, docs and scripts before and after verification. Generated Python bytecode and compiler target trees are excluded. It copies only the tested executable, checks that copy's size/hash, and emits `verification.json` only when every selected check passes and the input fingerprints remain unchanged. A failed or skipped required test blocks delivery. The receipt records toolchain/platform, individual results, source hashes, binary hash/size and explicit limitations.
+
+An old receipt remains valid for its own source. It is not current after a test, document or implementation edit changes a recorded input. Check the fingerprints instead of treating the newest timestamp as sufficient evidence.
+
+## Optional real-dataset journeys
+
+| Parameters supplied together | Additional acceptance scope |
+| --- | --- |
+| `-DatasetRepo`, `-DatasetBomReport` | Pinned component/BOM join, hash binding and explicit candidate/shell limitations |
+| `-DatasetTwinGlb`, `-DatasetTwinComponentMap`, `-DatasetTwinManifest`, `-DatasetTwinProvenance` | Pinned twin bytes, manifest/map and independently selectable component meshes |
+| `-Esp32CandidateRoot`, `-Esp32ReferenceBom`, `-Esp32Pcb`, `-Esp32ModelLibrary` | Provisional/source-reference ESP32 subprocess journeys; exact KiCad9 library intake required |
+| `-Esp8266SourceRoot`, `-Esp8266UnitReceipt`, `-Esp8266FreecadReference` | 17-model unit comparisons, positioned STEP candidates, Altium records/embedded bytes and source prototype journeys |
+| `-NxpRefinementBaseline`, `-NxpRefinementSpec`, `-NxpRefinementPcb` | Explicit source-linked NXP refinement journey |
+
+Required paired inputs must exist and match the selected profile. Dataset E2E produces its own passed receipt; the outer receipt records that evidence path and SHA-256. A BOM report digest establishes the supplied report bytes, not an independently materialized manufacturer BOM. Dataset hashes establish integrity, not geometry qualification or publisher identity.
+
+## Limits and repository delivery
+
+The bounded VRML adapter and source-derived placement tests do not establish general WRL/STEP import or KiCad 3D equivalence. Experimental Rust adapters remain separately gated. Baseline fixtures and optional dataset profiles do not drive the Android importer, renderer, physical phone, CAD GUI, Desktop or registered AR. Linux/MSRV, manufacturing validity, full KiCad compatibility and physical board fit require their own evidence.
+
+The CLI-specific project is linked from [the repository Projects tab](https://github.com/TokitoAI/tokito-cli/projects). Keep broad issues open while their completion gates remain unmet. Application code goes through a feature branch/PR; no direct main push, hosted workflow or release upload is part of this flow. The historical repository's PR #9, logs and Git bundle are recovery records under `target/recovery/`, not live checks on current code.

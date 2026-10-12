@@ -489,7 +489,7 @@ fn print_help() {
          \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\n\
-         \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\n\
+         \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\n\
          \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
@@ -608,7 +608,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\nWrites manufacturing-position CSV with absolute board origin by default. --use-drill-file-origin subtracts setup/aux_axis_origin from X and uses originY - sourceY for POS Y; absent auxiliary origin falls back to (0, 0). Bottom X negation follows origin translation. KiCad 10.0.5 comparisons cover only the listed CSV subset. ASCII, Gerber and variants remain unsupported. Output is never overwritten."
         ),
         ["export", "svg"] => println!(
-            "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]\nWrites a partial SVG view from supported board geometry."
+            "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\nWrites a partial SVG view from supported board geometry. The DNP option hides only DNP footprint text and graphics on F.Fab/B.Fab; it does not remove pads or affect other layers."
         ),
         ["export", "glb"] => println!(
             "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
@@ -641,7 +641,7 @@ fn print_pcb_help() {
          \ttokito-cli pcb export placements <BOARD> --output <FILE.csv>\n\
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] ...\n\
          \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
-         \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom]\n\
+         \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--hide-DNP-footprints-on-fab-layers]\n\
          \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--allow-partial]\n\
          \n\
          Position CSV supports absolute or auxiliary drill-file origin, side, unit, bottom-X and placement-class filters. Position ASCII/Gerber, variants, general Gerber, schematic-to-PCB, STEP, symbol-library and jobset commands are not implemented."
@@ -1057,12 +1057,13 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "svg") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...]",
+                "usage: tokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]",
             ));
         }
         let mut side = "top";
         let mut output_path = None;
         let mut requested_layers = None;
+        let mut hide_dnp_footprints_on_fab_layers = false;
         let mut index = 3;
         while index < args.len() {
             match args[index].as_str() {
@@ -1093,6 +1094,10 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                     requested_layers = Some(parsed);
                     index += 2;
                 }
+                "--hide-DNP-footprints-on-fab-layers" if !hide_dnp_footprints_on_fab_layers => {
+                    hide_dnp_footprints_on_fab_layers = true;
+                    index += 1;
+                }
                 option => {
                     return Err(CliError::new(format!(
                         "unknown or incomplete SVG option: {option}"
@@ -1110,7 +1115,13 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             return Err(CliError::new("SVG output path must use a .svg extension"));
         }
         let board = load_board_input(Path::new(&args[2]))?;
-        let svg = board.svg(SvgSide::try_from(side)?, requested_layers.as_deref())?;
+        let svg = board.svg_with_options(
+            SvgSide::try_from(side)?,
+            requested_layers.as_deref(),
+            SvgExportOptions {
+                hide_dnp_footprints_on_fab_layers,
+            },
+        )?;
         write_new_file(&output_path, svg.contents.as_bytes())?;
         println!(
             "Wrote partial {side} SVG ({} geometry items, {:.3} × {:.3} mm) to {}",

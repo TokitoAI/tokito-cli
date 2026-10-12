@@ -1,6 +1,7 @@
 # Tokito CLI — current state and personal-AI handoff
 
-Date: 2026-10-10. This is a code- and test-backed status report. It does not claim that the Tokito ecosystem, complete KiCad compatibility, selectable component-model digital twin, Desktop handoff, or phone AR flow is complete.
+Historical engineering snapshot: 2026-10-10; workspace correction: 2026-10-12.
+This report does not claim complete KiCad compatibility, Desktop handoff or phone AR acceptance. The active root is now `D:\kannan\projects\tokito ecosystem`; the verified F copy has been removed. See [current output locations](LOCAL_OUTPUT_LOCATIONS.md). Current-source verification receipts supersede the historical test descriptions below.
 
 ## Latest C-06 continuation
 
@@ -73,7 +74,7 @@ and [pinned ecosystem map](ECOSYSTEM_CONTRACT_MAP.md).
 
 ## Workspace, repositories, and ownership
 
-The ecosystem root is F:\kannan\projects\tokito ecosystem. The active CLI project is tokito_cli. The duplicate CLI folder was consolidated with the user's authorization. The old F:\kannan\projects\Tokito path is gone. This task changed only the CLI repository. Other Tokito repositories, archived checkouts, Tokito physical old, and devboard_ar_dataset remain read-only and were not edited.
+The active ecosystem root is `D:\kannan\projects\tokito ecosystem`, and the CLI project is `tokito_cli`. The duplicate CLI folder was previously consolidated. The old F workspace paths are gone. The 2026-10-12 maintenance was separately authorized to preserve F-only work, remove the verified F ecosystem, consolidate D artifacts and refresh clean ecosystem checkouts from GitHub. Sibling feature code remains outside this task's write scope. Use `tokito-app-dataset`; `devboard_ar_dataset` is historical data, not the selected active source.
 
 The private repository is TokitoAI/tokito-cli (repository ID 1412077895). PR #8, `feat/native-pcb-engine-milestone-b`, has been merged. Milestone C changes are being developed locally on `codex/milestone-c-selectable-glb`; GitHub Actions remain disabled by owner request. Delivery stays on a feature branch/PR, with `main` untouched until the agreed merge step. No sibling repository is being changed. The old repository's PR #9, issues, checks, branches, and Git bundle remain historical recovery evidence under target/recovery/github-before-recreation-20261009T150910Z. They are not live objects in the recreated repository.
 
