@@ -168,6 +168,14 @@ pub struct GlbExportOptions {
     pub allow_partial: bool,
 }
 
+/// Controls the supported SVG projection without changing the historical default.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SvgExportOptions {
+    /// Omit text and graphic primitives owned by DNP footprints on `F.Fab`/`B.Fab`.
+    /// Pads and geometry on every other layer remain visible.
+    pub hide_dnp_footprints_on_fab_layers: bool,
+}
+
 pub use glb::{AssignedGlbExport, GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
 
 impl SvgSide {
@@ -340,6 +348,14 @@ impl PhysicalBoardDocument {
         placements_csv(self)
     }
     pub fn svg(&self, side: SvgSide, layers: Option<&[String]>) -> Result<SvgOutput, EngineError> {
+        self.svg_with_options(side, layers, SvgExportOptions::default())
+    }
+    pub fn svg_with_options(
+        &self,
+        side: SvgSide,
+        layers: Option<&[String]>,
+        options: SvgExportOptions,
+    ) -> Result<SvgOutput, EngineError> {
         if !self.outline.is_valid() {
             let reason = self.outline.diagnostics.first().map_or_else(
                 || "no validated physical board contour".to_owned(),
@@ -349,7 +365,82 @@ impl PhysicalBoardDocument {
                 "SVG export requires valid physical outline topology: {reason}"
             )));
         }
-        geometry::render_validated_svg(&self.geometry, &self.layers, side.as_str(), layers)
+        let dnp_component_ids = if options.hide_dnp_footprints_on_fab_layers {
+            let mut counts = std::collections::BTreeMap::<&str, usize>::new();
+            for footprint in &self.footprints {
+                if !footprint.uuid.is_empty() {
+                    *counts.entry(&footprint.uuid).or_default() += 1;
+                }
+            }
+            let mut dnp_component_ids = BTreeSet::new();
+            for footprint in self.footprints.iter().filter(|footprint| footprint.dnp) {
+                if footprint.uuid.is_empty() {
+                    return Err(EngineError::new(
+                        "cannot hide DNP Fab graphics because a DNP footprint has no source UUID",
+                    ));
+                }
+                let source_component = self
+                    .engineering
+                    .components
+                    .iter()
+                    .find(|component| {
+                        component.source.kind == "footprint"
+                            && component.source.source_uuid.as_deref()
+                                == Some(footprint.uuid.as_str())
+                    })
+                    .and_then(|component| {
+                        source_at_path(
+                            &self.source_document,
+                            &component.source.source_path,
+                        )
+                    })
+                    .ok_or_else(|| {
+                        EngineError::new(
+                            "cannot hide DNP Fab graphics because its source footprint is ambiguous",
+                        )
+                    })?;
+                let source_uuids: Vec<_> = source_component.children("uuid").collect();
+                match source_uuids.len() {
+                    0 => {
+                        return Err(EngineError::new(
+                            "cannot hide DNP Fab graphics because a DNP footprint has no source UUID",
+                        ));
+                    }
+                    1 => {}
+                    _ => {
+                        return Err(EngineError::new(
+                            "cannot hide DNP Fab graphics because a DNP footprint has multiple source UUID fields",
+                        ));
+                    }
+                }
+                if source_uuids[0].items().is_none_or(|items| items.len() != 2) {
+                    return Err(EngineError::new(
+                        "cannot hide DNP Fab graphics because a DNP footprint has a malformed source UUID field",
+                    ));
+                }
+                if source_uuids[0].value_at(1) != Some(footprint.uuid.as_str()) {
+                    return Err(EngineError::new(
+                        "cannot hide DNP Fab graphics because its source UUID is missing or ambiguous",
+                    ));
+                }
+                if counts.get(footprint.uuid.as_str()) != Some(&1) {
+                    return Err(EngineError::new(
+                        "cannot hide DNP Fab graphics because a DNP footprint UUID is ambiguous",
+                    ));
+                }
+                dnp_component_ids.insert(footprint.uuid.clone());
+            }
+            Some(dnp_component_ids)
+        } else {
+            None
+        };
+        geometry::render_validated_svg(
+            &self.geometry,
+            &self.layers,
+            side.as_str(),
+            layers,
+            dnp_component_ids.as_ref(),
+        )
     }
     /// Export a self-contained GLB board shell from validated physical topology.
     /// This initial GLB slice does not resolve component models; set

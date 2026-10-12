@@ -1519,7 +1519,7 @@ pub(super) fn render_svg(
     side: &str,
     requested_layers: Option<&[String]>,
 ) -> Result<SvgOutput, CliError> {
-    render_svg_projection(geometry, board_layers, side, requested_layers, true)
+    render_svg_projection(geometry, board_layers, side, requested_layers, true, None)
 }
 
 /// The caller has certified all saved physical boundary objects with the
@@ -1530,8 +1530,16 @@ pub(super) fn render_validated_svg(
     board_layers: &[String],
     side: &str,
     requested_layers: Option<&[String]>,
+    dnp_component_ids: Option<&BTreeSet<String>>,
 ) -> Result<SvgOutput, CliError> {
-    render_svg_projection(geometry, board_layers, side, requested_layers, false)
+    render_svg_projection(
+        geometry,
+        board_layers,
+        side,
+        requested_layers,
+        false,
+        dnp_component_ids,
+    )
 }
 
 fn render_svg_projection(
@@ -1540,6 +1548,7 @@ fn render_svg_projection(
     side: &str,
     requested_layers: Option<&[String]>,
     require_legacy_closure: bool,
+    dnp_component_ids: Option<&BTreeSet<String>>,
 ) -> Result<SvgOutput, CliError> {
     if !matches!(side, "top" | "bottom") {
         return Err(CliError::new("SVG side must be 'top' or 'bottom'"));
@@ -1632,6 +1641,9 @@ fn render_svg_projection(
         let Some(layer) = visible_layer(item, &selected) else {
             continue;
         };
+        if should_hide_dnp_fab_item(item, layer, dnp_component_ids) {
+            continue;
+        }
         validate_svg_item(item, layer)?;
         invalid_xml_characters_replaced |= item_has_invalid_xml10_character(item, layer);
         let rendered = render_item(item, layer, side == "bottom", !require_legacy_closure)?;
@@ -1665,6 +1677,22 @@ fn render_svg_projection(
     })
 }
 
+fn should_hide_dnp_fab_item(
+    item: &Item,
+    layer: &str,
+    dnp_component_ids: Option<&BTreeSet<String>>,
+) -> bool {
+    if !matches!(layer, "F.Fab" | "B.Fab")
+        || matches!(&item.shape, Shape::Pad { .. } | Shape::Via { .. })
+    {
+        return false;
+    }
+    let Some(component_id) = item.component_id.as_ref() else {
+        return false;
+    };
+    dnp_component_ids.is_some_and(|component_ids| component_ids.contains(component_id))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1690,6 +1718,61 @@ mod tests {
             &footprints,
             &super::super::document::EngineeringData::from_source(&document),
         )
+    }
+
+    #[test]
+    fn dnp_svg_filter_is_fab_only_and_preserves_pad_shapes() {
+        let dnp_ids = BTreeSet::from(["dnp-part".to_owned()]);
+        let make_item = |layer: &str, component_id: Option<&str>, shape| Item {
+            layers: vec![layer.to_owned()],
+            id: None,
+            component_id: component_id.map(str::to_owned),
+            shape,
+        };
+        let line = Shape::Line {
+            start: Point { x: 1.0, y: 2.0 },
+            end: Point { x: 3.0, y: 4.0 },
+            width: 0.1,
+        };
+        assert!(should_hide_dnp_fab_item(
+            &make_item("F.Fab", Some("dnp-part"), line.clone()),
+            "F.Fab",
+            Some(&dnp_ids),
+        ));
+        assert!(should_hide_dnp_fab_item(
+            &make_item("B.Fab", Some("dnp-part"), line.clone()),
+            "B.Fab",
+            Some(&dnp_ids),
+        ));
+        assert!(!should_hide_dnp_fab_item(
+            &make_item("F.SilkS", Some("dnp-part"), line.clone()),
+            "F.SilkS",
+            Some(&dnp_ids),
+        ));
+        assert!(!should_hide_dnp_fab_item(
+            &make_item("F.Fab", Some("populated-part"), line.clone()),
+            "F.Fab",
+            Some(&dnp_ids),
+        ));
+        assert!(!should_hide_dnp_fab_item(
+            &make_item(
+                "F.Fab",
+                Some("dnp-part"),
+                Shape::Pad {
+                    number: "1".to_owned(),
+                    at: Point { x: 1.0, y: 2.0 },
+                    size_x_mm: 1.0,
+                    size_y_mm: 1.0,
+                    rotation_deg: 0.0,
+                    shape: "rect".to_owned(),
+                    roundrect_ratio: 0.0,
+                    drill: None,
+                    net_name: None,
+                },
+            ),
+            "F.Fab",
+            Some(&dnp_ids),
+        ));
     }
 
     #[test]

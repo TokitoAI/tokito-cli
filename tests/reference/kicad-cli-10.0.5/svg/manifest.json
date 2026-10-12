@@ -1,0 +1,25 @@
+{
+  "schema": "tokito.kicad-svg-reference.v1",
+  "reference": {
+    "product": "KiCad CLI",
+    "version": "10.0.5",
+    "purpose": "Development-only observation of DNP Fab plotting semantics; the Tokito product does not invoke KiCad.",
+    "executable_observed": "C:/Program Files/KiCad/10.0/bin/kicad-cli.exe",
+    "source_path": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+    "source_sha256": "1b078b77026f4e8fd5de7cc6c7b6fff3daf454014e5e0873b7a6d0cdd77958f9"
+  },
+  "outputs": [
+    {
+      "path": "uno-fab-default.svg",
+      "arguments": ["pcb", "export", "svg", "--mode-single", "--layers", "F.Fab", "--page-size-mode", "2", "--exclude-drawing-sheet"],
+      "sha256": "7474b6f28e0612786dad616a69660854f033df08f6e7b18e2f3e66842f336af8",
+      "text_1M_count": 2
+    },
+    {
+      "path": "uno-fab-hide-dnp.svg",
+      "arguments": ["pcb", "export", "svg", "--mode-single", "--layers", "F.Fab", "--page-size-mode", "2", "--exclude-drawing-sheet", "--hide-DNP-footprints-on-fab-layers"],
+      "sha256": "04ed24cebebf2a28b2a97dcef2cb402437adc5be48b89ed9d7d21526b2564fd6",
+      "text_1M_count": 0
+    }
+  ]
+}

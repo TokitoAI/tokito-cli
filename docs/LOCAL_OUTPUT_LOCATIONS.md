@@ -1,22 +1,35 @@
 # Local build and delivery locations
 
-## Active workspace — 2026-10-11
+## Active workspace — 2026-10-12
 
 The active ecosystem is `D:\kannan\projects\tokito ecosystem`; CLI work uses
-its `tokito_cli` folder. The relocation compared SHA-256 for all 159,930 files
-(66,816,607,839 bytes) and preserved the HEAD, branch and working-tree status of
-18 repositories. Verification is retained at
-`D:\kannan\projects\tokito-migration-evidence-20261011/`.
+its `tokito_cli` folder. The earlier relocation is retained as historical
+evidence under `docs/workspace-maintenance/20261012/previous-20261011/` in the
+ecosystem. Current maintenance receipts are under
+`D:\kannan\projects\tokito ecosystem\docs\workspace-maintenance\20261012`.
 
-The original F: copy still exists: automatic approval review blocked its removal.
-Use D: for new work; do not maintain two development copies. No sibling source
-content was changed by the relocation. Historical absolute F: receipt paths remain
-execution telemetry; resolve their suffixes beneath the relocated D: ecosystem.
+The authorized F: ecosystem copy was removed after every remaining file was
+SHA-256 verified: 64,333 matched D and 65 differing or missing files were copied
+to `recovery/f-drive-unique-20261012T172630Z-9461d57a/` under the ecosystem.
+Four verified Git history bundles preserve the dirty F repository histories.
+Source, models, receipts, executables and useful local edits were retained;
+only reviewed compiler-cache subtrees were discarded. Historical F: receipt
+paths remain execution telemetry; use the migration path maps to locate them.
 
-Temporary isolated ESP8266 work uses `D:\TokitoCliBuilds`, and the pinned NXP
-PR #21 intake uses `D:\TokitoCliDatasetAssets\nxp-intake-20261011`. These folders
-are separate local artifacts, not additional source repositories. New default
-CLI builds and delivery outputs remain under the active CLI's ignored `target`.
+External D artifact folders are consolidated under the ecosystem's `work/`:
+
+| Former D directory | Current ecosystem-relative directory |
+| --- | --- |
+| `D:\TokitoCliBuilds` | `work/cli-builds/` |
+| `D:\TokitoCliDelivery` | `work/cli-delivery/` |
+| `D:\TokitoCliDatasetAssets` | `work/cli-dataset-assets/` |
+| `D:\cargo-target` | `work/rust-target/` |
+
+These are local artifacts, not source repositories. The move receipt records
+file hashes before and after each same-volume move. New default verification
+outputs still use the active CLI's ignored `target`; explicit alternate paths
+should use the centralized `work/` directories. Recovery contains F-only
+differences, not a second active checkout. Do not apply them over newer D work.
 
 ## Earlier output consolidation
 
