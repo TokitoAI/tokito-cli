@@ -523,6 +523,26 @@ def main():
         assert len(dnp_filtered_document["scenes"][0]["nodes"]) == 2
         assert dnp_filtered_document["asset"]["extras"]["tokito"]["coverage"]["dnpFilter"] == dnp_coverage["dnpFilter"]
 
+        property_dnp_source = output / "two-resistor-property-dnp-assembly.kicad_pcb"
+        property_dnp_source.write_text(
+            dnp_source.read_text(encoding="utf-8").replace('(attr dnp)', '(property "DNP" "yes")'),
+            encoding="utf-8",
+        )
+        property_dnp_glb = output / "two-resistor-property-dnp-preserved.glb"
+        property_dnp_report = json.loads(invoke(
+            binary, "export", "glb", property_dnp_source,
+            "--output", property_dnp_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--json-report",
+        ).stdout)
+        property_dnp_coverage = property_dnp_report["coverage"]
+        assert property_dnp_coverage["componentsIncluded"] == 2
+        assert property_dnp_coverage["componentModelsEmitted"] == 2
+        assert property_dnp_coverage["dnpFilter"] == {
+            "enabled": True, "componentsExcluded": 0, "modelReferencesExcluded": 0,
+        }
+        property_dnp_document = glb_check(property_dnp_glb, ("ref:R1", "ref:R2"))
+        assert len(property_dnp_document["scenes"][0]["nodes"]) == 3
+
         shell_no_dnp_glb = output / "shell-no-dnp-unsupported.glb"
         no_dnp_shell_error = invoke(
             binary, "export", "glb", dnp_source,

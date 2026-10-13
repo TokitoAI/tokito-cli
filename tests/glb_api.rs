@@ -66,18 +66,33 @@ struct AssemblyFixture {
 }
 impl AssemblyFixture {
     fn new(extra: &str) -> Self {
+        use std::sync::atomic::{AtomicU64, Ordering};
         use std::time::{SystemTime, UNIX_EPOCH};
+        static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
+
         let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/glb-api-tests");
         std::fs::create_dir_all(&parent).unwrap();
-        let root = parent.join(format!(
-            "{}-{}",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ));
-        std::fs::create_dir(&root).unwrap();
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let mut root = None;
+        for _ in 0..64 {
+            let candidate = parent.join(format!(
+                "{}-{timestamp}-{}",
+                std::process::id(),
+                NEXT_FIXTURE_ID.fetch_add(1, Ordering::Relaxed)
+            ));
+            match std::fs::create_dir(&candidate) {
+                Ok(()) => {
+                    root = Some(candidate);
+                    break;
+                }
+                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(error) => panic!("create isolated GLB API fixture: {error}"),
+            }
+        }
+        let root = root.expect("reserve a unique GLB API fixture directory");
         let source = std::fs::read_to_string(
             PathBuf::from(env!("CARGO_MANIFEST_DIR"))
                 .join("tests/fixtures/assembly-e2e/single-resistor.kicad_pcb"),

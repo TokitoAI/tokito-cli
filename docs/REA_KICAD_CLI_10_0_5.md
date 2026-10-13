@@ -57,10 +57,18 @@ parser-to-job boundary. It does not establish filter-pattern semantics,
 variants, model resolution, mesh construction or all transforms. No pseudocode
 was copied into Tokito.
 
-Analysis of the larger `_pcbnew.dll` exceeded the 330,000 ms provider timeout.
-It remains failed/incomplete; the geometry backend is not fully reverse engineered.
-Full local reports are under `research\rea-analysis\kicad-cli-10.0.5` in the
-ecosystem. Large reference GLBs and derived analysis are development evidence.
+The 10.0.5 and 10.0.7 `_pcbnew.dll` procedure inventories exceeded REA/Ghidra's
+330,000 ms provider timeout without returning partial procedure lists. A
+targeted 10.0.7 REA/Ghidra trace of the UTF-16 `--no-dnp` string also timed out
+during string search without xrefs. A direct headless Ghidra analysis of the
+10.0.7 DLL was stopped at 15 minutes before its cross-reference script ran; no
+matching PDB was found. A verified raw-byte inventory records the shared flag,
+job and export strings and their file offsets in the [DLL evidence](evidence/kicad-pcbnew-dll-static-strings.json).
+These strings do not prove an active code path. No handler-to-GLB call chain,
+DNP selection instruction, or geometry transform path has been established.
+Full local reports are under
+`research\rea-analysis\kicad-cli-10.0.5` in the ecosystem. Large reference GLBs
+and derived analysis are development evidence.
 
 ## Independent DNP output comparison
 
@@ -80,6 +88,41 @@ pins the board, executable and captures. Initial Uno exploration was insufficien
 its DNP items were already absent from the default rendered output, so it could
 not prove a filter delta. The NXP fixture resolved that gap.
 
+### KiCad 10.0.7 version comparison
+
+The same pinned NXP board was exported from the clean KiCad 10.0.7 installation
+and the existing KiCad 10.0.5 reference installation, each against that
+installation's own model library. Both versions reported the same DNP selection
+delta: the R2 and R4 reference nodes and two associated model-child entries are
+removed, no node names are added, and retained node transforms stay unchanged.
+On 10.0.7, the default GLB has 168 scene nodes and 75 mesh records; `--no-dnp`
+has 164 nodes and 73 meshes. It removes four named scene nodes:
+the R2 and R4 footprint nodes and each one's model child node (both child nodes
+use the same generic VRML name). No unnamed scene node is removed. The three DNP
+references in the PCB are R2, R4 and TP13; TP13 has no model node to filter.
+
+The 38-line output of `pcb export glb --help` was line-for-line
+identical between the 10.0.5 and 10.0.7 CLI executables. Both captures are
+committed as [10.0.5 help](evidence/kicad-pcb-export-glb-help-10.0.5.txt) and
+[10.0.7 help](evidence/kicad-pcb-export-glb-help-10.0.7.txt); their SHA-256 is
+`d0960edb51ebd77c7780163e9d07e7fc37c2fb566957b6f2af004c00c0dcf0d5` for each.
+
+Across versions, the corresponding default GLBs are both 563,540 bytes and the
+corresponding filtered GLBs are both 558,908 bytes. Within each default/filtered
+pair across versions, the binary chunks are identical and the JSON is identical
+outside asset metadata (which records KiCad version and capture time). For each
+version, filtering removes two mesh records and four scene nodes, while the
+accessor count (1,593), buffer-view count (3), material count (13), and binary
+chunk remain unchanged. Thus `--no-dnp` has this observed scene/mesh-structure
+effect; it does not remove the embedded binary chunk. This is a fixture-scoped
+comparison, not general 10.0.7 CLI or geometry parity.
+
+A copied-board probe changed only R2 from native DNP attribute to custom
+property DNP=yes. On 10.0.7, `--no-dnp` retained R2 and removed native-DNP R4,
+matching the intended distinction in the Rust filter. The original fixture was
+not modified. Exact executable, DLL, board, GLB and synthetic-copy hashes are
+recorded in the [10.0.7 structure-comparison evidence](evidence/kicad-dnp-10.0.7-structure-comparison.json).
+
 To repeat the independent capture in a new directory (development tooling only):
 
 ```powershell
@@ -92,9 +135,11 @@ equality across machines is not asserted. The reference tool is optional and
 excluded from the offline delivery verifier, which tests Tokito independently.
 
 NXP's references include STEP files; Tokito's WRL assembler does not implement
-STEP. This comparison establishes DNP selection behavior, not equality of
-NXP geometry or rendering. The [Uno/U3 transform reference](KICAD_GLB_REFERENCE.md)
-also reran successfully; it remains separate, with documented frame differences.
+STEP. This is a KiCad-to-KiCad DNP selection and output-structure comparison.
+It does not compare Tokito's emitted NXP geometry, tessellation, materials,
+placement or renderer output against KiCad, and it does not establish physical
+board accuracy. The [Uno/U3 transform reference](KICAD_GLB_REFERENCE.md) also
+reran successfully; it remains separate, with documented frame differences.
 
 ## Original Rust implementation
 
@@ -107,6 +152,13 @@ Source totals remain unchanged. Filtered JSON/GLB coverage adds
 counts. Intentional exclusions are not unresolved geometry. Strict export
 checks retained components; `wholeBoardDigitalTwinComplete` remains false.
 Shell-only and explicit assignment exports reject this option.
+
+The GLB filter reads the native footprint `(attr dnp)` marker only. A custom
+`(property "DNP" "yes")` is preserved by this option and is not treated as a
+native DNP marker. The separate legacy DNP classifier used by inventory,
+Fab-SVG and POS outputs continues to recognize both forms. The fixture-scoped
+KiCad 10.0.5/10.0.7 comparison is documented above; broad CLI and geometry
+parity remain open.
 
 The additive `GlbModelExportOptions`/`GlbModelExport` API preserves existing
 options/report structs. Default bytes/reports are regression-tested against

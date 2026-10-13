@@ -490,7 +490,7 @@ impl PhysicalBoardDocument {
                 .ok_or_else(|| {
                     EngineError::new("cannot safely apply --no-dnp: missing source component")
                 })?;
-            if !has_attribute(source, "dnp") {
+            if !has_native_dnp_attribute(source) {
                 continue;
             }
 
@@ -824,21 +824,19 @@ fn is_placeholder_reference(reference: &str) -> bool {
 }
 
 fn is_dnp(node: &Sexp) -> bool {
-    node.children("attr").any(|attribute| {
-        attribute
-            .items()
-            .unwrap_or_default()
-            .iter()
-            .filter_map(Sexp::atom)
-            .any(|value| value.eq_ignore_ascii_case("dnp"))
-    }) || node.children("property").any(|property| {
-        property
-            .value_at(1)
-            .is_some_and(|name| name.eq_ignore_ascii_case("DNP"))
-            && property
-                .value_at(2)
-                .is_some_and(|value| value.eq_ignore_ascii_case("yes"))
-    })
+    has_native_dnp_attribute(node)
+        || node.children("property").any(|property| {
+            property
+                .value_at(1)
+                .is_some_and(|name| name.eq_ignore_ascii_case("DNP"))
+                && property
+                    .value_at(2)
+                    .is_some_and(|value| value.eq_ignore_ascii_case("yes"))
+        })
+}
+
+fn has_native_dnp_attribute(node: &Sexp) -> bool {
+    has_attribute(node, "dnp")
 }
 
 fn has_attribute(node: &Sexp, expected: &str) -> bool {
