@@ -24,6 +24,8 @@ const MAX_BUNDLE_BYTES: u64 = 1024 * 1024 * 1024;
 const MAX_BUNDLE_ENTRIES: usize = 32;
 const MAX_GLTF_NODES: usize = 1_000_000;
 const MAX_GLTF_MESHES: usize = 1_000_000;
+const MAX_COMPONENT_SELECTORS: usize = 100_000;
+const MAX_COMPONENT_REFERENCE_BYTES: usize = 256;
 
 const GENERATED_FILES: [(&str, &str, usize); 8] = [
     (
@@ -406,6 +408,16 @@ pub fn verify_project_bundle(path: impl AsRef<Path>) -> Result<Value, EngineErro
             "bundled PCB reimport does not match the declared source size, digest, or format version",
         ));
     }
+    let source_inspection: Value =
+        serde_json::from_str(&source_board.inspection_json()).map_err(|error| {
+            EngineError::new(format!("cannot reproject bundled PCB inspection: {error}"))
+        })?;
+    let original_source_name = source["relativePath"]
+        .as_str()
+        .filter(|name| !name.is_empty())
+        .ok_or_else(|| EngineError::new("bundle source relative path is invalid"))?;
+    let mut source_inspection = source_inspection;
+    source_inspection["source"] = json!(original_source_name);
 
     let artifact_array = manifest["artifacts"]
         .as_array()
@@ -460,6 +472,13 @@ pub fn verify_project_bundle(path: impl AsRef<Path>) -> Result<Value, EngineErro
         GENERATED_FILES[0].2,
     )?)
     .map_err(|error| EngineError::new(format!("invalid embedded inspection JSON: {error}")))?;
+    if inspection["source"].as_str() != Some(original_source_name)
+        || inspection != source_inspection
+    {
+        return Err(EngineError::new(
+            "embedded inspection does not match the reimported source PCB",
+        ));
+    }
     let glb_bytes = read_regular_bounded(&root.join("derived/board.glb"), GENERATED_FILES[5].2)?;
     let expected_map = component_map(&inspection, &glb_bytes)?;
     let stored_map: Value = serde_json::from_slice(&read_regular_bounded(
@@ -553,11 +572,36 @@ fn component_map(inspection: &Value, glb_bytes: &[u8]) -> Result<Value, EngineEr
     let (selectors, mesh_nodes) = glb_selectors(glb_bytes)?;
     let mut reference_counts = BTreeMap::<String, usize>::new();
     let mut uuid_counts = BTreeMap::<String, usize>::new();
+    let mut footprint_by_reference = BTreeMap::<&str, &Value>::new();
     for footprint in footprints {
         let reference = required_text(footprint, "reference")?;
         let uuid = required_text(footprint, "uuid")?;
         *reference_counts.entry(reference.to_owned()).or_default() += 1;
         *uuid_counts.entry(uuid.to_owned()).or_default() += 1;
+        footprint_by_reference.entry(reference).or_insert(footprint);
+    }
+    // A GLB selector is an identity claim, not merely an optional decoration.
+    // Reject orphaned and ambiguous claims before emitting a map that could
+    // silently associate a model with the wrong source footprint.
+    for reference in selectors.keys() {
+        if reference_counts.get(reference) != Some(&1) {
+            return Err(EngineError::new(format!(
+                "GLB selector ref:{reference} does not uniquely match a source footprint"
+            )));
+        }
+        let footprint = footprint_by_reference
+            .get(reference.as_str())
+            .copied()
+            .ok_or_else(|| EngineError::new("GLB selector source-footprint lookup failed"))?;
+        let placeholder = footprint["reference_is_placeholder"]
+            .as_bool()
+            .ok_or_else(|| EngineError::new("inspection placeholder state is invalid"))?;
+        let uuid = required_text(footprint, "uuid")?;
+        if placeholder || uuid.is_empty() || uuid_counts.get(uuid) != Some(&1) {
+            return Err(EngineError::new(format!(
+                "GLB selector ref:{reference} does not uniquely match a source footprint identity"
+            )));
+        }
     }
     let mut assigned = BTreeSet::new();
     let mut components = Vec::with_capacity(footprints.len());
@@ -644,38 +688,14 @@ fn glb_selectors(glb_bytes: &[u8]) -> Result<GlbSelectorIndex, EngineError> {
     let roots = scenes[active]["nodes"]
         .as_array()
         .ok_or_else(|| EngineError::new("GLB active scene has no root nodes"))?;
-    let mut stack = roots.clone();
-    let mut reachable = BTreeSet::new();
-    let mut mesh_nodes = BTreeSet::new();
-    while let Some(index_value) = stack.pop() {
-        let index = index_value
-            .as_u64()
-            .and_then(|value| usize::try_from(value).ok())
-            .filter(|index| *index < nodes.len())
-            .ok_or_else(|| EngineError::new("GLB scene references an invalid node"))?;
-        if !reachable.insert(index) {
-            return Err(EngineError::new(
-                "GLB active scene has a cycle or shared node",
-            ));
-        }
-        let node = &nodes[index];
-        if let Some(mesh) = node["mesh"].as_u64() {
-            if usize::try_from(mesh)
-                .ok()
-                .filter(|i| *i < meshes.len())
-                .is_none()
-            {
-                return Err(EngineError::new("GLB node references an invalid mesh"));
-            }
-            mesh_nodes.insert(index);
-        }
-        if let Some(children) = node["children"].as_array() {
-            stack.extend(children.iter().cloned());
-        } else if !node["children"].is_null() {
-            return Err(EngineError::new("GLB node children field is invalid"));
-        }
+    if roots.len() > nodes.len() {
+        return Err(EngineError::new(
+            "GLB active scene root references exceed the node-count budget",
+        ));
     }
-    let mut selectors = BTreeMap::<String, Vec<usize>>::new();
+    let mut selector_references = Vec::<String>::new();
+    let mut selector_by_node = vec![None; nodes.len()];
+    let mut selector_by_reference = BTreeMap::<String, usize>::new();
     for (index, node) in nodes.iter().enumerate() {
         let Some(name) = node["name"]
             .as_str()
@@ -683,47 +703,108 @@ fn glb_selectors(glb_bytes: &[u8]) -> Result<GlbSelectorIndex, EngineError> {
         else {
             continue;
         };
-        if !reachable.contains(&index) {
+        let reference = name.strip_prefix("ref:").unwrap_or_default();
+        if reference.is_empty() || reference.len() > MAX_COMPONENT_REFERENCE_BYTES {
             return Err(EngineError::new(
-                "GLB contains an unreachable component selector",
+                "GLB component selector reference is empty or exceeds its size limit",
             ));
         }
-        let reference = name.strip_prefix("ref:").unwrap_or_default();
-        if reference.is_empty() {
-            return Err(EngineError::new("GLB contains an empty component selector"));
+        if selector_references.len() >= MAX_COMPONENT_SELECTORS {
+            return Err(EngineError::new(
+                "GLB component selector count exceeds its limit",
+            ));
         }
-        if selectors
-            .insert(reference.to_owned(), vec![index])
-            .is_some()
-        {
+        if selector_by_reference.contains_key(reference) {
             return Err(EngineError::new(
                 "GLB contains duplicate component selectors",
             ));
         }
+        let selector_id = selector_references.len();
+        let reference = reference.to_owned();
+        selector_references.push(reference.clone());
+        selector_by_reference.insert(reference, selector_id);
+        selector_by_node[index] = Some(selector_id);
     }
-    // A renderable selector may own mesh-bearing descendants. Resolve each
-    // selector subtree only through nodes in the active, validated scene.
-    for (reference, roots) in &mut selectors {
-        let mut todo = roots.clone();
-        let mut subtree_meshes = BTreeSet::new();
-        while let Some(index) = todo.pop() {
-            if mesh_nodes.contains(&index) {
-                subtree_meshes.insert(index);
+
+    // Walk the active scene once. Each mesh-bearing node is assigned to its
+    // nearest selector ancestor at most once, so nested subtrees cannot amplify
+    // verification work. Nested ref: selectors are rejected as ambiguous:
+    // one component selector must own each selectable model subtree.
+    let mut selectors_by_id = vec![Vec::<usize>::new(); selector_references.len()];
+    let mut reachable = BTreeSet::new();
+    let mut mesh_nodes = BTreeSet::new();
+    // In a valid single-owner forest, root references plus child edges cannot
+    // exceed the number of nodes. This also caps pending stack entries before
+    // allocating for attacker-controlled repeated references.
+    let mut scene_reference_count = roots.len();
+    let mut stack = Vec::<(usize, Option<usize>)>::with_capacity(roots.len());
+    for root in roots {
+        let index = root
+            .as_u64()
+            .and_then(|value| usize::try_from(value).ok())
+            .filter(|index| *index < nodes.len())
+            .ok_or_else(|| EngineError::new("GLB scene references an invalid node"))?;
+        stack.push((index, None));
+    }
+    while let Some((index, inherited_selector)) = stack.pop() {
+        if !reachable.insert(index) {
+            return Err(EngineError::new(
+                "GLB active scene has a cycle or shared node",
+            ));
+        }
+        let node = &nodes[index];
+        let selector = if let Some(selector_id) = selector_by_node[index] {
+            if inherited_selector.is_some() {
+                return Err(EngineError::new(
+                    "nested GLB component selectors are unsupported; each component selector must own a separate subtree",
+                ));
             }
-            if let Some(children) = nodes[index]["children"].as_array() {
-                for child in children {
-                    let child_index = child
-                        .as_u64()
-                        .and_then(|v| usize::try_from(v).ok())
-                        .ok_or_else(|| EngineError::new("GLB selector subtree index is invalid"))?;
-                    todo.push(child_index);
-                }
+            Some(selector_id)
+        } else {
+            inherited_selector
+        };
+        if let Some(mesh) = node["mesh"].as_u64() {
+            if usize::try_from(mesh)
+                .ok()
+                .filter(|mesh_index| *mesh_index < meshes.len())
+                .is_none()
+            {
+                return Err(EngineError::new("GLB node references an invalid mesh"));
+            }
+            mesh_nodes.insert(index);
+            if let Some(selector_id) = selector {
+                selectors_by_id[selector_id].push(index);
             }
         }
-        if !reachable.contains(&roots[0]) || reference.is_empty() {
-            return Err(EngineError::new("GLB selector is invalid"));
+        if let Some(children) = node["children"].as_array() {
+            if children.len() > nodes.len().saturating_sub(scene_reference_count) {
+                return Err(EngineError::new(
+                    "GLB active scene node references exceed the node-count budget",
+                ));
+            }
+            scene_reference_count += children.len();
+            for child in children {
+                let child_index = child
+                    .as_u64()
+                    .and_then(|value| usize::try_from(value).ok())
+                    .filter(|child_index| *child_index < nodes.len())
+                    .ok_or_else(|| EngineError::new("GLB node references an invalid child"))?;
+                stack.push((child_index, selector));
+            }
+        } else if !node["children"].is_null() {
+            return Err(EngineError::new("GLB node children field is invalid"));
         }
-        *roots = subtree_meshes.into_iter().collect();
+    }
+    for (index, selector_id) in selector_by_node.iter().enumerate() {
+        if selector_id.is_some() && !reachable.contains(&index) {
+            return Err(EngineError::new(
+                "GLB contains an unreachable component selector",
+            ));
+        }
+    }
+    let mut selectors = BTreeMap::<String, Vec<usize>>::new();
+    for (reference, nodes) in selector_references.into_iter().zip(selectors_by_id) {
+        selectors.insert(reference, nodes);
     }
     Ok((selectors, mesh_nodes))
 }
