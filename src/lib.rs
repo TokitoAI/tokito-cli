@@ -169,7 +169,7 @@ pub struct GlbExportOptions {
 }
 
 /// Options for source-model assembly exports. The filter is opt-in and applies
-/// only to DNP footprints whose source UUID maps to one canonical component.
+/// only to canonical source footprints carrying a native `(attr dnp)` value.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct GlbModelExportOptions {
     pub allow_partial: bool,
@@ -485,33 +485,61 @@ impl PhysicalBoardDocument {
             }
         }
         let mut excluded = std::collections::BTreeSet::new();
-        for footprint in self.footprints.iter().filter(|footprint| footprint.dnp) {
-            let ordinals = (!footprint.uuid.is_empty())
-                .then(|| by_uuid.get(footprint.uuid.as_str()))
-                .flatten()
+        for component in &self.engineering().components {
+            let source = source_at_path(&self.source_document, &component.source.source_path)
+                .ok_or_else(|| {
+                    EngineError::new("cannot safely apply --no-dnp: missing source component")
+                })?;
+            if !has_attribute(source, "dnp") {
+                continue;
+            }
+
+            let fields: Vec<_> = source.children("uuid").collect();
+            if fields.len() > 1 {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+            let field = fields.first().copied().ok_or_else(|| {
+                EngineError::new(
+                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                )
+            })?;
+            let values = field.items().ok_or_else(|| {
+                EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                )
+            })?;
+            if values.len() > 2 {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+            let uuid = field
+                .value_at(1)
+                .filter(|uuid| !uuid.is_empty())
+                .ok_or_else(|| {
+                    EngineError::new(
+                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                    )
+                })?;
+            if component.source.source_uuid.as_deref() != Some(uuid) {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+
+            let ordinals = by_uuid
+                .get(uuid)
                 .filter(|ordinals| ordinals.len() == 1)
                 .ok_or_else(|| {
                     EngineError::new(
                         "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
                     )
                 })?;
-            let component = self
-                .engineering()
-                .components
-                .iter()
-                .find(|component| component.source.ordinal == ordinals[0])
-                .expect("ordinal was obtained from this canonical component list");
-            let source = source_at_path(&self.source_document, &component.source.source_path)
-                .ok_or_else(|| {
-                    EngineError::new("cannot safely apply --no-dnp: missing source footprint")
-                })?;
-            let fields: Vec<_> = source.children("uuid").collect();
-            if fields.len() != 1
-                || fields[0].items().is_none_or(|items| items.len() != 2)
-                || fields[0].value_at(1) != Some(footprint.uuid.as_str())
-            {
+            if ordinals[0] != component.source.ordinal {
                 return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
                 ));
             }
             excluded.insert(ordinals[0]);

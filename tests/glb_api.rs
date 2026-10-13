@@ -156,9 +156,9 @@ fn dnp_without_a_body_is_excluded_from_strict_retained_coverage() {
 }
 
 #[test]
-fn dnp_multiple_missing_assets_are_excluded_before_resolution() {
+fn native_dnp_multiple_missing_assets_are_excluded_before_resolution() {
     let f = AssemblyFixture::new(
-        "(footprint test (layer F.Cu) (at 7 7) (uuid dnp-missing) (property DNP yes) (property Reference R2) (model missing-one.wrl) (model missing-two.step))",
+        "(footprint test (layer F.Cu) (at 7 7) (uuid dnp-missing) (attr dnp) (property Reference R2) (model missing-one.wrl) (model missing-two.step))",
     );
     assert!(
         f.board
@@ -172,6 +172,24 @@ fn dnp_multiple_missing_assets_are_excluded_before_resolution() {
     assert_eq!(export.report.model_references_emitted, 1);
     assert_eq!(export.report.model_references_unresolved, 0);
     assert!(!export.report.partial_export);
+}
+
+#[test]
+fn property_only_dnp_remains_selected_and_resolved() {
+    let f = AssemblyFixture::new(
+        "(footprint test (layer F.Cu) (at 7 7) (uuid property-dnp) (property DNP yes) (property Reference R2) (model Resistor_SMD.3dshapes/R_0603_1608Metric.wrl))",
+    );
+
+    let export = f.filtered().unwrap();
+    assert_eq!(export.dnp_filter.components_excluded, 0);
+    assert_eq!(export.dnp_filter.model_references_excluded, 0);
+    assert_eq!(export.report.component_models_emitted, 2);
+    assert_eq!(export.report.component_models_unresolved, 0);
+    assert_eq!(export.report.model_references, 2);
+    assert_eq!(export.report.model_references_emitted, 2);
+    assert_eq!(export.report.model_references_unresolved, 0);
+    assert!(!export.report.partial_export);
+    gltf::Gltf::from_slice(&export.bytes).unwrap();
 }
 
 #[test]

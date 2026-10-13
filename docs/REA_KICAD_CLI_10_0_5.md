@@ -16,8 +16,18 @@ These are different artifacts, not a claim that the checkout produced the runtim
 The portable Ghidra launcher is
 `research\rea-toolchain\runtime\ghidra_12.1.4_PUBLIC\ghidraRun.bat`, relative
 to the ecosystem root. It is not on the global PATH or registered with Windows
-search. REA's Ghidra provider health check passed; optional client configuration
-was not installed. Java/tool variables were set only for analysis processes.
+search. REA's Ghidra provider health check passed. The user-scoped Codex MCP
+registration and bundled skill were installed with `rea setup --client codex
+--yes`; `rea doctor` then reported the registration and skill ready. A running
+Codex session may need a restart before the newly registered MCP provider is
+visible. This is developer tooling only: Tokito's runtime does not depend on
+REA, Ghidra, Node or Java. Java/tool variables were set only for analysis
+processes. Hopper was not installed or used.
+
+REA 6.4.0's package metadata accepts Node `^22.19.0 || ^24.11.0 || >=26.0.0`.
+The isolated Node 22.23.3 toolchain satisfies that range; the machine's older
+global Node 20 installation does not. The supplied `brew upgrade node` example
+is macOS-specific and was not used on Windows.
 
 | Download | Verified SHA-256 |
 |---|---|
@@ -41,10 +51,11 @@ board-only/no-components and silkscreen switches.
 
 The `component-filter` string at `0x1400614f8` was traced to
 `FUN_140025920` and `FUN_14002c760`. The latter's derived analysis shows a
-3D-export job being created, filter arguments transferred into job fields and
-the GLB output kind selected. This supports only the parser-to-job boundary.
-It does not establish filter-pattern semantics, variants, model resolution,
-mesh construction or all transforms. No pseudocode was copied into Tokito.
+`JOB_EXPORT_PCB_3D` job being created, filter arguments transferred into job
+fields and the `glb` output kind selected. This supports only the
+parser-to-job boundary. It does not establish filter-pattern semantics,
+variants, model resolution, mesh construction or all transforms. No pseudocode
+was copied into Tokito.
 
 Analysis of the larger `_pcbnew.dll` exceeded the 330,000 ms provider timeout.
 It remains failed/incomplete; the geometry backend is not fully reverse engineered.
