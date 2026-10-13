@@ -5,6 +5,10 @@ edition = "2024"
 rust-version = "1.85"
 description = "Offline-first Rust tooling for Tokito board preparation"
 
+[features]
+# Enables a controlled fault hook used only by the local bundle cleanup E2E.
+e2e-test-hooks = []
+
 [[bin]]
 name = "tokito-cli"
 path = "src/main.rs"

@@ -130,6 +130,8 @@ try {
     }
     $binaryName = if ($IsWindows) { 'tokito-cli.exe' } else { 'tokito-cli' }
     $binaryPath = Join-Path $env:CARGO_TARGET_DIR "release/$binaryName"
+    $bundleHookTarget = Join-Path $env:CARGO_TARGET_DIR 'bundle-test-hooks'
+    $bundleHookBinary = Join-Path $bundleHookTarget "release/$binaryName"
     $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR 'geometry-e2e'
     $inputs = Get-InputFingerprints
     $checks = @(
@@ -146,6 +148,9 @@ try {
         @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
         @{ name = 'project-intake-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_intake_e2e.py', '--bin', $binaryPath) },
+        @{ name = 'project-bundle-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'project-bundle-test-hooks-build'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked', '--features', 'e2e-test-hooks', '--target-dir', $bundleHookTarget) },
+        @{ name = 'project-bundle-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $bundleHookBinary, '--fault-hook-only') },
         @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
