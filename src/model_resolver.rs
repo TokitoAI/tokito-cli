@@ -236,7 +236,7 @@ impl ModelResolver {
             .as_deref()
         {
             Some("step" | "stp") => ModelAssetFormat::Step,
-            Some("wrl") => ModelAssetFormat::Wrl,
+            Some("wrl" | "vrml") => ModelAssetFormat::Wrl,
             Some("glb") => ModelAssetFormat::Glb,
             Some("gltf") => ModelAssetFormat::Gltf,
             _ => {

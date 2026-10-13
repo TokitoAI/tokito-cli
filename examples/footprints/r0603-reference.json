@@ -1,0 +1,51 @@
+{
+  "schema": "tokito.footprint-definition.v1",
+  "name": "R_0603_1608Metric",
+  "description": "Resistor SMD 0603 (1608 Metric), nominal library geometry reference",
+  "tags": ["resistor", "smd", "0603", "1608Metric"],
+  "side": "front",
+  "reference": {
+    "text": "REF**",
+    "atMm": [0, -1.43, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "value": {
+    "text": "R_0603_1608Metric",
+    "atMm": [0, 1.43, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "pads": [
+    {
+      "number": "1",
+      "shape": "roundrect",
+      "atMm": [-0.825, 0, 0],
+      "sizeMm": [0.8, 0.95],
+      "layers": ["F.Cu", "F.Mask", "F.Paste"],
+      "roundrectRatio": 0.25
+    },
+    {
+      "number": "2",
+      "shape": "roundrect",
+      "atMm": [0.825, 0, 0],
+      "sizeMm": [0.8, 0.95],
+      "layers": ["F.Cu", "F.Mask", "F.Paste"],
+      "roundrectRatio": 0.25
+    }
+  ],
+  "graphics": [
+    { "kind": "line", "startMm": [-0.237258, -0.5225], "endMm": [0.237258, -0.5225], "widthMm": 0.12, "layer": "F.SilkS" },
+    { "kind": "line", "startMm": [-0.237258, 0.5225], "endMm": [0.237258, 0.5225], "widthMm": 0.12, "layer": "F.SilkS" },
+    { "kind": "rectangle", "startMm": [-1.48, -0.73], "endMm": [1.48, 0.73], "widthMm": 0.05, "layer": "F.CrtYd" },
+    { "kind": "rectangle", "startMm": [-0.8, -0.4125], "endMm": [0.8, 0.4125], "widthMm": 0.1, "layer": "F.Fab" }
+  ],
+  "sourceEvidence": [
+    {
+      "label": "Pinned KiCad R_0603_1608Metric library source (LF bytes)",
+      "uri": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/51f8a59ed7d5f3bab9bb296c7b767bb033f3ba4c/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+      "sha256": "7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23",
+      "claim": "library_geometry"
+    }
+  ]
+}

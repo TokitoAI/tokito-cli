@@ -187,6 +187,33 @@ fn odd_negative_scale_cancels_frame_reflection_and_keeps_winding() {
 }
 
 #[test]
+fn vrml_reflection_keeps_solid_winding_through_model_placement() {
+    let shape = TRIANGLE.split_once('\n').unwrap().1;
+    let source = format!("#VRML V2.0 utf8\nTransform {{ children [ {shape} ] scale -1 1 1 }}");
+    let mesh = parse_vrml_mesh(
+        source.as_bytes(),
+        ModelUnits::Millimetres,
+        MeshLimits::default(),
+    )
+    .unwrap();
+    assert!(mesh.parts[0].solid);
+    assert_eq!(mesh.parts[0].triangles, vec![[0, 2, 1]]);
+    assert_point(mesh.parts[0].flat_normals[0], [0.0, 0.0, 1.0]);
+
+    let placement = KicadStepPlacement {
+        model: ModelTransformMm {
+            scale: [-1.0, 1.0, 1.0],
+            ..identity_model()
+        },
+        ..placement(BoardSide::Front)
+    };
+    let placed = place_model_mesh_in_glb_m(&mesh, placement).unwrap();
+    assert!(placed.parts[0].solid);
+    assert_eq!(placed.parts[0].triangles, vec![[0, 2, 1]]);
+    assert_point(placed.parts[0].flat_normals[0], [0.0, 1.0, 0.0]);
+}
+
+#[test]
 fn even_negative_scale_preserves_frame_reflection_and_reverses_winding() {
     let mesh = triangle_mesh();
     let placement = KicadStepPlacement {

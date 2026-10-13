@@ -31,7 +31,9 @@ aggregate check happens after a bounded read/hash, so a failing batch can
 process at most one additional per-file budget before it stops. Repeated library
 API calls or retained byte snapshots need a caller-owned aggregate budget.
 
-The recognized asset extensions are STEP/STP, WRL, GLB and glTF. `resolved`
+The recognized asset extensions are STEP/STP, WRL/VRML, GLB and glTF. WRL and
+VRML share the same bounded VRML97 adapter; the extension is not evidence that
+the full VRML97 node system is supported. `resolved`
 means captured file bytes only; even malformed geometry is opaque at this stage.
 Hidden, missing, malformed path, unknown variable, unsupported extension,
 oversized, ambiguous and I/O cases remain distinct. A JSON inventory succeeds
@@ -47,17 +49,23 @@ Example (PowerShell):
 
 ## Mesh profile
 
-The original bounded parser accepts flat VRML97 Shapes, triangle-only
-IndexedFaceSet/Coordinate data, Material fields and material DEF/USE. It preserves
-local source-shape identity, material parameters, source crease angle and solid
-flags; face normals are derived as flat normals. It does not smooth normals.
+The original bounded parser accepts `Group`, `Transform`, scene `DEF`/`USE`,
+`Shape`, planar polygon `IndexedFaceSet`/`Coordinate` data, and Material fields
+with material DEF/USE. Scene references must point to an earlier supported node;
+reused geometry is expanded under its new parent transform and counts against
+shape, vertex and triangle budgets. Nested translation, axis-angle rotation,
+nonzero scale and center are composed in source order. It preserves local
+source-shape identity, material parameters, source crease angle and solid flags;
+face normals are derived as flat normals. It does not smooth normals.
 Unit profiles are explicit: millimetres or ordinary legacy KiCad WRL coordinates
 (0.1 inch = 2.54 mm per unit). No automatic unit inference is performed.
 
-Unknown nodes/fields, Transform/Inline, textures, supplied normals, non-triangle
-faces, duplicate fields/definitions, invalid indices, nonfinite coordinates,
-degenerate triangles and exceeded byte/token/depth/shape/vertex/triangle budgets
-are rejected. It is a small qualified profile, not general VRML or STEP support.
+Unknown nodes/fields, `scaleOrientation`, `Inline`, textures, supplied normals,
+non-planar or degenerate polygons, duplicate fields/definitions, invalid indices,
+nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle budgets
+are rejected. Planar polygons are triangulated only when the result preserves
+source winding and projected area. It is a bounded VRML profile, not complete
+VRML97, STEP, or STEP-export support.
 The [pinned official resistor](../tests/fixtures/open-source/kicad-resistor-models/README.md)
 is the positive fixture; mathematical negative cases are explicitly synthetic.
 

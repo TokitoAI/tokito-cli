@@ -135,7 +135,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
 | `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
-| `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments; opt-in `--assemble-wrl --no-dnp` with exclusion receipt ([reference and limits](docs/REA_KICAD_CLI_10_0_5.md)) |
+| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform`/`DEF`/`USE` and checked planar polygon `IndexedFaceSet`), KiCad-observed reference wildcards, optional native DNP exclusion with receipt ([reference and limits](docs/REA_KICAD_CLI_10_0_5.md)), or explicit candidate assignments |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
 | `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer and queries |
@@ -145,11 +145,21 @@ shape is not a declaration of complete KiCad command compatibility.
 | `package build/verify` | v0.1 source-and-inventory package and integrity checks |
 | `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
 | `component footprint r0603` | Deterministic two-pad 0603 library-geometry candidate; not a qualified manufacturer land pattern |
+| `component footprint generate` | Explicit, bounded SMD footprint geometry spec to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
+| `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated footprint; it does not edit `fp-lib-table` or existing libraries |
+| `component footprint library inspect` | Read-only, bounded inventory of immediate `.kicad_mod` file counts, names, sizes, hashes, parse statuses, direct pad counts and model-reference counts; it does not validate KiCad semantics or geometry |
+| `component footprint library audit` | Read-only observations for parse failures, duplicate internal names and filename/internal-name mismatches; includes inventory hash and ignored-entry list but does not validate KiCad semantics or geometry |
+| `component footprint library lock/verify` | Create a deterministic byte-identity lock for the immediate `.kicad_mod` files and report missing/added/changed files; this verifies content identity, not footprint semantics or geometry |
 
 Example physical-layout journey, using a supported routed PCB and **new** output
 paths:
 
 ```powershell
+./target/release/tokito-cli.exe component footprint generate examples/footprints/r0603-reference.json --output target/R_0603_1608Metric.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/r0603-reference.json --output target/R0603.pretty --json
+./target/release/tokito-cli.exe component footprint library inspect target/R0603.pretty --json
+./target/release/tokito-cli.exe component footprint library lock target/R0603.pretty --output target/R0603.lock.json --json
+./target/release/tokito-cli.exe component footprint library verify target/R0603.pretty --lock target/R0603.lock.json --json
 ./target/release/tokito-cli.exe project inspect board-project --board board.kicad_pcb --json
 ./target/release/tokito-cli.exe inspect board.kicad_pcb --json
 ./target/release/tokito-cli.exe validate outline board.kicad_pcb --json
@@ -159,6 +169,9 @@ paths:
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --layers F.Fab --hide-DNP-footprints-on-fab-layers --output fab-populated.svg
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side bottom --output bottom.svg
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output shell.glb --allow-partial --json-report
+./target/release/tokito-cli.exe export glb board.kicad_pcb --output selected.glb --assemble-wrl --project-root board-project --component-filter U1,D1 --json-report
+./target/release/tokito-cli.exe export glb board.kicad_pcb --output populated.glb --assemble-wrl --project-root board-project --no-dnp --json-report
+./target/release/tokito-cli.exe component footprint library audit MyParts.pretty --json
 ./target/release/tokito-cli.exe package build board.kicad_pcb --output new-board-package
 ./target/release/tokito-cli.exe package verify new-board-package --json
 ```
@@ -178,8 +191,18 @@ and acceptance journey.
 
 A shell is always partial. Missing/unsupported models refuse assembly by default;
 partial output requires explicit `--allow-partial`. Assembly resolves only under
-approved local roots and supports a bounded flat-triangle VRML profile. Unknown
-models are reported rather than replaced by silent cuboids.
+approved local roots and supports a bounded VRML97 Group/Transform/DEF/USE and
+planar polygon `IndexedFaceSet` profile with planarity, winding, area and
+resource-budget checks. `--component-filter` accepts case-sensitive
+comma-separated reference patterns with `*` and `?`; empty list items are
+ignored and a no-match pattern produces a board-only export. Filter selection
+has a board-wide work budget and happens before model paths are resolved. Tokito
+defines `?` as one Unicode scalar; KiCad parity has only been verified for ASCII
+references. `--no-dnp` excludes components carrying KiCad's native `attr dnp`
+marker. These filters currently apply to VRML-to-GLB assembly only. STEP
+board export and STEP model tessellation are not implemented; skipping a STEP
+reference does not produce a STEP artifact. Unresolved models are reported
+rather than replaced by silent cuboids.
 
 `export placements` is the original-source coordinate inventory. `pcb export
 pos` is a separate manufacturing CSV projection whose selected options and
@@ -201,7 +224,11 @@ KiCad 10.0.5 reference outputs. See the
 The physical engine retains source UUIDs/native identities, units, model
 references and diagnostics. A malformed, unsupported or unqualified feature
 remains explicit. No zone filling, DRC, autorouting, universal STEP export,
-complete schematic renderer or production footprint-library generator is claimed.
+complete schematic renderer or production IPC/package-family footprint library
+generator is claimed. The bounded explicit SMD writer is a geometry candidate.
+Footprint library `audit` reports parse failures, duplicate parsed internal
+names and filename/internal-name mismatches; it is a naming/structure check,
+not KiCad semantic validation, KLC validation or physical qualification.
 See [package contract](docs/TOKITO_BOARD_PACKAGE_V0.md),
 [topology limits](docs/PCB_TOPOLOGY.md), [model handling](docs/MODEL_RESOLUTION.md)
 and [KiCad completion gates](docs/KICAD_COMPLETION_GATES.md).
@@ -363,7 +390,7 @@ tokito_cli/
 | Selection and integration | [Digital twins](docs/DIGITAL_TWIN_SELECTION.md), [board/AR audit](docs/BOARD_AR_DATASET_AUDIT.md), [ecosystem map](docs/ECOSYSTEM_CONTRACT_MAP.md), [Afan handover](docs/AFAN_INTEGRATION_HANDOVER.md) |
 | Component generation | [Forge architecture](docs/COMPONENT_FORGE_ARCHITECTURE.md), [qualification](docs/COMPONENT_FORGE_QUALIFICATION.md), [BOM plan](docs/BOM_COMPONENT_QUALIFICATION.md) |
 | Project and footprint intake | [Bounded project selection and 0603 candidate](docs/PROJECT_INTAKE_AND_FOOTPRINT.md) |
-| KiCad research | [Behavior](docs/KICAD_CLI_BEHAVIOR.md), [parity matrix](docs/KICAD_CLI_PARITY_MATRIX.md), [completion gates](docs/KICAD_COMPLETION_GATES.md), [3D quality gates](docs/KICAD_3D_QUALITY_GATES.md) |
+| KiCad research | [Behavior](docs/KICAD_CLI_BEHAVIOR.md), [10.0.5 filter audit](docs/KICAD_10_0_5_FILTER_AUDIT.md), [parity matrix](docs/KICAD_CLI_PARITY_MATRIX.md), [completion gates](docs/KICAD_COMPLETION_GATES.md), [3D quality gates](docs/KICAD_3D_QUALITY_GATES.md) |
 | Product completion | [Dependency-ordered plan](docs/PRODUCT_COMPLETION_PLAN.md), [active goal history](docs/GOAL_TRACKER.md) |
 | Testing and delivery | [Local verifier](docs/CI_AND_DELIVERY.md), [fixture provenance](docs/PCB_FIXTURE_CORPUS.md), [output locations](docs/LOCAL_OUTPUT_LOCATIONS.md), [goal tracker](docs/GOAL_TRACKER.md) |
 

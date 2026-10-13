@@ -1,5 +1,6 @@
 //! Pure Rust, offline PCB import and a partial canonical physical document.
 //! CLI parsing is separate; existing v0.1 inspection/package projections remain stable.
+#![recursion_limit = "256"]
 use std::collections::BTreeSet;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
@@ -16,6 +17,8 @@ pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
 pub mod footprint_family;
+pub mod footprint_library;
+pub mod footprint_spec;
 mod geometry;
 mod glb;
 pub mod model_assembly;
@@ -569,14 +572,42 @@ impl PhysicalBoardDocument {
         })
     }
 
-    /// Export the supported local VRML subset with explicit model filters.
-    /// The legacy `export_glb_with_models` method preserves the unfiltered default.
+    /// Export the supported local VRML subset with optional native DNP exclusion.
     pub fn export_glb_with_model_options(
         &self,
         resolver: &model_resolver::ModelResolver,
         options: GlbModelExportOptions,
     ) -> Result<GlbModelExport, EngineError> {
-        glb::export_board_assembly(self, resolver, options.allow_partial, options.exclude_dnp)
+        let filter = if options.exclude_dnp {
+            model_assembly::ModelAssemblyFilter::default().excluding_dnp()
+        } else {
+            model_assembly::ModelAssemblyFilter::default()
+        };
+        self.export_glb_with_model_filter(
+            resolver,
+            options.allow_partial,
+            &filter,
+        )
+    }
+
+    /// Export selected component references from the supported local VRML subset.
+    /// Patterns support the bounded Tokito `*` and `?` filter syntax.
+    pub fn export_glb_with_models_filtered(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        options: GlbExportOptions,
+        filter: &model_assembly::ModelAssemblyFilter,
+    ) -> Result<GlbModelExport, EngineError> {
+        self.export_glb_with_model_filter(resolver, options.allow_partial, filter)
+    }
+
+    fn export_glb_with_model_filter(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        allow_partial: bool,
+        filter: &model_assembly::ModelAssemblyFilter,
+    ) -> Result<GlbModelExport, EngineError> {
+        glb::export_board_assembly(self, resolver, allow_partial, filter)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())
@@ -958,6 +989,9 @@ fn project_footprints(document: &Sexp, data: &document::EngineeringData) -> Vec<
                     .to_owned(),
                 pad_count,
                 model_count,
+                // Keep the legacy inspection projection stable: it reports
+                // both the native marker and the existing DNP property.
+                // Native `--no-dnp` model filtering uses Component::is_dnp.
                 dnp: is_dnp(node),
                 excluded_from_pos_files: has_attribute(node, "exclude_from_pos_files"),
             })

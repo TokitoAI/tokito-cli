@@ -7,6 +7,8 @@ Cargo.toml text eol=lf
 Cargo.lock text eol=lf
 # Preserve byte-identical upstream fixtures, including original whitespace/notices.
 tests/fixtures/open-source/** -text -whitespace
+# KiCad source-format reference files are hashed against pinned upstream bytes.
+tests/fixtures/kicad-10.0.5/** -text -whitespace
 # Historical compatibility snapshots are compared byte-for-byte; preserve their
 # working-tree bytes on Windows as well as on Unix-like systems.
 tests/fixtures/compat-v0/** -text -whitespace

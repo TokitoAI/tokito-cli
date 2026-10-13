@@ -7,7 +7,9 @@
 //! export scope claims a complete digital twin or a verified phone import.
 
 use super::document::Point2;
-use super::model_assembly::{ModelAssembly, assemble_supported_vrml_models_excluding};
+use super::model_assembly::{
+    ModelAssembly, ModelAssemblyFilter, assemble_supported_vrml_models_for_components,
+};
 use super::model_resolver::ModelResolver;
 use super::topology::{ContourRole, OutlineContour, OutlineShape};
 use super::{EngineError, PhysicalBoardDocument};
@@ -19,6 +21,7 @@ use std::collections::BTreeMap;
 use std::f64::consts::{PI, TAU};
 
 const MM_TO_M: f64 = 0.001;
+const GLB_REPORT_VERSION: &str = "1.2.0";
 const MAX_THICKNESS_MM: f64 = 1_000.0;
 const MAX_POLYGON_POINTS: usize = 50_000;
 const MAX_GLTF_VERTICES: usize = 1_000_000;
@@ -60,11 +63,7 @@ impl GlbModelExport {
         let mut value: Value = serde_json::from_str(&self.report.report_json())
             .expect("serialized GLB coverage report is valid JSON");
         if self.dnp_filter.applied {
-            value["coverage"]["componentsIncluded"] = json!(
-                self.report
-                    .component_count
-                    .saturating_sub(self.dnp_filter.components_excluded)
-            );
+            value["coverage"]["componentsIncluded"] = json!(self.report.component_count);
             value["coverage"]["dnpFilter"] = json!({
                 "enabled": true,
                 "componentsExcluded": self.dnp_filter.components_excluded,
@@ -92,9 +91,16 @@ pub struct GlbCoverageReport {
     pub whole_board_digital_twin_complete: bool,
     pub partial_export: bool,
     pub component_count: usize,
+    pub source_component_count: usize,
+    pub filtered_component_count: usize,
+    pub component_filter: Option<Vec<String>>,
+    pub no_dnp: bool,
+    pub excluded_dnp_component_count: usize,
     pub component_models_emitted: usize,
     pub component_models_unresolved: usize,
     pub model_references: usize,
+    pub source_model_references: usize,
+    pub filtered_model_references: usize,
     pub model_references_emitted: usize,
     pub model_references_unresolved: usize,
     pub polygonized_vertices: usize,
@@ -143,16 +149,23 @@ impl GlbCoverageReport {
     /// Stable machine-readable receipt. It omits the local PCB file path but preserves bounded model paths read from the board.
     pub fn report_json(&self) -> String {
         let value = json!({
-            "reportVersion": "1.0.0",
+            "reportVersion": GLB_REPORT_VERSION,
             "scope": self.scope,
             "shellGeometryComplete": self.shell_geometry_complete,
             "wholeBoardDigitalTwinComplete": self.whole_board_digital_twin_complete,
             "partialExport": self.partial_export,
             "coverage": {
                 "componentCount": self.component_count,
+                "sourceComponentCount": self.source_component_count,
+                "filteredComponentCount": self.filtered_component_count,
+                "componentFilter": &self.component_filter,
+                "noDnp": self.no_dnp,
+                "excludedDnpComponentCount": self.excluded_dnp_component_count,
                 "componentModelsEmitted": self.component_models_emitted,
                 "componentModelsUnresolved": self.component_models_unresolved,
                 "modelReferences": self.model_references,
+                "sourceModelReferences": self.source_model_references,
+                "filteredModelReferences": self.filtered_model_references,
                 "modelReferencesEmitted": self.model_references_emitted,
                 "modelReferencesUnresolved": self.model_references_unresolved,
                 "unresolvedComponentsTotal": self.unresolved_components_total,
@@ -254,9 +267,16 @@ pub(crate) fn export_board_shell(
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        source_component_count: component_count,
+        filtered_component_count: 0,
+        component_filter: None,
+        no_dnp: false,
+        excluded_dnp_component_count: 0,
         component_models_emitted: 0,
         component_models_unresolved: component_count,
         model_references,
+        source_model_references: model_references,
+        filtered_model_references: 0,
         model_references_emitted: 0,
         model_references_unresolved: model_references,
         unresolved_components,
@@ -314,7 +334,7 @@ pub(crate) fn export_board_assembly(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
     allow_partial: bool,
-    exclude_dnp: bool,
+    filter: &ModelAssemblyFilter,
 ) -> Result<GlbModelExport, EngineError> {
     if !board.outline.is_valid() {
         return Err(EngineError::new(
@@ -336,31 +356,13 @@ pub(crate) fn export_board_assembly(
         thickness,
         board,
     )?;
-    let excluded_dnp_ordinals = if exclude_dnp {
-        board.dnp_component_ordinals()?
-    } else {
-        std::collections::BTreeSet::new()
-    };
-    let dnp_model_references_excluded = board
-        .engineering()
-        .models
-        .iter()
-        .filter(|model| {
-            model
-                .source
-                .component_ordinal
-                .is_some_and(|ordinal| excluded_dnp_ordinals.contains(&ordinal))
-        })
-        .count();
+    let selection = filter.selection(board)?;
+    let selected_ordinals = &selection.selected_component_ordinals;
     let assembly =
-        assemble_supported_vrml_models_excluding(board, resolver, &excluded_dnp_ordinals);
+        assemble_supported_vrml_models_for_components(board, resolver, selected_ordinals);
     let (component_meshes, emitted_components) = component_meshes(&assembly)?;
-    let incomplete = incomplete_components(
-        board,
-        &assembly,
-        &emitted_components,
-        &excluded_dnp_ordinals,
-    );
+    let incomplete =
+        incomplete_components(board, &assembly, &emitted_components, selected_ordinals);
     let (unresolved_components, unresolved_components_truncated) =
         unresolved_component_coverage_for(
             board,
@@ -368,12 +370,30 @@ pub(crate) fn export_board_assembly(
             "component_model_geometry_not_emitted_by_assembly_export",
         );
     let unresolved_models = unresolved_models_for_assembly(board, &assembly);
-    let model_references = board.engineering().models.len();
+    let source_model_references = board.engineering().models.len();
+    let filtered_model_references = board
+        .engineering()
+        .models
+        .iter()
+        .filter(|model| {
+            model.source.component_ordinal.is_some_and(|ordinal| {
+                board
+                    .engineering()
+                    .components
+                    .iter()
+                    .find(|component| component.source.ordinal == ordinal)
+                    .is_some_and(|_| !selected_ordinals.contains(&ordinal))
+            })
+        })
+        .count();
+    // Unowned/invalid-owner model records stay in selected-scope coverage as
+    // unresolved. They are never treated as intentionally filtered away.
+    let model_references = source_model_references - filtered_model_references;
     let model_references_emitted = assembly.emitted.len();
-    let model_references_unresolved = model_references
-        .saturating_sub(model_references_emitted)
-        .saturating_sub(dnp_model_references_excluded);
-    let component_count = board.engineering().components.len();
+    let model_references_unresolved = model_references.saturating_sub(model_references_emitted);
+    let source_component_count = board.engineering().components.len();
+    let component_count = selected_ordinals.len();
+    let filtered_component_count = source_component_count.saturating_sub(component_count);
     let component_models_emitted = emitted_components.len();
     let component_models_unresolved = incomplete.len();
     let partial = component_models_unresolved != 0 || model_references_unresolved != 0;
@@ -391,16 +411,27 @@ pub(crate) fn export_board_assembly(
         (bounds.min_y + bounds.max_y) / 2.0,
     );
     let report = GlbCoverageReport {
-        scope: "board_shell_and_supported_vrml_models",
+        scope: if filter.is_active() {
+            "board_shell_and_selected_supported_vrml_models"
+        } else {
+            "board_shell_and_supported_vrml_models"
+        },
         shell_geometry_complete: true,
         // A complete source-model coverage set does not certify artwork,
         // copper, manufacturing, physical fit, or optical registration.
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        source_component_count,
+        filtered_component_count,
+        component_filter: filter.requested_patterns(),
+        no_dnp: filter.excludes_dnp(),
+        excluded_dnp_component_count: selection.excluded_dnp_component_count,
         component_models_emitted,
         component_models_unresolved,
         model_references,
+        source_model_references,
+        filtered_model_references,
         model_references_emitted,
         model_references_unresolved,
         unresolved_components,
@@ -420,9 +451,19 @@ pub(crate) fn export_board_assembly(
         outline_chaining_tolerance_mm: board.outline.join_tolerance_mm,
     };
     let dnp_filter = DnpFilterCoverage {
-        applied: exclude_dnp,
-        components_excluded: excluded_dnp_ordinals.len(),
-        model_references_excluded: dnp_model_references_excluded,
+        applied: filter.excludes_dnp(),
+        components_excluded: selection.excluded_dnp_component_count,
+        model_references_excluded: board
+            .engineering()
+            .models
+            .iter()
+            .filter(|model| {
+                model
+                    .source
+                    .component_ordinal
+                    .is_some_and(|ordinal| selection.excluded_dnp_component_ordinals.contains(&ordinal))
+            })
+            .count(),
     };
     let document = gltf_assembly_document(
         &shell,
@@ -698,14 +739,14 @@ fn incomplete_components(
     board: &PhysicalBoardDocument,
     assembly: &ModelAssembly,
     emitted: &std::collections::BTreeSet<usize>,
-    excluded: &std::collections::BTreeSet<usize>,
+    selected_ordinals: &std::collections::BTreeSet<usize>,
 ) -> std::collections::BTreeSet<usize> {
     board
         .engineering()
         .components
         .iter()
         .filter(|component| {
-            !excluded.contains(&component.source.ordinal)
+            selected_ordinals.contains(&component.source.ordinal)
                 && (!emitted.contains(&component.source.ordinal)
                     || assembly
                         .incomplete_component_ordinals
@@ -1592,9 +1633,18 @@ fn gltf_document(
                 "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm": board.outline.join_tolerance_mm,
                     "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2.,"sourceGeometryEdited":false },
                 "coverage": {
-                    "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
+                    "componentCount": report.component_count,
+                    "sourceComponentCount": report.source_component_count,
+                    "filteredComponentCount": report.filtered_component_count,
+                    "componentFilter": &report.component_filter,
+                    "noDnp": report.no_dnp,
+                    "excludedDnpComponentCount": report.excluded_dnp_component_count,
+                    "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
-                    "modelReferences": report.model_references, "modelReferencesEmitted": report.model_references_emitted,
+                    "modelReferences": report.model_references,
+                    "sourceModelReferences": report.source_model_references,
+                    "filteredModelReferences": report.filtered_model_references,
+                    "modelReferencesEmitted": report.model_references_emitted,
                     "modelReferencesUnresolved": report.model_references_unresolved,
                     "unresolvedComponentsTotal": report.unresolved_components_total,
                     "unresolvedComponentsTruncated": report.unresolved_components_truncated,
@@ -1790,9 +1840,18 @@ fn gltf_assembly_document(
                 "physicalLayerGeometryComplete":false,
                 "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm":board.outline.join_tolerance_mm, "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2., "sourceGeometryEdited":false },
                 "coverage": {
-                    "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
+                    "componentCount": report.component_count,
+                    "sourceComponentCount": report.source_component_count,
+                    "filteredComponentCount": report.filtered_component_count,
+                    "componentFilter": &report.component_filter,
+                    "noDnp": report.no_dnp,
+                    "excludedDnpComponentCount": report.excluded_dnp_component_count,
+                    "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
-                    "modelReferences": report.model_references, "modelReferencesEmitted": report.model_references_emitted,
+                    "modelReferences": report.model_references,
+                    "sourceModelReferences": report.source_model_references,
+                    "filteredModelReferences": report.filtered_model_references,
+                    "modelReferencesEmitted": report.model_references_emitted,
                     "modelReferencesUnresolved": report.model_references_unresolved,
                     "unresolvedComponentsTotal": report.unresolved_components_total,
                     "unresolvedComponentsTruncated": report.unresolved_components_truncated,
@@ -1964,6 +2023,7 @@ fn distance(a: Point2, b: Point2) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GlbExportOptions;
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -2312,6 +2372,44 @@ mod tests {
             false
         );
         gltf::Gltf::from_slice(&out.bytes).expect("partial GLB validates");
+    }
+
+    #[test]
+    fn selected_export_keeps_unknown_owner_model_in_unresolved_coverage() {
+        let mut b = board(&rect(0.0, 0.0, 10.0, 10.0, "outer"), footprint());
+        b.engineering.models[0].source.component_ordinal = Some(usize::MAX);
+        let filter = ModelAssemblyFilter::exact_component_references(&b, &["R1".to_owned()])
+            .expect("known unique reference");
+        let resolver = crate::model_resolver::ModelResolver::new(
+            crate::model_resolver::ModelResolverConfig::new(std::env::temp_dir()),
+        )
+        .expect("resolver config");
+
+        let refused = b
+            .export_glb_with_models_filtered(&resolver, GlbExportOptions::default(), &filter)
+            .expect_err("unknown model ownership must make filtered export partial");
+        assert!(refused.to_string().contains("1 model reference(s)"));
+
+        let export = b
+            .export_glb_with_models_filtered(
+                &resolver,
+                GlbExportOptions {
+                    allow_partial: true,
+                },
+                &filter,
+            )
+            .expect("explicit partial export");
+        assert!(export.report.partial_export);
+        assert_eq!(export.report.source_model_references, 1);
+        assert_eq!(export.report.model_references, 1);
+        assert_eq!(export.report.filtered_model_references, 0);
+        assert_eq!(export.report.model_references_unresolved, 1);
+        let coverage = extras(&export.bytes)["asset"]["extras"]["tokito"]["coverage"].clone();
+        assert_eq!(coverage["unresolvedModelsTotal"], 1);
+        assert_eq!(
+            coverage["unresolvedModels"][0]["status"],
+            "missing_owning_component"
+        );
     }
 
     #[test]

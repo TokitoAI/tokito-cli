@@ -1,11 +1,11 @@
 # Versioned repository file map
 
-Snapshot updated on 11 October 2026 for project intake, the 0603 footprint slice, and POS auxiliary-origin reference coverage. This lists
+Snapshot updated on 13 October 2026 for explicit SMD footprint generation, `.pretty` candidate packaging, and the KiCad 10.0.5 filter audit. This lists
 source, documentation, scripts, fixtures and frozen models; ignored build caches,
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-316 versioned/planned delivery files, including this map.
+323 versioned/planned delivery files, including this map.
 
 ```text
 tokito_cli/
@@ -125,6 +125,7 @@ tokito_cli/
 │   ├── KICAD_3D_QUALITY_GATES.md
 │   ├── KICAD_CLI_BEHAVIOR.md
 │   ├── KICAD_CLI_PARITY_MATRIX.md
+│   ├── KICAD_10_0_5_FILTER_AUDIT.md
 │   ├── KICAD_COMPLETION_GATES.md
 │   ├── KICAD_GLB_REFERENCE.md
 │   ├── PCB_POSITION_EXPORT.md
@@ -148,6 +149,8 @@ tokito_cli/
 │   ├── TOKITO_BOARD_PACKAGE_V0.md
 │   └── ULTIMAKER_SELECTABLE_PROTOTYPE.md
 ├── examples/
+│   ├── footprints/
+│   │   └── r0603-reference.json
 │   └── inspect_engine.rs
 ├── experiments/
 │   ├── altium-evaluation/
@@ -211,6 +214,7 @@ tokito_cli/
 │   ├── digital_twin.rs
 │   ├── document.rs
 │   ├── footprint_family.rs
+│   ├── footprint_spec.rs
 │   ├── geometry.rs
 │   ├── glb.rs
 │   ├── lib.rs
@@ -338,6 +342,7 @@ tokito_cli/
 │   ├── esp8266_prototype_e2e.py
 │   ├── footprint_family.rs
 │   ├── footprint_family_e2e.py
+│   ├── footprint_spec_e2e.py
 │   ├── geometry_e2e.py
 │   ├── glb_api.rs
 │   ├── glb_e2e.py

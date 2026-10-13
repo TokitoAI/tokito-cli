@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
 
@@ -39,6 +40,13 @@ def main():
         for actual, expected in zip(decoded["localBoundsMm"]["max"], [0.8001, 0.39878, 0.44958]):
             assert abs(actual - expected) < 1e-12
         assert not decoded["boardTransformsVerified"] and not decoded["componentSelectionReady"]
+        vrml_alias = work / "same-model.vrml"
+        shutil.copyfile(model, vrml_alias)
+        vrml_decoded = json.loads(run("model", "inspect", vrml_alias,
+                                      "--units", "kicad-wrl", "--json"))
+        assert vrml_decoded["sourceSha256"] == expected_sha
+        assert (vrml_decoded["rootShapes"], vrml_decoded["meshParts"],
+                vrml_decoded["triangles"]) == (29, 26, 276)
         run("model", "inspect", model, fail=True)
         run("model", "inspect", model, "--units", "infer", fail=True)
         text = run("resolve", "models", board, *options)

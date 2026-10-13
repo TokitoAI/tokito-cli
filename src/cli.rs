@@ -422,6 +422,12 @@ fn component_model_envelope_command(args: &[String]) -> Result<(), CliError> {
 }
 
 fn component_footprint_command(args: &[String]) -> Result<(), CliError> {
+    if args.get(2).map(String::as_str) == Some("generate") {
+        return component_footprint_generate_command(args);
+    }
+    if args.get(2).map(String::as_str) == Some("library") {
+        return component_footprint_library_command(args);
+    }
     if !matches!(args.len(), 5 | 6)
         || args[1] != "footprint"
         || args[2] != "r0603"
@@ -465,6 +471,257 @@ fn component_footprint_command(args: &[String]) -> Result<(), CliError> {
     Ok(())
 }
 
+fn component_footprint_generate_command(args: &[String]) -> Result<(), CliError> {
+    let usage = "usage: tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]";
+    if !(args.len() == 6 || args.len() == 7)
+        || args[3].is_empty()
+        || args[4] != "--output"
+        || (args.len() == 7 && args[6] != "--json")
+    {
+        return Err(CliError::new(usage));
+    }
+    let generated = read_footprint_generation(Path::new(&args[3]))?;
+    write_new_file(Path::new(&args[5]), generated.text.as_bytes())?;
+    if args.len() == 7 {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&generated.report)
+                .map_err(|error| CliError::new(error.to_string()))?
+        );
+    } else {
+        println!(
+            "Wrote explicit SMD footprint candidate {} ({} pads, {} graphics) to {}",
+            generated.report.footprint_name,
+            generated.report.pad_count,
+            generated.report.graphic_count,
+            args[5]
+        );
+        println!("Source geometry and manufacturer qualification remain unverified.");
+    }
+    Ok(())
+}
+
+fn read_footprint_generation(
+    spec_path: &Path,
+) -> Result<footprint_spec::FootprintGeneration, CliError> {
+    let file = std::fs::File::open(spec_path)
+        .map_err(|error| CliError::new(format!("cannot read footprint specification: {error}")))?;
+    let mut input = Vec::new();
+    file.take(64 * 1024 + 1)
+        .read_to_end(&mut input)
+        .map_err(|error| CliError::new(format!("cannot read footprint specification: {error}")))?;
+    footprint_spec::generate(&input).map_err(CliError::new)
+}
+
+fn component_footprint_library_command(args: &[String]) -> Result<(), CliError> {
+    if args.get(3).map(String::as_str) == Some("audit") {
+        if !(args.len() == 5 || args.len() == 6) || (args.len() == 6 && args[5] != "--json") {
+            return Err(CliError::new(
+                "usage: tokito-cli component footprint library audit <LIBRARY.pretty> [--json]",
+            ));
+        }
+        let report = crate::footprint_library::audit(Path::new(&args[4])).map_err(CliError::new)?;
+        if args.len() == 6 {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!(
+                "Footprint library audit: {} observed finding(s) across {} parsed asset(s); semantics and geometry are unverified.",
+                report.findings.len(),
+                report.parsed_footprint_count
+            );
+        }
+        return Ok(());
+    }
+    if args.get(3).map(String::as_str) == Some("inspect") {
+        if !(args.len() == 5 || args.len() == 6) || (args.len() == 6 && args[5] != "--json") {
+            return Err(CliError::new(
+                "usage: tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]",
+            ));
+        }
+        let report =
+            crate::footprint_library::inspect(Path::new(&args[4])).map_err(CliError::new)?;
+        if args.len() == 6 {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!(
+                "Inventoried {} footprint asset(s) in {} ({} bytes); content syntax and geometry are unverified.",
+                report.footprint_file_count, report.library_directory, report.total_bytes
+            );
+        }
+        return Ok(());
+    }
+    if args.get(3).map(String::as_str) == Some("lock") {
+        let usage = "usage: tokito-cli component footprint library lock <LIBRARY.pretty> --output <NEW.lock.json> [--json]";
+        if !(args.len() == 7 || args.len() == 8)
+            || args[4].is_empty()
+            || args[5] != "--output"
+            || args[6].is_empty()
+            || (args.len() == 8 && args[7] != "--json")
+        {
+            return Err(CliError::new(usage));
+        }
+        let inventory =
+            crate::footprint_library::inspect(Path::new(&args[4])).map_err(CliError::new)?;
+        let lock_output = Path::new(&args[6]);
+        if !lock_output
+            .extension()
+            .and_then(|value| value.to_str())
+            .is_some_and(|extension| extension.eq_ignore_ascii_case("json"))
+        {
+            return Err(CliError::new(
+                "footprint library lock output must end in .json",
+            ));
+        }
+        // Keep the guard on the original caller path instead of round-tripping
+        // through the inventory's JSON/display representation.
+        ensure_lock_output_outside_library(Path::new(&args[4]), lock_output)?;
+        let lock = crate::footprint_library::create_lock_json(&inventory).map_err(CliError::new)?;
+        write_new_file(lock_output, &lock)?;
+        let report = serde_json::json!({
+            "schema": "tokito.footprint-library-lock-create.v1",
+            "status": "content-locked",
+            "lockFile": args[6],
+            "inventorySha256": inventory.inventory_sha256,
+            "footprintFileCount": inventory.footprint_file_count,
+            "footprintSemanticsQualified": false
+        });
+        if args.len() == 8 {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else {
+            println!(
+                "Wrote content lock for {} footprint asset(s); footprint semantics remain unqualified.",
+                inventory.footprint_file_count
+            );
+        }
+        return Ok(());
+    }
+    if args.get(3).map(String::as_str) == Some("verify") {
+        let usage = "usage: tokito-cli component footprint library verify <LIBRARY.pretty> --lock <LOCK.json> [--json]";
+        if !(args.len() == 7 || args.len() == 8)
+            || args[4].is_empty()
+            || args[5] != "--lock"
+            || args[6].is_empty()
+            || (args.len() == 8 && args[7] != "--json")
+        {
+            return Err(CliError::new(usage));
+        }
+        let report =
+            crate::footprint_library::verify_lock(Path::new(&args[4]), Path::new(&args[6]))
+                .map_err(CliError::new)?;
+        if args.len() == 8 {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&report)
+                    .map_err(|error| CliError::new(error.to_string()))?
+            );
+        } else if report.matches {
+            println!(
+                "Verified {} footprint asset(s) against the inventory lock.",
+                report.actual_file_count
+            );
+        }
+        if !report.matches {
+            return Err(CliError::new(
+                "footprint library does not match the content lock",
+            ));
+        }
+        return Ok(());
+    }
+    let usage = "usage: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]";
+    if !(args.len() == 7 || args.len() == 8)
+        || args[3] != "create"
+        || args[4].is_empty()
+        || args[5] != "--output"
+        || (args.len() == 8 && args[7] != "--json")
+    {
+        return Err(CliError::new(usage));
+    }
+    let output_dir = Path::new(&args[6]);
+    if !output_dir
+        .extension()
+        .and_then(|value| value.to_str())
+        .is_some_and(|extension| extension.eq_ignore_ascii_case("pretty"))
+    {
+        return Err(CliError::new(
+            "library output directory must end in .pretty",
+        ));
+    }
+    let generated = read_footprint_generation(Path::new(&args[4]))?;
+    std::fs::create_dir(output_dir).map_err(|error| {
+        CliError::new(format!(
+            "cannot create new footprint library directory: {error}"
+        ))
+    })?;
+    let footprint_path = output_dir.join(format!("{}.kicad_mod", generated.report.footprint_name));
+    if let Err(error) = write_new_file(&footprint_path, generated.text.as_bytes()) {
+        // This directory was created exclusively above. Remove only the empty
+        // directory; never recurse into or alter any content another process
+        // may have created concurrently.
+        let _ = std::fs::remove_dir(output_dir);
+        return Err(error);
+    }
+    let report = serde_json::json!({
+        "schema": "tokito.footprint-library-create-report.v1",
+        "status": "explicit-smd-library-candidate",
+        "libraryDirectory": output_dir.to_string_lossy(),
+        "footprintFile": footprint_path.to_string_lossy(),
+        "registeredInFpLibTable": false,
+        "footprintGeneration": generated.report
+    });
+    if args.len() == 8 {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|error| CliError::new(error.to_string()))?
+        );
+    } else {
+        println!(
+            "Created unregistered footprint library candidate at {}",
+            output_dir.display()
+        );
+        println!("No existing library or fp-lib-table was changed.");
+    }
+    Ok(())
+}
+
+fn ensure_lock_output_outside_library(
+    library_path: &Path,
+    lock_output: &Path,
+) -> Result<(), CliError> {
+    let library_root = std::fs::canonicalize(library_path).map_err(|error| {
+        CliError::new(format!(
+            "cannot resolve footprint library directory: {error}"
+        ))
+    })?;
+    let output_parent = lock_output
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let output_parent = std::fs::canonicalize(output_parent).map_err(|error| {
+        CliError::new(format!(
+            "cannot resolve footprint lock output directory: {error}"
+        ))
+    })?;
+    if output_parent.starts_with(&library_root) {
+        return Err(CliError::new(
+            "footprint library lock output must be outside the inspected .pretty directory",
+        ));
+    }
+    Ok(())
+}
+
 fn print_help() {
     println!(
         "Tokito CLI 0.1.0\n\
@@ -483,16 +740,22 @@ fn print_help() {
          \ttokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
          \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--json]\n\
-         \ttokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\n\
+         \ttokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]\n\
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
          \ttokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n\
+         \ttokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\n\
+         \ttokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n\
+         \ttokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n\
+         \ttokito-cli component footprint library audit <LIBRARY.pretty> [--json]\n\
+         \ttokito-cli component footprint library lock <LIBRARY.pretty> --output <NEW.lock.json> [--json]\n\
+         \ttokito-cli component footprint library verify <LIBRARY.pretty> --lock <LOCK.json> [--json]\n\
          \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\n\
-        \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
+         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
          \n\
@@ -501,7 +764,7 @@ fn print_help() {
          \tproject  Inspect a project, build a source-bound export bundle, or verify a bundle.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
          \tbom      Reconcile dataset BOM references with PCB identities.\n\
-         \tcomponent Generate a 0603 footprint candidate or provisional body envelope.\n\
+         \tcomponent Generate explicit SMD footprint/library candidates, a 0603 candidate, or a provisional body envelope.\n\
          \ttwin     Audit and prepare per-component renderable selectors, or query authored labels.\n\
          \tdataset  Lock and verify explicitly listed offline dataset assets.\n\
          \tpackage  Build or verify a Tokito source-and-inventory package.\n\
@@ -584,7 +847,25 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
         ),
         ["component", "footprint"] | ["component", "footprint", "r0603"] => println!(
-            "USAGE: tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\nGenerates a deterministic two-pad 0603 library-geometry candidate. Manufacturer land pattern, body model and board fit are not qualified."
+            "USAGE: tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nGenerates an explicit SMD geometry candidate from a bounded, versioned JSON spec. IPC-7351 calculations, through-hole/custom pads, 3D models, KLC checks and physical qualification are not implemented."
+        ),
+        ["component", "footprint", "library", "create"] => {
+            println!(
+                "USAGE: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\nCreates a new, unregistered `.pretty` candidate or inventories existing footprint assets. Inspect parses only bounded S-expression roots and counts direct pads/model references; it does not validate geometry or semantics. It never edits an existing library or fp-lib-table. IPC-7351 calculations, through-hole/custom pads, 3D models, KLC checks and physical qualification are not implemented."
+            )
+        }
+        ["component", "footprint", "library", "inspect"] => println!(
+            "USAGE: tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\nInventories immediate `.kicad_mod` assets with bounded byte counts/hashes and minimal S-expression root, pad and model-reference counts. It does not validate footprint semantics or geometry, register a library or access the network."
+        ),
+        ["component", "footprint", "library", "audit"] => println!(
+            "USAGE: tokito-cli component footprint library audit <LIBRARY.pretty> [--json]\nReports duplicate parsed internal names, filename/name mismatches and assets that could not be parsed. These are read-only observations, not KiCad load failures, KLC findings, footprint semantic validation or geometry qualification."
+        ),
+        ["component", "footprint", "library", "lock"]
+        | ["component", "footprint", "library", "verify"] => println!(
+            "USAGE: tokito-cli component footprint library lock <LIBRARY.pretty> --output <NEW.lock.json> [--json]\n       tokito-cli component footprint library verify <LIBRARY.pretty> --lock <LOCK.json> [--json]\nLocks and verifies file names, byte lengths and SHA-256 hashes only. It does not qualify footprint semantics, geometry or library registration."
+        ),
+        ["component", "footprint", "library"] => println!(
+            "USAGE: tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n       tokito-cli component footprint library audit <LIBRARY.pretty> [--json]\n       tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library lock <LIBRARY.pretty> --output <NEW.lock.json> [--json]\n       tokito-cli component footprint library verify <LIBRARY.pretty> --lock <LOCK.json> [--json]\nInventories assets, reports naming/collision observations, creates an unregistered candidate library, or writes/verifies a deterministic byte-identity lock. Audit findings do not qualify footprint semantics, geometry, physical qualification or library registration."
         ),
         ["dataset"]
         | ["dataset", "inventory"]
@@ -610,7 +891,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR> [--board-plane-node <EXACT_SOURCE_NODE>]\nThe optional node must name one active, nonempty source subtree. Its decoded world bounds are retained separately from whole-scene bounds; author selection does not grant physical or pose qualification."
         ),
         ["model"] | ["model", "inspect"] => println!(
-            "USAGE: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]\nInspects the bounded flat VRML triangle profile."
+            "USAGE: tokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]\nInspects the bounded VRML97 Group/Transform/scene DEF/USE and triangle-mesh profile."
         ),
         ["export"] | ["export", "placements"] => println!(
             "USAGE: tokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\nWrites source-frame component placement and identity rows."
@@ -622,7 +903,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\nWrites a partial SVG view from supported board geometry. The DNP option hides only DNP footprint text and graphics on F.Fab/B.Fab; it does not remove pads or affect other layers."
         ),
         ["export", "glb"] => println!(
-            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. With that mode, --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID, and reports intentional exclusions; a custom (property \"DNP\" \"yes\") does not trigger this GLB filter. Legacy inventory, Fab-SVG and POS DNP classification is unchanged. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; --no-dnp is not supported in that mode or shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl emits the bounded supported VRML97 subset (.wrl/.vrml). --component-filter applies case-sensitive comma-separated reference patterns; `*` matches any sequence and `?` one Unicode scalar in Tokito. Empty filter means unfiltered and a no-match filter emits only the board shell. --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID; a custom (property \"DNP\" \"yes\") does not trigger this filter. Both filters act before model resolution and report selected/excluded coverage; pathological matching work is refused. Selected unresolved models still require --allow-partial. Filters apply only to VRML-to-GLB assembly. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; component filters and --no-dnp are unsupported in that mode and in shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
         ["package"] | ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
@@ -653,7 +934,7 @@ fn print_pcb_help() {
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] ...\n\
          \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--hide-DNP-footprints-on-fab-layers]\n\
-         \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ... [--no-dnp]] [--allow-partial]\n\
+         \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--component-filter <PATTERN[,PATTERN...]>] [--allow-partial]\n\
          \n\
          Position CSV supports absolute or auxiliary drill-file origin, side, unit, bottom-X and placement-class filters. Position ASCII/Gerber, variants, general Gerber, schematic-to-PCB, STEP, symbol-library and jobset commands are not implemented."
     );
@@ -1287,16 +1568,17 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
             ));
         }
         let mut output_path = None;
         let mut allow_partial = false;
-        let mut exclude_dnp = false;
         let mut json_report = false;
         let mut assemble_wrl = false;
         let mut assignments_path = None;
         let mut chaining_tolerance = None;
+        let mut component_filter = None;
+        let mut no_dnp = false;
         let mut project_root = None;
         let mut library_roots = Vec::new();
         let mut variables = std::collections::BTreeMap::new();
@@ -1319,10 +1601,6 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 }
                 "--allow-partial" if !allow_partial => {
                     allow_partial = true;
-                    index += 1;
-                }
-                "--no-dnp" if !exclude_dnp => {
-                    exclude_dnp = true;
                     index += 1;
                 }
                 "--json-report" if !json_report => {
@@ -1361,6 +1639,28 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                     }
                     index += 2;
                 }
+                "--component-filter" if index + 1 < args.len() && component_filter.is_none() => {
+                    let raw_patterns = &args[index + 1];
+                    let patterns: Vec<String> = if raw_patterns.is_empty() {
+                        Vec::new()
+                    } else {
+                        raw_patterns
+                            .split(',')
+                            .map(str::trim)
+                            .filter(|pattern| !pattern.is_empty())
+                            .map(str::to_owned)
+                            .collect()
+                    };
+                    if patterns.len() > 1024 {
+                        return Err(CliError::new("GLB component filter exceeds 1024 patterns"));
+                    }
+                    component_filter = Some(patterns);
+                    index += 2;
+                }
+                "--no-dnp" if !no_dnp => {
+                    no_dnp = true;
+                    index += 1;
+                }
                 option => {
                     return Err(CliError::new(format!(
                         "unknown, duplicate, or incomplete GLB option: {option}"
@@ -1379,9 +1679,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         }
         let board = load_board_input(Path::new(&args[2]))?;
         if let Some(path) = assignments_path {
-            if exclude_dnp {
+            if component_filter.is_some() || no_dnp {
                 return Err(CliError::new(
-                    "GLB --no-dnp is currently supported only with --assemble-wrl",
+                    "GLB component filters and --no-dnp currently require --assemble-wrl",
                 ));
             }
             let board = if let Some(tolerance) = chaining_tolerance {
@@ -1430,33 +1730,39 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         let mut dnp_filter_coverage = None;
         let export = if assemble_wrl {
             use crate::model_resolver::{ModelResolver, ModelResolverConfig};
+            let mut filter = if let Some(references) = component_filter.as_deref() {
+                crate::model_assembly::ModelAssemblyFilter::component_patterns(references)?
+            } else {
+                crate::model_assembly::ModelAssemblyFilter::default()
+            };
+            if no_dnp {
+                filter = filter.excluding_dnp();
+            }
             let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {
                 CliError::new("GLB --assemble-wrl requires --project-root <DIR>")
             })?);
             config.library_roots = library_roots;
             config.directory_variables = variables;
             let resolver = ModelResolver::new(config)?;
-            let export = board.export_glb_with_model_options(
+            let model_export = board.export_glb_with_models_filtered(
                 &resolver,
-                crate::GlbModelExportOptions {
-                    allow_partial,
-                    exclude_dnp,
-                },
+                GlbExportOptions { allow_partial },
+                &filter,
             )?;
             if json_report {
-                model_report_json = Some(export.report_json());
+                model_report_json = Some(model_export.report_json());
             }
-            if exclude_dnp {
-                dnp_filter_coverage = Some(export.dnp_filter);
+            if no_dnp {
+                dnp_filter_coverage = Some(model_export.dnp_filter);
             }
             GlbExport {
-                bytes: export.bytes,
-                report: export.report,
+                bytes: model_export.bytes,
+                report: model_export.report,
             }
         } else {
-            if exclude_dnp {
+            if component_filter.is_some() || no_dnp {
                 return Err(CliError::new(
-                    "GLB --no-dnp currently requires --assemble-wrl",
+                    "GLB component filters and --no-dnp currently require --assemble-wrl",
                 ));
             }
             if project_root.is_some() || !library_roots.is_empty() || !variables.is_empty() {
@@ -1680,7 +1986,7 @@ fn inspect_model(args: &[String]) -> Result<(), CliError> {
     use crate::model_resolver::{ModelAssetFormat, ModelResolver, ModelResolverConfig};
     if !(args.len() == 5 || args.len() == 6 && args[5] == "--json") || args[3] != "--units" {
         return Err(CliError::new(
-            "usage: tokito-cli model inspect <FILE.wrl> --units millimetres|kicad-wrl [--json]",
+            "usage: tokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]",
         ));
     }
     let units = match args[4].as_str() {
@@ -1731,7 +2037,7 @@ fn inspect_model(args: &[String]) -> Result<(), CliError> {
     })?;
     if asset.format() != ModelAssetFormat::Wrl {
         return Err(CliError::new(
-            "Only the declared flat triangle VRML97 profile is supported",
+            "Only the declared bounded VRML97 Group/Transform/scene DEF/USE and triangle-mesh profile is supported",
         ));
     }
     let mesh = parse_vrml_mesh(asset.bytes(), units, MeshLimits::default())?;
@@ -1744,7 +2050,7 @@ fn inspect_model(args: &[String]) -> Result<(), CliError> {
         }
     }
     let report = serde_json::json!({
-        "schemaVersion":"1.0.0", "scope":"flat-triangle-vrml97-local-mesh",
+        "schemaVersion":"1.0.0", "scope":"bounded-vrml97-group-transform-triangle-mesh",
         "sourceSha256":asset.sha256(), "sourceBytes":asset.bytes().len(),
         "sourceUnitProfile":args[4], "outputUnits":"millimetres",
         "rootShapes":mesh.root_shape_count, "meshParts":mesh.parts.len(),

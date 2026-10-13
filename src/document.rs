@@ -131,6 +131,16 @@ pub struct Component {
     pub attributes: Vec<String>,
 }
 
+impl Component {
+    /// Whether the source footprint carries KiCad's native `dnp` attribute.
+    /// Custom properties and BOM data do not define native placement filtering.
+    pub fn is_dnp(&self) -> bool {
+        self.attributes
+            .iter()
+            .any(|attribute| attribute.eq_ignore_ascii_case("dnp"))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Drill {
     /// `circle`, `oval`, or an unsupported source atom.

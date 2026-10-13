@@ -567,18 +567,20 @@ KiCad parity or product completion is claimed.
 KiCad parity and qualified phone AR remain open. This is a prototype presentation
 and documentation delivery; the wider engine goal remains active.
 
-### KiCad DNP assembly filter and version delta (2026-10-14)
+### KiCad filter, footprint-library and VRML checkpoint (2026-10-14)
 
-| Owner | Dependencies | State | Evidence / QA | Next action |
+| Owner | Work | State | Evidence / review | Next action |
 |---|---|---|---|---|
-| Main | Isolated REA/Ghidra toolchain | CLI parser-to-job boundary traced; DLL geometry backend path unresolved | CLI `--component-filter` references lead through two procedures to `JOB_EXPORT_PCB_3D`; DLLs contain matching UTF-16 filter strings, but both REA searches timed out and direct Ghidra was stopped before xref output; [hash-bound observations](evidence/kicad-pcbnew-dll-static-strings.json) | Try a focused method with PDBs or without full-DLL auto-analysis; filter/variant semantics remain open |
-| Main | Installed KiCad 10.0.5/10.0.7 and pinned NXP fixture | DNP output delta cross-checked on both versions | R2/R4 footprint nodes plus two generic model-child nodes removed; no unnamed node removed; retained transforms unchanged; binary GLB payload stays intact; help output identical | Expand reference corpus; do not claim Tokito/KiCad geometry parity |
-| Main | Canonical UUIDs and bounded WRL assembly | Original Rust opt-in filter implemented and tested | Native `(attr dnp)` only; custom `DNP=yes` property remains; seven API tests and real subprocess journey passed | Extend other filters only with pinned independent behavior comparisons |
-| Independent reviewer / main QA | Current PR diff and local delivery | Fresh 31-gate Windows verification passed | [Local verification evidence](evidence/kicad-dnp-local-verification-2026-10-14.json) records the receipt digest, passing gates and source/test fingerprints from a worktree outside `target`; final independent review found no implementation blocker | Update PR #44 and issue #13 with the new receipt and scoped findings; no Actions; whole-engine goal remains unfinished |
+| Main | KiCad CLI parser-to-job boundary | Partial static trace; DLL geometry backend remains unresolved | CLI filter references reach `JOB_EXPORT_PCB_3D`; `_pcbnew.dll` contains matching UTF-16 filter strings, while REA searches timed out and direct Ghidra analysis did not reach xref evidence; [hash-bound observations](evidence/kicad-pcbnew-dll-static-strings.json) | Try a focused method with PDBs or without full-DLL auto-analysis; filter/variant behavior remains open |
+| Main | Native DNP GLB output delta | One NXP board compared on KiCad 10.0.5 and 10.0.7 | R2/R4 footprint nodes and two generic model-child nodes removed; no unnamed node removed; retained transforms and binary GLB payload unchanged; help output identical | Expand the reference corpus; this is not broad CLI or geometry parity |
+| Main | Footprint specification and library candidate tools | Bounded prototype: explicit SMD geometry candidate, new unregistered `.pretty`, read-only inventory, audit and byte lock/verify | Pinned R0603 source fixture; local KiCad 10.0.5 parse/plot comparison; prior focused and full runs plus independent scoped review. Current rebased tree still requires a fresh complete local verification | Add package families only from pinned manufacturer/IPC evidence; semantic KLC checks, registration and qualified land patterns remain open |
+| Main | VRML source-model GLB assembly and component selection | Bounded `Group`/`Transform`/`DEF`/`USE`, triangle meshes and checked planar polygons; case-sensitive reference filters and native DNP exclusion | KiCad 10.0.5 filter probes, source identity/coverage reporting, aggregate work caps and scoped reviewer checks. The combined DNP+pattern API after rebase is pending full verification | Broaden independent comparisons; unsupported VRML, STEP, variants and filter interactions remain explicit gaps |
+| Independent reviewer / main QA | Current merged implementation | Final review and full local gate pending | PR #41’s current-main merge is recorded at `a1ee4b6`; no hosted checks were run because Actions remain disabled | Complete conflict-resolution review and current-source verification before any push |
 
 [Investigation and boundaries](REA_KICAD_CLI_10_0_5.md) records completed,
 failed and unverified work. The 10.0.7 comparison is one-board/one-filter
-evidence, not broad parity; the `_pcbnew.dll` geometry trace is still incomplete.
-#13 remains incomplete (other command/export/filter families); #24 remains
-incomplete (broader generators and qualified land patterns).
-App admission, registration, physical AR and schematic-to-PCB remain open.
+evidence, not broad parity; the `_pcbnew.dll` geometry trace is incomplete.
+#13 remains incomplete for other command/export/filter families; #24 remains
+incomplete for broader generators and qualified land patterns. STEP export,
+general VRML, library registration, qualified board geometry, App admission,
+registered AR and schematic-to-PCB remain open.

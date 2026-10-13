@@ -102,6 +102,21 @@ fn resolves_exact_relative_builtin_library_variable_and_approved_absolute() {
     for path in ["part.wrl", "${KICAD10_3DMODEL_DIR}/part.wrl"] {
         assert_eq!(resolver.resolve(&model(path)).status, Status::Resolved);
     }
+    fs::write(
+        fixture.library.join("variant.vrml"),
+        b"synthetic VRML bytes",
+    )
+    .unwrap();
+    let variant = resolver.resolve(&model("${KICAD10_3DMODEL_DIR}/variant.vrml"));
+    assert_eq!(variant.status, Status::Resolved);
+    let variant_asset = variant.asset.unwrap();
+    assert_eq!(variant_asset.format(), ModelAssetFormat::Wrl);
+    assert_eq!(variant_asset.bytes(), b"synthetic VRML bytes");
+
+    fs::write(fixture.library.join("uppercase.VRML"), b"uppercase alias").unwrap();
+    let uppercase = resolver.resolve(&model("${KICAD10_3DMODEL_DIR}/uppercase.VRML"));
+    assert_eq!(uppercase.status, Status::Resolved);
+    assert_eq!(uppercase.asset.unwrap().format(), ModelAssetFormat::Wrl);
 }
 #[test]
 fn distinguishes_missing_hidden_unsupported_unknown_and_invalid() {
