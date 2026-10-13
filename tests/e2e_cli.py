@@ -483,6 +483,54 @@ def main():
         multi_document = glb_check(multi_glb, ("ref:R1", "ref:R2"))
         assert len(multi_document["scenes"][0]["nodes"]) == 3
 
+        dnp_source = output / "two-resistor-dnp-assembly.kicad_pcb"
+        dnp_source.write_text(
+            source_text[:-1]
+            + '\n  (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu") (at 7 7 0) (uuid "assembly-r2") (attr dnp)\n'
+            + '    (property "Reference" "R2")\n'
+            + '    (model "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl"))\n)',
+            encoding="utf-8",
+        )
+        dnp_default_glb = output / "two-resistor-dnp-default.glb"
+        dnp_default_report = json.loads(invoke(
+            binary, "export", "glb", dnp_source,
+            "--output", dnp_default_glb, "--assemble-wrl", "--project-root", model_root,
+            "--json-report",
+        ).stdout)
+        assert "dnpFilter" not in dnp_default_report["coverage"]
+        dnp_default_document = glb_check(dnp_default_glb, ("ref:R1", "ref:R2"))
+        assert len(dnp_default_document["scenes"][0]["nodes"]) == 3
+
+        dnp_filtered_glb = output / "two-resistor-dnp-filtered.glb"
+        dnp_filtered_report = json.loads(invoke(
+            binary, "export", "glb", dnp_source,
+            "--output", dnp_filtered_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--json-report",
+        ).stdout)
+        dnp_coverage = dnp_filtered_report["coverage"]
+        assert not dnp_filtered_report["partialExport"]
+        assert dnp_coverage["componentCount"] == 2
+        assert dnp_coverage["componentsIncluded"] == 1
+        assert dnp_coverage["componentModelsEmitted"] == 1
+        assert dnp_coverage["componentModelsUnresolved"] == 0
+        assert dnp_coverage["modelReferences"] == 2
+        assert dnp_coverage["modelReferencesEmitted"] == 1
+        assert dnp_coverage["modelReferencesUnresolved"] == 0
+        assert dnp_coverage["dnpFilter"] == {
+            "enabled": True, "componentsExcluded": 1, "modelReferencesExcluded": 1,
+        }
+        dnp_filtered_document = glb_check(dnp_filtered_glb, ("ref:R1",))
+        assert len(dnp_filtered_document["scenes"][0]["nodes"]) == 2
+        assert dnp_filtered_document["asset"]["extras"]["tokito"]["coverage"]["dnpFilter"] == dnp_coverage["dnpFilter"]
+
+        shell_no_dnp_glb = output / "shell-no-dnp-unsupported.glb"
+        no_dnp_shell_error = invoke(
+            binary, "export", "glb", dnp_source,
+            "--output", shell_no_dnp_glb, "--no-dnp", "--allow-partial", succeeds=False,
+        )
+        assert "requires --assemble-wrl" in no_dnp_shell_error.stderr
+        assert not shell_no_dnp_glb.exists()
+
         unsupported_side_source = output / "unsupported-side.kicad_pcb"
         unsupported_side_source.write_text(
             assembly_fixture.read_text(encoding="utf-8").replace(
@@ -553,7 +601,7 @@ def main():
         glb_check(partial_glb, expected_selectors=())
         invoke(binary, "export", "svg", fixture_root / FIXTURES[0][0], "--output", output / "bad.svg",
                "--layers", "not-a-board-layer", succeeds=False)
-    print("PASS CLI E2E journeys, including DNP Fab filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
+    print("PASS CLI E2E journeys, including DNP Fab and selectable GLB filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
 
 if __name__ == "__main__":
     main()

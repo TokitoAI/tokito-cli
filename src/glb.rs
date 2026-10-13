@@ -7,7 +7,7 @@
 //! export scope claims a complete digital twin or a verified phone import.
 
 use super::document::Point2;
-use super::model_assembly::{ModelAssembly, assemble_supported_vrml_models};
+use super::model_assembly::{ModelAssembly, assemble_supported_vrml_models_excluding};
 use super::model_resolver::ModelResolver;
 use super::topology::{ContourRole, OutlineContour, OutlineShape};
 use super::{EngineError, PhysicalBoardDocument};
@@ -36,6 +36,46 @@ const AREA_ABS_TOLERANCE_MM2: f64 = 1e-8;
 pub struct GlbExport {
     pub bytes: Vec<u8>,
     pub report: GlbCoverageReport,
+}
+
+/// Source-model filter evidence on the additive model-assembly API.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct DnpFilterCoverage {
+    pub applied: bool,
+    pub components_excluded: usize,
+    pub model_references_excluded: usize,
+}
+
+/// Model assembly output with variant-specific exclusion metadata.
+#[derive(Clone, Debug)]
+pub struct GlbModelExport {
+    pub bytes: Vec<u8>,
+    pub report: GlbCoverageReport,
+    pub dnp_filter: DnpFilterCoverage,
+}
+
+impl GlbModelExport {
+    /// Stable JSON receipt with intentional DNP exclusions when requested.
+    pub fn report_json(&self) -> String {
+        let mut value: Value = serde_json::from_str(&self.report.report_json())
+            .expect("serialized GLB coverage report is valid JSON");
+        if self.dnp_filter.applied {
+            value["coverage"]["componentsIncluded"] = json!(
+                self.report
+                    .component_count
+                    .saturating_sub(self.dnp_filter.components_excluded)
+            );
+            value["coverage"]["dnpFilter"] = json!({
+                "enabled": true,
+                "componentsExcluded": self.dnp_filter.components_excluded,
+                "modelReferencesExcluded": self.dnp_filter.model_references_excluded
+            });
+        }
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&value).expect("finite GLB coverage report")
+        )
+    }
 }
 
 /// Explicit assigned-body export; assignments do not certify engineering fit.
@@ -274,7 +314,8 @@ pub(crate) fn export_board_assembly(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
     allow_partial: bool,
-) -> Result<GlbExport, EngineError> {
+    exclude_dnp: bool,
+) -> Result<GlbModelExport, EngineError> {
     if !board.outline.is_valid() {
         return Err(EngineError::new(
             "GLB assembly export requires a valid, closed physical board outline",
@@ -295,9 +336,31 @@ pub(crate) fn export_board_assembly(
         thickness,
         board,
     )?;
-    let assembly = assemble_supported_vrml_models(board, resolver);
+    let excluded_dnp_ordinals = if exclude_dnp {
+        board.dnp_component_ordinals()?
+    } else {
+        std::collections::BTreeSet::new()
+    };
+    let dnp_model_references_excluded = board
+        .engineering()
+        .models
+        .iter()
+        .filter(|model| {
+            model
+                .source
+                .component_ordinal
+                .is_some_and(|ordinal| excluded_dnp_ordinals.contains(&ordinal))
+        })
+        .count();
+    let assembly =
+        assemble_supported_vrml_models_excluding(board, resolver, &excluded_dnp_ordinals);
     let (component_meshes, emitted_components) = component_meshes(&assembly)?;
-    let incomplete = incomplete_components(board, &assembly, &emitted_components);
+    let incomplete = incomplete_components(
+        board,
+        &assembly,
+        &emitted_components,
+        &excluded_dnp_ordinals,
+    );
     let (unresolved_components, unresolved_components_truncated) =
         unresolved_component_coverage_for(
             board,
@@ -307,7 +370,9 @@ pub(crate) fn export_board_assembly(
     let unresolved_models = unresolved_models_for_assembly(board, &assembly);
     let model_references = board.engineering().models.len();
     let model_references_emitted = assembly.emitted.len();
-    let model_references_unresolved = model_references.saturating_sub(model_references_emitted);
+    let model_references_unresolved = model_references
+        .saturating_sub(model_references_emitted)
+        .saturating_sub(dnp_model_references_excluded);
     let component_count = board.engineering().components.len();
     let component_models_emitted = emitted_components.len();
     let component_models_unresolved = incomplete.len();
@@ -354,7 +419,19 @@ pub(crate) fn export_board_assembly(
         max_curve_chord_error_mm: MAX_CHORD_ERROR_MM,
         outline_chaining_tolerance_mm: board.outline.join_tolerance_mm,
     };
-    let document = gltf_assembly_document(&shell, &component_meshes, &report, board, origin)?;
+    let dnp_filter = DnpFilterCoverage {
+        applied: exclude_dnp,
+        components_excluded: excluded_dnp_ordinals.len(),
+        model_references_excluded: dnp_model_references_excluded,
+    };
+    let document = gltf_assembly_document(
+        &shell,
+        &component_meshes,
+        &report,
+        &dnp_filter,
+        board,
+        origin,
+    )?;
     let json_bytes = serde_json::to_vec(&document)
         .map_err(|error| EngineError::new(format!("cannot serialize GLB JSON: {error}")))?;
     let bin = combined_bin(&shell, &component_meshes)?;
@@ -379,7 +456,11 @@ pub(crate) fn export_board_assembly(
     gltf::Gltf::from_slice(&bytes).map_err(|error| {
         EngineError::new(format!("generated GLB failed glTF validation: {error}"))
     })?;
-    Ok(GlbExport { bytes, report })
+    Ok(GlbModelExport {
+        bytes,
+        report,
+        dnp_filter,
+    })
 }
 
 pub(crate) fn export_assigned_board_assembly(
@@ -463,7 +544,14 @@ pub(crate) fn export_assigned_board_assembly(
         (bounds.min_x + bounds.max_x) / 2.0,
         (bounds.min_y + bounds.max_y) / 2.0,
     );
-    let mut document = gltf_assembly_document(&shell, &components, &report, board, origin)?;
+    let mut document = gltf_assembly_document(
+        &shell,
+        &components,
+        &report,
+        &DnpFilterCoverage::default(),
+        board,
+        origin,
+    )?;
     document["asset"]["extras"]["tokito"]["format"] =
         json!("tokito.assigned-board-assembly.glb.v1");
     document["asset"]["extras"]["tokito"]["coverage"]["componentModelCoverageComplete"] =
@@ -610,16 +698,18 @@ fn incomplete_components(
     board: &PhysicalBoardDocument,
     assembly: &ModelAssembly,
     emitted: &std::collections::BTreeSet<usize>,
+    excluded: &std::collections::BTreeSet<usize>,
 ) -> std::collections::BTreeSet<usize> {
     board
         .engineering()
         .components
         .iter()
         .filter(|component| {
-            !emitted.contains(&component.source.ordinal)
-                || assembly
-                    .incomplete_component_ordinals
-                    .contains(&component.source.ordinal)
+            !excluded.contains(&component.source.ordinal)
+                && (!emitted.contains(&component.source.ordinal)
+                    || assembly
+                        .incomplete_component_ordinals
+                        .contains(&component.source.ordinal))
         })
         .map(|component| component.source.ordinal)
         .collect()
@@ -1480,7 +1570,7 @@ fn gltf_document(
         .checked_mul(12)
         .ok_or_else(|| EngineError::new("normal buffer length overflow"))?;
     let source = board.source();
-    Ok(json!({
+    let document = json!({
         "asset": {
             "version": "2.0", "generator": "Tokito CLI",
             "extras": { "tokito": {
@@ -1556,7 +1646,8 @@ fn gltf_document(
             { "bufferView": 0, "byteOffset": 0, "componentType": 5126, "count": count, "type": "VEC3", "min": mesh.min, "max": mesh.max },
             { "bufferView": 1, "byteOffset": 0, "componentType": 5126, "count": count, "type": "VEC3" }
         ]
-    }))
+    });
+    Ok(document)
 }
 
 fn projected_vrml_material(source: Option<&crate::model_mesh::MeshMaterial>, solid: bool) -> Value {
@@ -1578,6 +1669,7 @@ fn gltf_assembly_document(
     shell: &Mesh,
     components: &[ComponentMesh],
     report: &GlbCoverageReport,
+    dnp_filter: &DnpFilterCoverage,
     board: &PhysicalBoardDocument,
     origin: (f64, f64),
 ) -> Result<Value, EngineError> {
@@ -1677,7 +1769,7 @@ fn gltf_assembly_document(
         scene_nodes.push(selector_node);
     }
     let bin_len = byte_offset;
-    Ok(json!({
+    let mut document = json!({
         "asset": {
             "version": "2.0", "generator": "Tokito CLI",
             "extras": { "tokito": {
@@ -1726,7 +1818,20 @@ fn gltf_assembly_document(
         "buffers": [{ "byteLength": bin_len }],
         "bufferViews": buffer_views,
         "accessors": accessors
-    }))
+    });
+    if dnp_filter.applied {
+        document["asset"]["extras"]["tokito"]["coverage"]["componentsIncluded"] = json!(
+            report
+                .component_count
+                .saturating_sub(dnp_filter.components_excluded)
+        );
+        document["asset"]["extras"]["tokito"]["coverage"]["dnpFilter"] = json!({
+            "enabled": true,
+            "componentsExcluded": dnp_filter.components_excluded,
+            "modelReferencesExcluded": dnp_filter.model_references_excluded
+        });
+    }
+    Ok(document)
 }
 
 fn component_primitive_provenance(component: &ComponentMesh) -> Value {

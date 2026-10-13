@@ -134,7 +134,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
 | `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
-| `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments |
+| `export glb` | Validated board shell, supported VRML assembly or explicit candidate assignments; opt-in `--assemble-wrl --no-dnp` with exclusion receipt ([reference and limits](docs/REA_KICAD_CLI_10_0_5.md)) |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
 | `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer and queries |

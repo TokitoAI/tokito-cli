@@ -566,3 +566,17 @@ KiCad parity or product completion is claimed.
 
 KiCad parity and qualified phone AR remain open. This is a prototype presentation
 and documentation delivery; the wider engine goal remains active.
+
+### KiCad DNP assembly filter and REA checkpoint (2026-10-13)
+
+| Owner | Dependencies | State | Evidence / QA | Next action |
+|---|---|---|---|---|
+| Main | Isolated REA/Ghidra toolchain | Command-handler investigation completed for a narrow 10.0.5 slice | Provider health passed; component-filter argument/job trace; `_pcbnew.dll` analysis timed out | Capture remaining filter/variant semantics; geometry backend remains unverified |
+| Main | Installed KiCad and pinned NXP fixture | Independent no-DNP selection comparison passed | R2/R4 removed; all other named nodes retained; [receipt](../tests/reference/kicad-cli-10.0.5/glb-no-dnp/manifest.json) | Expand reference corpus; no STEP geometry parity claim |
+| Main | Canonical UUIDs and bounded WRL assembly | Original Rust opt-in filter implemented and tested | Six public API tests and real subprocess filter journey passed | Extend other filters only with pinned independent behavior comparisons |
+| Independent reviewer / main QA | Final diff and local delivery | All 31 local gates passed; no review blocker | [Delivery evidence](evidence/glb-dnp-local-verification-20261013.json); source/test/binary digests checked | Branch/PR delivery; no Actions; whole-engine goal remains unfinished |
+
+[Investigation and boundaries](REA_KICAD_CLI_10_0_5.md) records completed,
+failed and unverified work. #13 remains incomplete (other command/export/filter
+families); #24 remains incomplete (broader generators and qualified land patterns).
+App admission, registration, physical AR and schematic-to-PCB remain open.

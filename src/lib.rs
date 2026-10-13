@@ -168,6 +168,14 @@ pub struct GlbExportOptions {
     pub allow_partial: bool,
 }
 
+/// Options for source-model assembly exports. The filter is opt-in and applies
+/// only to DNP footprints whose source UUID maps to one canonical component.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct GlbModelExportOptions {
+    pub allow_partial: bool,
+    pub exclude_dnp: bool,
+}
+
 /// Controls the supported SVG projection without changing the historical default.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct SvgExportOptions {
@@ -176,7 +184,10 @@ pub struct SvgExportOptions {
     pub hide_dnp_footprints_on_fab_layers: bool,
 }
 
-pub use glb::{AssignedGlbExport, GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
+pub use glb::{
+    AssignedGlbExport, DnpFilterCoverage, GlbCoverageReport, GlbExport, GlbModelExport,
+    UnresolvedComponentCoverage,
+};
 
 impl SvgSide {
     pub fn as_str(self) -> &'static str {
@@ -457,6 +468,57 @@ impl PhysicalBoardDocument {
     ) -> Result<AssignedGlbExport, EngineError> {
         glb::export_assigned_board_assembly(self, assignments, options.allow_partial)
     }
+
+    fn dnp_component_ordinals(&self) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        let mut by_uuid = std::collections::BTreeMap::<&str, Vec<usize>>::new();
+        for component in &self.engineering().components {
+            if let Some(uuid) = component
+                .source
+                .source_uuid
+                .as_deref()
+                .filter(|uuid| !uuid.is_empty())
+            {
+                by_uuid
+                    .entry(uuid)
+                    .or_default()
+                    .push(component.source.ordinal);
+            }
+        }
+        let mut excluded = std::collections::BTreeSet::new();
+        for footprint in self.footprints.iter().filter(|footprint| footprint.dnp) {
+            let ordinals = (!footprint.uuid.is_empty())
+                .then(|| by_uuid.get(footprint.uuid.as_str()))
+                .flatten()
+                .filter(|ordinals| ordinals.len() == 1)
+                .ok_or_else(|| {
+                    EngineError::new(
+                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                    )
+                })?;
+            let component = self
+                .engineering()
+                .components
+                .iter()
+                .find(|component| component.source.ordinal == ordinals[0])
+                .expect("ordinal was obtained from this canonical component list");
+            let source = source_at_path(&self.source_document, &component.source.source_path)
+                .ok_or_else(|| {
+                    EngineError::new("cannot safely apply --no-dnp: missing source footprint")
+                })?;
+            let fields: Vec<_> = source.children("uuid").collect();
+            if fields.len() != 1
+                || fields[0].items().is_none_or(|items| items.len() != 2)
+                || fields[0].value_at(1) != Some(footprint.uuid.as_str())
+            {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+            excluded.insert(ordinals[0]);
+        }
+        Ok(excluded)
+    }
+
     /// Export the board shell plus the strictly supported locally resolved VRML
     /// model subset. STEP, GLB and glTF source models are retained as explicit
     /// unresolved coverage; they are never approximated or converted here.
@@ -465,7 +527,27 @@ impl PhysicalBoardDocument {
         resolver: &model_resolver::ModelResolver,
         options: GlbExportOptions,
     ) -> Result<GlbExport, EngineError> {
-        glb::export_board_assembly(self, resolver, options.allow_partial)
+        let export = self.export_glb_with_model_options(
+            resolver,
+            GlbModelExportOptions {
+                allow_partial: options.allow_partial,
+                exclude_dnp: false,
+            },
+        )?;
+        Ok(GlbExport {
+            bytes: export.bytes,
+            report: export.report,
+        })
+    }
+
+    /// Export the supported local VRML subset with explicit model filters.
+    /// The legacy `export_glb_with_models` method preserves the unfiltered default.
+    pub fn export_glb_with_model_options(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        options: GlbModelExportOptions,
+    ) -> Result<GlbModelExport, EngineError> {
+        glb::export_board_assembly(self, resolver, options.allow_partial, options.exclude_dnp)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())

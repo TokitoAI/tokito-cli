@@ -1,0 +1,31 @@
+{
+  "schema": "tokito.kicad-glb-dnp-reference.v1",
+  "reference": {
+    "version": "10.0.5",
+    "executable_sha256": "393525236969434e24bc710334efe244fb285ef6596a1aea8e74353ef4db5477",
+    "source_path": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+    "source_sha256": "d0edaed749ac81ccc2387c78fc78f2f1e035b798f3e6f3705490d270e2f90535",
+    "model_variable": "KICAD8_3DMODEL_DIR",
+    "model_root_observed": "C:/Program Files/KiCad/10.0/share/kicad/3dmodels"
+  },
+  "dnp_references": ["R2", "R4", "TP13"],
+  "dnp_references_with_model_records": ["R2", "R4"],
+  "rendered_dnp_references": ["R2", "R4"],
+  "removed_named_nodes": ["R2", "R4"],
+  "added_named_nodes": [],
+  "captures": {
+    "default": {
+      "arguments": ["pcb", "export", "glb"],
+      "sha256": "142af08d2b712542b5eb86f7a80b753f38103e3c2562a354cd799b18489d0223",
+      "bytes": 563540,
+      "node_count": 168
+    },
+    "no-dnp": {
+      "arguments": ["pcb", "export", "glb", "--no-dnp"],
+      "sha256": "30f123373cfa41bbdd53cb376a90b4a729f630d68ef291e02a52a73ed37c1312",
+      "bytes": 558908,
+      "node_count": 164
+    }
+  },
+  "limitation": "Captures remain local research evidence. Installed model libraries are not an immutable corpus; these hashes identify this capture, not portable byte-equivalence expectations. NXP STEP geometry is not emitted by Tokito's WRL assembler. This tests selection behavior, not whole-board geometry parity."
+}

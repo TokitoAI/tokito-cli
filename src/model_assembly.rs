@@ -108,6 +108,14 @@ pub fn assemble_supported_vrml_models(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
 ) -> ModelAssembly {
+    assemble_supported_vrml_models_excluding(board, resolver, &std::collections::BTreeSet::new())
+}
+
+pub(crate) fn assemble_supported_vrml_models_excluding(
+    board: &PhysicalBoardDocument,
+    resolver: &ModelResolver,
+    excluded_component_ordinals: &std::collections::BTreeSet<usize>,
+) -> ModelAssembly {
     let planes = board
         .engineering()
         .stackup
@@ -161,6 +169,9 @@ pub fn assemble_supported_vrml_models(
             );
             continue;
         };
+        if excluded_component_ordinals.contains(&component.source.ordinal) {
+            continue;
+        }
         let unique_uuid = component
             .source
             .source_uuid
