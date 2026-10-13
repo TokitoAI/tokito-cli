@@ -1,0 +1,119 @@
+{
+  "schema": "tokito.kicad-glb-dnp-version-comparison.v1",
+  "scope": "One pinned NXP MCXA ESC PCB; GLB export structure and native/custom DNP filtering",
+  "reference": {
+    "kicadVersion": "10.0.7",
+    "kicadCliSha256": "cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a",
+    "pcbnewDllSha256": "fe9256c790e872ecb8e3314f8eba42f912e5489e36e7f578a3746f896fe09125",
+    "board": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+    "boardSha256": "d0edaed749ac81ccc2387c78fc78f2f1e035b798f3e6f3705490d270e2f90535",
+    "modelLibrary": "D:/TokitoKiCadRef107/share/kicad/3dmodels"
+  },
+  "comparisonBaseline": {
+    "kicadVersion": "10.0.5",
+    "kicadCliSha256": "393525236969434e24bc710334efe244fb285ef6596a1aea8e74353ef4db5477",
+    "pcbnewDllSha256": "5edaf16954a5fe9a8baebb1699b34c85652e6ad64cce91c4d82f564cbeb4883c",
+    "sourceBoardSha256": "d0edaed749ac81ccc2387c78fc78f2f1e035b798f3e6f3705490d270e2f90535"
+  },
+  "captures": {
+    "kicad10_0_5Default": {
+      "glbSha256": "ad69bec84025582f99313460957ed4cfe6be915ba4ed12d259f5bffe89c9c3b3",
+      "bytes": 563540,
+      "sceneNodes": 168,
+      "meshes": 75,
+      "accessors": 1593,
+      "bufferViews": 3,
+      "materials": 13,
+      "binaryChunkSha256": "4d899288fd42cf99668361215d66b39f721a84cfe10a9fc277c41c7a74ad0b5e"
+    },
+    "kicad10_0_5NoDnp": {
+      "glbSha256": "55f04f759c38d6cacdf9f178ec9405b3d3627b4a47d67513728bbc6fe5b76279",
+      "bytes": 558908,
+      "sceneNodes": 164,
+      "meshes": 73,
+      "accessors": 1593,
+      "bufferViews": 3,
+      "materials": 13,
+      "binaryChunkSha256": "4d899288fd42cf99668361215d66b39f721a84cfe10a9fc277c41c7a74ad0b5e"
+    },
+    "kicad10_0_7Default": {
+      "glbSha256": "1c703b0470e9b263a2e9eda62cff8e6b9f8bbaea73980d8f9506c674d8e4126b",
+      "bytes": 563540,
+      "sceneNodes": 168,
+      "meshes": 75,
+      "accessors": 1593,
+      "bufferViews": 3,
+      "materials": 13,
+      "binaryChunkSha256": "4d899288fd42cf99668361215d66b39f721a84cfe10a9fc277c41c7a74ad0b5e"
+    },
+    "kicad10_0_7NoDnp": {
+      "glbSha256": "857f9c8cf65a751635cd287f51bf2a47a449bf35402ac742fa94e7ee0468bca5",
+      "bytes": 558908,
+      "sceneNodes": 164,
+      "meshes": 73,
+      "accessors": 1593,
+      "bufferViews": 3,
+      "materials": 13,
+      "binaryChunkSha256": "4d899288fd42cf99668361215d66b39f721a84cfe10a9fc277c41c7a74ad0b5e"
+    },
+    "kicad10_0_7SyntheticCustomProperty": {
+      "sourceSha256": "6f73d18ecbbda15ff4185633c2da36cb3eba293a8dbf8502f7c1f18a7147e547",
+      "glbSha256": "2754e5fcd1225bfa2aca7a30f1c1299eaece8f7a3d84512bd9149844f8862527",
+      "bytes": 561228,
+      "sceneNodes": 166,
+      "meshes": 74,
+      "result": "R2 with custom DNP=yes property retained; native-DNP R4 excluded"
+    }
+  },
+  "observedFilterDelta": {
+    "nativeDnpReferencesInBoard": [
+      "R2",
+      "R4",
+      "TP13"
+    ],
+    "nativeDnpReferencesWithModelNodes": [
+      "R2",
+      "R4"
+    ],
+    "componentReferenceNodesRemoved": [
+      "R2",
+      "R4"
+    ],
+    "namedNodeMultiplicityChanges": {
+      "R2": -1,
+      "R4": -1,
+      "=>[0:1:1:5]": -2
+    },
+    "newNodeNamesAdded": [],
+    "sceneNodesRemoved": 4,
+    "unnamedSceneNodesRemoved": 0,
+    "meshRecordsRemoved": 2,
+    "retainedNamedNodeTransformsUnchanged": true,
+    "accessorCountChange": 0,
+    "bufferViewCountChange": 0,
+    "materialCountChange": 0,
+    "binaryChunkIdenticalBeforeAndAfterFilter": true,
+    "jsonIdenticalAcrossVersionsOutsideAssetMetadata": true,
+    "binaryChunkIdenticalAcrossVersions": true
+  },
+  "versionDelta": {
+    "pcbExportGlbHelpLineCount": 38,
+    "pcbExportGlbHelpTextEqual": true,
+    "pcbExportGlbHelpCaptures": {
+      "kicad10_0_5": {
+        "path": "kicad-pcb-export-glb-help-10.0.5.txt",
+        "sha256": "d0960edb51ebd77c7780163e9d07e7fc37c2fb566957b6f2af004c00c0dcf0d5"
+      },
+      "kicad10_0_7": {
+        "path": "kicad-pcb-export-glb-help-10.0.7.txt",
+        "sha256": "d0960edb51ebd77c7780163e9d07e7fc37c2fb566957b6f2af004c00c0dcf0d5"
+      }
+    }
+  },
+  "limitations": [
+    "The comparison covers one pinned PCB and installed model libraries; it does not establish broad KiCad 10.0.7 command parity.",
+    "The binary chunk remains identical when filtering; consumers should not interpret --no-dnp as removing all embedded DNP geometry bytes.",
+    "Matching GLB chunks for this fixture are not proof of complete geometry, renderer, or physical-board equivalence.",
+    "The synthetic custom property is a local modified copy of the board; the pinned source PCB remains unchanged."
+  ]
+}

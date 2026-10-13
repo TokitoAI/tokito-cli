@@ -13,3 +13,7 @@ tests/fixtures/compat-v0/** -text -whitespace
 # Frozen demo hashes cover exact viewer/manifest/model bytes on every platform.
 demo/** -text -whitespace
 docs/evidence/nxp-refined-local-verification-20261011.json -text -whitespace
+# Captured KiCad CLI help preserves exact upstream stdout padding for hash comparison.
+docs/evidence/kicad-pcb-export-glb-help-10.0.5.txt -text -whitespace
+docs/evidence/kicad-pcb-export-glb-help-10.0.7.txt -text -whitespace
+docs/evidence/kicad-dnp-local-verification-2026-10-14.json -text -whitespace !eol

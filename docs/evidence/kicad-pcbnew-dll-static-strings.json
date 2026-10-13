@@ -1,0 +1,68 @@
+{
+  "schema": "tokito.kicad-pcbnew-static-string-observations.v1",
+  "scope": "Static string inventory for the two local KiCad PCB editor/export DLLs; no behavioral claim",
+  "dlls": [
+    {
+      "version": "10.0.5",
+      "fileVersion": "10.0.5.50609",
+      "path": "C:/Program Files/KiCad/10.0/bin/_pcbnew.dll",
+      "bytes": 31419744,
+      "sha256": "5edaf16954a5fe9a8baebb1699b34c85652e6ad64cce91c4d82f564cbeb4883c",
+      "strings": [
+        { "value": "--no-dnp", "encoding": "UTF-16LE", "fileOffset": 22044458 },
+        { "value": "--component-filter", "encoding": "UTF-16LE", "fileOffset": 22045090 },
+        { "value": "JOB_EXPORT_PCB_3D", "encoding": "ASCII", "fileOffset": 29164125 },
+        { "value": "PCBNEW_JOBS_HANDLER", "encoding": "ASCII", "fileOffset": 29686768 },
+        { "value": "glb", "encoding": "ASCII", "fileOffset": 22644811 },
+        { "value": "step", "encoding": "ASCII", "fileOffset": 21944976 }
+      ]
+    },
+    {
+      "version": "10.0.7",
+      "fileVersion": "10.0.7.51283",
+      "path": "D:/TokitoKiCadRef107/bin/_pcbnew.dll",
+      "bytes": 31823712,
+      "sha256": "fe9256c790e872ecb8e3314f8eba42f912e5489e36e7f578a3746f896fe09125",
+      "strings": [
+        { "value": "--no-dnp", "encoding": "UTF-16LE", "fileOffset": 22314058 },
+        { "value": "--component-filter", "encoding": "UTF-16LE", "fileOffset": 22314690 },
+        { "value": "JOB_EXPORT_PCB_3D", "encoding": "ASCII", "fileOffset": 29515501 },
+        { "value": "PCBNEW_JOBS_HANDLER", "encoding": "ASCII", "fileOffset": 30056496 },
+        { "value": "glb", "encoding": "ASCII", "fileOffset": 22918171 },
+        { "value": "step", "encoding": "ASCII", "fileOffset": 22214048 }
+      ]
+    }
+  ],
+  "procedureTracing": {
+    "reaVersion": "6.4.0",
+    "ghidraVersion": "12.1.4",
+    "wholeDllProcedureSearches": {
+      "10.0.5": { "result": "provider_timeout", "timeoutMs": 330000, "partialResults": false },
+      "10.0.7": { "result": "provider_timeout", "timeoutMs": 330000, "partialResults": false }
+    },
+    "targeted10_0_7NoDnpTrace": {
+      "query": "--no-dnp",
+      "result": "provider_timeout",
+      "operation": "search_strings",
+      "timeoutMs": 330000,
+      "xrefsReturned": false
+    },
+    "directHeadlessGhidra": {
+      "target": "10.0.7 _pcbnew.dll",
+      "result": "cancelled_at_15_minute_bound_before_cross_reference_script",
+      "pdbFound": false,
+      "xrefsReturned": false
+    }
+  },
+  "conclusion": {
+    "filterStringPresenceConfirmed": true,
+    "filterToGeometryCallChainEstablished": false,
+    "nativeDnpGeometrySelectionAddressEstablished": false,
+    "versionBehaviorParityEstablishedByThisFile": false
+  },
+  "limitations": [
+    "A string and its file offset do not prove a caller, active code path, option semantics, or geometry effect.",
+    "No handler-to-GLB call chain, DNP selection instruction, or geometry transform path was returned by these analyses.",
+    "KiCad 10.0.7 behavior evidence for the DNP filter is the independent pinned-output comparison in kicad-dnp-10.0.7-structure-comparison.json, not this string inventory."
+  ]
+}

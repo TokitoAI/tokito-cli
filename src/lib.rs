@@ -168,6 +168,14 @@ pub struct GlbExportOptions {
     pub allow_partial: bool,
 }
 
+/// Options for source-model assembly exports. The filter is opt-in and applies
+/// only to canonical source footprints carrying a native `(attr dnp)` value.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct GlbModelExportOptions {
+    pub allow_partial: bool,
+    pub exclude_dnp: bool,
+}
+
 /// Controls the supported SVG projection without changing the historical default.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct SvgExportOptions {
@@ -176,7 +184,10 @@ pub struct SvgExportOptions {
     pub hide_dnp_footprints_on_fab_layers: bool,
 }
 
-pub use glb::{AssignedGlbExport, GlbCoverageReport, GlbExport, UnresolvedComponentCoverage};
+pub use glb::{
+    AssignedGlbExport, DnpFilterCoverage, GlbCoverageReport, GlbExport, GlbModelExport,
+    UnresolvedComponentCoverage,
+};
 
 impl SvgSide {
     pub fn as_str(self) -> &'static str {
@@ -457,6 +468,85 @@ impl PhysicalBoardDocument {
     ) -> Result<AssignedGlbExport, EngineError> {
         glb::export_assigned_board_assembly(self, assignments, options.allow_partial)
     }
+
+    fn dnp_component_ordinals(&self) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        let mut by_uuid = std::collections::BTreeMap::<&str, Vec<usize>>::new();
+        for component in &self.engineering().components {
+            if let Some(uuid) = component
+                .source
+                .source_uuid
+                .as_deref()
+                .filter(|uuid| !uuid.is_empty())
+            {
+                by_uuid
+                    .entry(uuid)
+                    .or_default()
+                    .push(component.source.ordinal);
+            }
+        }
+        let mut excluded = std::collections::BTreeSet::new();
+        for component in &self.engineering().components {
+            let source = source_at_path(&self.source_document, &component.source.source_path)
+                .ok_or_else(|| {
+                    EngineError::new("cannot safely apply --no-dnp: missing source component")
+                })?;
+            if !has_native_dnp_attribute(source) {
+                continue;
+            }
+
+            let fields: Vec<_> = source.children("uuid").collect();
+            if fields.len() > 1 {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+            let field = fields.first().copied().ok_or_else(|| {
+                EngineError::new(
+                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                )
+            })?;
+            let values = field.items().ok_or_else(|| {
+                EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                )
+            })?;
+            if values.len() > 2 {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+            let uuid = field
+                .value_at(1)
+                .filter(|uuid| !uuid.is_empty())
+                .ok_or_else(|| {
+                    EngineError::new(
+                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                    )
+                })?;
+            if component.source.source_uuid.as_deref() != Some(uuid) {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
+                ));
+            }
+
+            let ordinals = by_uuid
+                .get(uuid)
+                .filter(|ordinals| ordinals.len() == 1)
+                .ok_or_else(|| {
+                    EngineError::new(
+                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                    )
+                })?;
+            if ordinals[0] != component.source.ordinal {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
+                ));
+            }
+            excluded.insert(ordinals[0]);
+        }
+        Ok(excluded)
+    }
+
     /// Export the board shell plus the strictly supported locally resolved VRML
     /// model subset. STEP, GLB and glTF source models are retained as explicit
     /// unresolved coverage; they are never approximated or converted here.
@@ -465,7 +555,27 @@ impl PhysicalBoardDocument {
         resolver: &model_resolver::ModelResolver,
         options: GlbExportOptions,
     ) -> Result<GlbExport, EngineError> {
-        glb::export_board_assembly(self, resolver, options.allow_partial)
+        let export = self.export_glb_with_model_options(
+            resolver,
+            GlbModelExportOptions {
+                allow_partial: options.allow_partial,
+                exclude_dnp: false,
+            },
+        )?;
+        Ok(GlbExport {
+            bytes: export.bytes,
+            report: export.report,
+        })
+    }
+
+    /// Export the supported local VRML subset with explicit model filters.
+    /// The legacy `export_glb_with_models` method preserves the unfiltered default.
+    pub fn export_glb_with_model_options(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        options: GlbModelExportOptions,
+    ) -> Result<GlbModelExport, EngineError> {
+        glb::export_board_assembly(self, resolver, options.allow_partial, options.exclude_dnp)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())
@@ -714,21 +824,19 @@ fn is_placeholder_reference(reference: &str) -> bool {
 }
 
 fn is_dnp(node: &Sexp) -> bool {
-    node.children("attr").any(|attribute| {
-        attribute
-            .items()
-            .unwrap_or_default()
-            .iter()
-            .filter_map(Sexp::atom)
-            .any(|value| value.eq_ignore_ascii_case("dnp"))
-    }) || node.children("property").any(|property| {
-        property
-            .value_at(1)
-            .is_some_and(|name| name.eq_ignore_ascii_case("DNP"))
-            && property
-                .value_at(2)
-                .is_some_and(|value| value.eq_ignore_ascii_case("yes"))
-    })
+    has_native_dnp_attribute(node)
+        || node.children("property").any(|property| {
+            property
+                .value_at(1)
+                .is_some_and(|name| name.eq_ignore_ascii_case("DNP"))
+                && property
+                    .value_at(2)
+                    .is_some_and(|value| value.eq_ignore_ascii_case("yes"))
+        })
+}
+
+fn has_native_dnp_attribute(node: &Sexp) -> bool {
+    has_attribute(node, "dnp")
 }
 
 fn has_attribute(node: &Sexp, expected: &str) -> bool {

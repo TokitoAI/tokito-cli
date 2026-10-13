@@ -1,5 +1,9 @@
 # KiCad GLB reference capture
 
+A separate [REA investigation and DNP comparison](REA_KICAD_CLI_10_0_5.md)
+records installed 10.0.5 command-handler evidence and the NXP R2/R4 filter delta.
+It does not extend this capture into full geometry or 10.0.7 equivalence.
+
 This document records one repeatable black-box reference capture. It exists to
 test a known external artifact before Tokito emits component mesh nodes. It is
 not a runtime dependency, a substitute for a supported KiCad adapter, or a

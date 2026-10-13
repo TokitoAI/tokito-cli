@@ -17,6 +17,25 @@ Status: Milestone C is active. A board-shell GLB is available, alongside an evid
 
 ## First implementation slice
 
+### Optional source DNP filtering
+
+`export glb --assemble-wrl --no-dnp` excludes source DNP footprints before
+model resolution. Defaults include them; shell-only and assigned-body exports
+reject this option. Missing, ambiguous or malformed source UUIDs refuse export.
+
+Source `componentCount`/`modelReferences` remain total counts. Filtered reports
+add `componentsIncluded` and `dnpFilter` with `enabled`, `componentsExcluded`
+and `modelReferencesExcluded`. Deliberate exclusions are not unresolved geometry.
+Strict completeness checks retained supported models; it does not certify a
+complete physical digital twin.
+
+The additive `export_glb_with_model_options` API takes `GlbModelExportOptions`
+and returns `GlbModelExport`; its `report_json()` includes the filter receipt.
+Existing options/report structs and unfiltered output remain unchanged.
+See [REA and independent KiCad comparison](REA_KICAD_CLI_10_0_5.md).
+
+### Shared geometry pipeline
+
 1. Reuse the canonical validated contours; do not parse a second copy of Edge.Cuts.
 2. Tessellate lines, three-point arcs, and complete circles under fixed per-file vertex and byte budgets.
 3. Flatten the single outer contour and its classified cutouts for triangulation. The pinned pure-Rust `earcut` crate supports polygon holes; its result is still checked for valid indices, non-degenerate triangles, and area agreement before it is admitted ([earcut 0.4.11 API](https://docs.rs/earcut/0.4.11/earcut/struct.Earcut.html)).

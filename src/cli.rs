@@ -490,7 +490,7 @@ fn print_help() {
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\n\
-         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
+        \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
          \n\
@@ -611,7 +611,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\nWrites a partial SVG view from supported board geometry. The DNP option hides only DNP footprint text and graphics on F.Fab/B.Fab; it does not remove pads or affect other layers."
         ),
         ["export", "glb"] => println!(
-            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl additionally emits the bounded supported local VRML subset. With that mode, --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID, and reports intentional exclusions; a custom (property \"DNP\" \"yes\") does not trigger this GLB filter. Legacy inventory, Fab-SVG and POS DNP classification is unchanged. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; --no-dnp is not supported in that mode or shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
         ["package"] | ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
@@ -642,7 +642,7 @@ fn print_pcb_help() {
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] ...\n\
          \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--hide-DNP-footprints-on-fab-layers]\n\
-         \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--allow-partial]\n\
+         \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ... [--no-dnp]] [--allow-partial]\n\
          \n\
          Position CSV supports absolute or auxiliary drill-file origin, side, unit, bottom-X and placement-class filters. Position ASCII/Gerber, variants, general Gerber, schematic-to-PCB, STEP, symbol-library and jobset commands are not implemented."
     );
@@ -1147,11 +1147,12 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
             ));
         }
         let mut output_path = None;
         let mut allow_partial = false;
+        let mut exclude_dnp = false;
         let mut json_report = false;
         let mut assemble_wrl = false;
         let mut assignments_path = None;
@@ -1178,6 +1179,10 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 }
                 "--allow-partial" if !allow_partial => {
                     allow_partial = true;
+                    index += 1;
+                }
+                "--no-dnp" if !exclude_dnp => {
+                    exclude_dnp = true;
                     index += 1;
                 }
                 "--json-report" if !json_report => {
@@ -1234,6 +1239,11 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         }
         let board = load_board_input(Path::new(&args[2]))?;
         if let Some(path) = assignments_path {
+            if exclude_dnp {
+                return Err(CliError::new(
+                    "GLB --no-dnp is currently supported only with --assemble-wrl",
+                ));
+            }
             let board = if let Some(tolerance) = chaining_tolerance {
                 board.with_outline_chaining_tolerance(tolerance)?
             } else {
@@ -1276,6 +1286,8 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         } else {
             board
         };
+        let mut model_report_json = None;
+        let mut dnp_filter_coverage = None;
         let export = if assemble_wrl {
             use crate::model_resolver::{ModelResolver, ModelResolverConfig};
             let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {
@@ -1284,8 +1296,29 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             config.library_roots = library_roots;
             config.directory_variables = variables;
             let resolver = ModelResolver::new(config)?;
-            board.export_glb_with_models(&resolver, GlbExportOptions { allow_partial })?
+            let export = board.export_glb_with_model_options(
+                &resolver,
+                crate::GlbModelExportOptions {
+                    allow_partial,
+                    exclude_dnp,
+                },
+            )?;
+            if json_report {
+                model_report_json = Some(export.report_json());
+            }
+            if exclude_dnp {
+                dnp_filter_coverage = Some(export.dnp_filter);
+            }
+            GlbExport {
+                bytes: export.bytes,
+                report: export.report,
+            }
         } else {
+            if exclude_dnp {
+                return Err(CliError::new(
+                    "GLB --no-dnp currently requires --assemble-wrl",
+                ));
+            }
             if project_root.is_some() || !library_roots.is_empty() || !variables.is_empty() {
                 return Err(CliError::new(
                     "GLB model roots require --assemble-wrl; board-shell export never reads model files",
@@ -1295,16 +1328,32 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         };
         write_new_file(&output_path, &export.bytes)?;
         if json_report {
-            print!("{}", export.report.report_json());
-        } else {
-            println!(
-                "Wrote {} GLB ({} of {} component models emitted; {} unresolved) to {}",
-                export.report.scope,
-                export.report.component_models_emitted,
-                export.report.component_count,
-                export.report.component_models_unresolved,
-                output_path.display()
+            print!(
+                "{}",
+                model_report_json.unwrap_or_else(|| export.report.report_json())
             );
+        } else {
+            if let Some(filter) = dnp_filter_coverage {
+                println!(
+                    "Wrote {} GLB ({} of {} component models emitted; {} unresolved; excluded {} DNP component(s) and {} model reference(s)) to {}",
+                    export.report.scope,
+                    export.report.component_models_emitted,
+                    export.report.component_count,
+                    export.report.component_models_unresolved,
+                    filter.components_excluded,
+                    filter.model_references_excluded,
+                    output_path.display()
+                );
+            } else {
+                println!(
+                    "Wrote {} GLB ({} of {} component models emitted; {} unresolved) to {}",
+                    export.report.scope,
+                    export.report.component_models_emitted,
+                    export.report.component_count,
+                    export.report.component_models_unresolved,
+                    output_path.display()
+                );
+            }
         }
         return Ok(());
     }
