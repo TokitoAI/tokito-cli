@@ -17,6 +17,7 @@ pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
 pub mod footprint_family;
+pub mod footprint_inspect;
 pub mod footprint_library;
 pub mod footprint_spec;
 mod geometry;

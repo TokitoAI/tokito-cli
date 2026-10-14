@@ -422,6 +422,9 @@ fn component_model_envelope_command(args: &[String]) -> Result<(), CliError> {
 }
 
 fn component_footprint_command(args: &[String]) -> Result<(), CliError> {
+    if args.get(2).map(String::as_str) == Some("inspect") {
+        return component_footprint_inspect_command(args);
+    }
     if args.get(2).map(String::as_str) == Some("generate") {
         return component_footprint_generate_command(args);
     }
@@ -466,6 +469,36 @@ fn component_footprint_command(args: &[String]) -> Result<(), CliError> {
         println!(
             "Wrote {} library-geometry footprint candidate to {}",
             spec.name, args[4]
+        );
+    }
+    Ok(())
+}
+
+fn component_footprint_inspect_command(args: &[String]) -> Result<(), CliError> {
+    let usage = "usage: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]";
+    if !(args.len() == 4 || args.len() == 5)
+        || args[3].is_empty()
+        || (args.len() == 5 && args[4] != "--json")
+    {
+        return Err(CliError::new(usage));
+    }
+    let report =
+        crate::footprint_inspect::inspect_path(Path::new(&args[3])).map_err(CliError::new)?;
+    if args.len() == 5 {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&report)
+                .map_err(|error| CliError::new(error.to_string()))?
+        );
+    } else {
+        let partial = report
+            .pads
+            .iter()
+            .filter(|pad| pad.status != "reported_fields_complete")
+            .count();
+        println!(
+            "Inspected {} direct pad record(s) in {} ({}); {} need attention. Structural fields only; geometry and fabrication validity are not checked.",
+            report.pad_count, report.footprint_name, report.status, partial
         );
     }
     Ok(())
@@ -744,6 +777,7 @@ fn print_help() {
          \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
          \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
          \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
+         \ttokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n\
          \ttokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n\
          \ttokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\n\
          \ttokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n\
@@ -764,7 +798,7 @@ fn print_help() {
          \tproject  Inspect a project, build a source-bound export bundle, or verify a bundle.\n\
          \tmodel    Inspect the bounded local VRML profile.\n\
          \tbom      Reconcile dataset BOM references with PCB identities.\n\
-         \tcomponent Generate explicit SMD footprint/library candidates, a 0603 candidate, or a provisional body envelope.\n\
+         \tcomponent Inspect footprint pad structure; generate explicit SMD footprint/library candidates or a provisional body envelope.\n\
          \ttwin     Audit and prepare per-component renderable selectors, or query authored labels.\n\
          \tdataset  Lock and verify explicitly listed offline dataset assets.\n\
          \tpackage  Build or verify a Tokito source-and-inventory package.\n\
@@ -846,12 +880,15 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
         ),
+        ["component", "footprint", "inspect"] => println!(
+            "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\nReads a bounded native footprint S-expression and reports each direct pad's number, type, shape, millimetre position/size, roundrect ratio and layer names. Unsupported or malformed reported fields are diagnosed; other direct pad clauses are listed by name but their values are not decoded. This is structural inspection only; it does not validate KiCad semantics, render pad geometry, qualify a manufacturer land pattern, or certify fabrication readiness."
+        ),
         ["component", "footprint"] | ["component", "footprint", "r0603"] => println!(
-            "USAGE: tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nGenerates an explicit SMD geometry candidate from a bounded, versioned JSON spec. IPC-7351 calculations, through-hole/custom pads, 3D models, KLC checks and physical qualification are not implemented."
+            "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n       tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nInspects direct pad source structure or generates an explicit SMD geometry candidate from a bounded, versioned JSON spec. IPC-7351 calculations, through-hole/custom-pad geometry generation, 3D models, KLC checks and physical qualification are not implemented."
         ),
         ["component", "footprint", "library", "create"] => {
             println!(
-                "USAGE: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\nCreates a new, unregistered `.pretty` candidate or inventories existing footprint assets. Inspect parses only bounded S-expression roots and counts direct pads/model references; it does not validate geometry or semantics. It never edits an existing library or fp-lib-table. IPC-7351 calculations, through-hole/custom pads, 3D models, KLC checks and physical qualification are not implemented."
+                "USAGE: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n       tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\nCreates an unregistered `.pretty` candidate or inventories existing library assets. Use the standalone footprint inspect command for per-pad structural fields. Library inventory does not validate geometry or semantics, and no operation edits an existing library or fp-lib-table. IPC-7351 calculations, through-hole/custom-pad generation, 3D models, KLC checks and physical qualification are not implemented."
             )
         }
         ["component", "footprint", "library", "inspect"] => println!(

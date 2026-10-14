@@ -145,6 +145,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `package build/verify` | v0.1 source-and-inventory package and integrity checks |
 | `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
 | `component footprint r0603` | Deterministic two-pad 0603 library-geometry candidate; not a qualified manufacturer land pattern |
+| `component footprint inspect` | Bounded read-only `.kicad_mod` pad inventory: number, type, shape, position, size, roundrect ratio, and layers; reports issues in these fields and names other uninterpreted clauses without claiming full-record validation |
 | `component footprint generate` | Explicit, bounded SMD footprint geometry spec to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
 | `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated footprint; it does not edit `fp-lib-table` or existing libraries |
 | `component footprint library inspect` | Read-only, bounded inventory of immediate `.kicad_mod` file counts, names, sizes, hashes, parse statuses, direct pad counts and model-reference counts; it does not validate KiCad semantics or geometry |
@@ -156,6 +157,7 @@ paths:
 
 ```powershell
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/r0603-reference.json --output target/R_0603_1608Metric.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint inspect tests/fixtures/kicad-10.0.5/R_0603_1608Metric.kicad_mod --json
 ./target/release/tokito-cli.exe component footprint library create examples/footprints/r0603-reference.json --output target/R0603.pretty --json
 ./target/release/tokito-cli.exe component footprint library inspect target/R0603.pretty --json
 ./target/release/tokito-cli.exe component footprint library lock target/R0603.pretty --output target/R0603.lock.json --json

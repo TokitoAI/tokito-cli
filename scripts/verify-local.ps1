@@ -153,6 +153,7 @@ try {
         @{ name = 'project-bundle-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $bundleHookBinary, '--fault-hook-only') },
         @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
         @{ name = 'footprint-spec-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_spec_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'footprint-inspect-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_inspect_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },
