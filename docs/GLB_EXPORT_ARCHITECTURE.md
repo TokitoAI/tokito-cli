@@ -17,21 +17,28 @@ Status: Milestone C is active. A board-shell GLB is available, alongside an evid
 
 ## First implementation slice
 
-### Optional source DNP filtering
+### Component and source DNP filtering
 
-`export glb --assemble-wrl --no-dnp` excludes source DNP footprints before
-model resolution. Defaults include them; shell-only and assigned-body exports
-reject this option. Missing, ambiguous or malformed source UUIDs refuse export.
+`export glb --assemble-wrl --component-filter <PATTERNS> --no-dnp` selects
+source references using bounded, case-sensitive `*`/`?` patterns and excludes
+native source DNP footprints before model resolution. Either option may be used
+alone. Defaults include all components; shell-only and assigned-body exports
+reject these options. Missing, ambiguous or malformed DNP source UUIDs refuse
+export.
 
-Source `componentCount`/`modelReferences` remain total counts. Filtered reports
-add `componentsIncluded` and `dnpFilter` with `enabled`, `componentsExcluded`
-and `modelReferencesExcluded`. Deliberate exclusions are not unresolved geometry.
-Strict completeness checks retained supported models; it does not certify a
-complete physical digital twin.
+`componentCount`/`modelReferences` remain total source counts for compatibility.
+`selectedComponentCount`/`selectedModelReferences` and
+`filteredComponentCount`/`filteredModelReferences` report the active selection.
+Filtered JSON also adds `componentsIncluded` and, for native DNP filtering,
+`dnpFilter` with `enabled`, `componentsExcluded` and `modelReferencesExcluded`.
+Deliberate exclusions are not unresolved geometry. Strict completeness checks
+retained selected models; it does not certify a complete physical digital twin.
 
 The additive `export_glb_with_model_options` API takes `GlbModelExportOptions`
-and returns `GlbModelExport`; its `report_json()` includes the filter receipt.
-Existing options/report structs and unfiltered output remain unchanged.
+and returns `GlbModelExport`; `export_glb_with_models_filtered` combines a
+`ModelAssemblyFilter` with the same export pipeline. Its `report_json()` includes
+selection and DNP receipts. Existing unfiltered bytes and DNP coverage behavior
+remain covered by compatibility tests.
 See [REA and independent KiCad comparison](REA_KICAD_CLI_10_0_5.md).
 
 ### Shared geometry pipeline

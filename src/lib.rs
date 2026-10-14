@@ -583,11 +583,7 @@ impl PhysicalBoardDocument {
         } else {
             model_assembly::ModelAssemblyFilter::default()
         };
-        self.export_glb_with_model_filter(
-            resolver,
-            options.allow_partial,
-            &filter,
-        )
+        self.export_glb_with_model_filter(resolver, options.allow_partial, &filter)
     }
 
     /// Export selected component references from the supported local VRML subset.

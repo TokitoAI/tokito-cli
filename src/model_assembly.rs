@@ -161,6 +161,15 @@ impl ModelAssemblyFilter {
         &self,
         board: &PhysicalBoardDocument,
     ) -> Result<ModelAssemblySelection, crate::EngineError> {
+        // The source document is authoritative for native DNP attributes.
+        // Component extraction intentionally keeps a compact first-attribute
+        // projection, so it cannot safely decide this filter on its own when
+        // malformed input contains repeated `(attr ...)` nodes.
+        let excluded_dnp_ordinals = if self.exclude_dnp {
+            Some(board.dnp_component_ordinals()?)
+        } else {
+            None
+        };
         let components = &board.engineering().components;
         let compiled_patterns = self.component_patterns.as_ref().map(|patterns| {
             patterns
@@ -200,7 +209,10 @@ impl ModelAssemblyFilter {
             if !matched {
                 continue;
             }
-            if self.exclude_dnp && component.is_dnp() {
+            if excluded_dnp_ordinals
+                .as_ref()
+                .is_some_and(|excluded| excluded.contains(&component.source.ordinal))
+            {
                 result.excluded_dnp_component_count += 1;
                 result
                     .excluded_dnp_component_ordinals
@@ -356,21 +368,6 @@ pub fn assemble_supported_vrml_models(
         .components
         .iter()
         .map(|component| component.source.ordinal)
-        .collect();
-    assemble_supported_vrml_models_for_components(board, resolver, &selected)
-}
-
-pub(crate) fn assemble_supported_vrml_models_excluding(
-    board: &PhysicalBoardDocument,
-    resolver: &ModelResolver,
-    excluded_component_ordinals: &BTreeSet<usize>,
-) -> ModelAssembly {
-    let selected = board
-        .engineering()
-        .components
-        .iter()
-        .map(|component| component.source.ordinal)
-        .filter(|ordinal| !excluded_component_ordinals.contains(ordinal))
         .collect();
     assemble_supported_vrml_models_for_components(board, resolver, &selected)
 }

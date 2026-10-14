@@ -609,8 +609,39 @@ def main():
             binary, "export", "glb", dnp_source,
             "--output", shell_no_dnp_glb, "--no-dnp", "--allow-partial", succeeds=False,
         )
-        assert "requires --assemble-wrl" in no_dnp_shell_error.stderr
+        assert "require --assemble-wrl" in no_dnp_shell_error.stderr
         assert not shell_no_dnp_glb.exists()
+
+        duplicate_attr_source = output / "two-resistor-duplicate-dnp-attributes.kicad_pcb"
+        duplicate_attr_source.write_text(
+            dnp_source.read_text(encoding="utf-8").replace(
+                '(attr dnp)', '(attr smd) (attr dnp)', 1,
+            ),
+            encoding="utf-8",
+        )
+        duplicate_attr_glb = output / "two-resistor-duplicate-dnp-attributes.glb"
+        duplicate_attr_report = json.loads(invoke(
+            binary, "export", "glb", duplicate_attr_source,
+            "--output", duplicate_attr_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--json-report",
+        ).stdout)
+        assert duplicate_attr_report["coverage"]["dnpFilter"]["componentsExcluded"] == 1
+        assert duplicate_attr_report["coverage"]["selectedComponentCount"] == 1
+        glb_check(duplicate_attr_glb, ("ref:R1",))
+
+        malformed_dnp_uuid_source = output / "two-resistor-dnp-without-uuid.kicad_pcb"
+        malformed_dnp_uuid_source.write_text(
+            dnp_source.read_text(encoding="utf-8").replace('(uuid "assembly-r2")', '', 1),
+            encoding="utf-8",
+        )
+        malformed_dnp_uuid_glb = output / "two-resistor-dnp-without-uuid.glb"
+        malformed_dnp_uuid_error = invoke(
+            binary, "export", "glb", malformed_dnp_uuid_source,
+            "--output", malformed_dnp_uuid_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--allow-partial", succeeds=False,
+        )
+        assert "DNP footprint has a missing or ambiguous canonical UUID" in malformed_dnp_uuid_error.stderr
+        assert not malformed_dnp_uuid_glb.exists()
         for pattern in ("R*", "R?"):
             wildcard_glb = output / f"wildcard-{pattern.replace('*', 'star').replace('?', 'any')}.glb"
             wildcard_report = json.loads(invoke(
@@ -631,9 +662,11 @@ def main():
                 "--component-filter", unmatched_pattern, "--json-report",
             ).stdout)
             assert no_match_report["coverage"]["componentFilter"] == [unmatched_pattern]
-            assert no_match_report["coverage"]["componentCount"] == 0
+            assert no_match_report["coverage"]["componentCount"] == 2
+            assert no_match_report["coverage"]["selectedComponentCount"] == 0
             assert no_match_report["coverage"]["filteredComponentCount"] == 2
-            assert no_match_report["coverage"]["modelReferences"] == 0
+            assert no_match_report["coverage"]["modelReferences"] == 2
+            assert no_match_report["coverage"]["selectedModelReferences"] == 0
             assert no_match_report["coverage"]["filteredModelReferences"] == 2
             assert not no_match_report["partialExport"]
             glb_check(no_match_glb, expected_selectors=())
@@ -681,12 +714,14 @@ def main():
         assert filtered_report["scope"] == "board_shell_and_selected_supported_vrml_models"
         assert not filtered_report["partialExport"]
         assert filtered_coverage["componentFilter"] == ["R1"]
-        assert filtered_coverage["componentCount"] == 1
+        assert filtered_coverage["componentCount"] == 2
+        assert filtered_coverage["selectedComponentCount"] == 1
         assert filtered_coverage["sourceComponentCount"] == 2
         assert filtered_coverage["filteredComponentCount"] == 1
         assert filtered_coverage["componentModelsEmitted"] == 1
         assert filtered_coverage["componentModelsUnresolved"] == 0
-        assert filtered_coverage["modelReferences"] == 1
+        assert filtered_coverage["modelReferences"] == 2
+        assert filtered_coverage["selectedModelReferences"] == 1
         assert filtered_coverage["sourceModelReferences"] == 2
         assert filtered_coverage["filteredModelReferences"] == 1
         assert filtered_coverage["modelReferencesEmitted"] == 1
@@ -733,7 +768,8 @@ def main():
         assert dnp_filtered["reportVersion"] == "1.2.0"
         assert dnp_coverage["noDnp"] is True
         assert dnp_coverage["componentFilter"] is None
-        assert dnp_coverage["componentCount"] == 1
+        assert dnp_coverage["componentCount"] == 2
+        assert dnp_coverage["selectedComponentCount"] == 1
         assert dnp_coverage["sourceComponentCount"] == 2
         assert dnp_coverage["filteredComponentCount"] == 1
         assert dnp_coverage["excludedDnpComponentCount"] == 1
@@ -808,7 +844,7 @@ def main():
             binary, "export", "glb", filtered_source, "--output", shell_filter_glb,
             "--component-filter", "R1", succeeds=False,
         )
-        assert "apply only to --assemble-wrl" in shell_filter.stderr
+        assert "require --assemble-wrl" in shell_filter.stderr
         assert not shell_filter_glb.exists()
 
         assignment_filter_glb = output / "assignment-component-filter.glb"
@@ -817,7 +853,7 @@ def main():
             "--model-assignments", output / "missing-assignments.json",
             "--project-root", model_root, "--component-filter", "R1", succeeds=False,
         )
-        assert "apply only to --assemble-wrl" in assignment_filter.stderr
+        assert "require --assemble-wrl" in assignment_filter.stderr
         assert not assignment_filter_glb.exists()
 
         duplicate_reference_source = output / "duplicate-source-reference.kicad_pcb"
@@ -844,6 +880,7 @@ def main():
         ).stdout)
         assert duplicate_partial["partialExport"]
         assert duplicate_partial["coverage"]["componentCount"] == 2
+        assert duplicate_partial["coverage"]["selectedComponentCount"] == 2
         assert duplicate_partial["coverage"]["componentModelsUnresolved"] == 2
 
         unmodeled_source = output / "selected-component-without-model.kicad_pcb"
@@ -869,9 +906,11 @@ def main():
         ).stdout)
         unmodeled_coverage = unmodeled_report["coverage"]
         assert unmodeled_report["partialExport"]
-        assert unmodeled_coverage["componentCount"] == 1
+        assert unmodeled_coverage["componentCount"] == 3
+        assert unmodeled_coverage["selectedComponentCount"] == 1
         assert unmodeled_coverage["componentModelsUnresolved"] == 1
-        assert unmodeled_coverage["modelReferences"] == 0
+        assert unmodeled_coverage["modelReferences"] == 2
+        assert unmodeled_coverage["selectedModelReferences"] == 0
         assert unmodeled_coverage["sourceModelReferences"] == 2
         assert unmodeled_coverage["filteredModelReferences"] == 2
         glb_check(unmodeled_glb, expected_selectors=())

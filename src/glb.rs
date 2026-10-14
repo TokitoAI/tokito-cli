@@ -63,7 +63,7 @@ impl GlbModelExport {
         let mut value: Value = serde_json::from_str(&self.report.report_json())
             .expect("serialized GLB coverage report is valid JSON");
         if self.dnp_filter.applied {
-            value["coverage"]["componentsIncluded"] = json!(self.report.component_count);
+            value["coverage"]["componentsIncluded"] = json!(self.report.selected_component_count);
             value["coverage"]["dnpFilter"] = json!({
                 "enabled": true,
                 "componentsExcluded": self.dnp_filter.components_excluded,
@@ -90,7 +90,10 @@ pub struct GlbCoverageReport {
     pub shell_geometry_complete: bool,
     pub whole_board_digital_twin_complete: bool,
     pub partial_export: bool,
+    /// Total source-board component population; retained for compatibility.
     pub component_count: usize,
+    /// Components admitted by the active model filters.
+    pub selected_component_count: usize,
     pub source_component_count: usize,
     pub filtered_component_count: usize,
     pub component_filter: Option<Vec<String>>,
@@ -99,6 +102,8 @@ pub struct GlbCoverageReport {
     pub component_models_emitted: usize,
     pub component_models_unresolved: usize,
     pub model_references: usize,
+    /// Model references remaining after component/DNP selection.
+    pub selected_model_references: usize,
     pub source_model_references: usize,
     pub filtered_model_references: usize,
     pub model_references_emitted: usize,
@@ -156,6 +161,7 @@ impl GlbCoverageReport {
             "partialExport": self.partial_export,
             "coverage": {
                 "componentCount": self.component_count,
+                "selectedComponentCount": self.selected_component_count,
                 "sourceComponentCount": self.source_component_count,
                 "filteredComponentCount": self.filtered_component_count,
                 "componentFilter": &self.component_filter,
@@ -164,6 +170,7 @@ impl GlbCoverageReport {
                 "componentModelsEmitted": self.component_models_emitted,
                 "componentModelsUnresolved": self.component_models_unresolved,
                 "modelReferences": self.model_references,
+                "selectedModelReferences": self.selected_model_references,
                 "sourceModelReferences": self.source_model_references,
                 "filteredModelReferences": self.filtered_model_references,
                 "modelReferencesEmitted": self.model_references_emitted,
@@ -267,6 +274,7 @@ pub(crate) fn export_board_shell(
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        selected_component_count: component_count,
         source_component_count: component_count,
         filtered_component_count: 0,
         component_filter: None,
@@ -275,6 +283,7 @@ pub(crate) fn export_board_shell(
         component_models_emitted: 0,
         component_models_unresolved: component_count,
         model_references,
+        selected_model_references: model_references,
         source_model_references: model_references,
         filtered_model_references: 0,
         model_references_emitted: 0,
@@ -356,6 +365,8 @@ pub(crate) fn export_board_assembly(
         thickness,
         board,
     )?;
+    // `selection` validates source DNP markers against canonical UUIDs and
+    // returns those source ordinals as the authoritative exclusion set.
     let selection = filter.selection(board)?;
     let selected_ordinals = &selection.selected_component_ordinals;
     let assembly =
@@ -388,12 +399,14 @@ pub(crate) fn export_board_assembly(
         .count();
     // Unowned/invalid-owner model records stay in selected-scope coverage as
     // unresolved. They are never treated as intentionally filtered away.
-    let model_references = source_model_references - filtered_model_references;
+    let selected_model_references = source_model_references - filtered_model_references;
     let model_references_emitted = assembly.emitted.len();
-    let model_references_unresolved = model_references.saturating_sub(model_references_emitted);
     let source_component_count = board.engineering().components.len();
-    let component_count = selected_ordinals.len();
-    let filtered_component_count = source_component_count.saturating_sub(component_count);
+    let component_count = source_component_count;
+    let selected_component_count = selected_ordinals.len();
+    let filtered_component_count = source_component_count.saturating_sub(selected_component_count);
+    let model_references_unresolved =
+        selected_model_references.saturating_sub(model_references_emitted);
     let component_models_emitted = emitted_components.len();
     let component_models_unresolved = incomplete.len();
     let partial = component_models_unresolved != 0 || model_references_unresolved != 0;
@@ -422,6 +435,7 @@ pub(crate) fn export_board_assembly(
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        selected_component_count,
         source_component_count,
         filtered_component_count,
         component_filter: filter.requested_patterns(),
@@ -429,7 +443,8 @@ pub(crate) fn export_board_assembly(
         excluded_dnp_component_count: selection.excluded_dnp_component_count,
         component_models_emitted,
         component_models_unresolved,
-        model_references,
+        model_references: source_model_references,
+        selected_model_references,
         source_model_references,
         filtered_model_references,
         model_references_emitted,
@@ -458,10 +473,9 @@ pub(crate) fn export_board_assembly(
             .models
             .iter()
             .filter(|model| {
-                model
-                    .source
-                    .component_ordinal
-                    .is_some_and(|ordinal| selection.excluded_dnp_component_ordinals.contains(&ordinal))
+                model.source.component_ordinal.is_some_and(|ordinal| {
+                    selection.excluded_dnp_component_ordinals.contains(&ordinal)
+                })
             })
             .count(),
     };
@@ -560,7 +574,7 @@ pub(crate) fn export_assigned_board_assembly(
     );
     report.scope = "board_shell_and_explicitly_assigned_wrl_models";
     report.component_models_emitted = emitted.len();
-    report.component_models_unresolved = report.component_count - emitted.len();
+    report.component_models_unresolved = report.selected_component_count - emitted.len();
     report.unresolved_components = unresolved;
     report.unresolved_components_total = report.component_models_unresolved;
     report.unresolved_components_truncated = truncated;
@@ -1634,6 +1648,7 @@ fn gltf_document(
                     "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2.,"sourceGeometryEdited":false },
                 "coverage": {
                     "componentCount": report.component_count,
+                    "selectedComponentCount": report.selected_component_count,
                     "sourceComponentCount": report.source_component_count,
                     "filteredComponentCount": report.filtered_component_count,
                     "componentFilter": &report.component_filter,
@@ -1642,6 +1657,7 @@ fn gltf_document(
                     "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
                     "modelReferences": report.model_references,
+                    "selectedModelReferences": report.selected_model_references,
                     "sourceModelReferences": report.source_model_references,
                     "filteredModelReferences": report.filtered_model_references,
                     "modelReferencesEmitted": report.model_references_emitted,
@@ -1841,6 +1857,7 @@ fn gltf_assembly_document(
                 "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm":board.outline.join_tolerance_mm, "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2., "sourceGeometryEdited":false },
                 "coverage": {
                     "componentCount": report.component_count,
+                    "selectedComponentCount": report.selected_component_count,
                     "sourceComponentCount": report.source_component_count,
                     "filteredComponentCount": report.filtered_component_count,
                     "componentFilter": &report.component_filter,
@@ -1849,6 +1866,7 @@ fn gltf_assembly_document(
                     "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
                     "modelReferences": report.model_references,
+                    "selectedModelReferences": report.selected_model_references,
                     "sourceModelReferences": report.source_model_references,
                     "filteredModelReferences": report.filtered_model_references,
                     "modelReferencesEmitted": report.model_references_emitted,
@@ -1879,11 +1897,8 @@ fn gltf_assembly_document(
         "accessors": accessors
     });
     if dnp_filter.applied {
-        document["asset"]["extras"]["tokito"]["coverage"]["componentsIncluded"] = json!(
-            report
-                .component_count
-                .saturating_sub(dnp_filter.components_excluded)
-        );
+        document["asset"]["extras"]["tokito"]["coverage"]["componentsIncluded"] =
+            json!(report.selected_component_count);
         document["asset"]["extras"]["tokito"]["coverage"]["dnpFilter"] = json!({
             "enabled": true,
             "componentsExcluded": dnp_filter.components_excluded,
