@@ -65,6 +65,13 @@ fn planar_vrml_polygon_faces_are_triangulated_with_area_and_winding_preserved() 
     assert_eq!(mesh.parts[0].triangles.len(), 4);
     assert!((planar_mesh_area(&mesh) - 3.0).abs() < 1e-12);
 
+    let collinear = scene(
+        "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 0 0,2 0 0,2 1 0,0 1 0] } coordIndex [0 1 2 3 4 -1] } }",
+    );
+    let mesh = parse(&collinear).unwrap();
+    assert_eq!(mesh.parts[0].triangles.len(), 3);
+    assert!((planar_mesh_area(&mesh) - 2.0).abs() < 1e-12);
+
     let reversed = parse(&quad.replace("solid FALSE", "ccw FALSE solid FALSE")).unwrap();
     assert!(
         reversed.parts[0]
@@ -75,7 +82,7 @@ fn planar_vrml_polygon_faces_are_triangulated_with_area_and_winding_preserved() 
 }
 
 #[test]
-fn polygon_vrml_faces_reject_nonplanar_self_crossing_and_over_budget_geometry() {
+fn polygon_vrml_faces_reject_nonplanar_self_intersection_and_over_budget_geometry() {
     reject(
         &scene(
             "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,2 0 0,2 1 0.1,0 1 0] } coordIndex [0 1 2 3 -1] } }",
@@ -86,7 +93,21 @@ fn polygon_vrml_faces_reject_nonplanar_self_crossing_and_over_budget_geometry() 
         &scene(
             "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 1 0,0 1 0,1 0 0] } coordIndex [0 1 2 3 -1] } }",
         ),
-        "degenerate projected polygon",
+        "self-intersecting or self-touching",
+    );
+    // This crossing quadrilateral has non-zero signed area; area conservation
+    // alone is not enough to show that the source ring is simple.
+    reject(
+        &scene(
+            "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,3 0 0,0 2 0,2 2 0] } coordIndex [0 1 2 3 -1] } }",
+        ),
+        "self-intersecting or self-touching",
+    );
+    reject(
+        &scene(
+            "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,2 0 0,1 0 0,1 1 0] } coordIndex [0 1 2 3 -1] } }",
+        ),
+        "overlapping adjacent edges",
     );
     let quad = scene(
         "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,2 0 0,2 2 0,0 2 0] } coordIndex [0 1 2 3 -1] } }",

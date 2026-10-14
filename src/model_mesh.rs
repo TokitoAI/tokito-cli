@@ -9,10 +9,11 @@ mod zero_area;
 pub use zero_area::derive_without_zero_area_faces;
 
 const MAX_FACE_VERTICES: usize = 4096;
-/// Deterministic aggregate proxy for quadratic polygon normal/Earcut work.
+/// Deterministic aggregate proxy for quadratic polygon validation/Earcut work.
 const MAX_POLYGON_TRIANGULATION_WORK: usize = 8_000_000;
 const POLYGON_PLANAR_REL_TOLERANCE: f64 = 1e-8;
 const POLYGON_AREA_REL_TOLERANCE: f64 = 1e-8;
+const POLYGON_INTERSECTION_EPSILON: f64 = 64.0 * f64::EPSILON;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelUnits {
@@ -1015,9 +1016,12 @@ fn triangulate_indexed_faces(
             triangles.push(triangle);
             continue;
         }
+        // Account for both the non-adjacent edge intersection scan and the
+        // triangulator's quadratic worst-case work before doing either.
         let polygon_work = face
             .len()
             .checked_mul(face.len())
+            .and_then(|work| work.checked_mul(2))
             .ok_or_else(|| fail("polygon triangulation work budget exceeded"))?;
         *remaining_polygon_work = remaining_polygon_work
             .checked_sub(polygon_work)
@@ -1080,6 +1084,7 @@ fn triangulate_indexed_faces(
             .iter()
             .map(|point| [point[axes[0]] / local_scale, point[axes[1]] / local_scale])
             .collect::<Vec<_>>();
+        validate_simple_polygon(&projected)?;
         let mut signed_area = 0.0;
         for index in 0..projected.len() {
             let current = projected[index];
@@ -1134,6 +1139,79 @@ fn triangulate_indexed_faces(
         }
     }
     Ok(triangles)
+}
+
+/// Refuse non-simple polygon rings before tessellation. Non-adjacent edges may
+/// not cross or touch; adjacent collinear edges may meet at their shared
+/// vertex, but may not overlap beyond it.
+fn validate_simple_polygon(points: &[[f64; 2]]) -> Result<(), EngineError> {
+    if points.len() < 3 {
+        return Err(fail("polygon face must contain at least three points"));
+    }
+    for (left, a) in points.iter().enumerate() {
+        let left_next = (left + 1) % points.len();
+        let b = points[left_next];
+        for right in left + 1..points.len() {
+            let right_next = (right + 1) % points.len();
+            let c = points[right];
+            let d = points[right_next];
+            let adjacent = left_next == right || right_next == left;
+            if adjacent {
+                let (shared, first_other, second_other) = if left_next == right {
+                    (b, *a, d)
+                } else {
+                    (*a, c, b)
+                };
+                let first = [first_other[0] - shared[0], first_other[1] - shared[1]];
+                let second = [second_other[0] - shared[0], second_other[1] - shared[1]];
+                let cross = first[0] * second[1] - first[1] * second[0];
+                let dot = first[0] * second[0] + first[1] * second[1];
+                if cross.abs() <= POLYGON_INTERSECTION_EPSILON && dot > 0.0 {
+                    return Err(fail("polygon ring has overlapping adjacent edges"));
+                }
+                continue;
+            }
+            if segments_intersect_or_touch(*a, b, c, d) {
+                return Err(fail("self-intersecting or self-touching polygon ring"));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn segments_intersect_or_touch(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
+    let ab_c = orient2(a, b, c);
+    let ab_d = orient2(a, b, d);
+    let cd_a = orient2(c, d, a);
+    let cd_b = orient2(c, d, b);
+    let sign = |value: f64| {
+        if value > POLYGON_INTERSECTION_EPSILON {
+            1
+        } else if value < -POLYGON_INTERSECTION_EPSILON {
+            -1
+        } else {
+            0
+        }
+    };
+    let (ab_c, ab_d, cd_a, cd_b) = (sign(ab_c), sign(ab_d), sign(cd_a), sign(cd_b));
+    if ab_c * ab_d < 0 && cd_a * cd_b < 0 {
+        return true;
+    }
+    (ab_c == 0 && point_on_segment(c, a, b))
+        || (ab_d == 0 && point_on_segment(d, a, b))
+        || (cd_a == 0 && point_on_segment(a, c, d))
+        || (cd_b == 0 && point_on_segment(b, c, d))
+}
+
+fn orient2(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
+    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+}
+
+fn point_on_segment(point: [f64; 2], start: [f64; 2], end: [f64; 2]) -> bool {
+    point[0] >= start[0].min(end[0]) - POLYGON_INTERSECTION_EPSILON
+        && point[0] <= start[0].max(end[0]) + POLYGON_INTERSECTION_EPSILON
+        && point[1] >= start[1].min(end[1]) - POLYGON_INTERSECTION_EPSILON
+        && point[1] <= start[1].max(end[1]) + POLYGON_INTERSECTION_EPSILON
 }
 
 fn polygon_plane_normal(points: &[[f64; 3]]) -> Result<[f64; 3], EngineError> {
@@ -1255,11 +1333,11 @@ mod derivation_tests {
             [0.0, 1.0, 0.0],
         ];
         let face = vec![vec![0, 1, 2, 3]];
-        let mut remaining_work = 31;
+        let mut remaining_work = 63;
 
         let first = triangulate_indexed_faces(&face, &positions, 2, &mut remaining_work).unwrap();
         assert_eq!(first.len(), 2);
-        assert_eq!(remaining_work, 15);
+        assert_eq!(remaining_work, 31);
 
         // A second individually affordable face set is rejected because both
         // sets share the parser's one input-wide quadratic-work budget.
