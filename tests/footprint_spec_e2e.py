@@ -14,6 +14,10 @@ ROOT = Path(__file__).resolve().parents[1]
 EXAMPLE = ROOT / "examples/footprints/r0603-reference.json"
 REFERENCE = ROOT / "tests/fixtures/kicad-10.0.5/r0603-reference-geometry.json"
 SOURCE_REFERENCE = ROOT / "tests/fixtures/kicad-10.0.5/R_0603_1608Metric.kicad_mod"
+SOT23_EXAMPLE = ROOT / "examples/footprints/sot-23-to236ab.json"
+SOT23_REFERENCE = ROOT / "tests/fixtures/kicad-footprint-libraries/f8a45b4665c28a6280e46eefe9fd4df81d2cd17b/SOT-23.kicad_mod"
+SOT23_SOURCE_SHA256 = "0d88c86c1b6d8c1aae4aa8c09386264c089d4451a128b6ccd63ed253f4300b15"
+SOT23_SOURCE_URI = "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/f8a45b4665c28a6280e46eefe9fd4df81d2cd17b/Package_TO_SOT_SMD.pretty/SOT-23.kicad_mod"
 
 
 def parse_sexpr(text: str):
@@ -64,13 +68,28 @@ def parsed_geometry(text: str):
             if len(position_mm) == 2:
                 # KiCad footprint files omit a zero pad angle.
                 position_mm.append(0.0)
-            pads.append({
+            pad = {
                 "number": item[1], "type": item[2], "shape": item[3],
                 "atMm": position_mm,
                 "sizeMm": [float(value) for value in size[1:]],
                 "layers": layers[1:],
                 "roundrectRatio": float(ratio[0]) if ratio else None,
-            })
+            }
+            drill = [part for part in item[1:] if isinstance(part, list) and part[:1] == ["drill"]]
+            if drill:
+                assert len(drill) == 1
+                drill_fields = drill[0][1:]
+                offset = [part for part in drill_fields if isinstance(part, list) and part[:1] == ["offset"]]
+                values = [float(part) for part in drill_fields if not isinstance(part, list) and part != "oval"]
+                assert len(offset) <= 1
+                if drill_fields[:1] == ["oval"]:
+                    pad["drillOvalMm"] = values
+                else:
+                    assert len(values) == 1
+                    pad["drillMm"] = values[0]
+                if offset:
+                    pad["drillOffsetMm"] = [float(value) for value in offset[0][1:]]
+            pads.append(pad)
         elif item[0] in ("fp_line", "fp_rect"):
             start = child(item, "start")
             end = child(item, "end")
@@ -82,6 +101,24 @@ def parsed_geometry(text: str):
                 "startMm": [float(value) for value in start[1:]],
                 "endMm": [float(value) for value in end[1:]],
                 "widthMm": float(width[1]), "layer": layer[1],
+            })
+        elif item[0] == "fp_poly":
+            points = child(item, "pts")
+            coordinates = [
+                [float(value) for value in point[1:]]
+                for point in points[1:]
+                if isinstance(point, list) and point[:1] == ["xy"]
+            ]
+            stroke = child(item, "stroke")
+            width = child(stroke, "width")
+            fill = child(item, "fill")
+            assert fill[1] in ("yes", "no")
+            graphics.append({
+                "kind": "polygon",
+                "pointsMm": coordinates,
+                "widthMm": float(width[1]),
+                "layer": child(item, "layer")[1],
+                "filled": fill[1] == "yes",
             })
         elif item[0] == "fp_text":
             # Reference-property text is not part of the compared pad/graphic geometry.
@@ -144,6 +181,232 @@ def main() -> None:
         assert source_geometry == reference["geometry"], "geometry transcription differs from pinned source file"
         assert parsed_geometry(text) == source_geometry, "generated geometry differs from pinned KiCad library source"
         digest_before = hashlib.sha256(generated).hexdigest()
+
+        sot23_output = root / "SOT-23.kicad_mod"
+        sot23_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(SOT23_EXAMPLE),
+            "--output",
+            str(sot23_output),
+            "--json",
+        )
+        assert sot23_result.returncode == 0, sot23_result.stderr
+        sot23_report = json.loads(sot23_result.stdout)
+        sot23_bytes = sot23_output.read_bytes()
+        sot23_source_bytes = SOT23_REFERENCE.read_bytes()
+        assert hashlib.sha256(sot23_source_bytes).hexdigest() == SOT23_SOURCE_SHA256
+        assert sot23_report["status"] == "explicit-smd-geometry-candidate"
+        assert sot23_report["footprintName"] == "SOT-23"
+        assert sot23_report["padCount"] == 3
+        assert sot23_report["sourceEvidenceContentVerified"] is False
+        assert sot23_report["manufacturerLandPatternQualified"] is False
+        assert sot23_report["componentBodyGenerated"] is False
+        assert sot23_report["outputSha256"] == hashlib.sha256(sot23_bytes).hexdigest()
+        sot23_spec = json.loads(SOT23_EXAMPLE.read_text(encoding="utf-8"))
+        assert sot23_spec["sourceEvidence"][0]["sha256"] == SOT23_SOURCE_SHA256
+        assert sot23_spec["sourceEvidence"][0]["uri"] == SOT23_SOURCE_URI
+        assert sot23_spec["sourceEvidence"][0]["claim"] == "library_geometry"
+        generated_sot23_geometry = parsed_geometry(sot23_bytes.decode("utf-8"))
+        source_sot23_geometry = parsed_geometry(sot23_source_bytes.decode("utf-8"))
+        polygons = [graphic for graphic in generated_sot23_geometry["graphics"] if graphic["kind"] == "polygon"]
+        assert len(polygons) == 2 and {polygon["filled"] for polygon in polygons} == {True, False}
+        assert generated_sot23_geometry == source_sot23_geometry, (
+            "generated SOT-23 pad and supported graphics differ from the pinned upstream KiCad footprint-library snapshot"
+        )
+
+        through_hole_spec = ROOT / "examples/footprints/header-1x02-through-hole.json"
+        through_hole_output = root / "Header_1x02_P2.54mm.kicad_mod"
+        through_hole_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(through_hole_spec),
+            "--output",
+            str(through_hole_output),
+            "--json",
+        )
+        assert through_hole_result.returncode == 0, through_hole_result.stderr
+        through_hole_report = json.loads(through_hole_result.stdout)
+        through_hole_bytes = through_hole_output.read_bytes()
+        through_hole_text = through_hole_bytes.decode("utf-8")
+        assert through_hole_report["status"] == "explicit-through-hole-geometry-candidate"
+        assert through_hole_report["padType"] == "thru_hole"
+        assert through_hole_report["padCount"] == 2
+        assert through_hole_report["manufacturerLandPatternQualified"] is False
+        assert through_hole_report["outputSha256"] == hashlib.sha256(through_hole_bytes).hexdigest()
+        assert '(attr through_hole)' in through_hole_text
+        through_hole_geometry = parsed_geometry(through_hole_text)
+        assert through_hole_geometry["pads"] == [
+            {
+                "number": "1", "type": "thru_hole", "shape": "circle",
+                "atMm": [0.0, 0.0, 0.0], "sizeMm": [1.7, 1.7],
+                "layers": ["*.Cu", "*.Mask"], "roundrectRatio": None, "drillMm": 0.8,
+            },
+            {
+                "number": "2", "type": "thru_hole", "shape": "circle",
+                "atMm": [2.54, 0.0, 0.0], "sizeMm": [1.7, 1.7],
+                "layers": ["*.Cu", "*.Mask"], "roundrectRatio": None, "drillMm": 0.8,
+            },
+        ]
+
+        for name, malformed in [
+            (
+                "missing-roundrect-ratio.json",
+                through_hole_spec.read_text(encoding="utf-8").replace(
+                    '"shape": "circle"', '"shape": "roundrect"'
+                ),
+            ),
+            (
+                "invalid-roundrect-ratio.json",
+                through_hole_spec.read_text(encoding="utf-8").replace(
+                    '"shape": "circle",',
+                    '"shape": "roundrect", "roundrectRatio": 0.8,',
+                ),
+            ),
+        ]:
+            malformed_path = root / name
+            malformed_path.write_text(malformed, encoding="utf-8")
+            refused = invoke(
+                binary,
+                "component",
+                "footprint",
+                "generate",
+                str(malformed_path),
+                "--output",
+                str(root / f"{name}.kicad_mod"),
+                "--json",
+            )
+            assert refused.returncode != 0
+            assert "roundrect pads require a roundrectRatio" in refused.stderr
+
+        oval_spec = ROOT / "examples/footprints/header-1x02-oval-offset.json"
+        oval_output = root / "Header_1x02_Slotted_P2.54mm.kicad_mod"
+        oval_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(oval_spec),
+            "--output",
+            str(oval_output),
+            "--json",
+        )
+        assert oval_result.returncode == 0, oval_result.stderr
+        oval_report = json.loads(oval_result.stdout)
+        oval_text = oval_output.read_text(encoding="utf-8")
+        assert oval_report["status"] == "explicit-through-hole-geometry-candidate"
+        assert oval_report["manufacturerLandPatternQualified"] is False
+        assert '(drill oval 0.8 1.2 (offset 0.1 0))' in oval_text
+        oval_geometry = parsed_geometry(oval_text)
+        assert oval_geometry["pads"] == [
+            {
+                "number": "1", "type": "thru_hole", "shape": "oval",
+                "atMm": [0.0, 0.0, 0.0], "sizeMm": [2.0, 1.7],
+                "layers": ["*.Cu", "*.Mask"], "roundrectRatio": None,
+                "drillOvalMm": [0.8, 1.2], "drillOffsetMm": [0.1, 0.0],
+            },
+            {
+                "number": "2", "type": "thru_hole", "shape": "oval",
+                "atMm": [2.54, 0.0, 0.0], "sizeMm": [2.0, 1.7],
+                "layers": ["*.Cu", "*.Mask"], "roundrectRatio": None,
+                "drillOvalMm": [0.8, 1.2], "drillOffsetMm": [0.1, 0.0],
+            },
+        ]
+        through_hole_plain_output = root / "Header_1x02_P2.54mm.plain.kicad_mod"
+        through_hole_plain_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(through_hole_spec),
+            "--output",
+            str(through_hole_plain_output),
+        )
+        assert through_hole_plain_result.returncode == 0, through_hole_plain_result.stderr
+        assert "plated through-hole footprint candidate" in through_hole_plain_result.stdout
+        assert "SMD footprint candidate" not in through_hole_plain_result.stdout
+        footprint_help = invoke(binary, "component", "footprint", "--help")
+        assert footprint_help.returncode == 0, footprint_help.stderr
+        assert "plated through-hole (round or oval drill, optional offset)" in footprint_help.stdout
+        assert "centered round non-plated-hole geometry" in footprint_help.stdout
+        assert "through-hole/custom-pad geometry generation" not in footprint_help.stdout
+        root_help = invoke(binary, "--help")
+        assert root_help.returncode == 0, root_help.stderr
+        assert "explicit SMD, round/oval plated-hole, or centered non-plated-hole footprint/library candidates" in root_help.stdout
+
+        through_hole_library = root / "Header.pretty"
+        through_hole_library_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "library",
+            "create",
+            str(through_hole_spec),
+            "--output",
+            str(through_hole_library),
+            "--json",
+        )
+        assert through_hole_library_result.returncode == 0, through_hole_library_result.stderr
+        through_hole_library_report = json.loads(through_hole_library_result.stdout)
+        assert through_hole_library_report["status"] == "explicit-through-hole-library-candidate"
+        assert through_hole_library_report["registeredInFpLibTable"] is False
+        assert (
+            through_hole_library / "Header_1x02_P2.54mm.kicad_mod"
+        ).read_bytes() == through_hole_bytes
+
+        npth_spec = ROOT / "examples/footprints/mounting-hole-3mm-npth.json"
+        npth_output = root / "MountingHole_3mm.kicad_mod"
+        npth_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(npth_spec),
+            "--output",
+            str(npth_output),
+            "--json",
+        )
+        assert npth_result.returncode == 0, npth_result.stderr
+        npth_report = json.loads(npth_result.stdout)
+        npth_text = npth_output.read_text(encoding="utf-8")
+        assert npth_report["status"] == "explicit-non-plated-hole-geometry-candidate"
+        assert npth_report["padType"] == "np_thru_hole"
+        assert npth_report["padCount"] == 1
+        assert npth_report["manufacturerLandPatternQualified"] is False
+        assert '(pad "" np_thru_hole circle (at 0 0 0) (size 3 3) (drill 3) (layers "*.Cu" "*.Mask"))' in npth_text
+        npth_plain_output = root / "MountingHole_3mm.plain.kicad_mod"
+        npth_plain_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(npth_spec),
+            "--output",
+            str(npth_plain_output),
+        )
+        assert npth_plain_result.returncode == 0, npth_plain_result.stderr
+        assert "round non-plated hole footprint candidate" in npth_plain_result.stdout
+        npth_library = root / "MountingHole.pretty"
+        npth_library_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "library",
+            "create",
+            str(npth_spec),
+            "--output",
+            str(npth_library),
+            "--json",
+        )
+        assert npth_library_result.returncode == 0, npth_library_result.stderr
+        npth_library_report = json.loads(npth_library_result.stdout)
+        assert npth_library_report["status"] == "explicit-non-plated-hole-library-candidate"
+        assert npth_library_report["registeredInFpLibTable"] is False
+        assert (npth_library / "MountingHole_3mm.kicad_mod").read_text(encoding="utf-8") == npth_text
 
         library = root / "R0603.pretty"
         library_result = invoke(

@@ -1,0 +1,36 @@
+{
+  "schema": "tokito.esp8266-step-reference-manifest.v1",
+  "datasetRepository": "TokitoAI/tokito-app-dataset",
+  "datasetCommit": "5283bc059e30e51f4d3a81a674425936fc213214",
+  "freecadVersion": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "tessellationDeflectionMm": 0.01,
+  "models": [
+    {
+      "file": "0.step",
+      "sourceSha256": "2cb8d8e9861561c2daa3ba17b0611e13ecffba884d815240ddb5c02b59bc2542",
+      "solidCount": 5,
+      "faceCount": 70
+    },
+    {
+      "file": "14.step",
+      "sourceSha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b",
+      "solidCount": 41,
+      "faceCount": 2303
+    },
+    {
+      "file": "16.step",
+      "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+      "solidCount": 30,
+      "faceCount": 239
+    }
+  ]
+}

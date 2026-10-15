@@ -525,7 +525,7 @@ pub(crate) fn assemble_supported_vrml_models_for_components(
                 continue;
             }
         };
-        let resolution = resolver.resolve(model);
+        let resolution = resolver.resolve_board_model(board, model);
         let Some(asset) = resolution.asset else {
             record_diagnostic(
                 &mut result,

@@ -46,7 +46,7 @@ or a `target/` path on another developer's machine.
 | `demo/esp32/`, `demo/ultimaker/`, `demo/nxp-reference/` | One independent asset set per exact reference variant |
 | `active.digital-twin.glb` in each set | Geometry, materials and selectable component nodes/groups |
 | `active.digital-twin.json` | Twin identity, context revision, GLB SHA-256/size, metre/Y-up convention, bounds and qualification flags |
-| `component-map.json` | Source component identity, readable reference, selector, classification and missing/verification state |
+| `component-map.json` | Source component identity, readable reference, authored class claim, selector and missing/verification state |
 | `component-index.json` | Prepared selector index; inspect together with the map, not as a replacement for source identity |
 | `prepare-report.json` | Completeness, unresolved coverage and consumer-compatibility results |
 | `index.html` | Self-contained offline browser demo; embedded model is not an Android importer |
@@ -55,15 +55,26 @@ or a `target/` path on another developer's machine.
 | [src/digital_twin.rs](../src/digital_twin.rs), [src/twin_viewer.rs](../src/twin_viewer.rs) | Asset admission/selection and prototype generation |
 | [docs/DEMO_BUNDLE.md](DEMO_BUNDLE.md) | Frozen artifact provenance, demonstration instructions and evidence limits |
 
+Fresh CLI inspection/preparation may add `componentClassHint` to the generated
+component index when an authored class is absent. It is an explicitly
+unverified suggestion derived from one unambiguous source-text category or,
+when none is present, a narrow reference-designator prefix. It does not change
+`componentClassClaim`, qualify a photographed part, or participate in
+`twin select --class`. Consumers should keep the hint visually distinct from
+reviewed class metadata.
+
 The v0.1 `.tokito-board` directory is a separate source-and-placement inventory
 package. It is **not** the App digital-twin/assembly-context format, contains no
 complete 3D assembly, and retains `mobileImportReady: false`. See
 [package specification](TOKITO_BOARD_PACKAGE_V0.md). Do not rename it into an
 App asset or treat a successful package hash check as phone admission.
 
-The planned `demo/esp8266/` delivery will contain its GLB, component map, twin
-manifest, provenance and offline HTML viewer. It must be tested and hash-bound
-before delivery; it is not part of the frozen three-board PR #29 manifest above.
+The local `demo/esp8266/` candidate contains its GLB, component map, twin
+manifest, provenance and offline HTML viewer. Its exact model and page files
+are large generated artifacts; the current class-hint implementation has not
+regenerated those files. Generate a new prototype to see hint labels in the
+viewer. This candidate is not part of the frozen three-board PR #29 manifest
+above.
 
 ## Run and inspect the delivery
 
@@ -317,7 +328,10 @@ and comparison, subprocess receipt, browser receipt and 4K screenshot. The GLB
 has 34 direct component selectors, 62 source bodies and 405,194 component
 triangles (405,594 including substrate). Its SHA-256 is
 `e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1`.
-The native Altium IDs are retained; classes remain unspecified rather than guessed.
+The native Altium IDs are retained and authored class claims remain
+unspecified. Fresh inspection can now show separate unverified class hints;
+for this existing map, C4 is inferred as a capacitor from its reference prefix.
+The hint remains unqualified and is not eligible for authored-class selection.
 
 Run the experimental producer separately from the shipping asset-preparation CLI:
 

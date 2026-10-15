@@ -11,6 +11,11 @@ param(
     [string]$DatasetTwinComponentMap = '',
     [string]$DatasetTwinManifest = '',
     [string]$DatasetTwinProvenance = '',
+    [string]$EmbeddedDatasetBoard = '',
+    [string]$EmbeddedDatasetBoardSha256 = '',
+    [string]$EmbeddedDatasetExpectedModelCount = '',
+    [string]$EmbeddedDatasetExpectedCapturedBytes = '',
+    [string]$EmbeddedDatasetExpectedFormat = '',
     [string]$SourceCandidateRoot = '',
     [string]$Esp32CandidateRoot = '',
     [string]$Esp32ReferenceBom = '',
@@ -82,7 +87,11 @@ function Get-InputFingerprints {
                 Where-Object {
                     $_.FullName -notmatch '(?i)(^|[\\/])__pycache__([\\/]|$)' -and
                     $_.FullName -notmatch '(?i)(^|[\\/])target([\\/]|$)' -and
-                    $_.Extension -notin @('.pyc', '.pyo')
+                    # KiCad creates these per-user editor/view preferences
+                    # beside a board file. They are not source fixtures and
+                    # must not make a portable verification receipt depend on
+                    # local UI state.
+                    $_.Extension -notin @('.pyc', '.pyo', '.kicad_prl')
                 } |
                 ForEach-Object { [System.IO.Path]::GetRelativePath($projectRoot, $_.FullName) }
         }
@@ -136,10 +145,12 @@ try {
     $inputs = Get-InputFingerprints
     $checks = @(
         @{ name = 'format'; command = $cargoCommand.Source; arguments = @('fmt', '--all', '--check') },
+        @{ name = 'embedded-dataset-verifier-tests'; command = $pythonCommand.Source; arguments = @('tests/test_embedded_dataset_e2e.py') },
         @{ name = 'tests'; command = $cargoCommand.Source; arguments = @('test', '--offline', '--locked') },
         @{ name = 'clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
+        @{ name = 'kicad-10.0.7-pos-e2e'; command = $pythonCommand.Source; arguments = @('tests/kicad_pos_compat_e2e.py', '--binary', $binaryPath) },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath, '--output-dir', $geometryOutputPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
@@ -168,6 +179,22 @@ try {
         @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') }
     )
+    $embeddedDatasetInputs = @($EmbeddedDatasetBoard, $EmbeddedDatasetBoardSha256, $EmbeddedDatasetExpectedModelCount, $EmbeddedDatasetExpectedCapturedBytes, $EmbeddedDatasetExpectedFormat)
+    $embeddedDatasetInputCount = @($embeddedDatasetInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    if ($embeddedDatasetInputCount -notin @(0,5)) { throw 'Embedded dataset board, SHA-256, expected model count, captured-byte total and format must be supplied together.' }
+    if ($embeddedDatasetInputCount -eq 5) {
+        Assert-NoLinkedPath $EmbeddedDatasetBoard
+        if (-not (Test-Path -LiteralPath $EmbeddedDatasetBoard -PathType Leaf)) { throw "Missing embedded dataset board: $EmbeddedDatasetBoard" }
+        if ($EmbeddedDatasetBoardSha256 -notmatch '^[0-9A-Fa-f]{64}$') { throw 'Embedded dataset board SHA-256 must contain 64 hexadecimal characters.' }
+        $embeddedModelCount = 0
+        if (-not [int]::TryParse($EmbeddedDatasetExpectedModelCount, [ref]$embeddedModelCount) -or $embeddedModelCount -le 0) { throw 'Embedded dataset expected model count must be a positive integer.' }
+        $embeddedCapturedBytes = 0
+        if (-not [int]::TryParse($EmbeddedDatasetExpectedCapturedBytes, [ref]$embeddedCapturedBytes) -or $embeddedCapturedBytes -le 0) { throw 'Embedded dataset expected captured-byte total must be a positive integer.' }
+        if ($EmbeddedDatasetExpectedFormat -notin @('step','wrl','glb','gltf')) { throw 'Embedded dataset expected format must be step, wrl, glb, or gltf.' }
+        $embeddedReceipt = Join-Path $env:CARGO_TARGET_DIR 'embedded-dataset-e2e.json'
+        $embeddedAssets = Join-Path $env:CARGO_TARGET_DIR 'embedded-model-assets'
+        $checks += @{ name='embedded-dataset-e2e'; command=$pythonCommand.Source; arguments=@('tests/embedded_dataset_e2e.py','--binary',$binaryPath,'--board',$EmbeddedDatasetBoard,'--expected-sha256',$EmbeddedDatasetBoardSha256,'--expected-model-count',[string]$embeddedModelCount,'--expected-captured-bytes',[string]$embeddedCapturedBytes,'--expected-format',$EmbeddedDatasetExpectedFormat,'--extract-dir',$embeddedAssets,'--require-unique-owners','--receipt',$embeddedReceipt); receiptPath=$embeddedReceipt }
+    }
     $checks += @(
         @{ name='twin-refinement-format'; command=$cargoCommand.Source; arguments=@('fmt','--manifest-path','experiments/twin-refinement/Cargo.toml','--all','--check') },
         @{ name='twin-refinement-tests'; command=$cargoCommand.Source; arguments=@('test','--manifest-path','experiments/twin-refinement/Cargo.toml','--offline','--locked') },
@@ -202,7 +229,12 @@ try {
     if ($esp8266InputCount -notin @(0,3)) { throw 'ESP8266 source, independent unit receipt and FreeCAD reference must be supplied together.' }
     if ($esp8266InputCount -eq 3) {
         foreach ($path in @($Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference)) { Assert-NoLinkedPath $path; if (-not (Test-Path -LiteralPath $path)) { throw "Missing ESP8266 input: $path" } }
-        $stepOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-units-e2e'
+        # This probe enforces that its receipt directory lives inside the CLI
+        # checkout's target tree. Keep build artifacts on an optional external
+        # Cargo target (for example, when the system drive is low on space), but
+        # place this source-derived receipt under the guarded project target.
+        $stepOutput=Join-Path $projectRoot "target/github-delivery/step-length-unit-preflight-$verificationRun"
+        Assert-LocalOutputPath $stepOutput
         $occurrenceOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-occurrence-world-e2e'
         $altiumOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-altium-e2e'
         $stepBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-step-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))

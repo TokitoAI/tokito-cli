@@ -19,3 +19,4 @@ earcut = "=0.4.11"
 gltf = { version = "=1.4.1", default-features = false }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }
+ruzstd = "=0.8.1"

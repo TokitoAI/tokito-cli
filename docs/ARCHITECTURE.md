@@ -105,7 +105,7 @@ This is one Rust crate with a public library and a thin binary. Proposed future 
 
 ## Next architecture gates
 
-1. Independently compare asymmetric top/back, non-zero model transforms and mesh bounds against a reviewed KiCad/mechanical output; installed KiCad is 10.0.5, and 10.0.7 parity is not established.
+1. Independently compare asymmetric top/back, non-zero model transforms and mesh bounds against a reviewed KiCad/mechanical output. Narrow 10.0.5/10.0.7 export references exist, but 3D transform and mesh parity remain unverified.
 2. Qualify more real model-library assets and source boards, then add a tested pure-Rust STEP reader/tessellator only after a pinned corpus demonstrates useful coverage.
 3. Define one versioned physical-layout handoff from Desktop. Schematic connectivity and BOM alone are insufficient input to a physical board mesh.
 4. Agree a package/import contract with the App owner, including source revision, GLB digest, coordinate frame, component mapping and registration evidence; verify it on a real device before claiming interoperability.

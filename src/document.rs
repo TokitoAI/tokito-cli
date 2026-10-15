@@ -267,6 +267,17 @@ pub struct ModelReference {
     pub hidden: bool,
 }
 
+/// Metadata for an embedded board asset. The source AST retains the payload;
+/// this record intentionally keeps only a source locator and validation hints.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EmbeddedFileReference {
+    pub source: SourceLocator,
+    pub name: Option<String>,
+    pub file_type: Option<String>,
+    pub checksum: Option<String>,
+    pub has_data: bool,
+}
+
 /// One physical-stackup record exactly as declared by the source board.
 /// This is distinct from the drawing-layer table: its order is physical.
 #[derive(Clone, Debug, PartialEq)]
@@ -549,6 +560,7 @@ pub struct EngineeringData {
     pub zones: Vec<Zone>,
     pub graphics: Vec<Graphic>,
     pub models: Vec<ModelReference>,
+    pub embedded_files: Vec<EmbeddedFileReference>,
     pub diagnostics: Vec<Diagnostic>,
     pub diagnostics_truncated: bool,
 }
@@ -1090,6 +1102,22 @@ impl Importer {
         self.data.models.push(model);
     }
 
+    fn embedded_files(&mut self, node: &Sexp, source: SourceLocator) {
+        for (ordinal, file) in children(node) {
+            if file.head() != Some("file") {
+                continue;
+            }
+            let file_source = child_locator(file, ordinal, &source);
+            self.data.embedded_files.push(EmbeddedFileReference {
+                source: file_source,
+                name: text(file, "name", 1),
+                file_type: text(file, "type", 1),
+                checksum: text(file, "checksum", 1),
+                has_data: file.child("data").is_some(),
+            });
+        }
+    }
+
     fn component(&mut self, node: &Sexp, source: SourceLocator) {
         if source.source_uuid.as_deref().is_none_or(str::is_empty) {
             self.diagnostic(
@@ -1175,6 +1203,9 @@ impl Importer {
                 }
                 Some("pad") => self.pad(child, child_source, pose),
                 Some("model") => self.model(child, child_source),
+                Some("embedded_files") => {
+                    self.embedded_files(child, source_locator(child, ordinal, Some(source.ordinal)))
+                }
                 Some("zone") => self.zone(
                     child,
                     child_source,
@@ -1419,6 +1450,7 @@ impl EngineeringData {
                     };
                     importer.data.nets.push(net);
                 }
+                Some("embedded_files") => importer.embedded_files(node, source),
                 Some("footprint" | "module") => importer.component(node, source),
                 Some("segment") => importer.track_segment(node, source),
                 Some("arc") => importer.track_arc(node, source),

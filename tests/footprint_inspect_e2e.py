@@ -108,6 +108,17 @@ def main() -> None:
         assert report["padCount"] == len(expected)
         assert report["padRecordCoverage"] == "selected-fields-only"
         assert report["pads"] == expected, "pad inventory differs from independent source parse"
+        assert report["modelReferenceCount"] == 1
+        assert report["modelTransformCoverage"] == "explicit-source-fields-only"
+        assert report["modelReferences"] == [{
+            "ordinal": 0,
+            "path": "${KICAD10_3DMODEL_DIR}/Resistor_SMD.3dshapes/R_0603_1608Metric.step",
+            "offsetXyz": [0.0, 0.0, 0.0],
+            "scaleXyz": [1.0, 1.0, 1.0],
+            "rotateXyz": [0.0, 0.0, 0.0],
+            "status": "reported_explicit_fields",
+            "diagnostics": [],
+        }], "model-reference inventory differs from the pinned native footprint"
         assert report["structuralInspectionOnly"] is True
         assert report["semanticValidationPerformed"] is False
         assert report["geometryValidationPerformed"] is False
@@ -116,7 +127,89 @@ def main() -> None:
 
         summary = invoke(binary, "component", "footprint", "inspect", source)
         assert summary.returncode == 0, summary.stderr
-        assert "structural fields only" in summary.stdout.lower()
+        assert "model paths are not resolved" in summary.stdout.lower()
+        assert "1 source-declared 3d model reference" in summary.stdout.lower()
+
+        drill_source = root / "drilled-footprint.kicad_mod"
+        drill_source.write_text(
+            '(footprint "Drilled" '
+            '(pad "1" thru_hole circle (at 0 0) (size 1.2 1.2) '
+            '(drill 0.7 (offset 0.1 -0.2)) (layers "*.Cu" "*.Mask")) '
+            '(pad "2" thru_hole oval (at 2 0 90) (size 1.4 2.0) '
+            '(drill oval 0.6 1.0 (offset -0.15 0)) (layers "*.Cu" "*.Mask")) '
+            '(pad "" np_thru_hole circle (at 4 0) (size 3 3) '
+            '(drill 3) (layers "*.Cu" "*.Mask")))',
+            encoding="utf-8",
+        )
+        drill_result = invoke(
+            binary, "component", "footprint", "inspect", drill_source, "--json"
+        )
+        assert drill_result.returncode == 0, drill_result.stderr
+        drill_report = json.loads(drill_result.stdout)
+        assert drill_report["status"] == "reported_fields_complete"
+        assert drill_report["pads"][0]["drill"] == {
+            "shape": "round",
+            "diameterMm": 0.7,
+            "offsetMm": [0.1, -0.2],
+        }
+        assert drill_report["pads"][1]["drill"] == {
+            "shape": "oval",
+            "diameterMm": 0.6,
+            "widthMm": 1.0,
+            "offsetMm": [-0.15, 0.0],
+        }
+        assert drill_report["pads"][2]["number"] == ""
+        assert drill_report["pads"][2]["drill"] == {
+            "shape": "round",
+            "diameterMm": 3.0,
+        }
+        assert drill_report["semanticValidationPerformed"] is False
+        assert drill_report["manufacturingQualified"] is False
+
+        model_source = root / "model-transform.kicad_mod"
+        model_source.write_text(
+            '(footprint "Model" (model "${KICAD9_3DMODEL_DIR}/part.wrl" '
+            '(offset (xyz 0.1 -0.2 0.3)) (scale (xyz 1 1 1)) '
+            '(rotate (xyz 0 0 90))))',
+            encoding="utf-8",
+        )
+        model_result = invoke(binary, "component", "footprint", "inspect", model_source, "--json")
+        assert model_result.returncode == 0, model_result.stderr
+        model_report = json.loads(model_result.stdout)
+        assert model_report["modelReferences"][0]["path"] == "${KICAD9_3DMODEL_DIR}/part.wrl"
+        assert model_report["modelReferences"][0]["offsetXyz"] == [0.1, -0.2, 0.3]
+        assert model_report["modelReferences"][0]["scaleXyz"] == [1.0, 1.0, 1.0]
+        assert model_report["modelReferences"][0]["rotateXyz"] == [0.0, 0.0, 90.0]
+        assert model_report["modelReferences"][0]["status"] == "reported_explicit_fields"
+
+        malformed_model = root / "malformed-model.kicad_mod"
+        malformed_model.write_text(
+            '(footprint "BadModel" (model "part.step" '
+            '(offset (xyz 0 0)) (offset (xyz 1 2 3))))',
+            encoding="utf-8",
+        )
+        malformed_result = invoke(
+            binary, "component", "footprint", "inspect", malformed_model, "--json"
+        )
+        assert malformed_result.returncode == 0, malformed_result.stderr
+        malformed_report = json.loads(malformed_result.stdout)
+        assert malformed_report["status"] == "partial_reported_fields"
+        assert malformed_report["modelReferences"][0]["offsetXyz"] is None
+        assert "invalid_model_offset" in malformed_report["modelReferences"][0]["diagnostics"]
+
+        extra_model_content = root / "extra-model-content.kicad_mod"
+        extra_model_content.write_text(
+            '(footprint "ExtraModelContent" '
+            '(model "part.step" (offset (xyz 0 0 0)) (vendor_field yes) extra))',
+            encoding="utf-8",
+        )
+        extra_result = invoke(
+            binary, "component", "footprint", "inspect", extra_model_content, "--json"
+        )
+        assert extra_result.returncode == 0, extra_result.stderr
+        extra_report = json.loads(extra_result.stdout)
+        assert extra_report["status"] == "partial_reported_fields"
+        assert "uninterpreted_model_content" in extra_report["modelReferences"][0]["diagnostics"]
 
         malformed_pad = root / "malformed-pad.kicad_mod"
         malformed_pad.write_text(
@@ -131,6 +224,23 @@ def main() -> None:
         assert partial_report["pads"][0]["atMm"]["rotationDeg"] == 90.0
         assert "unsupported_pad_shape" in partial_report["pads"][0]["diagnostics"]
         assert "non_positive_pad_size" in partial_report["pads"][0]["diagnostics"]
+
+        missing_oval_width = root / "missing-oval-width.kicad_mod"
+        missing_oval_width.write_text(
+            '(footprint "MissingOvalWidth" '
+            '(pad "1" thru_hole oval (at 0 0) (size 1.6 2.0) '
+            '(drill oval 0.6) (layers "*.Cu" "*.Mask")))',
+            encoding="utf-8",
+        )
+        missing_width_result = invoke(
+            binary, "component", "footprint", "inspect", missing_oval_width, "--json"
+        )
+        assert missing_width_result.returncode == 0, missing_width_result.stderr
+        missing_width_report = json.loads(missing_width_result.stdout)
+        assert missing_width_report["status"] == "partial_reported_fields"
+        assert missing_width_report["pads"][0]["status"] == "partial_reported_fields"
+        assert "widthMm" not in missing_width_report["pads"][0]["drill"]
+        assert "missing_pad_drill_width" in missing_width_report["pads"][0]["diagnostics"]
 
         for name, payload, error in [
             ("broken.kicad_mod", b'(footprint "Broken"', "unclosed list"),

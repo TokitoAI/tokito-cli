@@ -1,0 +1,58 @@
+{
+  "schema": "tokito.kicad-svg-reference.v1",
+  "reference": {
+    "product": "KiCad CLI",
+    "version": "10.0.7",
+    "purpose": "Development-only observation of DNP Fab plotting semantics; Tokito does not invoke KiCad at runtime.",
+    "executable_observed": "D:/TokitoKiCadRef107/bin/kicad-cli.exe",
+    "executable_sha256": "cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a",
+    "captured_at_utc": "2026-10-14T22:15:10Z",
+    "source_path": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+    "source_sha256": "1b078b77026f4e8fd5de7cc6c7b6fff3daf454014e5e0873b7a6d0cdd77958f9"
+  },
+  "executable_captures": {
+    "version_path": "version.txt",
+    "version_sha256": "c642c34c6e3ab0b0cb88918ea9e158daeb8110e323a741f7f7dbb56623acc0c7",
+    "svg_help_path": "pcb-export-svg-help.txt",
+    "svg_help_sha256": "9ffe09799fa94da100af30e5f13a83edf3a5727125b92604cd09f0d1b37af294",
+    "documented_flag_present": "--hide-DNP-footprints-on-fab-layers"
+  },
+  "common_arguments": [
+    "pcb", "export", "svg", "--mode-single", "--layers", "F.Fab",
+    "--page-size-mode", "2", "--exclude-drawing-sheet"
+  ],
+  "outputs": [
+    {
+      "path": "uno-fab-default.svg",
+      "arguments": [],
+      "sha256": "19af9817c79a9225488ff0205290929f7566f8104f45d13d4ca274f47b272710",
+      "normalized_sha256": "e74871e3a7cde2284d357cd42c11c90f22a8d92c978bd8d6a32166d6dcea1b89",
+      "normalized_sha256_10_0_5": "e74871e3a7cde2284d357cd42c11c90f22a8d92c978bd8d6a32166d6dcea1b89",
+      "path_elements": 6065,
+      "text_elements": 107,
+      "dnp_1M_label_count": 2,
+      "width_mm": 68.58,
+      "height_mm": 53.34
+    },
+    {
+      "path": "uno-fab-hide-dnp.svg",
+      "arguments": ["--hide-DNP-footprints-on-fab-layers"],
+      "sha256": "4a65196c6249982df7ed35829fc265af9540940b7a6a86441700d7689751e210",
+      "normalized_sha256": "48619d0907598a2a5023a4a61f321b91708625bae1b053aaf5df99f8cf1cddf2",
+      "normalized_sha256_10_0_5": "48619d0907598a2a5023a4a61f321b91708625bae1b053aaf5df99f8cf1cddf2",
+      "path_elements": 6002,
+      "text_elements": 103,
+      "dnp_1M_label_count": 0,
+      "width_mm": 68.58,
+      "height_mm": 53.34
+    }
+  ],
+  "normalization": "Replace the single <title>...</title> element with <title>__normalized__</title>; no other SVG content is changed.",
+  "comparison": {
+    "version_10_0_5_manifest": "tests/reference/kicad-cli-10.0.5/svg/manifest.json",
+    "default_normalized_output_equal": true,
+    "hide_dnp_normalized_output_equal": true,
+    "behavior": "DNP-owned F.Fab text and graphics are omitted when the flag is enabled; all remaining normalized SVG bytes match this 10.0.5 capture."
+  },
+  "scope": "One pinned Arduino Uno board and F.Fab SVG export. Does not establish general SVG plot parity or full KiCad CLI parity."
+}

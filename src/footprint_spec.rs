@@ -1,4 +1,4 @@
-//! Bounded, original SMD-footprint definition tree and KiCad S-expression writer.
+//! Bounded SMD, plated-hole, and non-plated round-hole footprint writer.
 //!
 //! This mirrors the observable *separation* used by KiCad Library Tools:
 //! typed geometry nodes are validated and serialized in a stable order. It does
@@ -10,6 +10,7 @@ use std::fmt::Write as _;
 const MAX_SPEC_BYTES: usize = 64 * 1024;
 const MAX_PADS: usize = 512;
 const MAX_GRAPHICS: usize = 2048;
+const MAX_POLYGON_POINTS: usize = 256;
 const MAX_EVIDENCE: usize = 16;
 const MAX_EXTENT_MM: f64 = 100.0;
 const UM_PER_MM: f64 = 1_000_000.0;
@@ -27,6 +28,7 @@ pub struct GenerationReport {
     pub status: &'static str,
     pub footprint_name: String,
     pub side: &'static str,
+    pub pad_type: &'static str,
     pub pad_count: usize,
     pub graphic_count: usize,
     pub source_evidence: Vec<SourceEvidence>,
@@ -160,14 +162,60 @@ impl PadShape {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum PadType {
+    Smd,
+    ThruHole,
+    NpThruHole,
+}
+
+impl PadType {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Smd => "smd",
+            Self::ThruHole => "thru_hole",
+            Self::NpThruHole => "np_thru_hole",
+        }
+    }
+
+    fn candidate_status(self) -> &'static str {
+        match self {
+            Self::Smd => "explicit-smd-geometry-candidate",
+            Self::ThruHole => "explicit-through-hole-geometry-candidate",
+            Self::NpThruHole => "explicit-non-plated-hole-geometry-candidate",
+        }
+    }
+
+    fn footprint_attribute(self) -> &'static str {
+        match self {
+            Self::Smd => "smd",
+            Self::ThruHole => "through_hole",
+            Self::NpThruHole => "through_hole",
+        }
+    }
+}
+
+fn default_pad_type() -> PadType {
+    PadType::Smd
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 struct PadSpec {
     number: String,
     shape: PadShape,
+    #[serde(default = "default_pad_type")]
+    pad_type: PadType,
     at_mm: [f64; 3],
     size_mm: [f64; 2],
     layers: Vec<String>,
+    #[serde(default)]
+    drill_mm: Option<f64>,
+    #[serde(default)]
+    drill_oval_mm: Option<[f64; 2]>,
+    #[serde(default)]
+    drill_offset_mm: Option<[f64; 2]>,
     #[serde(default)]
     roundrect_ratio: Option<f64>,
 }
@@ -198,6 +246,12 @@ enum GraphicSpec {
         width_mm: f64,
         layer: String,
     },
+    Polygon {
+        points_mm: Vec<[f64; 2]>,
+        width_mm: f64,
+        layer: String,
+        filled: bool,
+    },
 }
 
 /// Parse strict JSON, validate the explicit geometry and return a deterministic
@@ -215,11 +269,13 @@ pub fn generate(input: &[u8]) -> Result<FootprintGeneration, String> {
         .map_err(|error| format!("invalid footprint specification: {error}"))?;
     validate(&spec)?;
     let serialized = serialize(&spec)?;
+    let pad_type = spec.pads[0].pad_type;
     let report = GenerationReport {
         schema: "tokito.footprint-generation-report.v1",
-        status: "explicit-smd-geometry-candidate",
+        status: pad_type.candidate_status(),
         footprint_name: spec.name,
         side: spec.side.as_str(),
+        pad_type: pad_type.as_str(),
         pad_count: spec.pads.len(),
         graphic_count: spec.graphics.len(),
         source_evidence: spec.source_evidence,
@@ -232,8 +288,9 @@ pub fn generate(input: &[u8]) -> Result<FootprintGeneration, String> {
         output_sha256: crate::sha256_hex(serialized.as_bytes()),
         limitations: vec![
             "source evidence labels and digest strings are preserved, but external files are not fetched or independently verified",
-            "only explicit surface-mount pads and line, rectangle, and circle graphics are supported",
-            "IPC-7351 pad calculation, through-hole/custom pads, zones, groups, 3D model references, and KLC rules are not implemented",
+            "only explicit homogeneous surface-mount pads, round or oval plated through-hole drills (including offsets), and centered round non-plated holes are supported; mixed pad technologies and custom pads are not implemented",
+            "graphics support lines, rectangles, circles, and simple filled or unfilled polygons with bounded, non-self-intersecting outlines",
+            "IPC-7351 pad calculation, zones, groups, 3D model references, and KLC rules are not implemented",
             "manufacturer land-pattern qualification, component body generation, board placement, and physical fit are not asserted",
         ],
     };
@@ -253,7 +310,7 @@ fn validate(spec: &FootprintSpec) -> Result<(), String> {
         );
     }
     if spec.pads.is_empty() {
-        return Err("at least one SMD pad is required".into());
+        return Err("at least one supported pad is required".into());
     }
     if spec.name.is_empty()
         || spec.name.len() > 96
@@ -279,15 +336,22 @@ fn validate(spec: &FootprintSpec) -> Result<(), String> {
     if spec.pads.is_empty() || spec.pads.len() > MAX_PADS {
         return Err(format!("pad count must be between 1 and {MAX_PADS}"));
     }
+    let pad_type = spec.pads[0].pad_type;
+    if spec.pads.iter().any(|pad| pad.pad_type != pad_type) {
+        return Err(
+            "mixed SMD, plated through-hole, and non-plated hole pads are not supported in one footprint".into(),
+        );
+    }
     if spec.graphics.len() > MAX_GRAPHICS {
         return Err(format!("graphic count must not exceed {MAX_GRAPHICS}"));
     }
     for pad in &spec.pads {
-        if pad.number.is_empty()
-            || pad.number.len() > 16
-            || !pad.number.bytes().all(|byte| {
-                byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'+' | b'-' | b'.')
-            })
+        if !(pad.number.is_empty() && pad.pad_type == PadType::NpThruHole)
+            && (pad.number.is_empty()
+                || pad.number.len() > 16
+                || !pad.number.bytes().all(|byte| {
+                    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'+' | b'-' | b'.')
+                }))
         {
             return Err(
                 "pad number must contain 1-16 ASCII letters, digits, '_', '+', '-' or '.'".into(),
@@ -308,22 +372,9 @@ fn validate(spec: &FootprintSpec) -> Result<(), String> {
         let rotated_half_y = half_width * sin.abs() + half_height * cos.abs();
         validate_extent(pad.at_mm[0].abs() + rotated_half_x, "pad X extent")?;
         validate_extent(pad.at_mm[1].abs() + rotated_half_y, "pad Y extent")?;
-        let expected = match pad.layers.as_slice() {
-            [copper, mask] if copper == spec.side.copper() && mask == spec.side.mask() => 2,
-            [copper, mask, paste]
-                if copper == spec.side.copper()
-                    && mask == spec.side.mask()
-                    && paste == spec.side.paste() =>
-            {
-                3
-            }
-            _ => {
-                return Err(
-                    "SMD layers must be ordered Cu, Mask[, Paste] for the selected side".into(),
-                );
-            }
-        };
-        debug_assert!(expected == 2 || expected == 3);
+        // Validate the corner ratio before any drill containment check can
+        // consume it. In particular, malformed round-rectangle THT input must
+        // return a validation error instead of reaching an internal expect.
         match (pad.shape, pad.roundrect_ratio) {
             (PadShape::RoundRect, Some(ratio))
                 if ratio.is_finite() && (0.0..=0.5).contains(&ratio) =>
@@ -335,6 +386,95 @@ fn validate(spec: &FootprintSpec) -> Result<(), String> {
             }
             (_, None) => (),
             (_, Some(_)) => return Err("roundrectRatio is only valid for roundrect pads".into()),
+        }
+        match pad.pad_type {
+            PadType::Smd => {
+                match pad.layers.as_slice() {
+                    [copper, mask] if copper == spec.side.copper() && mask == spec.side.mask() => {}
+                    [copper, mask, paste]
+                        if copper == spec.side.copper()
+                            && mask == spec.side.mask()
+                            && paste == spec.side.paste() => {}
+                    _ => {
+                        return Err(
+                            "SMD layers must be ordered Cu, Mask[, Paste] for the selected side"
+                                .into(),
+                        );
+                    }
+                }
+                if pad.drill_mm.is_some()
+                    || pad.drill_oval_mm.is_some()
+                    || pad.drill_offset_mm.is_some()
+                {
+                    return Err(
+                        "SMD pads must not declare drillMm, drillOvalMm, or drillOffsetMm".into(),
+                    );
+                }
+            }
+            PadType::ThruHole => {
+                if pad.layers.as_slice() != ["*.Cu", "*.Mask"] {
+                    return Err("through-hole layers must be ordered *.Cu, *.Mask".into());
+                }
+                if pad.drill_mm.is_some() && pad.drill_oval_mm.is_some() {
+                    return Err(
+                        "through-hole pads must declare only one of drillMm or drillOvalMm".into(),
+                    );
+                }
+                let drill_size = if let Some(drill) = pad.drill_mm {
+                    validate_positive(drill, "drill diameter")?;
+                    [drill, drill]
+                } else if let Some(drill) = pad.drill_oval_mm {
+                    validate_positive(drill[0], "oval drill diameter")?;
+                    validate_positive(drill[1], "oval drill width")?;
+                    drill
+                } else {
+                    return Err("through-hole pads require drillMm or drillOvalMm".into());
+                };
+                let offset = pad.drill_offset_mm.unwrap_or([0.0, 0.0]);
+                validate_point2(offset, "drill offset")?;
+                validate_drill_fit(
+                    pad.shape,
+                    pad.size_mm,
+                    pad.roundrect_ratio,
+                    drill_size,
+                    offset,
+                )?;
+                for (axis, value) in [
+                    ("drill X extent", offset[0]),
+                    ("drill Y extent", offset[1]),
+                    ("drill diameter", drill_size[0]),
+                    ("drill width", drill_size[1]),
+                ] {
+                    quantized(value, axis)?;
+                }
+            }
+            PadType::NpThruHole => {
+                if pad.layers.as_slice() != ["*.Cu", "*.Mask"] {
+                    return Err("non-plated hole layers must be ordered *.Cu, *.Mask".into());
+                }
+                if pad.shape != PadShape::Circle {
+                    return Err(
+                        "non-plated hole candidates require a circular pad and round drill".into(),
+                    );
+                }
+                let drill = pad
+                    .drill_mm
+                    .ok_or("non-plated holes require a round drillMm")?;
+                if pad.drill_oval_mm.is_some() || pad.drill_offset_mm.is_some() {
+                    return Err(
+                        "non-plated hole candidates support only a centered round drill".into(),
+                    );
+                }
+                validate_positive(drill, "drill diameter")?;
+                let drill = quantized(drill, "drill diameter")?;
+                if drill != quantized(pad.size_mm[0], "non-plated hole size")?
+                    || drill != quantized(pad.size_mm[1], "non-plated hole size")?
+                {
+                    return Err(
+                        "non-plated circular hole size must equal its drill diameter".into(),
+                    );
+                }
+            }
         }
         for (label, value) in [
             ("pad X", pad.at_mm[0]),
@@ -454,6 +594,15 @@ fn validate_graphic(graphic: &GraphicSpec, side: Side) -> Result<(), String> {
             quantized(*radius_mm, "circle radius")?;
             (layer.as_str(), *width_mm)
         }
+        GraphicSpec::Polygon {
+            points_mm,
+            width_mm,
+            layer,
+            ..
+        } => {
+            validate_polygon(points_mm)?;
+            (layer.as_str(), *width_mm)
+        }
     };
     if ![side.silk(), side.fab(), side.courtyard()].contains(&layer) {
         return Err(format!(
@@ -462,10 +611,9 @@ fn validate_graphic(graphic: &GraphicSpec, side: Side) -> Result<(), String> {
     }
     validate_positive(width, "graphic stroke width")?;
     quantized(width, "graphic stroke width")?;
-    // KiCad serializes the stroke around the path centerline, so visible
-    // geometry extends half the stroke width beyond line, rectangle, and
-    // circle centerlines. Keep the emitted raster/CAD extents within the same
-    // bound used for pad envelopes.
+    // KiCad serializes strokes around path centerlines, so visible geometry
+    // extends half the stroke width beyond a graphic's centerline. Keep the
+    // emitted geometry within the same bound used for pad envelopes.
     let half_stroke = width * 0.5;
     match graphic {
         GraphicSpec::Line {
@@ -488,8 +636,113 @@ fn validate_graphic(graphic: &GraphicSpec, side: Side) -> Result<(), String> {
             validate_extent(center_mm[0].abs() + visible_radius, "circle X extent")?;
             validate_extent(center_mm[1].abs() + visible_radius, "circle Y extent")?;
         }
+        GraphicSpec::Polygon { points_mm, .. } => {
+            for point in points_mm {
+                validate_extent(point[0].abs() + half_stroke, "polygon X extent")?;
+                validate_extent(point[1].abs() + half_stroke, "polygon Y extent")?;
+            }
+        }
     }
     Ok(())
+}
+
+fn validate_polygon(points_mm: &[[f64; 2]]) -> Result<(), String> {
+    if !(3..=MAX_POLYGON_POINTS).contains(&points_mm.len()) {
+        return Err(format!(
+            "polygon must contain 3..={MAX_POLYGON_POINTS} points"
+        ));
+    }
+
+    // Validate the exact micrometre grid emitted to KiCad. This prevents
+    // source-space points that collapse during serialization from creating
+    // zero-length edges or a misleading nonzero area.
+    let mut points = Vec::with_capacity(points_mm.len());
+    for point in points_mm {
+        validate_point2(*point, "polygon point")?;
+        let quantized_point = [
+            quantized(point[0], "polygon X")?,
+            quantized(point[1], "polygon Y")?,
+        ];
+        if points.contains(&quantized_point) {
+            return Err("polygon points must be unique after coordinate quantization".into());
+        }
+        points.push(quantized_point);
+    }
+
+    let twice_area: i128 = points
+        .iter()
+        .zip(points.iter().cycle().skip(1))
+        .take(points.len())
+        .map(|(a, b)| i128::from(a[0]) * i128::from(b[1]) - i128::from(b[0]) * i128::from(a[1]))
+        .sum();
+    if twice_area == 0 {
+        return Err("polygon must have nonzero area after coordinate quantization".into());
+    }
+
+    // Concave, simple polygons are allowed. Reject adjacent backtracking and
+    // non-adjacent crossings/touches that would make their fill ambiguous.
+    for index in 0..points.len() {
+        let previous = points[(index + points.len() - 1) % points.len()];
+        let current = points[index];
+        let next = points[(index + 1) % points.len()];
+        if orientation(previous, current, next) == 0 {
+            let incoming = [current[0] - previous[0], current[1] - previous[1]];
+            let outgoing = [next[0] - current[0], next[1] - current[1]];
+            let dot = i128::from(incoming[0]) * i128::from(outgoing[0])
+                + i128::from(incoming[1]) * i128::from(outgoing[1]);
+            if dot <= 0 {
+                return Err("polygon adjacent edges must not overlap".into());
+            }
+        }
+    }
+    for first in 0..points.len() {
+        let first_next = (first + 1) % points.len();
+        for second in first + 1..points.len() {
+            let second_next = (second + 1) % points.len();
+            if first_next == second || second_next == first {
+                continue;
+            }
+            if segments_intersect(
+                points[first],
+                points[first_next],
+                points[second],
+                points[second_next],
+            ) {
+                return Err("polygon must not self-intersect or self-touch".into());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn orientation(a: [i64; 2], b: [i64; 2], c: [i64; 2]) -> i128 {
+    let ab_x = i128::from(b[0]) - i128::from(a[0]);
+    let ab_y = i128::from(b[1]) - i128::from(a[1]);
+    let ac_x = i128::from(c[0]) - i128::from(a[0]);
+    let ac_y = i128::from(c[1]) - i128::from(a[1]);
+    ab_x * ac_y - ab_y * ac_x
+}
+
+fn on_segment(a: [i64; 2], b: [i64; 2], point: [i64; 2]) -> bool {
+    point[0] >= a[0].min(b[0])
+        && point[0] <= a[0].max(b[0])
+        && point[1] >= a[1].min(b[1])
+        && point[1] <= a[1].max(b[1])
+}
+
+fn segments_intersect(a: [i64; 2], b: [i64; 2], c: [i64; 2], d: [i64; 2]) -> bool {
+    let (ab_c, ab_d, cd_a, cd_b) = (
+        orientation(a, b, c),
+        orientation(a, b, d),
+        orientation(c, d, a),
+        orientation(c, d, b),
+    );
+    (ab_c == 0 && on_segment(a, b, c))
+        || (ab_d == 0 && on_segment(a, b, d))
+        || (cd_a == 0 && on_segment(c, d, a))
+        || (cd_b == 0 && on_segment(c, d, b))
+        || (((ab_c > 0 && ab_d < 0) || (ab_c < 0 && ab_d > 0))
+            && ((cd_a > 0 && cd_b < 0) || (cd_a < 0 && cd_b > 0)))
 }
 
 fn validate_text(value: &str, label: &str, maximum: usize) -> Result<(), String> {
@@ -584,7 +837,8 @@ fn serialize(spec: &FootprintSpec) -> Result<String, String> {
     writeln!(out, "  (descr {})", quote(&spec.description)).unwrap();
     let tags = spec.tags.join(" ");
     writeln!(out, "  (tags {})", quote(&tags)).unwrap();
-    out.push_str("  (attr smd)\n");
+    let pad_type = spec.pads[0].pad_type;
+    writeln!(out, "  (attr {})", pad_type.footprint_attribute()).unwrap();
     write_property(
         &mut out,
         "Reference",
@@ -599,8 +853,9 @@ fn serialize(spec: &FootprintSpec) -> Result<String, String> {
     for pad in &spec.pads {
         write!(
             out,
-            "  (pad {} smd {} (at {} {} {}) (size {} {}) (layers",
+            "  (pad {} {} {} (at {} {} {}) (size {} {})",
             quote(&pad.number),
+            pad.pad_type.as_str(),
             pad.shape.as_str(),
             mm(pad.at_mm[0], "pad X")?,
             mm(pad.at_mm[1], "pad Y")?,
@@ -609,6 +864,22 @@ fn serialize(spec: &FootprintSpec) -> Result<String, String> {
             mm(pad.size_mm[1], "pad height")?
         )
         .unwrap();
+        if let Some(drill) = pad.drill_mm {
+            write!(out, " (drill {}", mm(drill, "drill diameter")?).unwrap();
+            write_drill_offset(&mut out, pad.drill_offset_mm)?;
+            out.push(')');
+        } else if let Some([diameter, width]) = pad.drill_oval_mm {
+            write!(
+                out,
+                " (drill oval {} {}",
+                mm(diameter, "oval drill diameter")?,
+                mm(width, "oval drill width")?
+            )
+            .unwrap();
+            write_drill_offset(&mut out, pad.drill_offset_mm)?;
+            out.push(')');
+        }
+        out.push_str(" (layers");
         for layer in &pad.layers {
             write!(out, " {}", quote(layer)).unwrap();
         }
@@ -620,6 +891,125 @@ fn serialize(spec: &FootprintSpec) -> Result<String, String> {
     }
     out.push_str(")\n");
     Ok(out)
+}
+
+fn write_drill_offset(out: &mut String, offset: Option<[f64; 2]>) -> Result<(), String> {
+    if let Some(offset) = offset {
+        write!(
+            out,
+            " (offset {} {})",
+            mm(offset[0], "drill offset X")?,
+            mm(offset[1], "drill offset Y")?
+        )
+        .unwrap();
+    }
+    Ok(())
+}
+
+/// Require the drill's bounding geometry to remain inside the copper pad.
+/// Circle pads use exact capsule-in-circle containment; round-rectangle pads
+/// use the exact inward offset of their rounded boundary; oval pads use
+/// capsule containment; rectangular pads use their exact axis-aligned
+/// envelope. This is a geometric sanity check, not an annular-ring or
+/// manufacturing-rule qualification.
+fn validate_drill_fit(
+    shape: PadShape,
+    pad_size: [f64; 2],
+    roundrect_ratio: Option<f64>,
+    drill_size: [f64; 2],
+    offset: [f64; 2],
+) -> Result<(), String> {
+    let inside = match shape {
+        PadShape::Rect => {
+            offset[0].abs() + drill_size[0] / 2.0 < pad_size[0] / 2.0
+                && offset[1].abs() + drill_size[1] / 2.0 < pad_size[1] / 2.0
+        }
+        PadShape::Circle => {
+            let (drill_segment, drill_radius) = capsule_axis(drill_size);
+            let start = [offset[0] - drill_segment[0], offset[1] - drill_segment[1]];
+            let end = [offset[0] + drill_segment[0], offset[1] + drill_segment[1]];
+            start[0].hypot(start[1]) + drill_radius < pad_size[0] / 2.0
+                && end[0].hypot(end[1]) + drill_radius < pad_size[0] / 2.0
+        }
+        PadShape::RoundRect => {
+            let (drill_segment, drill_radius) = capsule_axis(drill_size);
+            let inner_size = [
+                pad_size[0] - 2.0 * drill_radius,
+                pad_size[1] - 2.0 * drill_radius,
+            ];
+            let corner_radius =
+                pad_size[0].min(pad_size[1]) * roundrect_ratio.expect("validated roundrect ratio");
+            let inner_corner_radius = (corner_radius - drill_radius).max(0.0);
+            let start = [offset[0] - drill_segment[0], offset[1] - drill_segment[1]];
+            let end = [offset[0] + drill_segment[0], offset[1] + drill_segment[1]];
+            inner_size[0] > 0.0
+                && inner_size[1] > 0.0
+                && point_in_roundrect(start, inner_size, inner_corner_radius)
+                && point_in_roundrect(end, inner_size, inner_corner_radius)
+        }
+        PadShape::Oval => {
+            let (pad_segment, pad_radius) = capsule_axis(pad_size);
+            let (drill_segment, drill_radius) = capsule_axis(drill_size);
+            let start = [offset[0] - drill_segment[0], offset[1] - drill_segment[1]];
+            let end = [offset[0] + drill_segment[0], offset[1] + drill_segment[1]];
+            point_segment_distance(start, [-pad_segment[0], -pad_segment[1]], pad_segment)
+                + drill_radius
+                < pad_radius
+                && point_segment_distance(end, [-pad_segment[0], -pad_segment[1]], pad_segment)
+                    + drill_radius
+                    < pad_radius
+        }
+    };
+    if inside {
+        Ok(())
+    } else {
+        Err("drill geometry and offset must remain strictly inside the pad bounds".into())
+    }
+}
+
+fn point_in_roundrect(point: [f64; 2], size: [f64; 2], corner_radius: f64) -> bool {
+    let half_width = size[0] / 2.0;
+    let half_height = size[1] / 2.0;
+    if point[0].abs() > half_width || point[1].abs() > half_height {
+        return false;
+    }
+    let core_half_width = half_width - corner_radius;
+    let core_half_height = half_height - corner_radius;
+    let outside_core_x = (point[0].abs() - core_half_width).max(0.0);
+    let outside_core_y = (point[1].abs() - core_half_height).max(0.0);
+    if corner_radius == 0.0 {
+        point[0].abs() < half_width && point[1].abs() < half_height
+    } else {
+        outside_core_x.hypot(outside_core_y) < corner_radius
+    }
+}
+
+fn capsule_axis(size: [f64; 2]) -> ([f64; 2], f64) {
+    if size[0] >= size[1] {
+        ([(size[0] - size[1]) / 2.0, 0.0], size[1] / 2.0)
+    } else {
+        ([0.0, (size[1] - size[0]) / 2.0], size[0] / 2.0)
+    }
+}
+
+fn point_segment_distance(point: [f64; 2], start: [f64; 2], half_segment: [f64; 2]) -> f64 {
+    let end = [
+        start[0] + 2.0 * half_segment[0],
+        start[1] + 2.0 * half_segment[1],
+    ];
+    let segment = [end[0] - start[0], end[1] - start[1]];
+    let length_squared = segment[0] * segment[0] + segment[1] * segment[1];
+    if length_squared == 0.0 {
+        return (point[0] - start[0]).hypot(point[1] - start[1]);
+    }
+    let projection = (((point[0] - start[0]) * segment[0] + (point[1] - start[1]) * segment[1])
+        / length_squared)
+        .clamp(0.0, 1.0);
+    let closest = [
+        start[0] + projection * segment[0],
+        start[1] + projection * segment[1],
+    ];
+    (point[0] - closest[0]).hypot(point[1] - closest[1])
 }
 
 fn write_property(
@@ -684,6 +1074,31 @@ fn write_graphic(out: &mut String, graphic: &GraphicSpec) -> Result<(), String> 
             writeln!(out, "  (fp_circle (center {} {}) (end {} {}) (stroke (width {}) (type solid)) (fill none) (layer {}))",
                 mm(center_mm[0], "circle center X")?, mm(center_mm[1], "circle center Y")?, mm(center_mm[0] + radius_mm, "circle end X")?, mm(center_mm[1], "circle end Y")?, mm(*width_mm, "circle width")?, quote(layer)).unwrap();
         }
+        GraphicSpec::Polygon {
+            points_mm,
+            width_mm,
+            layer,
+            filled,
+        } => {
+            write!(out, "  (fp_poly (pts").unwrap();
+            for point in points_mm {
+                write!(
+                    out,
+                    " (xy {} {})",
+                    mm(point[0], "polygon X")?,
+                    mm(point[1], "polygon Y")?
+                )
+                .unwrap();
+            }
+            writeln!(
+                out,
+                ") (stroke (width {}) (type solid)) (fill {}) (layer {}))",
+                mm(*width_mm, "polygon stroke width")?,
+                if *filled { "yes" } else { "no" },
+                quote(layer)
+            )
+            .unwrap();
+        }
     }
     Ok(())
 }
@@ -714,6 +1129,69 @@ mod tests {
         }"#.to_vec()
     }
 
+    fn polygon_spec(points: &str, filled: bool) -> Vec<u8> {
+        let source = String::from_utf8(valid_spec()).unwrap();
+        let circle =
+            r#"{"kind":"circle","centerMm":[0,0],"radiusMm":0.1,"widthMm":0.05,"layer":"F.Fab"}"#;
+        let polygon = format!(
+            r#"{{"kind":"polygon","pointsMm":{points},"widthMm":0.05,"layer":"F.Fab","filled":{filled}}}"#
+        );
+        source.replace(circle, &polygon).into_bytes()
+    }
+
+    fn through_hole_spec() -> Vec<u8> {
+        br#"{
+          "schema":"tokito.footprint-definition.v1",
+          "name":"Header_1x02_P2.54mm",
+          "description":"Explicit round-drill through-hole candidate",
+          "tags":["header","through-hole"],
+          "side":"front",
+          "reference":{"text":"REF**","atMm":[0,-2.5,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "value":{"text":"Header_1x02_P2.54mm","atMm":[0,2.5,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "pads":[
+            {"number":"1","padType":"thru_hole","shape":"circle","atMm":[0,0,0],"sizeMm":[1.7,1.7],"drillMm":0.8,"layers":["*.Cu","*.Mask"]},
+            {"number":"2","padType":"thru_hole","shape":"circle","atMm":[2.54,0,0],"sizeMm":[1.7,1.7],"drillMm":0.8,"layers":["*.Cu","*.Mask"]}
+          ],
+          "graphics":[
+            {"kind":"rectangle","startMm":[-0.8,-1.1],"endMm":[3.34,1.1],"widthMm":0.1,"layer":"F.Fab"},
+            {"kind":"rectangle","startMm":[-1.0,-1.5],"endMm":[3.54,1.5],"widthMm":0.05,"layer":"F.CrtYd"}
+          ],
+          "sourceEvidence":[]
+        }"#.to_vec()
+    }
+
+    fn oval_offset_through_hole_spec() -> Vec<u8> {
+        String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"oval\"")
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[2.0,1.7]")
+            .replace(
+                "\"drillMm\":0.8",
+                "\"drillOvalMm\":[0.8,1.2],\"drillOffsetMm\":[0.1,0.0]",
+            )
+            .into_bytes()
+    }
+
+    fn non_plated_hole_spec() -> Vec<u8> {
+        br#"{
+          "schema":"tokito.footprint-definition.v1",
+          "name":"MountingHole_3mm",
+          "description":"Explicit round non-plated hole candidate",
+          "tags":["mechanical","non-plated-hole"],
+          "side":"front",
+          "reference":{"text":"REF**","atMm":[0,-2.5,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "value":{"text":"MountingHole_3mm","atMm":[0,2.5,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "pads":[
+            {"number":"","padType":"np_thru_hole","shape":"circle","atMm":[0,0,0],"sizeMm":[3,3],"drillMm":3,"layers":["*.Cu","*.Mask"]}
+          ],
+          "graphics":[
+            {"kind":"circle","centerMm":[0,0],"radiusMm":1.75,"widthMm":0.1,"layer":"F.Fab"},
+            {"kind":"circle","centerMm":[0,0],"radiusMm":2.0,"widthMm":0.05,"layer":"F.CrtYd"}
+          ],
+          "sourceEvidence":[]
+        }"#.to_vec()
+    }
+
     #[test]
     fn generates_stable_typed_smd_geometry_and_digest() {
         let input = valid_spec();
@@ -732,6 +1210,284 @@ mod tests {
         assert_eq!(
             first.report.output_sha256,
             crate::sha256_hex(first.text.as_bytes())
+        );
+    }
+
+    #[test]
+    fn generates_stable_explicit_round_drill_through_hole_pads() {
+        let input = through_hole_spec();
+        let first = generate(&input).expect("valid through-hole spec");
+        let second = generate(&input).expect("same through-hole spec");
+        assert_eq!(first.text, second.text);
+        assert_eq!(first.report, second.report);
+        assert_eq!(
+            first.report.status,
+            "explicit-through-hole-geometry-candidate"
+        );
+        assert_eq!(first.report.pad_type, "thru_hole");
+        assert_eq!(first.report.pad_count, 2);
+        assert!(first.text.contains("(attr through_hole)"));
+        assert!(first.text.contains(
+            "(pad \"1\" thru_hole circle (at 0 0 0) (size 1.7 1.7) (drill 0.8) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+        assert!(first.text.contains(
+            "(pad \"2\" thru_hole circle (at 2.54 0 0) (size 1.7 1.7) (drill 0.8) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+        assert_eq!(
+            first.report.output_sha256,
+            crate::sha256_hex(first.text.as_bytes())
+        );
+    }
+
+    #[test]
+    fn through_hole_spec_requires_round_drill_and_global_copper_mask_layers() {
+        let no_drill = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"drillMm\":0.8,", "");
+        assert!(
+            generate(no_drill.as_bytes())
+                .unwrap_err()
+                .contains("require drillMm or drillOvalMm")
+        );
+
+        let missing_roundrect_ratio = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"roundrect\"");
+        assert!(
+            generate(missing_roundrect_ratio.as_bytes())
+                .unwrap_err()
+                .contains("roundrect pads require a roundrectRatio")
+        );
+
+        let invalid_roundrect_ratio = String::from_utf8(through_hole_spec()).unwrap().replace(
+            "\"shape\":\"circle\"",
+            "\"shape\":\"roundrect\",\"roundrectRatio\":0.8",
+        );
+        assert!(
+            generate(invalid_roundrect_ratio.as_bytes())
+                .unwrap_err()
+                .contains("roundrect pads require a roundrectRatio")
+        );
+
+        let drill_on_smd = String::from_utf8(valid_spec()).unwrap().replace(
+            "\"shape\":\"roundrect\"",
+            "\"shape\":\"roundrect\",\"drillMm\":0.2",
+        );
+        assert!(
+            generate(drill_on_smd.as_bytes())
+                .unwrap_err()
+                .contains("SMD pads must not declare")
+        );
+
+        let oversized_drill = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"drillMm\":0.8", "\"drillMm\":1.7");
+        assert!(
+            generate(oversized_drill.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+
+        let wrong_layers = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"*.Cu\",\"*.Mask\"", "\"F.Cu\",\"F.Mask\"");
+        assert!(
+            generate(wrong_layers.as_bytes())
+                .unwrap_err()
+                .contains("through-hole layers")
+        );
+
+        let mixed = String::from_utf8(through_hole_spec()).unwrap().replacen(
+            "\"padType\":\"thru_hole\"",
+            "\"padType\":\"smd\"",
+            1,
+        );
+        assert!(
+            generate(mixed.as_bytes())
+                .unwrap_err()
+                .contains("mixed SMD, plated through-hole, and non-plated")
+        );
+    }
+
+    #[test]
+    fn generates_oval_offset_plated_holes_and_checks_pad_containment() {
+        let input = oval_offset_through_hole_spec();
+        let generated = generate(&input).expect("valid oval offset through-hole spec");
+        assert!(generated.text.contains(
+            "(pad \"1\" thru_hole oval (at 0 0 0) (size 2 1.7) (drill oval 0.8 1.2 (offset 0.1 0)) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+
+        let round_offset = String::from_utf8(through_hole_spec()).unwrap().replace(
+            "\"drillMm\":0.8",
+            "\"drillMm\":0.8,\"drillOffsetMm\":[0.1,0.0]",
+        );
+        let generated_round = generate(round_offset.as_bytes()).expect("valid round offset drill");
+        assert!(generated_round.text.contains("(drill 0.8 (offset 0.1 0))"));
+
+        let both_shapes = String::from_utf8(input.clone()).unwrap().replace(
+            "\"drillOvalMm\":[0.8,1.2]",
+            "\"drillMm\":0.8,\"drillOvalMm\":[0.8,1.2]",
+        );
+        assert!(
+            generate(both_shapes.as_bytes())
+                .unwrap_err()
+                .contains("only one of drillMm or drillOvalMm")
+        );
+
+        let outside = String::from_utf8(input)
+            .unwrap()
+            .replace("\"drillOffsetMm\":[0.1,0.0]", "\"drillOffsetMm\":[1.0,0.0]");
+        assert!(
+            generate(outside.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+    }
+
+    #[test]
+    fn oval_drills_fit_circle_and_roundrect_pads_without_accepting_corner_escape() {
+        let circle_fit = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[2,2]")
+            .replace(
+                "\"drillMm\":0.8",
+                "\"drillOvalMm\":[1.0,0.4],\"drillOffsetMm\":[0.0,0.5]",
+            );
+        generate(circle_fit.as_bytes()).expect("offset oval capsule fits the circular pad");
+
+        let circle_escape = circle_fit.replace(
+            "\"drillOffsetMm\":[0.0,0.5]",
+            "\"drillOffsetMm\":[0.0,0.85]",
+        );
+        assert!(
+            generate(circle_escape.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+
+        let circle_tangent = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[2,2]")
+            .replace(
+                "\"drillMm\":0.8",
+                "\"drillMm\":0.4,\"drillOffsetMm\":[0,0.8]",
+            );
+        assert!(
+            generate(circle_tangent.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+
+        let roundrect_fit = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"roundrect\"")
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[4,2]")
+            .replace(
+                "\"shape\":\"roundrect\"",
+                "\"shape\":\"roundrect\",\"roundrectRatio\":0.25",
+            )
+            .replace("\"drillMm\":0.8", "\"drillOvalMm\":[2.5,0.6]");
+        generate(roundrect_fit.as_bytes())
+            .expect("centered slot fits inside the roundrect's central region");
+
+        let roundrect_tangent = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"roundrect\"")
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[4,2]")
+            .replace(
+                "\"shape\":\"roundrect\"",
+                "\"shape\":\"roundrect\",\"roundrectRatio\":0.25",
+            )
+            .replace(
+                "\"drillMm\":0.8",
+                "\"drillMm\":0.4,\"drillOffsetMm\":[1.5,0.8]",
+            );
+        assert!(
+            generate(roundrect_tangent.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+
+        let zero_inner_corner = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"roundrect\"")
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[4,2]")
+            .replace(
+                "\"shape\":\"roundrect\"",
+                "\"shape\":\"roundrect\",\"roundrectRatio\":0.25",
+            )
+            .replace("\"drillMm\":0.8", "\"drillMm\":1.0");
+        generate(zero_inner_corner.as_bytes())
+            .expect("centered drill fits when erosion leaves a strict rectangle");
+
+        let roundrect_corner_escape = String::from_utf8(through_hole_spec())
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"roundrect\"")
+            .replace("\"sizeMm\":[1.7,1.7]", "\"sizeMm\":[4,2]")
+            .replace(
+                "\"shape\":\"roundrect\"",
+                "\"shape\":\"roundrect\",\"roundrectRatio\":0.25",
+            )
+            .replace(
+                "\"drillMm\":0.8",
+                "\"drillOvalMm\":[1.0,0.4],\"drillOffsetMm\":[1.45,0.7]",
+            );
+        assert!(
+            generate(roundrect_corner_escape.as_bytes())
+                .unwrap_err()
+                .contains("strictly inside the pad bounds")
+        );
+    }
+
+    #[test]
+    fn generates_explicit_round_non_plated_hole_and_requires_hole_only_geometry() {
+        let input = non_plated_hole_spec();
+        let generated = generate(&input).expect("valid non-plated hole spec");
+        assert_eq!(
+            generated.report.status,
+            "explicit-non-plated-hole-geometry-candidate"
+        );
+        assert_eq!(generated.report.pad_type, "np_thru_hole");
+        assert_eq!(generated.report.pad_count, 1);
+        assert!(generated.text.contains("(attr through_hole)"));
+        assert!(generated.text.contains(
+            "(pad \"\" np_thru_hole circle (at 0 0 0) (size 3 3) (drill 3) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+
+        let no_drill = String::from_utf8(input.clone())
+            .unwrap()
+            .replace("\"drillMm\":3,", "");
+        assert!(
+            generate(no_drill.as_bytes())
+                .unwrap_err()
+                .contains("require a round drillMm")
+        );
+
+        let size_mismatch = String::from_utf8(input.clone())
+            .unwrap()
+            .replace("\"sizeMm\":[3,3]", "\"sizeMm\":[3.2,3.2]");
+        assert!(
+            generate(size_mismatch.as_bytes())
+                .unwrap_err()
+                .contains("size must equal its drill diameter")
+        );
+
+        let wrong_layers = String::from_utf8(input.clone())
+            .unwrap()
+            .replace("\"*.Cu\",\"*.Mask\"", "\"F.Cu\",\"F.Mask\"");
+        assert!(
+            generate(wrong_layers.as_bytes())
+                .unwrap_err()
+                .contains("non-plated hole layers")
+        );
+
+        let non_circular = String::from_utf8(input)
+            .unwrap()
+            .replace("\"shape\":\"circle\"", "\"shape\":\"oval\"");
+        assert!(
+            generate(non_circular.as_bytes())
+                .unwrap_err()
+                .contains("require a circular pad and round drill")
         );
     }
 
@@ -829,6 +1585,60 @@ mod tests {
             generate(degenerate.as_bytes())
                 .unwrap_err()
                 .contains("rectangle must have nonzero width and height")
+        );
+    }
+
+    #[test]
+    fn emits_filled_and_unfilled_polygon_geometry() {
+        let filled = generate(&polygon_spec("[[-0.1,-0.1],[0.1,-0.1],[0,0.1]]", true))
+            .expect("simple filled polygon");
+        assert!(filled.text.contains(
+            "(fp_poly (pts (xy -0.1 -0.1) (xy 0.1 -0.1) (xy 0 0.1)) (stroke (width 0.05) (type solid)) (fill yes) (layer \"F.Fab\"))"
+        ));
+
+        let outline = generate(&polygon_spec("[[0,0],[0.2,0],[0.2,0.2],[0,0.2]]", false))
+            .expect("simple unfilled polygon");
+        assert!(outline.text.contains("(fill no) (layer \"F.Fab\")"));
+
+        // Concave polygons are valid when their edges remain simple.
+        generate(&polygon_spec("[[0,0],[2,0],[2,2],[1,1],[0,2]]", true))
+            .expect("simple concave polygon");
+    }
+
+    #[test]
+    fn rejects_invalid_or_ambiguous_polygon_geometry() {
+        assert!(
+            generate(&polygon_spec("[[0,0],[1,0]]", true))
+                .unwrap_err()
+                .contains("3..=256 points")
+        );
+        assert!(
+            generate(&polygon_spec("[[0,0],[1,0],[2,0]]", true))
+                .unwrap_err()
+                .contains("nonzero area")
+        );
+        assert!(
+            generate(&polygon_spec("[[0,0],[1e-13,0],[0,1]]", true))
+                .unwrap_err()
+                .contains("unique after coordinate quantization")
+        );
+        assert!(
+            generate(&polygon_spec("[[0,0],[2,2],[0,2],[2,0],[3,1]]", true))
+                .unwrap_err()
+                .contains("self-intersect")
+        );
+        assert!(
+            generate(&polygon_spec("[[0,0],[2,0],[1,0],[1,1]]", true))
+                .unwrap_err()
+                .contains("adjacent edges must not overlap")
+        );
+        assert!(
+            generate(&polygon_spec(
+                "[[0,0],[0,4],[4,4],[4,1],[2,0],[3,-1],[4,0]]",
+                true
+            ))
+            .unwrap_err()
+            .contains("self-intersect or self-touch")
         );
     }
 

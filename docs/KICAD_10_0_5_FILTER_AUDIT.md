@@ -54,7 +54,7 @@ The KiCad 10.0 CLI manual describes `--no-dnp` as excluding 3D models for compon
 
 ## Relationship to footprint/library tooling
 
-Board-export filtering and footprint-library generation are separate KiCad workflows. The pinned Library Tools audit is in [Component Forge review](COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md). Its family data/IPC calculation, typed KicadModTree nodes, deterministic serializer and KLC checks inform issue #24. The Tokito [footprint-spec path](COMPONENT_FORGE_SPECIFICATION.md) serializes explicit SMD geometry only; `.pretty` lock/verify adds file-level identity checks, not KiCad semantic validation or derived package land patterns.
+Board-export filtering and footprint-library generation are separate KiCad workflows. The pinned Library Tools audit is in [Component Forge review](COMPONENT_FORGE_OPEN_SOURCE_REVIEW.md). Its family data/IPC calculation, typed KicadModTree nodes, deterministic serializer and KLC checks inform issue #24. The Tokito [footprint-spec path](COMPONENT_FORGE_SPECIFICATION.md) serializes bounded homogeneous SMD, plated round/oval/offset through-hole, and centered circular non-plated-hole candidates; `.pretty` lock/verify adds file-level identity checks, not KiCad semantic validation or derived package land patterns.
 
 ## References
 

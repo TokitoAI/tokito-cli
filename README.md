@@ -134,20 +134,20 @@ shape is not a declaration of complete KiCad command compatibility.
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
 | `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
-| `resolve models` / `model inspect` | Caller-approved local asset resolution and bounded VRML inspection |
-| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform`/`DEF`/`USE` and checked planar polygon `IndexedFaceSet`), KiCad-observed reference wildcards, optional native DNP exclusion with receipt ([reference and limits](docs/REA_KICAD_CLI_10_0_5.md)), or explicit candidate assignments |
+| `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection; copied STEP/glTF bytes are not decoded geometry or selector qualification |
+| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE` and checked planar polygon `IndexedFaceSet`), KiCad-observed reference wildcards, optional native DNP exclusion with receipt ([reference and limits](docs/REA_KICAD_CLI_10_0_5.md)), or explicit candidate assignments |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
-| `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer and queries |
+| `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer, exact-reference/authored-class queries, and visibly unverified class hints for missing labels |
 | `twin adapt-source` | Source adaptation, with optional reviewed `--board-plane-node` bounds |
 | `twin audit-population` | ESP32 reference-BOM comparison without inferring physical placement |
 | `dataset inventory/lock/verify/bind/bind-external` | Explicit immutable Git/LFS/local asset inventory, locks and provenance binding |
 | `package build/verify` | v0.1 source-and-inventory package and integrity checks |
 | `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
 | `component footprint r0603` | Deterministic two-pad 0603 library-geometry candidate; not a qualified manufacturer land pattern |
-| `component footprint inspect` | Bounded read-only `.kicad_mod` pad inventory: number, type, shape, position, size, roundrect ratio, and layers; reports issues in these fields and names other uninterpreted clauses without claiming full-record validation |
-| `component footprint generate` | Explicit, bounded SMD footprint geometry spec to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
-| `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated footprint; it does not edit `fp-lib-table` or existing libraries |
+| `component footprint inspect` | Bounded read-only `.kicad_mod` pad inventory: number, type, shape, position, size, roundrect ratio, layers, and present round/oval drill dimensions/offsets; reports malformed selected fields and names other uninterpreted clauses without claiming full-record validation |
+| `component footprint generate` | Explicit, bounded homogeneous SMD, plated through-hole (round or oval drill, optional offset), centered round non-plated hole, and simple filled/unfilled polygon graphics to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
+| `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated SMD, plated-hole, or non-plated round-hole footprint; it does not edit `fp-lib-table` or existing libraries |
 | `component footprint library inspect` | Read-only, bounded inventory of immediate `.kicad_mod` file counts, names, sizes, hashes, parse statuses, direct pad counts and model-reference counts; it does not validate KiCad semantics or geometry |
 | `component footprint library audit` | Read-only observations for parse failures, duplicate internal names and filename/internal-name mismatches; includes inventory hash and ignored-entry list but does not validate KiCad semantics or geometry |
 | `component footprint library lock/verify` | Create a deterministic byte-identity lock for the immediate `.kicad_mod` files and report missing/added/changed files; this verifies content identity, not footprint semantics or geometry |
@@ -157,8 +157,16 @@ paths:
 
 ```powershell
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/r0603-reference.json --output target/R_0603_1608Metric.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint generate examples/footprints/header-1x02-through-hole.json --output target/Header_1x02_P2.54mm.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint generate examples/footprints/header-1x02-oval-offset.json --output target/Header_1x02_Slotted_P2.54mm.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint generate examples/footprints/mounting-hole-3mm-npth.json --output target/MountingHole_3mm.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint generate examples/footprints/sot-23-to236ab.json --output target/SOT-23.generated.kicad_mod --json
 ./target/release/tokito-cli.exe component footprint inspect tests/fixtures/kicad-10.0.5/R_0603_1608Metric.kicad_mod --json
 ./target/release/tokito-cli.exe component footprint library create examples/footprints/r0603-reference.json --output target/R0603.pretty --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/header-1x02-through-hole.json --output target/Header.pretty --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/header-1x02-oval-offset.json --output target/HeaderSlotted.pretty --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/mounting-hole-3mm-npth.json --output target/MountingHole.pretty --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/sot-23-to236ab.json --output target/SOT23.pretty --json
 ./target/release/tokito-cli.exe component footprint library inspect target/R0603.pretty --json
 ./target/release/tokito-cli.exe component footprint library lock target/R0603.pretty --output target/R0603.lock.json --json
 ./target/release/tokito-cli.exe component footprint library verify target/R0603.pretty --lock target/R0603.lock.json --json
@@ -173,6 +181,7 @@ paths:
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output shell.glb --allow-partial --json-report
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output selected.glb --assemble-wrl --project-root board-project --component-filter U1,D1 --json-report
 ./target/release/tokito-cli.exe export glb board.kicad_pcb --output populated.glb --assemble-wrl --project-root board-project --no-dnp --json-report
+./target/release/tokito-cli.exe resolve models board.kicad_pcb --project-root board-project --extract-dir target/board-model-source --json
 ./target/release/tokito-cli.exe component footprint library audit MyParts.pretty --json
 ./target/release/tokito-cli.exe package build board.kicad_pcb --output new-board-package
 ./target/release/tokito-cli.exe package verify new-board-package --json
@@ -193,9 +202,10 @@ and acceptance journey.
 
 A shell is always partial. Missing/unsupported models refuse assembly by default;
 partial output requires explicit `--allow-partial`. Assembly resolves only under
-approved local roots and supports a bounded VRML97 Group/Transform/DEF/USE and
-planar polygon `IndexedFaceSet` profile with planarity, winding, area and
-resource-budget checks. `--component-filter` accepts case-sensitive
+approved local roots and supports a bounded VRML97 Group/Transform (including
+the standard `scaleOrientation` order)/DEF/USE and planar polygon
+`IndexedFaceSet` profile with planarity, winding, area and resource-budget
+checks. `--component-filter` accepts case-sensitive
 comma-separated reference patterns with `*` and `?`; empty list items are
 ignored and a no-match pattern produces a board-only export. Filter selection
 has a board-wide work budget and happens before model paths are resolved. Tokito
@@ -227,7 +237,9 @@ The physical engine retains source UUIDs/native identities, units, model
 references and diagnostics. A malformed, unsupported or unqualified feature
 remains explicit. No zone filling, DRC, autorouting, universal STEP export,
 complete schematic renderer or production IPC/package-family footprint library
-generator is claimed. The bounded explicit SMD writer is a geometry candidate.
+generator is claimed. The bounded explicit SMD, plated round/oval/offset-hole,
+and non-plated round-hole writers produce geometry candidates only. Mixed pad
+technology, custom pads, and IPC/package-family calculations are unsupported.
 Footprint library `audit` reports parse failures, duplicate parsed internal
 names and filename/internal-name mismatches; it is a naming/structure check,
 not KiCad semantic validation, KLC validation or physical qualification.
@@ -333,6 +345,8 @@ tokito_cli/
 │   ├── glb.rs                   Board-shell GLB generation
 │   ├── component_pose.rs        Source/model coordinate composition
 │   ├── model_resolver.rs        Approved-root local model resolution
+│   ├── model_asset_export.rs    Hash-addressed source-payload folder export
+│   ├── gltf_bundle.rs           Safe local JSON glTF buffer/image closure capture
 │   ├── model_mesh.rs            Bounded VRML geometry/material reader
 │   ├── model_mesh/zero_area.rs  Explicit exact-zero-face derivation
 │   ├── model_assembly.rs        Supported component assembly

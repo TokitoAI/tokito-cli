@@ -1,6 +1,6 @@
 //! Bounded, original VRML97 reader for Group/Transform/DEF/USE/Shape triangle
 //! and planar polygon IndexedFaceSet meshes. External resources, STEP,
-//! scaleOrientation, textures, and general VRML evaluation are unsupported.
+//! textures, and general VRML evaluation are unsupported.
 //! Source coordinates require an explicit unit declaration; output is local millimetres.
 use crate::EngineError;
 use earcut::Earcut;
@@ -110,7 +110,7 @@ fn valid_def_identifier(name: &str) -> bool {
 
 /// Parse only the declared bounded VRML97 profile. Group, Transform, DEF and
 /// USE scene nodes may contain triangle or planar polygon Shape geometry; unsupported
-/// fields/nodes (including scaleOrientation, Inline, normal, and texture data)
+/// fields/nodes (including Inline, normal, and texture data)
 /// are errors. This API performs no filesystem or network access.
 pub fn parse_vrml_mesh(
     input: &[u8],
@@ -449,48 +449,28 @@ impl MeshTransform {
         translation: [f64; 3],
         rotation: [f64; 4],
         scale: [f64; 3],
+        scale_orientation: [f64; 4],
         center: [f64; 3],
     ) -> Result<Self, EngineError> {
-        let [axis_x, axis_y, axis_z, angle] = rotation;
-        let axis_length = axis_x.hypot(axis_y).hypot(axis_z);
-        if !axis_length.is_finite() || axis_length == 0.0 {
-            return Err(fail("Transform rotation axis must be nonzero"));
-        }
         if scale.contains(&0.0) {
             return Err(fail("Transform scale components must be nonzero"));
         }
-        let [x, y, z] = [
-            axis_x / axis_length,
-            axis_y / axis_length,
-            axis_z / axis_length,
+        // ISO/IEC 14772-1:1997 defines T * C * R * SR * S * -SR * -C.
+        // Rotations are active column-vector matrices; the inverse of a valid
+        // rotation matrix is its transpose.
+        let base_rotation = rotation_matrix(rotation, "rotation")?;
+        let scale_orientation_matrix = rotation_matrix(scale_orientation, "scaleOrientation")?;
+        let scale_orientation_inverse = transpose_matrix(scale_orientation_matrix);
+        let scale_matrix = [
+            [scale[0], 0.0, 0.0],
+            [0.0, scale[1], 0.0],
+            [0.0, 0.0, scale[2]],
         ];
-        let (sin, cos) = angle.sin_cos();
-        let rotation_matrix = [
-            [
-                cos + x * x * (1.0 - cos),
-                x * y * (1.0 - cos) - z * sin,
-                x * z * (1.0 - cos) + y * sin,
-            ],
-            [
-                y * x * (1.0 - cos) + z * sin,
-                cos + y * y * (1.0 - cos),
-                y * z * (1.0 - cos) - x * sin,
-            ],
-            [
-                z * x * (1.0 - cos) - y * sin,
-                z * y * (1.0 - cos) + x * sin,
-                cos + z * z * (1.0 - cos),
-            ],
-        ];
-        let mut linear = rotation_matrix;
-        for values in &mut linear {
-            for (column, value) in values.iter_mut().enumerate() {
-                *value *= scale[column];
-            }
-            if values.iter().any(|value| !value.is_finite()) {
-                return Err(fail("Transform matrix overflow"));
-            }
-        }
+        let oriented_scale = multiply_matrices(
+            multiply_matrices(scale_orientation_matrix, scale_matrix)?,
+            scale_orientation_inverse,
+        )?;
+        let linear = multiply_matrices(base_rotation, oriented_scale)?;
         let mut offset = translation;
         for row in 0..3 {
             offset[row] += center[row];
@@ -507,6 +487,64 @@ impl MeshTransform {
             reverses_winding: scale.iter().filter(|axis| axis.is_sign_negative()).count() % 2 == 1,
         })
     }
+}
+
+fn rotation_matrix(rotation: [f64; 4], name: &str) -> Result<[[f64; 3]; 3], EngineError> {
+    let [axis_x, axis_y, axis_z, angle] = rotation;
+    let axis_length = axis_x.hypot(axis_y).hypot(axis_z);
+    if !axis_length.is_finite() || axis_length == 0.0 {
+        return Err(fail(format!("Transform {name} axis must be nonzero")));
+    }
+    let [x, y, z] = [
+        axis_x / axis_length,
+        axis_y / axis_length,
+        axis_z / axis_length,
+    ];
+    let (sin, cos) = angle.sin_cos();
+    let one_minus_cos = 1.0 - cos;
+    let matrix = [
+        [
+            cos + x * x * one_minus_cos,
+            x * y * one_minus_cos - z * sin,
+            x * z * one_minus_cos + y * sin,
+        ],
+        [
+            y * x * one_minus_cos + z * sin,
+            cos + y * y * one_minus_cos,
+            y * z * one_minus_cos - x * sin,
+        ],
+        [
+            z * x * one_minus_cos - y * sin,
+            z * y * one_minus_cos + x * sin,
+            cos + z * z * one_minus_cos,
+        ],
+    ];
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(fail("Transform rotation matrix overflow"));
+    }
+    Ok(matrix)
+}
+
+fn multiply_matrices(
+    left: [[f64; 3]; 3],
+    right: [[f64; 3]; 3],
+) -> Result<[[f64; 3]; 3], EngineError> {
+    let mut result = [[0.0; 3]; 3];
+    for (row, values) in result.iter_mut().enumerate() {
+        for (column, value) in values.iter_mut().enumerate() {
+            for middle in 0..3 {
+                *value += left[row][middle] * right[middle][column];
+            }
+            if !value.is_finite() {
+                return Err(fail("Transform matrix overflow"));
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn transpose_matrix(matrix: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    std::array::from_fn(|row| std::array::from_fn(|column| matrix[column][row]))
 }
 
 impl<'a> Parser<'a> {
@@ -699,6 +737,7 @@ impl<'a> Parser<'a> {
                 let mut translation = [0.0; 3];
                 let mut rotation = [0.0, 0.0, 1.0, 0.0];
                 let mut scale = [1.0; 3];
+                let mut scale_orientation = [0.0, 0.0, 1.0, 0.0];
                 let mut center = [0.0; 3];
                 let mut child_parts = Vec::new();
                 while !self.closing("}") {
@@ -713,6 +752,14 @@ impl<'a> Parser<'a> {
                             ]
                         }
                         "scale" => scale = [self.number()?, self.number()?, self.number()?],
+                        "scaleOrientation" => {
+                            scale_orientation = [
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                            ]
+                        }
                         "center" => center = self.vector3()?,
                         "children" => self.children(
                             depth,
@@ -720,13 +767,16 @@ impl<'a> Parser<'a> {
                             &mut child_parts,
                             shape_count,
                         )?,
-                        "scaleOrientation" => {
-                            return Err(fail("unsupported Transform scaleOrientation"));
-                        }
                         _ => return Err(fail("unsupported Transform field")),
                     }
                 }
-                let local = MeshTransform::from_vrml(translation, rotation, scale, center)?;
+                let local = MeshTransform::from_vrml(
+                    translation,
+                    rotation,
+                    scale,
+                    scale_orientation,
+                    center,
+                )?;
                 let composed = transform.compose(local);
                 for mut part in child_parts {
                     transform_part(&mut part, composed, self.topology_only)?;

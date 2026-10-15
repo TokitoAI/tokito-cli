@@ -38,7 +38,7 @@ def run(binary):
         glb.write_bytes(encode(doc, payload))
         manifest = {
             "schemaVersion": "1.0", "assetId": "fixture-twin", "boardIdentity": "fixture-board",
-            "boardRevision": "fixture-only", "assemblyContextRevision": "unreviewed-fixture-context",
+            "boardRevision": "aaaaaaaaaaaa", "assemblyContextRevision": "unreviewed-fixture-context",
             "units": "METRE", "axes": "RIGHT_HANDED_Y_UP", "componentNodePrefix": "ref:",
             "boardOriginMetres": {"x": 0, "y": 0, "z": 0},
             "boundsMetres": {"minimum": {"x": -.02, "y": -.02, "z": -.02},
@@ -53,21 +53,37 @@ def run(binary):
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
         bind()
-        mapping = {"board_id": "fixture-board", "board_revision": "fixture-only",
+        mapping = {"board_id": "fixture-board", "board_revision": "aaaaaaaaaaaa",
                    "asset_id": "fixture-twin", "component_count": 3, "renderable_count": 1,
+                   "sourceEvidence": {"format": "altium_pcb", "sha256": "a" * 64},
                    "components": [
                        {"reference": "R1", "component_class": "resistor", "glb_selector": "ref:R1", "needs_3d_body": True},
                        {"reference": "R2", "component_class": "resistor", "glb_selector": None, "needs_3d_body": True},
-                       {"reference": "D1", "component_class": "diode_or_led", "glb_selector": None, "needs_3d_body": False}]}
+                       {"reference": "D1", "component_id": "fixture-D1", "component_class": None,
+                        "glb_selector": None, "needs_3d_body": False,
+                        "sourceDesignClaims": {"status": "unverified_source_design_claim",
+                            "sourceFormat": "altium_pcb", "sourceSha256": "a" * 64,
+                            "sourceIdentity": {"namespace": "altium-pcb-uniqueid",
+                                "uniqueId": "fixture-D1", "reference": "D1"},
+                            "properties": {"SOURCEDESCRIPTION": "Surface mount schottky diode SOD-323 package",
+                                "PATTERN": "SMT_DIODE_SOD_323", "SOURCELIBREFERENCE": "SMT_DIODE_SOD_323",
+                                "COMMENT": None}}}]}
         map_path = root / "map.json"
         map_path.write_text(json.dumps(mapping), encoding="utf-8")
         common = (glb, "--component-map", map_path, "--manifest", manifest_path)
         audit = json.loads(invoke(binary, "twin", "inspect", *common).stdout)
         assert audit["directRenderableSelectors"] == 0 and not audit["appNameFilterCompatible"]
         assert audit["missingRequiredModelCount"] == 1 and not audit["positionalGuidanceAllowed"]
+        diode = next(component for component in audit["components"] if component["reference"] == "D1")
+        assert diode["componentClassClaim"] is None
+        assert diode["componentClassHint"]["value"] == "diode_or_led"
+        assert diode["componentClassHint"]["basis"] == "unverified_source_text"
+        assert diode["componentClassHint"]["sourceFields"] == ["SOURCEDESCRIPTION", "PATTERN", "SOURCELIBREFERENCE"]
+        assert diode["componentClassHint"]["selectionEligible"] is False
         for option, value, status in [
             ("--reference", "R1", "unique_candidate"), ("--reference", "R2", "model_unavailable"),
-            ("--reference", "absent", "no_match"), ("--class", "resistor", "multiple_candidates")]:
+            ("--reference", "absent", "no_match"), ("--class", "resistor", "multiple_candidates"),
+            ("--class", "diode_or_led", "no_match")]:
             result = json.loads(invoke(binary, "twin", "select", *common, option, value).stdout)
             assert result["status"] == status and not result["positionalGuidanceAllowed"]
         output = root / "prepared"
@@ -102,6 +118,7 @@ def run(binary):
         assert base64.b64encode((prototype / "active.digital-twin.glb").read_bytes()).decode() in html
         assert "https://" not in html and "<script src=" not in html
         assert "Reference candidate" in html and 'id="view"' in html
+        assert "source-text hint" in html and "unverified" in html
         original_html = (prototype / "index.html").read_bytes()
         invoke(binary, "twin", "prototype", *common, "--output", prototype, "--allow-partial", succeeds=False)
         assert (prototype / "index.html").read_bytes() == original_html

@@ -305,6 +305,7 @@ def main():
     pos_help = invoke(binary, "pcb", "export", "pos", "--help").stdout
     assert "manufacturing-position CSV" in pos_help
     assert "--use-drill-file-origin" in pos_help
+    assert "KiCad 10.0.5 and 10.0.7 comparisons" in pos_help
     svg_help = invoke(binary, "help", "export", "svg").stdout
     assert "--hide-DNP-footprints-on-fab-layers" in svg_help
     with tempfile.TemporaryDirectory(prefix="tokito-cli-e2e-") as output:
@@ -522,6 +523,32 @@ def main():
         assert not transformed_filtered["partialExport"]
         assert transformed_filtered["coverage"]["componentFilter"] == ["R1"]
         glb_check(transformed_filtered_glb, ("ref:R1",))
+
+        oriented_model_root = output / "scale-oriented-vrml-models"
+        oriented_model_root.mkdir()
+        (oriented_model_root / "oriented-scale.wrl").write_text(
+            "#VRML V2.0 utf8\nTransform { scale 1.5 0.75 1 "
+            "scaleOrientation 0 0 1 0.7853981633974483 children [\n"
+            + original_model_body
+            + "\n] }\n",
+            encoding="utf-8",
+        )
+        oriented_board = output / "scale-oriented-vrml.kicad_pcb"
+        oriented_board.write_text(
+            assembly_fixture.read_text(encoding="utf-8").replace(
+                "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl", "oriented-scale.wrl"
+            ),
+            encoding="utf-8",
+        )
+        oriented_glb = output / "scale-oriented-vrml.glb"
+        oriented_report = json.loads(invoke(
+            binary, "export", "glb", oriented_board, "--output", oriented_glb,
+            "--assemble-wrl", "--project-root", oriented_model_root, "--json-report",
+        ).stdout)
+        assert not oriented_report["partialExport"]
+        assert oriented_report["coverage"]["componentModelsEmitted"] == 1
+        oriented_document = glb_check(oriented_glb, ("ref:R1",))
+        assert len(component_position_bounds(oriented_document, "ref:R1")) > 0
 
         source_text = assembly_fixture.read_text(encoding="utf-8").rstrip()
         assert source_text.endswith(")")

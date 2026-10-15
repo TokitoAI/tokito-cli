@@ -1,0 +1,58 @@
+{
+  "schema": "tokito.footprint-definition.v1",
+  "name": "Header_1x02_Slotted_P2.54mm",
+  "description": "Explicit oval-drill slotted header geometry candidate",
+  "tags": ["header", "through-hole", "slotted"],
+  "side": "front",
+  "reference": {
+    "text": "REF**",
+    "atMm": [0, -2.5, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "value": {
+    "text": "Header_1x02_Slotted_P2.54mm",
+    "atMm": [0, 2.5, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "pads": [
+    {
+      "number": "1",
+      "padType": "thru_hole",
+      "shape": "oval",
+      "atMm": [0, 0, 0],
+      "sizeMm": [2, 1.7],
+      "drillOvalMm": [0.8, 1.2],
+      "drillOffsetMm": [0.1, 0],
+      "layers": ["*.Cu", "*.Mask"]
+    },
+    {
+      "number": "2",
+      "padType": "thru_hole",
+      "shape": "oval",
+      "atMm": [2.54, 0, 0],
+      "sizeMm": [2, 1.7],
+      "drillOvalMm": [0.8, 1.2],
+      "drillOffsetMm": [0.1, 0],
+      "layers": ["*.Cu", "*.Mask"]
+    }
+  ],
+  "graphics": [
+    {
+      "kind": "rectangle",
+      "startMm": [-0.8, -1.1],
+      "endMm": [3.34, 1.1],
+      "widthMm": 0.1,
+      "layer": "F.Fab"
+    },
+    {
+      "kind": "rectangle",
+      "startMm": [-1, -1.5],
+      "endMm": [3.54, 1.5],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    }
+  ],
+  "sourceEvidence": []
+}

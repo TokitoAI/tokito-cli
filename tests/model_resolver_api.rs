@@ -3,11 +3,13 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokito_cli::document::{ModelReference, SourceLocator};
 use tokito_cli::model_resolver::{
     ModelAssetFormat, ModelResolutionStatus as Status, ModelResolver, ModelResolverConfig,
 };
+
+static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
     root: PathBuf,
@@ -22,10 +24,7 @@ impl Fixture {
         let root = parent.join(format!(
             "{}-{}",
             std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)
         ));
         let project = root.join("project");
         let library = root.join("library");

@@ -421,6 +421,29 @@ fn transform_applies_translation_rotation_and_center_when_children_precede_field
 }
 
 #[test]
+fn transform_applies_scale_orientation_in_vrml97_matrix_order() {
+    let input = scene(&format!(
+        "Transform {{ children [ {shape} ] center 1 2 0 translation 3 4 0 scale 2 1 1 scaleOrientation 0 0 2 1.5707963267948966 rotation 0 0 1 1.5707963267948966 }}",
+        shape = shape_body()
+    ));
+    let mesh = parse(&input).unwrap();
+    let points = &mesh.parts[0].positions_mm;
+    assert_point(points[0], [8.0, 5.0, 0.0]);
+    assert_point(points[1], [8.0, 6.0, 0.0]);
+    assert_point(points[2], [6.0, 5.0, 0.0]);
+    assert_eq!(mesh.parts[0].triangles, vec![[0, 1, 2]]);
+    assert_point(mesh.parts[0].flat_normals[0], [0.0, 0.0, 1.0]);
+
+    // The default identity scale orientation must preserve ordinary scaling.
+    let identity = scene(&format!(
+        "Transform {{ children [ {shape} ] scale 2 1 1 scaleOrientation 0 0 1 0 }}",
+        shape = shape_body()
+    ));
+    let identity = parse(&identity).unwrap();
+    assert_point(identity.parts[0].positions_mm[1], [2.0, 0.0, 0.0]);
+}
+
+#[test]
 fn nested_group_and_transform_compose_and_scale_translation_uses_declared_units() {
     let input = scene(&format!(
         "Transform {{ children [ Group {{ children [ Transform {{ children [ {shape} ] scale 2 1 1 translation 0 4 0 }} ] }} ] translation 10 0 0 }}",
@@ -466,7 +489,7 @@ fn transforms_fail_closed_on_singular_or_unsupported_fields_and_nodes() {
             shape_body()
         ),
         format!(
-            "Transform {{ children [ {} ] scaleOrientation 0 0 1 0 }}",
+            "Transform {{ children [ {} ] scaleOrientation 0 0 0 1 }}",
             shape_body()
         ),
         format!(

@@ -1,5 +1,228 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Latest delivery status — local verification and prototype evidence (2026-10-15)
+
+This section supersedes earlier verification snapshots below. The latest source
+adds bounded glTF dependency intake, stricter footprint validation and
+inspection, ESP8266 source/model candidate analysis, selectable offline twin
+presentation, and KiCad 10.0.7 behavior captures. The project is still an
+engineering prototype; no statement here establishes full KiCad parity,
+qualified STEP geometry, or production AR readiness.
+
+### Verification status
+
+The fresh `scripts/verify-local.ps1` run completed with **38/38 gates passing**.
+It includes formatting; the root Rust tests (173 library tests plus all
+integration/example/doc-test targets); warnings-denied Clippy; an optimized
+release build; four-board CLI subprocess E2E; 14 pinned KiCad 10.0.7 placement
+comparisons (12 byte-exact and two Pico row-equivalent); geometry and Gerber
+references; GLB, model-resolution, compatibility, BOM, model-assignment,
+component-envelope, intake, project-bundle, footprint, twin, dataset, and real
+CLI E2Es; plus the STEP, Altium, and twin-refinement crates and the opt-in
+project-bundle cleanup hook.
+
+Receipt: `target/delivery/local/20261015T154719Z-607cc27893654aaf8901b2e8da83744c/verification.json`.
+It contains the verified `tokito-cli.exe` (5,265,920 bytes; SHA-256
+`32dcf2d5b312b389fe1544af4af0e2d1f7e0b83acae7d9caa3c5365e5a7498c5`). The
+fresh build/test target was on F:
+`F:\kannan\\projects\\tokito-cli-verification\\20261015T153119Z-83571ab601e34c1d818fc58164d8f8de`; the receipt and delivered binary are on
+D:. This new run supersedes the interrupted attempt described in older history.
+The receipt's tracker input hash predates this post-run status note; executable
+source, test, fixture, and verifier-script inputs were unchanged after the run.
+
+ESP8266 source-candidate E2Es passed for STEP unit reconciliation (17 models),
+occurrence transforms, candidate mesh decoding, Altium component inventory,
+model associations, drill inventory, and offline prototype generation. The
+source-unit receipt is
+`target/github-delivery/step-length-unit-preflight-manual-20261015T152218Z/receipt.json`.
+Those results explicitly leave geometry qualification, physical assembly pose,
+board fit, and admission false; some candidate mesh bounds still differ from
+the independent reference. The prototype has 34 selectable component records
+and 62 body instances, but its source mapping and board equivalence remain
+unverified.
+
+The headed Edge/Playwright journey at 3840×2160 selected components, highlighted
+the selected entity, exercised orbit/zoom/reset, and reloaded and selected a
+component offline with no JavaScript console errors. Screenshot:
+`F:\kannan\\projects\\tokito-cli-verification\\20261015T143244Z-3e7164dd94c9431485b8788663e6c0fe\\browser-work-esp8266\\output\\playwright\\esp8266-selected-module-4k.png`.
+This validates the local viewer interaction, not the accuracy of its physical
+registration or the Tokito App importer. The current `Assert-LocalOutputPath`
+helper also passed a focused check: it accepts an in-project target and rejects
+an external path and a prefix-sharing sibling path.
+
+### Delivery and remaining gates
+
+The working branch is `feat/footprint-spec-generator`, associated with open
+PR #45 at the previously reviewed head. Current worktree edits have not yet
+been pushed. The 2026-10-15 F: run target is temporary build/test output; the
+source checkout and final delivery receipt stay on D:. GitHub Actions remain
+disabled by project policy. Issues #13 and #24 remain open and In Progress in
+the CLI-specific project. No merge is authorized or claimed here.
+
+Next: rerun the complete local verifier with a fresh F: temporary target and a
+D: delivery receipt, review the exact staged diff, then update PR #45 and the
+issue/project evidence. KiCad CLI command/error parity, broader library-tool
+families, manufacturer-qualified footprint semantics, complete board contours
+and holes, STEP geometry admission, all-component physical model fidelity,
+schematic-to-layout, App import, and registered phone AR are still incomplete
+or unverified. Sibling repositories remain read-only.
+
+## Previous continuation — bounded model resolution and CLI acceptance (2026-10-15)
+
+The current branch adds pre-read aggregate byte budgeting for external glTF
+dependencies. Each dependency is checked against the remaining batch allowance,
+read with a one-byte overflow sentinel, and rejected before it can be retained
+when it exceeds either the per-file or remaining batch limit. A release-binary
+regression confirms an over-budget dependency set is reported incomplete and
+captured bytes stay within the configured allowance. Independent source review
+also found and corrected two malformed-footprint cases: missing/invalid
+round-rectangle ratios now return validation errors before drill-fit checks,
+and an oval drill missing its second dimension is reported as partial with a
+specific diagnostic. Focused Rust regressions for those paths pass (15
+footprint-spec tests and 11 footprint-inspection tests).
+
+Before those review fixes, the current-source aggregate gates and CLI
+subprocess journeys had passed. Those results are superseded for delivery by a
+fresh complete verifier run after the fixes below. Tokito-generated
+through-hole, NPTH, oval/offset and SOT-23 candidates passed KiCad 10.0.5 SVG
+readback before the latest edits; this validates file and plot acceptance
+only, and footprint semantics and manufacturer land-pattern qualification
+remain false.
+
+The first fresh aggregate attempt stopped when D: approached the requested
+500 MB free-space reserve. After explicit authorization, verification used
+`F:\kannan\projects\tokito-cli-verification` for temporary Cargo output; the
+checkout and delivery receipts stayed under the D: ecosystem. A 38/38 run
+passed before the two review fixes and is retained only as historical evidence.
+The next full run passed Rust tests/Clippy/release and earlier E2Es, then caught
+two test-harness assumptions: the pretty-printed JSON fixture used different
+spacing, and absent optional drill width is omitted from JSON rather than
+serialized as null. Both E2Es now pass directly against the run's release
+binary. The final full verifier must be rerun after these test-harness fixes
+before this branch is delivered. No GitHub write or hosted workflow was
+triggered. KiCad
+command-tree parity, IPC package families, mixed/custom pads, KLC validation,
+STEP geometry import/export, schematic-to-layout, full qualified 3D coverage,
+and Tokito App/device acceptance remain unfinished or unverified.
+
+## Earlier local verification evidence — 2026-10-15 (superseded)
+
+The generated ESP8266 viewer's 4K layout was corrected in `src/twin_viewer.rs`.
+The headed-browser acceptance journey passed at 3840×2160: all 34 listed
+components were selectable, selection highlighting and orbit/zoom worked, the
+canvas stayed within the viewport, and an offline page reload could still
+render and select D1. The run reported 405,594 triangles and 35 draw calls.
+Screenshot: `output/playwright/esp8266-selected-module-4k.png`.
+
+The local release build passed and produced the viewer used for that run. The
+full `cargo test --offline --locked --all-targets -j 1` attempt failed while
+writing the CLI test library because D: ran out of space (Windows error 112);
+this is a failed aggregate check, not a pass. To get useful coverage within the
+remaining space, `cargo test --offline --locked --release --lib -j 1` passed
+167 library tests, and release all-target Clippy passed with warnings denied.
+The latest run also passed `cargo fmt --all -- --check`. The source map
+contains no authored component-class labels; physical fit, complete population,
+board revision match and AR registration remain unverified. No push or merge
+was made.
+
+The follow-up local CLI change adds a separate `componentClassHint` when the
+authored class is missing. It uses one unambiguous class from hash-bound source
+text, falling back to a constrained reference prefix only when recognized
+source text does not conflict. Hints state their basis, `verified: false`, and
+`selectionEligible: false`; they never enable `--class` queries. The browser
+labels them as unverified suggestions. On the existing 34-component ESP8266
+candidate, the CLI reports C4 as a capacitor hint from its `C` reference prefix
+and `twin select --class capacitor` returns `no_match`. This existing demo map
+does not include source-description claims, and its 65 MB viewer HTML was not
+regenerated, so the current browser page does not yet contain the new label
+rendering. Unit tests cover ambiguity and conflicting-evidence refusal; the
+small twin CLI E2E exercises a hash-bound source-text hint, viewer wording and
+its exclusion from class selection. The fresh full-size ESP8266 regeneration
+E2E was not rerun.
+
+Current-source checks for the class-hint change: formatting passed; all 168
+release library tests passed; release all-target Clippy passed with warnings
+denied; release build passed; `python tests/twin_e2e.py --binary
+target/release/tokito-cli.exe` passed with hint and non-selectable-class cases;
+and the existing ESP8266 candidate passed the direct `twin inspect`/`twin
+select` check described above. The aggregate all-target suite and full-size
+ESP8266 browser-generation E2E remain unverified for this exact change. No
+GitHub push or PR update was made.
+
+Additional release-binary checks passed: the 11-step local CLI acceptance run
+(`target/real-cli-e2e-current/20261014T220727Z-89efa4f686b142769fb27bad8ff77e04/receipt.json`),
+the footprint-spec/library E2E, and the footprint inspector E2E. An independent
+KiCad 10.0.5 readback/plot comparison also passed for the explicit through-hole
+candidate workflow. That comparison confirms format and plot acceptance only;
+the emitted footprints still report manufacturer land-pattern and semantic
+qualification as false. These checks do not establish full KiCad CLI parity,
+production-quality STEP import, general VRML/glTF support or complete 3D model
+coverage.
+
+The pinned KiCad 10.0.7 executable already present on D: was verified as
+version 10.0.7 and used to capture native Uno `F.Fab` SVGs for the DNP-hide
+option. Default and hidden-DNP outputs match the 10.0.5 captures byte-for-byte
+after normalizing only the timestamp-bearing `<title>` element; both versions
+have matching path/text counts and board-area extents. Run
+`python tests/kicad_svg_reference_evidence.py` to verify the pinned inputs,
+outputs, metrics and normalized comparison. The four-board `tests/e2e_cli.py`
+run against `target/release/tokito-cli.exe` also passed, including Tokito's DNP
+Fab behavior and the 14 captured 10.0.5 POS comparisons. This adds one 10.0.7
+SVG option/layer comparison, not broad KiCad parity.
+
+The 2026-10-15 source-claim continuation keeps Altium description, pattern,
+library-reference and comment fields explicitly unverified, consistency-linked
+to the exporter's PCB digest and exact unique-ID/reference join. This editable
+map is not an authenticated provenance signature; downstream checks cannot
+recompute the PCB digest without the source PCB file. It does not infer a
+component class or physical match. A read-only review found no direct defect
+and noted missing malformed-input regression cases; tests now cover mismatched
+unique IDs, status and format, oversized strings and control characters. The
+real ESP8266 map was inspected by the current release CLI: 34 components,
+six source-reported components with 1,292 omitted degenerate triangles total,
+including U2 with 1,277. The count now passes through the selection index and
+the viewer labels the affected row and selected part as incomplete geometry.
+A headed Playwright run on a small offline GLB fixture verified that the count
+is searchable and visible after selection; it rendered and selected offline
+with zero console errors. The earlier full ESP8266 browser journey remains the
+real-board rendering evidence; this small fixture validates the warning path,
+not a regenerated full-board screenshot. These counts are editable source-map
+claims, not independently authenticated geometry. The dataset candidate
+remains unqualified for physical fit and AR registration. This is a scoped
+verification update, not a new full delivery-receipt run. After the change,
+formatting, all 167 release library tests, all-target warnings-denied Clippy,
+the release build, four-board CLI E2E, the pinned KiCad 10.0.5/10.0.7 SVG
+comparison and the small offline browser warning-path E2E passed. The earlier
+full ESP8266 viewer was not regenerated because its embedded output would
+require another large local artifact; the current release CLI inspected the
+actual 34-component map and preserved U2's omission count.
+
+Remote reconciliation on 2026-10-15: PR #11 is merged (merge commit
+`7700eb7762ceaa8e82d1cc08d2abb1e62e33f564`). PR #45 remains open at head
+`0fc2422b04dd0abcb45c27b446579a6ea9f62e40`; the current working-tree edits
+are not in that PR. CLI Project 2 still lists issues #13 and #24 as In Progress.
+No remote code, issue, or project update was made in this continuation.
+
+## Previous CLI continuation — 2026-10-14
+
+The current local working tree adds per-model owner-footprint identity to
+`resolve models`: source ordinal, UUID, reference, identity diagnostics and a
+unique-identity flag, with board-level totals. The synthetic CLI tests cover a
+valid identity and duplicate UUID refusal. On the SHA-256-pinned Ultimainboard
+2.1.4 candidate, all 310 embedded STEP payloads (201,945,392 bytes) resolve and
+all 310 model references map to unique UUID/reference pairs. This remains model intake and
+identity linkage only; STEP geometry, placement, model-to-footprint physical
+fit, GLB component selection and App/AR import are not qualified.
+
+Current-source checks completed for this scoped change: `cargo fmt --check`,
+all 143 library tests, all 92 integration tests, 2 doctests, release build,
+all-target Clippy with warnings denied, and the source-pinned 310-model dataset
+E2E. No fresh `scripts/verify-local.ps1` aggregate receipt was produced for
+this continuation, and the current working changes have not been pushed.
+Next CLI gates are validated STEP-to-mesh import with independent geometry
+comparisons, reliable selectable GLB assembly for real STEP models, broader
+KiCad 10.0.7 CLI option/error coverage, and semantic footprint/library tools.
+
 ## Current execution checkpoint — 2026-10-11
 
 Active CLI: `D:\kannan\projects\tokito ecosystem\tokito_cli`. The complete
@@ -245,7 +468,7 @@ This execution advances C-06 with secure offline model capture, CLI inventory, a
 | C-06a baseline | Main | A/B | ✅ | Earlier eight-gate/69-test receipt; feature branch and edits preserved |
 | C-06b model sample | Research + Main | Exact library source | ✅ | Pinned official R0603 asset/hash/license; six UNO references; declared local-mesh gate passes; world-pose evidence still separate |
 | C-06c resolver | Scoped worker + Main | Approved roots | ✅ | src/model_resolver.rs, nine API tests plus root-boundary unit test, CLI/subprocess tests; source re-review and full local gate pass |
-| C-06d mesh adapter | Scoped worker | Pinned WRL + units | ✅ declared profile | src/model_mesh.rs, eleven API tests and real mesh CLI inspection pass; Transform/Inline/general VRML and STEP remain unsupported |
+| C-06d mesh adapter | Scoped worker | Pinned WRL + units | ✅ declared profile | src/model_mesh.rs, bounded triangle/polygon parsing, Group/Transform/DEF/USE, `scaleOrientation`, 22 API tests, authentic pinned resistor parsing and CLI assembly E2E pass; Inline/general VRML and STEP remain unsupported |
 | C-06e transforms | Main | Reviewed pose semantics + explicit copper planes | ◐ | Public Rust point- and parsed-mesh placement APIs are wired to bounded VRML GLB assembly. Asymmetric front/back, winding, normal, and stackup-plane derivation tests pass. Independent export comparison remains open. |
 | C-06f selectable nodes | Main | C-06e | ◐ | One renderable `ref:<refdes>` node carries unique footprint UUID/source ordinal; each mesh primitive carries its model hash and part ordinal. The inspected App filter selects by exact refdes node name; UUID is provenance, not its current selector. CLI filter simulation is tested; App acceptance remains open. |
 | C-06g partial rules | Main | Existing shell | ✅ | Default refusal and explicit --allow-partial preserved; model lookup does not alter export |
@@ -573,7 +796,7 @@ and documentation delivery; the wider engine goal remains active.
 |---|---|---|---|---|
 | Main | KiCad CLI parser-to-job boundary | Partial static trace; DLL geometry backend remains unresolved | CLI filter references reach `JOB_EXPORT_PCB_3D`; `_pcbnew.dll` contains matching UTF-16 filter strings, while REA searches timed out and direct Ghidra analysis did not reach xref evidence; [hash-bound observations](evidence/kicad-pcbnew-dll-static-strings.json) | Try a focused method with PDBs or without full-DLL auto-analysis; filter/variant behavior remains open |
 | Main | Native DNP GLB output delta | One NXP board compared on KiCad 10.0.5 and 10.0.7 | R2/R4 footprint nodes and two generic model-child nodes removed; no unnamed node removed; retained transforms and binary GLB payload unchanged; help output identical | Expand the reference corpus; this is not broad CLI or geometry parity |
-| Main | Footprint specification and library candidate tools | Bounded prototype: explicit SMD geometry candidate, new unregistered `.pretty`, read-only inventory, audit, byte lock/verify, and per-pad structural inspection | Independent S-expression comparison against the pinned R0603 source; full Windows local verifier passed 36/36 gates on 2026-10-14 (receipt: `D:\TokitoCliVerification\delivery\20261014T155609Z-48de1ed1877b4a4086c9a4d1905e9671\verification.json`); independent reviewer found no blocker | Extend pad interpretation and qualified package families only from pinned manufacturer/IPC evidence; semantic KLC checks, registration and qualified land patterns remain open |
+| Main | Footprint specification and library candidate tools | Bounded prototype: explicit homogeneous SMD and plated round/oval/offset THT plus centered round NPTH candidates; new unregistered `.pretty`; read-only inventory, audit, byte lock/verify, and per-pad structural inspection | R0603 independently compared with pinned library source. Synthetic round THT/NPTH headers pass KiCad 10.0.7 readback; round-offset and oval-offset candidates pass installed KiCad 10.0.5 readback. See `tests/footprint_through_hole_kicad_e2e.py` and local receipts. These are format acceptance checks, not physical qualification. | Extend package families only from pinned manufacturer/IPC evidence; mixed pad technology, semantic KLC checks, registration, and qualified land patterns remain open |
 | Main | VRML source-model GLB assembly and component selection | Bounded `Group`/`Transform`/`DEF`/`USE`, triangle meshes, checked simple planar polygons, case-sensitive reference filters and native DNP exclusion | KiCad 10.0.5 filter probes; source identity/coverage and work caps; explicit nonzero-area crossing and adjacent-overlap refusal, plus valid collinear-ring coverage. The focused `model_mesh_api` suite passes 21/21 after this correction | Broaden independent comparisons; unsupported VRML, STEP, variants and filter interactions remain explicit gaps |
 | Independent reviewer / main QA | PR #45 implementation | Independent read-only review found no blocker, including the polygon-validation and empty-clause reporting corrections | Current per-pad inspection implementation passed all 36 local verification gates; read-only review confirmed the empty-clause case is explicitly reported. Hosted checks are disabled by owner choice | Update PR #45 with the verified incremental feature; broader CLI parity, STEP export, physical geometry and product gates remain open |
 
@@ -584,3 +807,378 @@ evidence, not broad parity; the `_pcbnew.dll` geometry trace is incomplete.
 incomplete for broader generators and qualified land patterns. STEP export,
 general VRML, library registration, qualified board geometry, App admission,
 registered AR and schematic-to-PCB remain open.
+
+### KiCad 10.0.7 POS compatibility checkpoint (2026-10-14)
+
+| Work | State | Evidence | Remaining scope |
+|---|---|---|---|
+| POS export comparison | Implemented for the captured option slice | Captured all 14 shared KiCad CLI 10.0.5/10.0.7 cases across Uno, NXP MCXA ESC, SparkFun, and Pico. `tests/kicad_pos_compat_e2e.py` verifies pinned source/output hashes and executes Tokito without KiCad. Twelve outputs match after line-ending normalization; two Pico outputs match ordered named rows and unordered empty-reference row values. | Negative/error/default behavior against 10.0.7 and other export families remain open. |
+| KiCad CLI reverse-engineering issue #13 | Still in progress | Current POS evidence is recorded in `tests/reference/kicad-cli-10.0.7/pos/manifest.json`, `docs/PCB_POSITION_EXPORT.md`, and this matrix. | Full command-family parity, 3D STEP/model filtering, SVG plotting, DRC, schematic, and jobset behavior remain incomplete. |
+| Product 3D path | Still in progress | Existing production component assembly supports the bounded WRL profile; STEP research explicitly remains non-admitted. | Qualify a real dataset-linked STEP component through units, face/surface, transforms, selector identity, and independent reference checks before production admission. |
+
+The local verifier includes the 10.0.7 POS subprocess comparison. These results
+are scoped compatibility evidence; they do not complete issue #13 or the CLI.
+
+### Embedded board-payload follow-up (2026-10-14)
+
+| Work | State | Evidence | Remaining scope |
+|---|---|---|---|
+| KiCad component-metadata / board-payload lookup | Implemented in the current worktree | Rust regressions cover metadata-only component records, board-level payload fallback, case-insensitive checksum metadata, and explicit conflict rejection; `embedded::` tests pass 7/7 and the CLI test passes | Fresh whole-tree local verification and independent review are still required before PR delivery |
+| Native KiCad 10.0.7 embedded import | Legacy MMH3-V1 acceptance passed | The current native subprocess fixture uses legacy MMH3-V1 and emits one mesh without a checksum error. An earlier SHA-256 fixture only checked that compatibility path; neither check compares mesh geometry or placement. | Broaden real-board native comparisons and validate emitted geometry, not only checksum acceptance and mesh presence |
+| Ultimainboard embedded-model intake | Payload intake passes; STEP geometry remains unsupported | Candidate board SHA-256 `f763641f75470b4fb5b95391ae1ec40ab4ffe2a80bc28dafd2685901c08680b7`; E2E checks 310/310 references and asserts the 201,945,392-byte aggregate | Implement and independently qualify STEP mesh generation, units, transforms, component identity and full assembly |
+
+Fresh verification follow-up: the root crate's 143 unit tests, integration/doc tests,
+Clippy, release build, CLI/dataset E2Es, KiCad 10.0.7 POS comparison, STEP and
+Altium evaluation suites, and 310-model intake all passed. The aggregate verifier
+then stopped because `experiments/twin-refinement/Cargo.lock` lacked the newly
+inherited `ruzstd`/`twox-hash` entries. The experiment lockfile was regenerated
+offline; its format, nine tests, Clippy and build then passed with `--locked`.
+Because the aggregate script stopped before finalization, it produced no combined
+verification receipt. STEP payload bytes still have no admitted mesh geometry or
+placement, and the broader CLI goal remains incomplete.
+
+Independent review found that the byte total was copied to the intake receipt but
+not asserted. The E2E and local verifier now require the exact pinned aggregate.
+The focused real-board check passed at 201,945,392 bytes, and a deliberately wrong
+expected total was rejected. The aggregate verifier was not rerun after this harness
+change; it has no final combined receipt.
+
+### Source-bound model-payload export checkpoint (2026-10-15)
+
+| Owner | State | Evidence | Next action |
+|---|---|---|---|
+| Main | `resolve models --extract-dir <NEW_DIR>` implemented for original STEP/STP, WRL/VRML and GLB payload bytes | Content-addressed assets, source-board hash manifest, per-reference owner identity, explicit partial-export consent, refusal on existing output, and duplicate-payload accounting; 6 focused Rust tests and 3 CLI integration tests pass | Feature is accepted as source-byte export only; use these bytes as inputs to a separately gated geometry adapter |
+| Independent reviewer / main | Reviewed crate API, CLI binding, and dataset E2E | Review found a missing `mobileImportReady:false` field in the CLI summary; it was fixed and regression-tested. Fresh review confirmed the field and separate UUID/reference uniqueness checks; no remaining blocker found. The exporter module is crate-private. | Path operations remain vulnerable to a same-user concurrent replacement in an untrusted writable parent; use a trusted parent and fresh destination |
+| Main / dataset E2E | Pinned Ultimainboard intake/export passed against current release binary | Board SHA `f763641f75470b4fb5b95391ae1ec40ab4ffe2a80bc28dafd2685901c08680b7`; 310/310 references resolved with 310 unique UUIDs and 310 unique references; 39 content-addressed files; 24,722,098 unique bytes, 201,945,392 bytes summed by reference; manifest digest and all payloads verified; no extra files. Receipt: `C:\TokitoCliFinalVerification\target\20261014T175050Z-495fdfa4f991499da829b6b37f7a2bdf\embedded-dataset-e2e-20261015c.json` | Decode and qualify STEP geometry independently; payload export does not create meshes |
+| Main / local QA | Current-source root Rust tests, Clippy, release build and targeted subprocess checks passed | `cargo fmt --all -- --check`; 156 library tests plus the integration and 2 doctests; warnings-denied Clippy; release build; CLI, model-resolution, 10.0.7 POS and pinned embedded-dataset E2Es. | Full `scripts/verify-local.ps1` was not run: it creates a fresh large target, while available C: free space is below the size of the existing verification target. No combined delivery receipt exists for this worktree |
+
+This adds offline source-byte packaging only. It does not decode STEP, apply
+placement, validate component geometry, qualify an assembled GLB, satisfy the
+Tokito App import contract, or enable AR. `.gltf` external dependencies remain
+uncollected. KiCad CLI issue #13, footprint/library issue #24, product-level
+geometry, schematic-to-PCB, App integration and registered AR remain incomplete.
+The full local verifier was not run after this change, so no combined delivery
+receipt exists for the current worktree.
+
+### Core JSON glTF dependency-closure checkpoint (2026-10-15)
+
+| Owner | State | Evidence | Next action |
+|---|---|---|---|
+| Main | Bounded offline closure for JSON glTF 2.0 `buffers` and `images` | Preserves the original document, copies approved local relative resources into an isolated hash-addressed bundle, keeps inline data URIs in place, validates per-resource hashes, and accounts dependency bytes in the batch budget | Use as source intake only; implement and independently qualify STEP and other CAD geometry readers |
+| Main / independent reviewer | Windows output collisions and incomplete dependency declarations fail closed | Regression covers `scene.gltf/` collision in strict and explicit-partial CLI modes; extension-bearing documents and ambiguous image source declarations remain incomplete; reviewer confirmed the final path validators agree on ASCII and superscript Windows device names | Expand URI/extension fixtures as supported extension readers are added |
+| Main / local QA | Current-source formatting, full root Rust tests, warnings-denied Clippy and optimized release build passed | `cargo fmt --all -- --check`; `cargo test --offline --locked`; `cargo clippy --offline --locked --all-targets -- -D warnings`; `cargo build --release --offline --locked`; focused glTF CLI tests 3/3 | Run the complete aggregate verifier when a fresh target has adequate free storage |
+| Main / CLI E2E | Current release binary passed real board journeys | Four-board CLI E2E, model-resolution E2E, board-shell GLB E2E, geometry E2E and 14 pinned KiCad 10.0.7 POS comparisons passed; Ultimainboard source-hash-pinned intake captured 310/310 embedded STEP payloads (201,945,392 bytes by reference; 24,722,098 deduplicated asset bytes). Receipt: `C:\TokitoCliFinalVerification\target\20261015T-cb7cf44e04f140d6aa82adffd5397706\receipt.json` | STEP payload intake is not STEP mesh generation, geometry validation, placement or component-selectable 3D |
+
+This checkpoint supersedes the earlier note that JSON glTF dependencies were not
+collected. It does not make the complete CLI or KiCad feature parity complete.
+STEP geometry generation, general VRML/glTF extension handling, wider native
+command/export/filter parity, qualified footprint families, complete per-board
+component geometry, Tokito App admission and registered AR remain open. The full
+`scripts/verify-local.ps1` aggregate was not run because it requires a fresh large
+target and the available C: and D: free space was limited; the listed current-source
+checks were run individually. No commit or GitHub update was made in this checkpoint.
+
+### STEP surface comparison probe — ESP8266 model 15 (2026-10-15)
+
+The isolated Rust STEP evaluator was rebuilt from the current source and run on
+the dataset's ESP8266 `embedded-models/15.step`, SHA-256
+`2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca`. Its output
+remains experimental: exit status 2, `admitted:false`, no exports. FreeCAD 1.1.4
+at commit `4fd3bf320d9566a27e60069fc8387448aaa3a094` produced a valid one-solid,
+28-face reference at 0.001 mm tessellation deflection. Tokito and FreeCAD each
+produced 40 vertices and 76 triangles; vertex sets coincide exactly at measured
+precision. A bounded bidirectional comparison of triangle vertices, edge
+midpoints, and centroids (532 samples per direction) found a maximum surface
+distance of `4.59e-15 mm`. Forty-six of the 76 triangles have identical
+coordinate triplets; the remaining triangulation differs. The reader also
+reported 28 distinct source face IDs, equal to the reference face count, but
+this is not source-face identity correspondence or full surface coverage proof.
+
+This is a promising single-file geometric reference case, not STEP support. The
+dataset does not yet establish that stream `Models/15` belongs to a specific
+reference-designator with a verified placement, and the root CLI cannot assemble
+STEP geometry into a selectable component GLB. Do not admit it to production.
+Next: trace and independently verify the Altium model/body/component link and
+pose, reconcile the different triangulation, and add fail-closed supported
+surface criteria before connecting a STEP reader to the product exporter.
+
+The comparison harness was hardened after review: subprocess output is streamed
+under stdout/stderr caps; mesh validation rejects degenerate faces; the distance
+routine has degenerate-input regressions; closed edge incidence, consistent
+triangle winding and signed volume are checked with a reversed-face negative
+control; and the work budget covers both directed passes plus the shifted
+negative control. Reports include the evaluator and reference SHA-256 values.
+Per-face normals are not compared. A checked-in FreeCAD macro reproduced the
+pinned reference byte-for-byte under the exact version/source pins. The current
+harness rerun passed; this strengthens the research fixture only and does not
+change STEP admission.
+
+### Current-source local verification — 2026-10-15
+
+After D: filled during a parallel Windows link, the isolated STEP experiment
+Cargo cache was cleared and verification was rerun serially with the existing
+C: verification target. Current-source `cargo fmt --all -- --check`,
+`cargo test --offline --locked -j 1` (156 library tests, all integration tests
+and 2 doctests), warnings-denied all-target Clippy, and optimized release build
+passed. The release binary passed the four-board CLI, model-resolution, board-
+shell GLB, geometry, 14-case KiCad 10.0.7 POS, and 310-model Ultimainboard
+source-payload E2Es. The direct Windows subprocess receipt is
+`target/real-cli-e2e/20261014T192416Z-3f44fa25a60843b58304d1f4816d8665/receipt.json`;
+the pinned 310-model receipt and bundle are under
+`C:\TokitoCliFinalVerification\target\20261015T-cli-e2e\`. The experimental
+STEP surface comparison also passed for model 15 while preserving explicit
+non-admission. The full aggregate `scripts/verify-local.ps1` and GUI/device/App
+acceptance remain unrun. No GitHub write has occurred in this verification step.
+
+### Embedded glTF verifier and current-source acceptance — 2026-10-15
+
+The optional embedded-dataset E2E verifier now treats JSON glTF as a nested
+offline bundle. It accounts for the scene and every external buffer/image in
+the same byte totals that the CLI reports, recomputes the content-addressed
+bundle identity, parses the scene's URI inventory, and checks that it matches
+the manifest and the CLI's resolved-resource counters. It rejects missing or
+tampered dependencies, traversal, a mismatched bundle digest, scene/manifest
+resource disagreement, extra files, and inconsistent dependency-file or
+dependency-byte aggregates in either the export summary or manifest. Twelve Python
+regression cases pass, and this verifier test is part of
+`scripts/verify-local.ps1`.
+
+Current-source local evidence: `cargo test --offline --locked --all-targets
+-j 1` passed (156 library tests plus all integration and example targets);
+warnings-denied all-target Clippy and optimized release build passed. Formatting,
+`git diff --check`, Python compilation, the twelve embedded-verifier regressions,
+the four-board CLI journey, model-resolution E2E, board-shell GLB E2E, 14 pinned
+KiCad 10.0.7 POS comparisons, and direct Windows release-binary E2E passed.
+The direct E2E receipt is under
+`target/local-e2e/20261015T-current-source/20261014T195411Z-b18ae17779344d34b866782930d80eee/receipt.json`.
+The complete aggregate `scripts/verify-local.ps1` was not run in this pass.
+
+Dataset limitations were confirmed without changing the dataset repository:
+the checked-out Ultimainboard imported PCB and current ESP8266 `15.step` are
+Git-LFS pointer text, so their underlying assets were unavailable for a fresh
+dataset run. The earlier STEP comparison remains tied to its prior verified
+source hash; the present pointer was rejected as a mismatched input. The
+hydrated community ESP32 clone PCB parses as 26 footprints and 172 pads, but
+24 model references are unresolved. SVG export fails closed because its board
+outline has a 0.007042 mm endpoint gap. These are input/geometry gaps, not
+evidence of a passing full-board 3D journey.
+
+This verifier repair does not implement a production STEP reader/exporter or
+complete KiCad CLI/footprint-library parity. STEP-to-selectable-GLB, exact
+native behavior beyond the pinned comparisons, supported footprint-family
+breadth, fully sourced per-component board geometry, and Tokito App/AR
+admission remain open. The full aggregate verifier and delivery of the current
+diff remain pending; no GitHub write occurred in this checkpoint. The verifier
+now derives dependency-file and dependency-byte totals from the per-model rows
+and compares both aggregates in both the CLI report and manifest. Its Python
+regressions reject a wrong aggregate in either location.
+
+### Footprint hole candidates — 2026-10-15
+
+Tokito's typed footprint JSON writer now accepts homogeneous SMD pads,
+round-drill plated through-hole pads, and circular non-plated holes. It checks
+pad type, drill presence and dimensions, annular dimensions or NPTH size/drill
+equality, and ordered `*.Cu`/`*.Mask` layers, then emits KiCad's
+`through_hole` footprint attribute where applicable. Synthetic header and
+mounting-hole files are serializer fixtures, not qualified component patterns.
+KiCad CLI 10.0.7 accepted both generated `.pretty` libraries and plotted SVG;
+latest rerun receipt: `target/footprint-hole-kicad-10.0.7-release-20261015d/receipt.json`.
+This tests format acceptance only; the receipt explicitly leaves footprint
+semantics and manufacturer qualification false.
+
+Current source passed `cargo fmt --all -- --check`, `cargo test --offline
+--locked --all-targets -j 1` (159 library tests and every integration/example
+target), warnings-denied all-target Clippy, and optimized release build. Release
+binary acceptance passed SMD/THT/NPTH footprint generator/library journeys, four-board
+CLI E2E, project-bundle E2E, 14 pinned KiCad 10.0.7 POS cases, and the separate
+KiCad 10.0.7 through-hole plot readback. Independent review caught stale
+non-JSON output/help; those labels were corrected and regression coverage was
+added. The full fresh-target aggregate verifier, App/device acceptance and
+remaining KiCad parity were not completed in this slice. Issues #13 and #24
+remain open; no GitHub write or merge is recorded here.
+
+### Plated oval and offset drill generation — 2026-10-15
+
+The explicit footprint spec now accepts either `drillMm` or a two-dimension
+`drillOvalMm` for homogeneous plated through-hole pads, plus an optional
+pad-local `drillOffsetMm`. It rejects conflicting or missing drill declarations,
+drills outside supported pad bounds, and SMD/NPTH combinations outside the
+current scope. The generated `.kicad_mod` retains the specified round/oval
+shape and offset. These inputs remain caller-authored geometry; the report
+does not qualify annular rings or manufacturing fit.
+
+Evidence on this current source: all 162 library unit tests and all Rust
+integration/example targets passed with `cargo test --offline --locked
+--all-targets -j 1`; warnings-denied all-target Clippy, formatting and
+`git diff --check` passed. The footprint generator E2E, per-pad inspector E2E,
+four-board CLI E2E, and a KiCad 10.0.5 `fp export svg` readback for centered
+round THT, round-offset THT, oval-offset THT and NPTH passed. The readback
+receipt is `target/footprint-hole-kicad-10.0.5-round-oval-offset-20261015h/receipt.json`.
+KiCad 10.0.7 had previously accepted the centered round THT and NPTH examples
+in `target/footprint-hole-kicad-10.0.7-release-20261015e/receipt.json`.
+The currently installed KiCad executable is 10.0.5; no current 10.0.7 oval
+readback was run.
+
+The full aggregate verifier, current-source optimized release build, App/AR
+acceptance, broad KiCad command parity, IPC family generation, KLC checks and
+qualified package geometry remain incomplete. No GitHub write occurred in this
+checkpoint.
+
+### Round-rectangle drill containment correction and release readback — 2026-10-15
+
+This entry supersedes the earlier test count and round-rectangle geometry note
+above. Independent review found that the initial rounded-rectangle drill check
+measured from the core in the wrong direction. The corrected strict containment
+test uses the outward distance from the inset rectangle core and handles a zero
+inset corner radius as a strict rectangle. Regression cases now cover fitting
+and escaping circle/roundrect drills, exact tangency refusal, and the zero-radius
+inset case. The reviewer found no remaining geometry or documentation defect.
+
+Current-source evidence: `cargo test --offline --locked --all-targets -j 1`
+passed (163 library tests and every integration/example target), all-target
+Clippy with warnings denied passed, formatting and `git diff --check` passed,
+and the optimized release build passed. Release-binary footprint-family,
+footprint-spec, footprint-inspection, four-board CLI and real CLI acceptance
+journeys passed. Other release-binary subprocess checks passed for embedded
+glTF bundles, 14 pinned KiCad 10.0.7 POS cases, board-outline/Gerber geometry,
+board-shell GLB, model resolution, v0.1 compatibility, BOM, model assignments,
+component envelopes, project intake/bundles, selectable twins, and dataset
+source-lock/Git inventory. The installed KiCad 10.0.5 also accepted SVG plots for round,
+round-offset, oval-offset, oval-drill-in-roundrect and non-plated-hole candidates.
+Readback receipt: `target/delivery/footprint-hole-kicad-10.0.5-roundrect-release-20261014T205629Z/receipt.json`.
+That readback proves file/plot acceptance only; land-pattern and manufacturer
+qualification remain false. Real CLI receipt:
+`target/delivery/real-cli-e2e-20261014T205544Z/20261014T205555Z-f0f0381f567f4eb5b500a67542f012d6/receipt.json`.
+
+The full fresh-target aggregate verifier was not run: D: had about 1.1 GB free,
+while retained prior verifier runs individually occupy about 1.7–3.2 GB. Those
+receipts were preserved. No push or GitHub update occurred. Full KiCad command
+parity, broader IPC/KLC/library management, qualified package geometry, STEP
+import/export and App/AR acceptance remain open.
+
+### Bounded footprint polygons and SOT-23 native plot readback — 2026-10-15
+
+The explicit footprint-definition serializer now accepts simple filled and
+unfilled polygons with 3–256 points. Validation runs on the same micrometre
+grid that is serialized, allows simple concave outlines, and rejects collapsed
+points, zero area, adjacent backtracking, self-crossings and self-touches. The
+SOT-23 candidate is pinned to KiCad footprint-libraries commit
+`f8a45b4665c28a6280e46eefe9fd4df81d2cd17b`; its fixture retains the upstream
+license/source note and exact LF-byte SHA-256. Independent S-expression E2E
+compares three pads and supported graphics, including one filled and one
+unfilled polygon, against the fixture. Source-content verification,
+manufacturer qualification, body generation and physical fit remain false.
+
+KiCad CLI 10.0.5 accepted and plotted the generated SOT-23 `.pretty` library.
+For the same plot settings, the generated file emitted 102 SVG paths while a
+comparison candidate with the two polygon records removed emitted 99. This is
+format/plot evidence only, not a manufacturer land-pattern check. The local
+receipt is recorded under `target/delivery/footprint-kicad-readback-final-*`;
+the repeatable test is `tests/footprint_through_hole_kicad_e2e.py`.
+
+Current-source checks passed: `cargo fmt --all -- --check`, all-target Rust
+tests (165 library tests plus every integration/example target), all-target
+Clippy with warnings denied, optimized release build, footprint-spec and
+footprint-inspector E2E, the four-board CLI E2E, 14 pinned KiCad 10.0.7 POS
+cases, geometry/Gerber references, GLB, model-resolution, v0.1 compatibility,
+BOM, assignment/envelope, intake/bundle, twin, source-lock/Git dataset and real
+Windows subprocess journeys. The KiCad 10.0.5 footprint readback also passed
+for THT/NPTH/oval/offset cases and SOT-23.
+
+The complete fresh-target `scripts/verify-local.ps1` was not run: D: had about
+0.59 GiB free after these checks, below the 1.7–3.2 GiB observed for retained
+prior full verification runs. Its isolated STEP-evaluation crate and the
+project-bundle test-hook build therefore remain unverified for this exact
+source. No GitHub write occurred. Full KiCad command-tree parity, IPC package
+families, mixed/custom pads, KLC validation, STEP geometry import/export,
+schematic-to-layout, and Tokito App/device acceptance remain unfinished.
+
+### ESP8266 multi-model STEP degeneracy gate — 2026-10-15
+
+Three embedded STEP files from dataset revision
+`5283bc059e30e51f4d3a81a674425936fc213214` were checked against FreeCAD 1.1.4
+references. The source and reference versions are pinned in
+`experiments/step-evaluation/references/esp8266-multi-model-freecad-manifest.json`.
+The surface harness receipt is
+`target/step-multi-surface-e2e-20261015j/receipt.json`: `0.step` passed bounded
+bidirectional samples at 0.000880 mm maximum, while `14.step` and `16.step`
+failed on four and 1,102 degenerate triangles, respectively. This is not a
+STEP-admission pass.
+
+The separate in-memory removal diagnostic now verifies dataset/source hashes,
+FreeCAD reference identity and candidate refusal, and runs a synthetic closure
+self-test. Its Python syntax check and the full three-model diagnostic passed;
+the actual engineering results remain failures for two files. `14.step` stays
+open and inconsistently oriented after removing four triangles, and the
+index-based FreeCAD reference mesh is also not closed. `16.step` stays open and
+inconsistently oriented after removing 1,102 triangles, with a 0.0840 mm
+reader-to-reference sampled distance above the 0.02 mm threshold. Both signed
+volumes are within tolerance, which does not overcome the failed topology and
+surface checks. The receipt is
+`target/step-multi-surface-e2e-20261015k/degenerate-removal-diagnostic.json`.
+
+No production filtering, STEP admission, GLB, board pose, component association
+or App import was added. The STEP path remains refused. The full root verifier,
+fresh-target release build, App/device acceptance and broad KiCad parity remain
+pending. Live GitHub review found PR #11 merged at
+`40e60efcf32a8128446a3ab96afb559fa7858699`, PR #45 open at
+`0fc2422b04dd0abcb45c27b446579a6ea9f62e40` with no hosted checks, and the
+CLI-specific roadmap project (#2) already marking PR #11 Done and issues #2,
+#6, #13, #24 plus PR #45 In Progress. Issue #13 received a factual local
+research checkpoint comment: https://github.com/TokitoAI/tokito-cli/issues/13#issuecomment-6179316569.
+No code was pushed and no hosted workflow was triggered.
+
+### KiCad 10.0.7 STEP/VRML export surface capture — 2026-10-15
+
+Pinned native help output for `pcb export step` and `pcb export vrml` is
+checked in with executable and capture hashes. The new behavior note separates
+the native board exporters from Tokito's existing local VRML-model-to-GLB
+import path and lists the command-specific options. This completes command
+surface reconnaissance for these two subcommands only; it does not establish
+output behavior, geometry equivalence, or CLI parity. STEP board export,
+board-VRML export, STEP model tessellation, option-combination behavior and
+independent geometry comparisons remain open. No runtime change, push, PR
+update, or GitHub Actions run resulted from these reference captures.
+
+### VRML97 oriented non-uniform scaling — 2026-10-15
+
+The bounded VRML reader now applies `Transform.scaleOrientation` using the
+standard matrix order `T * C * R * SR * S * -SR * -C` documented by
+[ISO/IEC 14772-1:1997](https://www.web3d.org/documents/specifications/14772/V2.0/part1/nodesRef.html).
+The asymmetric regression uses a non-unit axis, non-uniform scale, distinct
+base rotation, center and translation; expected coordinates and winding are
+asserted. The focused release test `model_mesh_api` passes 22/22 tests, all 167
+library tests pass, warnings-denied all-target Clippy and the optimized release
+build pass, and the four-board CLI E2E passes with an additional assembled
+VRML model using `scaleOrientation`. This is a supported VRML field only, not
+full VRML97 or KiCad exporter parity. Inline/external resources, textures,
+supplied normals, unsupported geometry nodes and STEP tessellation remain
+fail-closed. The full fresh-target aggregate verifier remains unrun because
+both drives are low on free space; broader independent model-corpus verification
+is still required before delivery.
+
+### Fresh full local verification — 2026-10-15
+
+After D: space was freed, the corrected source completed the full fresh-target
+`scripts/verify-local.ps1` run with **38/38 gates passing**. The run includes the
+root Rust test suite (172 library tests plus all integration/example/doc-test
+targets), warnings-denied Clippy, optimized release builds, four real-board CLI
+journeys, 14 pinned KiCad 10.0.7 placement comparisons, geometry/Gerber
+references, footprint generator/spec/inspection E2Es, source-lock and Git
+inventory tests, and the isolated STEP, Altium, and twin-refinement workspaces.
+The updated model-reference inspector now reports uninterpreted direct model
+content as partial rather than implying every field was understood.
+
+Receipt: `target/delivery/local/20261015T001258Z-f8ecbae545cb438d8560909a8caec1c2/verification.json`.
+Delivered binary: `tokito-cli.exe`, 5,274,624 bytes, SHA-256
+`92199384f7c67caa89fcce64a76056fb5fe9a573347c942ef320f5c57d725283`.
+The preceding attempt stopped at formatting before running tests; rustfmt was
+applied and the full run was restarted. An earlier full run also found an
+unbalanced malformed-model test fixture; that fixture was corrected, then the
+final full run passed. The receipt was created before this narrative entry, so
+its recorded tracker hash reflects the preceding tracker contents; implementation,
+test, script, and fixture inputs are unchanged since the receipt. This confirms
+local CLI behavior only. KiCad CLI/library parity, STEP geometry admission,
+schematic-to-layout, complete qualified 3D coverage, App import, AR/device
+acceptance, and hosted CI remain incomplete or unverified. No GitHub write was
+made in this verification run.
