@@ -94,7 +94,12 @@ pub(crate) fn resolve_gltf_bundle(
 /// Returns normalized local dependency paths, inline-URI count, and total URI
 /// reference count. Repeated external paths are resolved and copied once.
 fn resource_paths(bytes: &[u8]) -> Result<(Vec<String>, usize, usize), &'static str> {
-    let document: Value = serde_json::from_slice(bytes).map_err(|_| "invalid_gltf_json")?;
+    let text = std::str::from_utf8(bytes).map_err(|_| "invalid_gltf_json")?;
+    // Do not accept serde_json's default last-key-wins behavior here. A
+    // downstream glTF reader may choose another duplicate `uri`, which could
+    // make the copied offline dependency set differ from the document's
+    // effective resource graph.
+    let document: Value = crate::strict_json::parse(text).map_err(|_| "invalid_gltf_json")?;
     let object = document.as_object().ok_or("invalid_gltf_root")?;
     let asset = object
         .get("asset")

@@ -211,6 +211,21 @@ def main() -> None:
         assert extra_report["status"] == "partial_reported_fields"
         assert "uninterpreted_model_content" in extra_report["modelReferences"][0]["diagnostics"]
 
+        nested_model_content = root / "nested-model-content.kicad_mod"
+        nested_model_content.write_text(
+            '(footprint "NestedModelContent" '
+            '(model "part.step" (offset (xyz 0 0 0) (vendor_field yes))))',
+            encoding="utf-8",
+        )
+        nested_result = invoke(
+            binary, "component", "footprint", "inspect", nested_model_content, "--json"
+        )
+        assert nested_result.returncode == 0, nested_result.stderr
+        nested_report = json.loads(nested_result.stdout)
+        assert nested_report["status"] == "partial_reported_fields"
+        assert nested_report["modelReferences"][0]["status"] == "partial_reported_fields"
+        assert "uninterpreted_model_content" in nested_report["modelReferences"][0]["diagnostics"]
+
         malformed_pad = root / "malformed-pad.kicad_mod"
         malformed_pad.write_text(
             '(footprint "BadPad" (pad "A" smd polygonal (at 1 2 90) '

@@ -213,6 +213,45 @@ fn cli_requires_explicit_partial_export_for_escaping_or_missing_gltf_resources()
 }
 
 #[test]
+fn cli_rejects_duplicate_gltf_uri_keys_instead_of_choosing_a_dependency() {
+    let fixture = Fixture::new();
+    let models = fixture.root.join("models");
+    fs::create_dir_all(&models).unwrap();
+    let document = br#"{"asset":{"version":"2.0"},"buffers":[{"uri":"mesh.bin","uri":"alternate.bin","byteLength":4}]}"#;
+    fs::write(models.join("scene.gltf"), document).unwrap();
+    fs::write(models.join("mesh.bin"), b"first").unwrap();
+    fs::write(models.join("alternate.bin"), b"second").unwrap();
+    let board = fixture.write_board("models/scene.gltf");
+
+    let strict_output = fixture.root.join("strict-duplicate-key-output");
+    let strict = fixture.run(&board, &strict_output, false);
+    assert!(!strict.status.success());
+    assert!(!strict_output.exists());
+
+    let partial_output = fixture.root.join("partial-duplicate-key-output");
+    let partial = fixture.run(&board, &partial_output, true);
+    assert!(
+        partial.status.success(),
+        "{}",
+        String::from_utf8_lossy(&partial.stderr)
+    );
+    let report: Value = serde_json::from_slice(&partial.stdout).unwrap();
+    let gltf_bundle = &report["models"][0]["gltfBundle"];
+    assert_eq!(gltf_bundle["status"], "incomplete");
+    assert_eq!(gltf_bundle["uniqueExternalResources"], 0);
+    assert_eq!(gltf_bundle["resolvedExternalResources"], 0);
+    assert_eq!(gltf_bundle["diagnostics"][0]["status"], "invalid_gltf_json");
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(partial_output.join("manifest.json")).unwrap()).unwrap();
+    assert_eq!(
+        manifest["models"][0]["extraction"]["status"],
+        "gltf_bundle_incomplete"
+    );
+    assert_eq!(manifest["gltfDependencyFiles"], 0);
+    assert!(!partial_output.join("assets/gltf").exists());
+}
+
+#[test]
 fn cli_rejects_gltf_dependency_path_that_collides_with_emitted_document() {
     let fixture = Fixture::new();
     let models = fixture.root.join("models");

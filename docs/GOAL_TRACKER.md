@@ -21,14 +21,15 @@ component-envelope, intake, project-bundle, footprint, twin, dataset, and real
 CLI E2Es; plus the STEP, Altium, and twin-refinement crates and the opt-in
 project-bundle cleanup hook.
 
-Receipt: `target/delivery/local/20261015T154719Z-607cc27893654aaf8901b2e8da83744c/verification.json`.
-It contains the verified `tokito-cli.exe` (5,265,920 bytes; SHA-256
-`32dcf2d5b312b389fe1544af4af0e2d1f7e0b83acae7d9caa3c5365e5a7498c5`). The
+Receipt: `target/delivery/local/20261015T165401Z-ac5c2534a7d047b0bd91631947e24474/verification.json`.
+It contains the verified `tokito-cli.exe` (5,261,824 bytes; SHA-256
+`c8e96deec6409ae2ecf48d53f942722da2c56514cad66b45596ee8a91abfae60`). The
 fresh build/test target was on F:
-`F:\kannan\\projects\\tokito-cli-verification\\20261015T153119Z-83571ab601e34c1d818fc58164d8f8de`; the receipt and delivered binary are on
-D:. This new run supersedes the interrupted attempt described in older history.
-The receipt's tracker input hash predates this post-run status note; executable
-source, test, fixture, and verifier-script inputs were unchanged after the run.
+`F:\kannan\projects\tokito-cli-verification\20261015T160618Z-9c97ad7d544c449d942abde00ac7e436`; the receipt and delivered binary are on
+D:. All 38 gates passed on this run using one Cargo build job to stay within
+the available Windows paging-file limit. The receipt's tracker hash predates
+this post-run pointer update; implementation source and test inputs were
+unchanged after verification.
 
 ESP8266 source-candidate E2Es passed for STEP unit reconciliation (17 models),
 occurrence transforms, candidate mesh decoding, Altium component inventory,
@@ -44,7 +45,7 @@ unverified.
 The headed Edge/Playwright journey at 3840×2160 selected components, highlighted
 the selected entity, exercised orbit/zoom/reset, and reloaded and selected a
 component offline with no JavaScript console errors. Screenshot:
-`F:\kannan\\projects\\tokito-cli-verification\\20261015T143244Z-3e7164dd94c9431485b8788663e6c0fe\\browser-work-esp8266\\output\\playwright\\esp8266-selected-module-4k.png`.
+`F:\kannan\projects\tokito-cli-verification\20261015T143244Z-3e7164dd94c9431485b8788663e6c0fe\browser-work-esp8266\output\playwright\esp8266-selected-module-4k.png`.
 This validates the local viewer interaction, not the accuracy of its physical
 registration or the Tokito App importer. The current `Assert-LocalOutputPath`
 helper also passed a focused check: it accepts an in-project target and rejects
@@ -53,19 +54,17 @@ an external path and a prefix-sharing sibling path.
 ### Delivery and remaining gates
 
 The working branch is `feat/footprint-spec-generator`, associated with open
-PR #45 at the previously reviewed head. Current worktree edits have not yet
-been pushed. The 2026-10-15 F: run target is temporary build/test output; the
-source checkout and final delivery receipt stay on D:. GitHub Actions remain
-disabled by project policy. Issues #13 and #24 remain open and In Progress in
-the CLI-specific project. No merge is authorized or claimed here.
+PR #45. This receipt verifies the local source immediately before its PR
+update. F: contains temporary build/test output; the source checkout and final
+delivery receipt stay on D:. GitHub Actions remain disabled by project policy.
+Issues #13 and #24 remain open and In Progress in the CLI-specific project; no
+merge has occurred.
 
-Next: rerun the complete local verifier with a fresh F: temporary target and a
-D: delivery receipt, review the exact staged diff, then update PR #45 and the
-issue/project evidence. KiCad CLI command/error parity, broader library-tool
+Remaining gates include KiCad CLI command/error parity, broader library-tool
 families, manufacturer-qualified footprint semantics, complete board contours
 and holes, STEP geometry admission, all-component physical model fidelity,
-schematic-to-layout, App import, and registered phone AR are still incomplete
-or unverified. Sibling repositories remain read-only.
+schematic-to-layout, App import, and registered phone AR. Sibling repositories
+remain read-only.
 
 ## Previous continuation — bounded model resolution and CLI acceptance (2026-10-15)
 

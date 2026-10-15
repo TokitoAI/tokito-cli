@@ -252,7 +252,9 @@ fn inspect_model_reference(
                 !matches!(item.head(), Some("offset" | "scale" | "rotate"))
             }
         })
-    });
+    }) || ["offset", "scale", "rotate"]
+        .into_iter()
+        .any(|field| has_uninterpreted_transform_content(node, field));
     if has_uninterpreted_content {
         diagnostics.push("uninterpreted_model_content");
     }
@@ -270,6 +272,23 @@ fn inspect_model_reference(
         status,
         diagnostics,
     }
+}
+
+fn has_uninterpreted_transform_content(model: &crate::SourceNode, field: &str) -> bool {
+    model.children(field).any(|record| {
+        let Some(items) = record.items() else {
+            return true;
+        };
+        let mut xyz_seen = false;
+        items.iter().skip(1).any(|item| match item {
+            crate::SourceNode::Atom(_) => true,
+            crate::SourceNode::List(_) if item.head() == Some("xyz") && !xyz_seen => {
+                xyz_seen = true;
+                false
+            }
+            crate::SourceNode::List(_) => true,
+        })
+    })
 }
 
 fn parse_model_transform(
