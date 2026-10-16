@@ -71,8 +71,9 @@ Required paired inputs must exist and match the selected profile. Dataset E2E pr
 
 ## Limits and repository delivery
 
-The current base profile has 45 gates, including original Rust
+The current base profile has 46 gates, including original Rust
 `surface_distance` example tests and its optimized (`-C opt-level=2`) build.
+It also requires the offline pinned KiCad 10.0.7 SVG evidence validator.
 This is development-only independent validation tooling, not a product native
 CAD dependency. The [planar repair comparison](STEP_PLANAR_REPAIR.md) is a
 separate pinned real-source journey with its own digest-bound receipt; a base

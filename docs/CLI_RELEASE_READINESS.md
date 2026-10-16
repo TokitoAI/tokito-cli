@@ -128,7 +128,7 @@ this narrative update. Every gate executed; trusted Cargo cache reuse does not
 mean a clean dependency build. The run covers normal commands and feature-gated
 subprocess failures during all three twin exports, plus 175 root tests and the
 existing board/export/footprint/library/package journeys. This checkpoint was
-superseded by the documentation-inclusive 45/45 current-source verification
+superseded by the documentation-inclusive 46/46 current-source verification
 described in the Gates section above and recorded with PR #45.
 
 PE import-table inspection of the tested executable found VCRUNTIME140.dll and
