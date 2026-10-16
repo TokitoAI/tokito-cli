@@ -66,13 +66,18 @@ The new Tokito-native `project inspect` command provides bounded, explicit PCB s
 2. **Finish the physical-board foundation.** Keep the canonical `PhysicalBoardDocument` as the shared Rust API and preserve current v0.1 package/CLI behavior.
 3. **Selectable GLB (Milestone C-06).** Resolve only explicit local model roots; verify model format, hash, units, origin, rotation, top/bottom transforms and unique footprint identity. The bounded VRML exporter emits one renderable `ref:<refdes>` node per component with separate mesh-part primitives, and CLI tests exercise selecting one of multiple components. Independently compare transforms/geometry and verify the App importer before claiming consumer interoperability. Default to refusing incomplete models; the existing explicit partial-export flag remains the only route to a visibly incomplete result.
 4. **Manufacturing-position export.** A separate CSV operation is implemented and compared against KiCad 10.0.5 and 10.0.7 for 14 shared cases covering side, units, bottom-X mirroring, absolute and auxiliary origins, SMD/THT/DNP filters and excluded-footprint behavior. Next add independent error/default coverage and extend other formats one verified option at a time. Do not relabel the existing inventory CSV.
-5. **SVG compatibility.** The DNP Fab-hide option is now covered as one 10.0.5-observed slice. Next capture the same command and output semantics against the 10.0.7 baseline, then extend layer, page, origin and plotting behavior one option at a time, keeping unsupported text/pad/zone cases visible.
+5. **SVG compatibility.** The DNP Fab-hide option has a pinned single-Uno F.Fab comparison in both 10.0.5 and 10.0.7. Extend layer, page, origin and plotting behavior one option at a time, keeping unsupported text/pad/zone cases visible; the completed narrow capture does not establish general plotting parity.
 6. **Job manifests and additional formats.** Add local batch jobs after individual outputs have schemas and failure behavior. Add Gerber/drill and other manufacturing operations only with independent fixtures and acceptance tests.
 7. **Schematic and library families.** Treat `sch`, `fp`, and `sym` as separate engines/adapters. Do not infer PCB placement, board outline, stackup or routing from schematic symbols or a BOM.
 
-## Project-folder intake contract to implement later
+## Implemented bounded project-folder intake and remaining scope
 
-The current CLI accepts a board file or its current Tokito package; it does not yet open an arbitrary project folder. A future project intake should:
+The CLI implements `project inspect`, `project build` and `project verify` for
+bounded top-level discovery and source-bound offline bundles. Tests exercise
+source selection/hashes, ambiguity, unsafe paths, unchanged inputs, partial
+consent, no overwrite and bundle tamper detection. The supported folder scope
+is explicit KiCad PCB discovery; this is not arbitrary project-manager,
+jobset, recursive multi-board or schematic-to-layout parity. Its contract is:
 
 1. Accept a user-selected project directory or an explicit board file, and report the exact selected source path and digest before export.
 2. Detect supported project files without an unbounded recursive scan. If multiple candidate boards exist, ask the Desktop/user to select one; never guess based only on filenames.

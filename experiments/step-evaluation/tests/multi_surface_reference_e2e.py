@@ -143,10 +143,18 @@ class TriangleBvh:
 def directed_bvh_sample_distance(source_points, source_triangles, target_points, target_triangles, work):
     sample_indices = selected_triangle_indices(len(source_triangles))
     target = TriangleBvh(target_points, target_triangles)
-    distances = [
-        target.nearest_distance(point, work)
-        for point in multi_surface_samples(source_points, source_triangles, sample_indices)
-    ]
+    # The same exact vertex is sampled by adjacent triangles. Memoize only
+    # identical coordinate tuples; retain every sample in the aggregate and
+    # retain all existing tolerances and the triangle-distance work cap.
+    cache = {}
+    distances = []
+    for point in multi_surface_samples(source_points, source_triangles, sample_indices):
+        key = tuple(point)
+        if key not in cache:
+            if len(cache) >= MAX_SURFACE_SAMPLES:
+                raise ValueError("surface query cache limit exceeded")
+            cache[key] = target.nearest_distance(point, work)
+        distances.append(cache[key])
     return max(distances), sum(distances) / len(distances), len(distances), len(target.nodes)
 
 

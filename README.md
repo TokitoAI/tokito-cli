@@ -474,6 +474,7 @@ tokito_cli/
 | CLI-only preview and production release gates | [Release readiness](docs/CLI_RELEASE_READINESS.md) |
 | CLI commands, actual output and recovery | [Command guide](docs/CLI_COMMAND_GUIDE.md) |
 | STEP solid ownership and remaining reader failures | [Per-solid reference evidence](docs/STEP_SOLID_REFERENCE.md) |
+| Experimental planar repair and independent comparison | [Repair architecture and gates](docs/STEP_PLANAR_REPAIR.md) |
 | Full repository tree | [Versioned source and artifact map](docs/REPOSITORY_MAP.md) |
 | Physical exports | [Topology](docs/PCB_TOPOLOGY.md), [GLB](docs/GLB_EXPORT_ARCHITECTURE.md), [model roots](docs/MODEL_RESOLUTION.md), [assignments](docs/MODEL_ASSIGNMENTS.md) |
 | Dataset provenance | [Board intake](docs/DATASET_BOARD_HANDOFF.md), [source locks](docs/DATASET_SOURCE_LOCK.md), [Git/LFS](docs/DATASET_GIT_INVENTORY.md), [external binding](docs/DATASET_EXTERNAL_BINDING.md) |

@@ -202,6 +202,8 @@ try {
         @{ name = 'step-reference-tests'; command = $pythonCommand.Source; arguments = @('experiments/step-evaluation/tests/test_solid_reference.py') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'torus-inverse-regression'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'torus_inverse_regression', '--offline', '--locked') },
+        @{ name = 'surface-distance-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked') },
+        @{ name = 'surface-distance-build'; command = $cargoCommand.Source; arguments = @('rustc', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked', '--', '-C', 'opt-level=2') },
         @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'altium-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--all', '--check') },

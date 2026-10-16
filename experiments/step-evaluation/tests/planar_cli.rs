@@ -136,3 +136,81 @@ fn actual_subprocess_reports_face_and_refuses_invalid_requests() {
     fs::remove_file(source).unwrap();
     fs::remove_dir(root).unwrap();
 }
+
+#[test]
+fn experimental_repair_requires_explicit_owner_and_never_admits() {
+    let path = std::env::temp_dir().join(format!(
+        "tokito-repair-{}-{}.step",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let text=fixture().replace("ENDSEC;END-ISO-10303-21;","#80=MANIFOLD_SOLID_BREP('',#81);#81=CLOSED_SHELL('',(#75));#82=ADVANCED_BREP_SHAPE_REPRESENTATION('',(#80),#83);#83=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#84)) REPRESENTATION_CONTEXT('',''));#84=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));ENDSEC;END-ISO-10303-21;");
+    fs::write(&path, &text).unwrap();
+    for (flags, success) in [
+        (
+            vec![
+                "--repair-planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "82",
+            ],
+            true,
+        ),
+        (
+            vec!["--repair-planar-face", "75", "--source-tolerance", "1e-9"],
+            false,
+        ),
+        (
+            vec![
+                "--repair-planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "80",
+            ],
+            false,
+        ),
+        (
+            vec![
+                "--repair-planar-face",
+                "75",
+                "--source-tolerance",
+                "NaN",
+                "--source-representation",
+                "82",
+            ],
+            false,
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_tokito-step-evaluation"))
+            .args(flags)
+            .arg(&path)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stderr.is_empty());
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(report["admitted"], false);
+        assert_eq!(report["exportsProduced"], serde_json::json!([]));
+        assert_eq!(report.get("error").is_none(), success, "{report}");
+        if success {
+            assert_eq!(
+                report["experimentalPlanarRepair"]["positionsChanged"],
+                false
+            );
+            assert_eq!(
+                report["experimentalPlanarRepair"]["reusedBoundaryVertices"],
+                4
+            );
+            assert_eq!(report["experimentalPlanarRepair"]["admitted"], false);
+        }
+        assert_eq!(fs::read_to_string(&path).unwrap(), text);
+    }
+    fs::remove_file(path).unwrap();
+}

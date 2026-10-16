@@ -2,9 +2,37 @@
 
 CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
 YOLO are excluded from the current release scope. The frozen-tool capture c
-confirms 76/76 reference solids and preserves both known reader failures.
+confirms 76/76 reference solids. The unmodified reader retains both known
+failures; the opt-in model-14 repair now has passing independent sampled
+comparison evidence. General STEP admission remains blocked.
 
-## Current geometry implementation (2026-10-16)
+## Active production-readiness plan (2026-10-16)
+
+Goal: deliver the advertised CLI features with verified engineering geometry,
+source-linked selectable components, explicit missing-model handling and an
+independently tested installation. No production claim, merge or tag follows
+from a diagnostic or base-test pass. Actions remain disabled; sibling code stays
+read-only. The native task goal remains active.
+
+| Owner | Dependency | State | Evidence / review / next action |
+| --- | --- | --- | --- |
+| Main | Source face, selected units and plain representation links | Implemented, experimental | Original Rust repair reuses 148 existing vertices; immutable input and unchanged unrelated geometry tests pass |
+| Main | Model-14 candidate | Independent comparison passed | All 41 emitted shape occurrences closed, consistent winding, positive volume; 600,000 samples, maximum distance 0.0014101133940020597 mm below 0.02 mm; volume within declared tolerance |
+| Reviewer | Numeric and preservation checks | Corrections tested and reviewed | Nonfinite orientation-dot refusal, bounded fingerprints and native distance-tool branch/full-scan tests added; final evidence review required |
+| Main | Current-source verification | 45-gate checkpoint passed | Receipt `F:\kannan\projects\tokito-cli-verification\delivery\20261016T142818Z-5c27fae1492e4ecc91a7baec9fb5f691/verification.json`; 45 STEP unit tests, seven integration tests, 11 Python tests and three native distance tests. Documentation-inclusive rerun and current-source fingerprint match required before branch push; final receipt on PR #45 |
+| Main | General STEP geometry #19 | Incomplete | One planar fixture comparison passes; rational spline #2875, global source/frame qualification, original all-asset gaps and supported-profile expansion remain |
+| Main | KiCad command/export/error parity #13 | Incomplete | Implement remaining agreed matrix operations and pinned comparisons |
+| Main | Footprint/library families #24 | Incomplete | Qualify families, pads, body/pin geometry and engineering/library standards |
+| Main | Complete selectable components #47 | Incomplete | Verify classification provenance, exact identities, dimensions, all placement transforms and model coverage |
+| Main | Missing models #47 | Incomplete | Exact source-pinned package lookup or dimension-supported generation, explicit unknown/partial until qualified |
+| Main | Simulation/views #47 | Incomplete | Import verified results with source/net/pin/time/units contract; additional physical environments require their own layout adapters |
+| Main | Independent Windows release #47 | Unverified | Run installation/upgrade and real command journeys on an independent machine/environment |
+
+See [repair architecture](STEP_PLANAR_REPAIR.md), [v1 requirement ledger](CLI_V1_PLAN.md)
+and [release gates](CLI_RELEASE_READINESS.md). Scope remains CLI only, excluding
+AR/YOLO. Do not close broad issues on completion of a narrower subtask.
+
+## Previous selected-context geometry checkpoint (2026-10-16)
 
 Latest local extension: explicit source representation membership resolves
 #58073 → #46427 → #20483 → #51071 and context #50436's millimetres on the

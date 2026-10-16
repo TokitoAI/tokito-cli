@@ -11,6 +11,8 @@ from unittest.mock import patch
 
 import multi_surface_reference_e2e as multi
 import diagnose_degenerate_surface as diagnostic
+from bounded_fingerprint import fingerprint
+import planar_repair_reference_e2e as planar_reference
 
 
 def adjacent_tetrahedra():
@@ -32,6 +34,38 @@ def adjacent_tetrahedra():
 
 
 class SolidReferenceTests(unittest.TestCase):
+    def test_planar_comparison_missing_input_keeps_failed_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            result=planar_reference.run(root/"missing",root/"source",root/"reference","0"*64,root/"output")
+            self.assertFalse(result["passed"])
+            self.assertIn("FileNotFoundError",result["error"])
+            self.assertFalse(json.loads((root/"output/receipt.json").read_text())["passed"])
+    def test_exact_point_cache_preserves_every_surface_sample(self):
+        mesh=adjacent_tetrahedra()["solids"][0]
+        points,triangles=mesh["verticesMm"],mesh["triangles"]
+        samples=list(multi.multi_surface_samples(points,triangles,multi.selected_triangle_indices(len(triangles))))
+        for target in [points,[[x+2,y+3,z+4] for x,y,z in points]]:
+            tree=multi.TriangleBvh(target,triangles)
+            uncached_work=[0]
+            distances=[tree.nearest_distance(p,uncached_work) for p in samples]
+            cached_work=[0]
+            result=multi.directed_bvh_sample_distance(points,triangles,target,triangles,cached_work)
+            self.assertEqual(result[:3],(max(distances),sum(distances)/len(distances),len(samples)))
+            self.assertLess(cached_work[0],uncached_work[0])
+    def test_fingerprints_stream_and_enforce_exact_byte_limits(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary)/"data"
+            path.write_bytes(b"abc")
+            self.assertEqual(fingerprint(path,3),hashlib.sha256(b"abc").hexdigest())
+            with self.assertRaises(ValueError):
+                fingerprint(path,2)
+            with self.assertRaises(ValueError):
+                fingerprint(path,-1)
+            with self.assertRaises(FileNotFoundError):
+                fingerprint(Path(temporary)/"missing",3)
+            path.write_bytes(b"")
+            self.assertEqual(fingerprint(path,0),hashlib.sha256(b"").hexdigest())
     def test_shared_coordinates_preserve_strict_independent_solids(self):
         points, triangles, evidence = multi.checked_solid_reference(adjacent_tetrahedra(), 2)
         self.assertEqual((len(points), len(triangles)), (8, 8))

@@ -15,9 +15,16 @@ candidate models are not manufacturer-qualified engineering truth.
 
 ## Gates
 
+The expanded local profile now has 45 base gates, adding the independent Rust
+sample-distance validator's tests and optimized build. The opt-in planar repair
+has a passing pinned model-14 reference comparison, documented in
+[STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not general STEP admission.
+Final branch delivery requires its current-source receipt. Older checkpoints
+below retain their original gate counts and scope.
+
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Pushed head cbeece3 passed 41 gates; target/delivery/local/20261016T060322Z-e4323ee376dc4e51b2a705e16f23af2b/verification.json (trusted cache, all gates executed) | Expanded current-source 43-gate profile passed; see checkpoint below |
+| Existing CLI foundation | Historical head cbeece3 passed 41 gates; the expanded planar-repair checkpoint passed 45 gates at F:\kannan\projects\tokito-cli-verification\delivery\20261016T142818Z-5c27fae1492e4ecc91a7baec9fb5f691/verification.json (trusted cache, all gates executed) | Require final documentation-inclusive receipt and input fingerprint match before branch push; older counts below retain original scope |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
 | Source review | Independent read-only review found no blocker after failed-receipt correction | Review any new implementation changes |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |

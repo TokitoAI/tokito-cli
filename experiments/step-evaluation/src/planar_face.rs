@@ -232,7 +232,15 @@ impl<'a> Source<'a> {
     }
 }
 
+pub struct SourceFace {
+    pub vertices: Vec<P3>,
+    pub triangles: Vec<[usize; 3]>,
+    pub report: Json,
+}
 pub fn inspect(step: &StepFile, face_id: u64, tolerance: f64) -> Result<Json, String> {
+    Ok(build(step, face_id, tolerance)?.report)
+}
+pub fn build(step: &StepFile, face_id: u64, tolerance: f64) -> Result<SourceFace, String> {
     if !tolerance.is_finite() || tolerance <= 0. {
         return Err("explicit_positive_source_tolerance_required".into());
     }
@@ -398,8 +406,7 @@ pub fn inspect(step: &StepFile, face_id: u64, tolerance: f64) -> Result<Json, St
             return Err("triangle_source_normal_mismatch".into());
         }
     }
-    Ok(
-        json!({"schema":"tokito.step-linear-planar-face.v1","faceId":face_id,"surfaceId":plane_id,
+    let report = json!({"schema":"tokito.step-linear-planar-face.v1","faceId":face_id,"surfaceId":plane_id,
         "boundId":bound_id,"loopId":loop_id,"boundOrientation":bound_sense,"faceSameSense":face_sense,
         "sourceVertexIds":ids,"orientedEdgeIds":edge_ids,"verticesSourceUnits":points,
         "projectedVerticesSourceUnits":projected,"triangles":triangles,"triangleCount":triangles.len(),
@@ -409,14 +416,23 @@ pub fn inspect(step: &StepFile, face_id: u64, tolerance: f64) -> Result<Json, St
         "maximumLineResidualSourceUnits":max_line_residual,"callerToleranceSourceUnits":tolerance,
         "sourceTraversalWork":source.work,"sourceToModelFrameVerified":false,"sourceLengthUnitsResolved":false,
         "geometryQualified":false,"admitted":false,"exportsProduced":[],
-        "scope":"one source-native planar LINE loop triangulation; no reader mesh replacement, representation frame/unit admission, solid closure or component/PCB qualification"}),
-    )
+        "scope":"one source-native planar LINE loop triangulation; no reader mesh replacement, representation frame/unit admission, solid closure or component/PCB qualification"});
+    Ok(SourceFace {
+        vertices: points,
+        triangles,
+        report,
+    })
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
-    fn source_text(edge_sense: bool, bound_sense: bool, face_sense: bool, scale: f64) -> String {
+    pub(crate) fn source_text(
+        edge_sense: bool,
+        bound_sense: bool,
+        face_sense: bool,
+        scale: f64,
+    ) -> String {
         let points = [
             [0., 0., 0.],
             [2. * scale, 0., 0.],

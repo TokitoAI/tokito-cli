@@ -4,6 +4,12 @@ This development-only comparison supports issue #19. The product engine remains
 original Rust with pure Rust dependencies. FreeCAD is an independently pinned
 reference tool, outside Tokito's product export workflow.
 
+Current opt-in repair evidence: [original Rust planar repair](STEP_PLANAR_REPAIR.md).
+Pinned model 14 now passes repaired-candidate closure/winding/volume and a
+600,000-sample independent comparison (maximum 0.0014101133940020597 mm).
+The unmodified reader and model-16 spline failure remain unchanged; this does
+not admit general STEP or qualify component/PCB geometry.
+
 ## Real source result
 
 The saved compound mesh for ESP8266 `14.step` had 6,625 edges with four incident

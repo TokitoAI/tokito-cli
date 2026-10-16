@@ -23,7 +23,7 @@ Paths above are local examples, not required runtime locations. The runner requi
 
 ## Current checks and evidence
 
-The current baseline profile contains **43 checks**: format; embedded-dataset verifier tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS and footprint-type filtering, CLI experience, command-completion journeys, twin ordinary-error rollback, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP reference ownership/receipt tests and experiment format/tests/torus regression/Clippy/build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
+The current baseline profile contains **45 checks**: format; embedded-dataset verifier tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS and footprint-type filtering, CLI experience, command-completion journeys, twin ordinary-error rollback, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP reference ownership/receipt tests and experiment format/tests/torus regression/Clippy/build; native sample-distance tests and optimized build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
 
 The main E2E runs real subprocesses on four pinned open-source PCB fixtures. It checks SVG/package/placement output, no-overwrite and refusal behavior, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons and the bounded SVG DNP Fab-filter comparison. GLB tests check container structure, bounds, area, winding, closed edges, explicit partial consent and exact renderable component selectors. These fixtures are parser/export evidence, not proof that every dataset board is qualified.
 
@@ -70,6 +70,13 @@ in the preceding run was an infrastructure failure, not a passing result.
 Required paired inputs must exist and match the selected profile. Dataset E2E produces its own passed receipt; the outer receipt records that evidence path and SHA-256. A BOM report digest establishes the supplied report bytes, not an independently materialized manufacturer BOM. Dataset hashes establish integrity, not geometry qualification or publisher identity.
 
 ## Limits and repository delivery
+
+The current base profile has 45 gates, including original Rust
+`surface_distance` example tests and its optimized (`-C opt-level=2`) build.
+This is development-only independent validation tooling, not a product native
+CAD dependency. The [planar repair comparison](STEP_PLANAR_REPAIR.md) is a
+separate pinned real-source journey with its own digest-bound receipt; a base
+pass alone does not run or qualify every dataset model.
 
 The bounded VRML adapter and source-derived placement tests do not establish general WRL/STEP import or KiCad 3D equivalence. Experimental Rust adapters remain separately gated. Baseline fixtures and optional dataset profiles do not drive the Android importer, renderer, physical phone, CAD GUI, Desktop or registered AR. Linux/MSRV, manufacturing validity, full KiCad compatibility and physical board fit require their own evidence.
 

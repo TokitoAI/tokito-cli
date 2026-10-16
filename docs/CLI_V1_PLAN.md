@@ -15,7 +15,7 @@ full command, generator and library parity is not complete.
 | V1-03 | Dependable no-overwrite output with recoverable failures | Twin outputs now pre-serialize, write manifest last and conservatively roll back unchanged authored files on ordinary errors. Unit fault tests added; process-kill atomicity not claimed |
 | V1-04 | Complete pinned KiCad command/export/error compatibility | Partial; issue #13 and the compatibility matrix retain unimplemented families/options |
 | V1-05 | Footprint/Library Tools coverage and engineering standards | Partial; explicit SMD/TH/NPTH candidates and library inventory/hash locks exist. Family coverage, IPC calculations, KLC and manufacturer-qualified land patterns remain open (#24) |
-| V1-06 | Accurate 3D bodies, terminals, contours, cuts and materials | Bounded VRML works; STEP reference ownership verified for 76 solids. Original Rust diagnostic preserves 148 boundary segments into 146 triangles on one pinned planar face, independently checked. Reader replacement, frame/units, whole-solid and rational-spline repair remain (#19) |
+| V1-06 | Accurate 3D bodies, terminals, contours, cuts and materials | Bounded VRML works; STEP reference ownership verified for 76 solids. Original Rust experimental repair reuses 148 vertices and replaces one face's 146 triangles; model-14's 41-shape closure/winding/volume and independent 600,000-sample comparison pass (maximum 0.0014101133940020597 mm). Global frame/ownership qualification, rational-spline repair, original all-asset gaps and production adapter admission remain (#19); see STEP_PLANAR_REPAIR.md |
 | V1-07 | Units, alignment, mounting plane, rotations and bottom transforms | Existing source/pose regressions; independent per-board dimensions and all-component geometry qualification still required |
 | V1-08 | Separately selectable components and classification provenance | Existing UUID/ref/native-ID selectors; distinguish authored class claims, heuristic hints and unknowns. Never promote a name/photo guess to verified identity |
 | V1-09 | Missing-component resolution | Inventory BOM/footprint/model discrepancies; resolve exact part/package/revision from approved local libraries or source-provenanced manufacturer/open assets; verify dimensions and pins before assignment; refuse or explicitly partial if unavailable |
@@ -67,6 +67,13 @@ electrical or thermal correctness is established by a polished visualization.
    bodies; add per-component dimensional/placement checks.
 4. Implement remaining agreed KiCad exports and footprint/library families with
    pinned comparisons. Keep unsupported commands explicit.
+   Concrete next library tasks: mixed-technology footprints (SMD contacts plus
+   THT/NPTH mechanical pads), dimension/tolerance-driven package-family planning
+   through the existing deterministic serializer, then native footprint/library
+   SVG export with typed geometry and pinned comparisons. Existing library
+   inspect/audit/content-lock/verify operations should be reused, not duplicated.
+   Structural audit and source URI/hash declarations do not establish KLC,
+   manufacturer land-pattern correctness or IPC family generation.
 5. Add verified simulation-result intake and additional view/environment adapters
    after their formats and identity contracts are specified and tested.
 6. Run current-source format, tests, Clippy, build, all-command E2E and independent
