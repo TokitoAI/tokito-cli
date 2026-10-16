@@ -15,42 +15,55 @@ candidate models are not manufacturer-qualified engineering truth.
 
 ## Gates
 
-The expanded local profile now has 45 base gates, adding the independent Rust
-sample-distance validator's tests and optimized build. The opt-in planar repair
-has a passing pinned model-14 reference comparison, documented in
-[STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not general STEP admission.
-Final branch delivery requires its current-source receipt. Older checkpoints
-below retain their original gate counts and scope.
+The expanded local profile has 45 gates, including the independent Rust
+sample-distance validator, footprint/library and dataset journeys, pinned KiCad
+10.0.7 comparisons, and the STEP, Altium and twin-refinement experiment crates.
+Current-source Windows verification passed 45/45 gates on 2026-10-16 with
+Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5. The production CLI was compiled
+with the optimized release profile and its subprocess E2Es passed. A trusted
+Cargo target cache was reused; this was not a clean-cache or independent-machine
+verification. The test-only fault-injection binary uses the debug profile to
+avoid exhausting memory on this 8 GB Windows machine. The exact local receipt
+and delivered binary digest are recorded in PR #45.
 
-The subsequent experimental `--diagnose-face` command classifies the model-16
-failure without repairing or admitting it. Independent review required a
-relative-area underflow correction, now covered by scale-invariance tests.
-That diagnostic is progress toward identifying a repair, not geometry
-qualification or an added production export capability.
+The opt-in planar repair has a passing pinned model-14 reference comparison,
+documented in [STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not
+general STEP admission. The model-16 rational-spline trim candidate remains
+rejected by independent containment, normal and area-convergence checks.
+Older checkpoints below retain their original gate counts and scope.
+
+The experimental `--diagnose-source-face` command inspects the model-16
+rational B-spline surface and ordered 3D trim edges, then computes a bounded
+research triangulation candidate. Independent review corrections and the
+candidate are covered by large-offset area, tolerance, resource-cap and
+digest-pinned E2E tests. It changes no reader mesh, produces no export, and does
+not qualify geometry or add production STEP support.
 
 The current delivery receipt, model-14 reference receipt and model-16 face
-diagnostic receipt are linked from PR #45 after the final local verification.
-The local build reuses an existing Cargo target cache; this is not a clean-cache
-build. Independent clean-machine installation remains unverified.
+diagnostic receipt are recorded in PR #45. Independent clean-machine
+installation remains unverified.
 
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Latest current-source local run passed 45/45 gates; its receipt and 350 matching source fingerprints are linked from PR #45. The run uses a trusted target cache, not a clean cache. | Retain the receipt with the delivered PR revision; rerun after further source changes |
+| Existing CLI foundation | Current-source local Windows run passed 45/45 gates; the receipt and binary hash are recorded in PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
 | Source review | Independent read-only review found no remaining code blocker; its cross-frame documentation finding was corrected and covered by scoped evidence | Review subsequent implementation changes |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
 | Version/toolchain contract | Cargo minimum corrected to 1.87 after real 1.85 dependency failure; actual Rust 1.87.0 locked offline all-target check passed | Verify locked dependencies against declared MSRV or correct declaration from evidence |
 | Security/dependency assessment | OSV checked 188 unique registry name/version pairs across root and experiment locks; patched ruzstd advisory; no matches after update (2026-10-16) | Keep advisory matching current; broader reachability/security review remains separate |
-| Reproducible delivery | Local hashed executable/receipt available for prior head | Bind final candidate bytes and documentation to current checks |
+| Reproducible delivery | Local hashed executable/receipt available for current branch source | Keep the receipt local and bind it to the PR update; independent install/upgrade test is still required |
 | General STEP and KiCad parity | Not complete; known degenerate triangles in two pinned models | Exclude from preview promises; required before advertising these capabilities |
 | Cross-platform support | Current run is Windows only | Verify each platform before distributing its binary |
 | GitHub delivery | PR #45 open; no hosted workflows by owner choice | Push only after local gates; merge only under applicable approval/review rules |
 
 ## Release recommendation
 
-Ship a clearly scoped **Windows preview / release candidate** after the current
-local suite and clean-machine delivery smoke test pass and known limitations are
-published. Do not call it a production-ready KiCad replacement. A production
+The current branch has passed its local 45-gate suite, but is not ready for a
+production release: clean-machine installation, KiCad/footprint-library parity,
+qualified STEP geometry, and component-model completeness remain open. A
+clearly scoped Windows preview / release candidate could be considered only
+after independent installation and known limitations are published. Do not
+call it a production-ready KiCad replacement. A production
 release requires an agreed supported-format/feature contract, actual installation
 and dependency evidence, compatibility/upgrade checks, and closure of blockers
 for every advertised feature. General STEP support requires its own geometry
@@ -85,22 +98,24 @@ query of 188 unique registry package versions returned no advisory matches;
 this is known-advisory evidence, not a security certification. Receipts are
 `target/dependency-osv-audit-20261016.json` and
 `target/dependency-osv-audit-patched-20261016.json`. Rust 1.87 all-target checking
-also passed with the patched dependency. The earlier 43-gate run was intentionally
-interrupted before delivery when the advisory was found; a full rerun is required.
+also passed with the patched dependency. The full 45-gate local run completed
+after the dependency update; independent advisory reachability review remains
+separate from this release gate.
 
 Sources: [RustSec advisory](https://rustsec.org/advisories/RUSTSEC-2026-0344.html),
 [OSV batch API](https://google.github.io/osv.dev/post-v1-querybatch/).
 
-## Current hardening checkpoint
+## Historical hardening checkpoint (superseded)
 
-All **43/43 local base gates** passed at
+At this earlier checkpoint, **43/43 local base gates** passed at
 `target/delivery/local/20261016T074610Z-6690b2a5ba6142b2b23586cace9b156b/verification.json`.
 The source/test/reference/doc hashes and delivered executable matched before
 this narrative update. Every gate executed; trusted Cargo cache reuse does not
 mean a clean dependency build. The run covers normal commands and feature-gated
 subprocess failures during all three twin exports, plus 175 root tests and the
-existing board/export/footprint/library/package journeys. A documentation-inclusive
-run follows this update before push.
+existing board/export/footprint/library/package journeys. This checkpoint was
+superseded by the documentation-inclusive 45/45 current-source verification
+described in the Gates section above and recorded with PR #45.
 
 PE import-table inspection of the tested executable found VCRUNTIME140.dll and
 Windows UCRT imports. Receipt: `target/windows-loader-imports-20261016.json`.

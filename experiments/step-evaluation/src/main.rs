@@ -8,7 +8,9 @@ mod negative_torus;
 mod occurrence_world;
 mod planar_face;
 mod planar_repair;
+mod spline_face_diagnostic;
 mod triangle_diagnostics;
+mod trim_polygon_candidate;
 mod unit_preflight;
 use oxideav_step::{GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};
@@ -362,8 +364,47 @@ fn probe_units(path: &Path) -> Result<Value, String> {
     }))
 }
 
+fn probe_spline_face(path: &Path, face_id: u64) -> Result<Value, String> {
+    let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
+    let limits = oxideav_ifc::StepLimits {
+        max_input_len: MAX_BYTES,
+        max_instances: 250_000,
+        max_depth: 48,
+        max_string_len: 1_048_576,
+    };
+    let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
+        .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
+    let mut report = spline_face_diagnostic::inspect(&parsed, face_id)?;
+    report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+    report["sourceBytes"] = json!(bytes.len());
+    report["admitted"] = json!(false);
+    report["exportsProduced"] = json!([]);
+    Ok(report)
+}
+
 fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if raw
+        .first()
+        .is_some_and(|arg| arg == "--diagnose-source-face")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 3 {
+                return Err(
+                    "usage: tokito-step-evaluation --diagnose-source-face POSITIVE_ID STEP_PATH"
+                        .into(),
+                );
+            }
+            let face = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|n| *n > 0)
+                .ok_or("invalid_diagnostic_face_id")?;
+            probe_spline_face(Path::new(&raw[2]), face)
+        })();
+        println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
     if raw.first().is_some_and(|arg| arg == "--diagnose-face") {
         let result = (|| -> Result<Value, String> {
             if raw.len() != 3 {

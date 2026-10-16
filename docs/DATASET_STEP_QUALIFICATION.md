@@ -97,6 +97,17 @@ assembly occurrence transforms, resource qualification and deterministic exports
 Component assignment and native-Altium-to-extracted-model equivalence remain
 unverified. Keep production STEP admission disabled until these gates pass.
 
+The ESP8266 model-16 QFN fillet has a focused source-boundary and mesh
+comparison in [STEP face #2875 analysis](STEP_FACE_2875_ANALYSIS.md). FreeCAD
+confirms the sampled source boundary, while the existing reader mesh still has
+large triangle-centroid deviation and near-zero-area triangles on that face.
+A bounded UV trim candidate now reduces positional deviation, but independent
+FreeCAD checks find 100 of 3,393 candidate vertices outside the trim and 1,291
+of 6,016 triangles with nonpositive oriented-normal alignment. Uniform
+refinement still leaves nonpositive normals and an area ratio of 1.064× at
+385,024 triangles. The candidate remains research-only: no repair/export is
+admitted, and complete-solid/production gates remain open.
+
 ## Negative-major-radius torus experiment
 
 The eight skipped faces in `57.step` reference tori with negative major radii.

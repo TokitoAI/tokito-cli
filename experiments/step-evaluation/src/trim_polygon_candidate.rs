@@ -1,0 +1,562 @@
+//! Bounded triangulation of one sampled, simple UV trim loop.
+//!
+//! This is a diagnostic candidate only. It does not support holes, multiple
+//! bounds, self-intersections, or production geometry admission.
+
+const MAX_LOOP_VERTICES: usize = 4096;
+const MAX_PREDICATE_CHECKS: usize = 10_000_000;
+const MAX_REFINED_TRIANGLES: usize = 200_000;
+const MAX_REFINEMENT_LEVELS: usize = 5;
+
+#[derive(Debug)]
+pub struct Candidate {
+    pub vertices: Vec<[f64; 2]>,
+    pub triangles: Vec<[usize; 3]>,
+    pub signed_area: f64,
+    pub removed_adjacent_duplicates: usize,
+    pub predicate_checks: usize,
+}
+
+#[derive(Debug)]
+pub struct RefinedCandidate {
+    pub vertices: Vec<[f64; 2]>,
+    pub points: Vec<[f64; 3]>,
+    pub triangles: Vec<[usize; 3]>,
+    pub signed_area: f64,
+    pub removed_adjacent_duplicates: usize,
+    pub predicate_checks: usize,
+    pub refinement_levels: usize,
+    pub max_chord_error: f64,
+    pub chord_tolerance: f64,
+    pub converged: bool,
+    pub failure_reason: Option<&'static str>,
+    pub surface_evaluation_count: usize,
+}
+
+fn cross(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
+    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+}
+
+fn distance_squared(a: [f64; 2], b: [f64; 2]) -> f64 {
+    (b[0] - a[0]).powi(2) + (b[1] - a[1]).powi(2)
+}
+
+fn within(a: f64, b: f64, value: f64, epsilon: f64) -> bool {
+    value >= a.min(b) - epsilon && value <= a.max(b) + epsilon
+}
+
+fn on_segment(
+    a: [f64; 2],
+    b: [f64; 2],
+    p: [f64; 2],
+    area_epsilon: f64,
+    coordinate_epsilon: f64,
+) -> bool {
+    cross(a, b, p).abs() <= area_epsilon
+        && within(a[0], b[0], p[0], coordinate_epsilon)
+        && within(a[1], b[1], p[1], coordinate_epsilon)
+}
+
+fn segments_intersect(
+    a: [f64; 2],
+    b: [f64; 2],
+    c: [f64; 2],
+    d: [f64; 2],
+    area_epsilon: f64,
+    coordinate_epsilon: f64,
+) -> bool {
+    let ab_c = cross(a, b, c);
+    let ab_d = cross(a, b, d);
+    let cd_a = cross(c, d, a);
+    let cd_b = cross(c, d, b);
+    if ((ab_c > area_epsilon && ab_d < -area_epsilon)
+        || (ab_c < -area_epsilon && ab_d > area_epsilon))
+        && ((cd_a > area_epsilon && cd_b < -area_epsilon)
+            || (cd_a < -area_epsilon && cd_b > area_epsilon))
+    {
+        return true;
+    }
+    (ab_c.abs() <= area_epsilon && on_segment(a, b, c, area_epsilon, coordinate_epsilon))
+        || (ab_d.abs() <= area_epsilon && on_segment(a, b, d, area_epsilon, coordinate_epsilon))
+        || (cd_a.abs() <= area_epsilon && on_segment(c, d, a, area_epsilon, coordinate_epsilon))
+        || (cd_b.abs() <= area_epsilon && on_segment(c, d, b, area_epsilon, coordinate_epsilon))
+}
+
+fn signed_area(points: &[[f64; 2]]) -> f64 {
+    // Translate the polygon to its first vertex before summing cross products.
+    // The usual uncentered shoelace formula subtracts products proportional to
+    // the absolute coordinate offset and can erase a small polygon's area.
+    let origin = points[0];
+    let mut twice_area = 0.0;
+    let mut compensation = 0.0;
+    for index in 1..points.len() - 1 {
+        let a = [points[index][0] - origin[0], points[index][1] - origin[1]];
+        let b = [
+            points[index + 1][0] - origin[0],
+            points[index + 1][1] - origin[1],
+        ];
+        let term = a[0] * b[1] - b[0] * a[1];
+        // Kahan summation limits rounding loss for large, concave loops.
+        let corrected = term - compensation;
+        let next = twice_area + corrected;
+        compensation = (next - twice_area) - corrected;
+        twice_area = next;
+    }
+    twice_area * 0.5
+}
+
+fn point_in_or_on_triangle(
+    point: [f64; 2],
+    a: [f64; 2],
+    b: [f64; 2],
+    c: [f64; 2],
+    winding: f64,
+    epsilon: f64,
+) -> bool {
+    winding * cross(a, b, point) >= -epsilon
+        && winding * cross(b, c, point) >= -epsilon
+        && winding * cross(c, a, point) >= -epsilon
+}
+
+/// Ear-clip a bounded, sampled, simple single-bound UV loop.
+///
+/// Consecutive duplicates and a repeated closing point are removed. The
+/// remaining loop must be simple, non-degenerate, and have no holes.
+pub fn triangulate_simple_loop(input: &[[f64; 2]]) -> Result<Candidate, String> {
+    if input.len() < 3 || input.len() > MAX_LOOP_VERTICES {
+        return Err("trim_candidate_vertex_limit".into());
+    }
+    if input
+        .iter()
+        .flatten()
+        .any(|value| !value.is_finite() || value.abs() > 1e12)
+    {
+        return Err("trim_candidate_nonfinite_or_unbounded_uv".into());
+    }
+
+    let min_x = input.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
+    let max_x = input.iter().map(|p| p[0]).fold(f64::NEG_INFINITY, f64::max);
+    let min_y = input.iter().map(|p| p[1]).fold(f64::INFINITY, f64::min);
+    let max_y = input.iter().map(|p| p[1]).fold(f64::NEG_INFINITY, f64::max);
+    let span = (max_x - min_x).max(max_y - min_y);
+    if !span.is_finite() || span <= 0. {
+        return Err("trim_candidate_zero_extent".into());
+    }
+    let duplicate_epsilon = span * 1e-12;
+    let orientation_epsilon = span * span * 1e-12;
+    let coordinate_epsilon = span * 1e-12;
+    let mut vertices = Vec::with_capacity(input.len());
+    let mut removed_adjacent_duplicates = 0usize;
+    for point in input.iter().copied() {
+        if vertices
+            .last()
+            .is_some_and(|last| distance_squared(*last, point) <= duplicate_epsilon.powi(2))
+        {
+            removed_adjacent_duplicates += 1;
+        } else {
+            vertices.push(point);
+        }
+    }
+    if vertices.len() > 1
+        && distance_squared(vertices[0], *vertices.last().expect("nonempty checked"))
+            <= duplicate_epsilon.powi(2)
+    {
+        vertices.pop();
+        removed_adjacent_duplicates += 1;
+    }
+    if vertices.len() < 3 {
+        return Err("trim_candidate_has_fewer_than_three_vertices".into());
+    }
+
+    let mut predicate_checks = 0usize;
+    for left in 0..vertices.len() {
+        let left_next = (left + 1) % vertices.len();
+        for right in (left + 1)..vertices.len() {
+            let right_next = (right + 1) % vertices.len();
+            if left == right || left_next == right || right_next == left {
+                continue;
+            }
+            predicate_checks += 1;
+            if predicate_checks > MAX_PREDICATE_CHECKS {
+                return Err("trim_candidate_predicate_budget_exceeded".into());
+            }
+            if segments_intersect(
+                vertices[left],
+                vertices[left_next],
+                vertices[right],
+                vertices[right_next],
+                orientation_epsilon,
+                coordinate_epsilon,
+            ) {
+                return Err("trim_candidate_self_intersection".into());
+            }
+        }
+    }
+
+    let area = signed_area(&vertices);
+    if !area.is_finite() || area.abs() <= orientation_epsilon {
+        return Err("trim_candidate_zero_or_invalid_area".into());
+    }
+    let winding = area.signum();
+    let mut remaining = (0..vertices.len()).collect::<Vec<_>>();
+    let mut triangles = Vec::with_capacity(vertices.len() - 2);
+    while remaining.len() > 3 {
+        let mut ear = None;
+        for cursor in 0..remaining.len() {
+            predicate_checks += 1;
+            if predicate_checks > MAX_PREDICATE_CHECKS {
+                return Err("trim_candidate_predicate_budget_exceeded".into());
+            }
+            let previous = remaining[(cursor + remaining.len() - 1) % remaining.len()];
+            let current = remaining[cursor];
+            let next = remaining[(cursor + 1) % remaining.len()];
+            if winding * cross(vertices[previous], vertices[current], vertices[next])
+                <= orientation_epsilon
+            {
+                continue;
+            }
+            let mut contains_vertex = false;
+            for &candidate in &remaining {
+                if candidate == previous || candidate == current || candidate == next {
+                    continue;
+                }
+                predicate_checks += 1;
+                if predicate_checks > MAX_PREDICATE_CHECKS {
+                    return Err("trim_candidate_predicate_budget_exceeded".into());
+                }
+                if point_in_or_on_triangle(
+                    vertices[candidate],
+                    vertices[previous],
+                    vertices[current],
+                    vertices[next],
+                    winding,
+                    orientation_epsilon,
+                ) {
+                    contains_vertex = true;
+                    break;
+                }
+            }
+            if !contains_vertex {
+                ear = Some((cursor, [previous, current, next]));
+                break;
+            }
+        }
+        let Some((cursor, triangle)) = ear else {
+            return Err("trim_candidate_ear_clipping_stalled".into());
+        };
+        triangles.push(triangle);
+        remaining.remove(cursor);
+    }
+    let final_triangle = [remaining[0], remaining[1], remaining[2]];
+    if winding
+        * cross(
+            vertices[final_triangle[0]],
+            vertices[final_triangle[1]],
+            vertices[final_triangle[2]],
+        )
+        <= orientation_epsilon
+    {
+        return Err("trim_candidate_final_triangle_degenerate".into());
+    }
+    triangles.push(final_triangle);
+    if triangles.len() != vertices.len() - 2 {
+        return Err("trim_candidate_triangle_count_mismatch".into());
+    }
+    Ok(Candidate {
+        vertices,
+        triangles,
+        signed_area: area,
+        removed_adjacent_duplicates,
+        predicate_checks,
+    })
+}
+
+fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
+    (0..3)
+        .map(|axis| (a[axis] - b[axis]).powi(2))
+        .sum::<f64>()
+        .sqrt()
+}
+
+/// Uniformly refine a UV triangulation until sampled surface-to-chord error
+/// meets the diagnostic tolerance or a hard level/triangle budget is reached.
+pub fn refine_uniform<F>(
+    mut candidate: Candidate,
+    chord_tolerance: f64,
+    max_refinement_levels: usize,
+    max_triangles: usize,
+    mut evaluate_surface: F,
+) -> Result<RefinedCandidate, String>
+where
+    F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
+{
+    if !chord_tolerance.is_finite()
+        || chord_tolerance <= 0.
+        || max_refinement_levels > MAX_REFINEMENT_LEVELS
+        || max_triangles == 0
+        || max_triangles > MAX_REFINED_TRIANGLES
+        || candidate.triangles.len() > max_triangles
+    {
+        return Err("trim_candidate_refinement_limits_invalid".into());
+    }
+    let mut points = candidate
+        .vertices
+        .iter()
+        .copied()
+        .map(&mut evaluate_surface)
+        .collect::<Result<Vec<_>, _>>()?;
+    if points.iter().flatten().any(|value| !value.is_finite()) {
+        return Err("trim_candidate_surface_evaluation_nonfinite".into());
+    }
+    let mut surface_evaluation_count = points.len();
+    for level in 0..=max_refinement_levels {
+        let level_vertex_count = candidate.vertices.len();
+        let mut edge_midpoints = std::collections::BTreeMap::<(usize, usize), usize>::new();
+        for triangle in &candidate.triangles {
+            for (a, b) in [
+                (triangle[0], triangle[1]),
+                (triangle[1], triangle[2]),
+                (triangle[2], triangle[0]),
+            ] {
+                let key = (a.min(b), a.max(b));
+                if let std::collections::btree_map::Entry::Vacant(entry) = edge_midpoints.entry(key)
+                {
+                    let uv = [
+                        (candidate.vertices[a][0] + candidate.vertices[b][0]) * 0.5,
+                        (candidate.vertices[a][1] + candidate.vertices[b][1]) * 0.5,
+                    ];
+                    let point = evaluate_surface(uv)?;
+                    if point.iter().any(|value| !value.is_finite()) {
+                        return Err("trim_candidate_surface_evaluation_nonfinite".into());
+                    }
+                    let index = candidate.vertices.len();
+                    candidate.vertices.push(uv);
+                    points.push(point);
+                    entry.insert(index);
+                    surface_evaluation_count = surface_evaluation_count
+                        .checked_add(1)
+                        .ok_or("trim_candidate_surface_evaluation_count_overflow")?;
+                }
+            }
+        }
+
+        let mut max_chord_error: f64 = 0.0;
+        for triangle in &candidate.triangles {
+            let [a, b, c] = *triangle;
+            let centroid_uv = [
+                (candidate.vertices[a][0] + candidate.vertices[b][0] + candidate.vertices[c][0])
+                    / 3.0,
+                (candidate.vertices[a][1] + candidate.vertices[b][1] + candidate.vertices[c][1])
+                    / 3.0,
+            ];
+            let centroid = evaluate_surface(centroid_uv)?;
+            if centroid.iter().any(|value| !value.is_finite()) {
+                return Err("trim_candidate_surface_evaluation_nonfinite".into());
+            }
+            surface_evaluation_count = surface_evaluation_count
+                .checked_add(1)
+                .ok_or("trim_candidate_surface_evaluation_count_overflow")?;
+            let linear_centroid = std::array::from_fn(|axis| {
+                (points[a][axis] + points[b][axis] + points[c][axis]) / 3.0
+            });
+            max_chord_error = max_chord_error.max(distance3(centroid, linear_centroid));
+
+            for (first, second) in [(a, b), (b, c), (c, a)] {
+                let key = (first.min(second), first.max(second));
+                let middle = *edge_midpoints
+                    .get(&key)
+                    .ok_or("trim_candidate_edge_midpoint_missing")?;
+                let linear_midpoint =
+                    std::array::from_fn(|axis| (points[first][axis] + points[second][axis]) * 0.5);
+                max_chord_error = max_chord_error.max(distance3(points[middle], linear_midpoint));
+            }
+        }
+        if max_chord_error <= chord_tolerance {
+            candidate.vertices.truncate(level_vertex_count);
+            points.truncate(level_vertex_count);
+            return Ok(RefinedCandidate {
+                vertices: candidate.vertices,
+                points,
+                triangles: candidate.triangles,
+                signed_area: candidate.signed_area,
+                removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
+                predicate_checks: candidate.predicate_checks,
+                refinement_levels: level,
+                max_chord_error,
+                chord_tolerance,
+                converged: true,
+                failure_reason: None,
+                surface_evaluation_count,
+            });
+        }
+        if level == max_refinement_levels {
+            candidate.vertices.truncate(level_vertex_count);
+            points.truncate(level_vertex_count);
+            return Ok(RefinedCandidate {
+                vertices: candidate.vertices,
+                points,
+                triangles: candidate.triangles,
+                signed_area: candidate.signed_area,
+                removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
+                predicate_checks: candidate.predicate_checks,
+                refinement_levels: level,
+                max_chord_error,
+                chord_tolerance,
+                converged: false,
+                failure_reason: Some("trim_candidate_chord_tolerance_not_reached"),
+                surface_evaluation_count,
+            });
+        }
+        if candidate.triangles.len().saturating_mul(4) > max_triangles {
+            candidate.vertices.truncate(level_vertex_count);
+            points.truncate(level_vertex_count);
+            return Ok(RefinedCandidate {
+                vertices: candidate.vertices,
+                points,
+                triangles: candidate.triangles,
+                signed_area: candidate.signed_area,
+                removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
+                predicate_checks: candidate.predicate_checks,
+                refinement_levels: level,
+                max_chord_error,
+                chord_tolerance,
+                converged: false,
+                failure_reason: Some("trim_candidate_triangle_budget_exceeded"),
+                surface_evaluation_count,
+            });
+        }
+        let mut refined = Vec::with_capacity(candidate.triangles.len() * 4);
+        for triangle in candidate.triangles {
+            let [a, b, c] = triangle;
+            let ab = edge_midpoints[&(a.min(b), a.max(b))];
+            let bc = edge_midpoints[&(b.min(c), b.max(c))];
+            let ca = edge_midpoints[&(c.min(a), c.max(a))];
+            refined.push([a, ab, ca]);
+            refined.push([ab, b, bc]);
+            refined.push([ca, bc, c]);
+            refined.push([ab, bc, ca]);
+        }
+        candidate.triangles = refined;
+    }
+    Err("trim_candidate_refinement_unreachable_state".into())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn triangulates_convex_loop_and_preserves_winding() {
+        for points in [
+            vec![[0., 0.], [2., 0.], [2., 1.], [0., 1.]],
+            vec![[0., 1.], [2., 1.], [2., 0.], [0., 0.]],
+        ] {
+            let result = triangulate_simple_loop(&points).unwrap();
+            assert_eq!(result.vertices.len(), 4);
+            assert_eq!(result.triangles.len(), 2);
+            assert_eq!(result.signed_area.signum(), signed_area(&points).signum());
+            for [a, b, c] in result.triangles {
+                assert!(
+                    cross(result.vertices[a], result.vertices[b], result.vertices[c]).signum()
+                        == result.signed_area.signum()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn triangulates_concave_loop_and_removes_duplicate_closure() {
+        let points = [[0., 0.], [2., 0.], [2., 2.], [1., 1.], [0., 2.], [0., 0.]];
+        let result = triangulate_simple_loop(&points).unwrap();
+        assert_eq!(result.vertices.len(), 5);
+        assert_eq!(result.triangles.len(), 3);
+        assert_eq!(result.removed_adjacent_duplicates, 1);
+    }
+
+    #[test]
+    fn rejects_self_intersection_degenerate_area_and_nonfinite_coordinates() {
+        assert_eq!(
+            triangulate_simple_loop(&[[0., 0.], [2., 2.], [0., 2.], [2., 0.]]).unwrap_err(),
+            "trim_candidate_self_intersection"
+        );
+        assert_eq!(
+            triangulate_simple_loop(&[[0., 0.], [1., 0.], [2., 0.]]).unwrap_err(),
+            "trim_candidate_zero_or_invalid_area"
+        );
+        assert_eq!(
+            triangulate_simple_loop(&[[0., 0.], [1., 0.], [f64::NAN, 1.]]).unwrap_err(),
+            "trim_candidate_nonfinite_or_unbounded_uv"
+        );
+    }
+
+    #[test]
+    fn segment_intersection_coordinates_are_scale_invariant() {
+        // This simple polygon has two separated collinear boundary segments
+        // whose gap is small relative to the total parameter span. Mixing the
+        // area epsilon into coordinate comparisons falsely closes that gap at
+        // this scale.
+        let large = [
+            [0.0, 0.0],
+            [1_000.0, 0.0],
+            [1_000.0, 1_000.0],
+            [2_000.0, 1_000.0],
+            [2_000.0, 0.0],
+            [3_000.0, 0.0],
+            [3_000.0, -1_000.0],
+            [4_000.0, -1_000.0],
+            [4_000.0, 100_000_000.0],
+            [-100_000_000.0, 100_000_000.0],
+            [-100_000_000.0, -1_000.0],
+            [0.0, -1_000.0],
+        ];
+        let small = large.map(|[x, y]| [x * 1e-8, y * 1e-8]);
+
+        let large_candidate = triangulate_simple_loop(&large).unwrap();
+        let small_candidate = triangulate_simple_loop(&small).unwrap();
+        assert_eq!(large_candidate.triangles.len(), large.len() - 2);
+        assert_eq!(small_candidate.triangles.len(), small.len() - 2);
+        assert_eq!(
+            large_candidate.signed_area.signum(),
+            small_candidate.signed_area.signum()
+        );
+    }
+
+    #[test]
+    fn small_polygon_area_is_stable_at_large_coordinate_offset() {
+        let origin = 999_999_999_999.0;
+        let translated = [
+            [origin, origin],
+            [origin + 1.0, origin],
+            [origin + 1.0, origin + 1.0],
+            [origin, origin + 1.0],
+        ];
+
+        let candidate = triangulate_simple_loop(&translated).unwrap();
+        assert_eq!(candidate.signed_area, 1.0);
+        assert_eq!(candidate.triangles.len(), 2);
+    }
+
+    #[test]
+    fn sampled_refinement_converges_for_planar_surface_without_changing_topology() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
+        let refined = refine_uniform(candidate, 1e-8, 2, 64, |uv| Ok([uv[0], uv[1], 0.0])).unwrap();
+        assert!(refined.converged);
+        assert_eq!(refined.refinement_levels, 0);
+        assert_eq!(refined.triangles.len(), 2);
+        assert!(refined.max_chord_error <= 1e-8);
+    }
+
+    #[test]
+    fn sampled_refinement_reports_triangle_budget_without_claiming_convergence() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
+        let refined = refine_uniform(candidate, 1e-9, 2, 2, |uv| {
+            Ok([uv[0], uv[1], uv[0] * uv[0]])
+        })
+        .unwrap();
+        assert!(!refined.converged);
+        assert_eq!(
+            refined.failure_reason,
+            Some("trim_candidate_triangle_budget_exceeded")
+        );
+    }
+}

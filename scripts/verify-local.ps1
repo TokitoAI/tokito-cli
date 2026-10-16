@@ -165,7 +165,10 @@ try {
     $binaryName = if ($IsWindows) { 'tokito-cli.exe' } else { 'tokito-cli' }
     $binaryPath = Join-Path $env:CARGO_TARGET_DIR "release/$binaryName"
     $bundleHookTarget = Join-Path $env:CARGO_TARGET_DIR 'bundle-test-hooks'
-    $bundleHookBinary = Join-Path $bundleHookTarget "release/$binaryName"
+    # Fault-injection hooks are test-only and need no release optimization.
+    # Build this second binary with the dev profile to keep peak Windows memory
+    # bounded; the production binary above still uses the release profile.
+    $bundleHookBinary = Join-Path $bundleHookTarget "debug/$binaryName"
     $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR "geometry-e2e/$verificationRun"
     $inputs = Get-InputFingerprints
     $checks = @(
@@ -186,7 +189,7 @@ try {
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
         @{ name = 'project-intake-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_intake_e2e.py', '--bin', $binaryPath) },
         @{ name = 'project-bundle-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'project-bundle-test-hooks-build'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked', '--features', 'e2e-test-hooks', '--target-dir', $bundleHookTarget) },
+        @{ name = 'project-bundle-test-hooks-build'; command = $cargoCommand.Source; arguments = @('build', '--offline', '--locked', '--features', 'e2e-test-hooks', '--target-dir', $bundleHookTarget) },
         @{ name = 'twin-publication-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/command_completion_e2e.py', '--binary', $bundleHookBinary, '--fault-hooks') },
         @{ name = 'project-bundle-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $bundleHookBinary, '--fault-hook-only') },
         @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
@@ -271,6 +274,11 @@ try {
         $altiumOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-altium-e2e'
         $stepBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-step-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
         $altiumBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-altium-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $model16Source=Join-Path $Esp8266SourceRoot 'structured-source/embedded-models/16.step'
+        Assert-NoLinkedPath $model16Source
+        if (-not (Test-Path -LiteralPath $model16Source -PathType Leaf)) { throw "Missing pinned ESP8266 model-16 source: $model16Source" }
+        $model16TrimOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-model16-source-face-trim-e2e'
+        $checks += @{ name='esp8266-model16-source-face-trim-e2e'; command=$pythonCommand.Source; arguments=@('experiments/step-evaluation/tests/model16_source_face_trim_e2e.py','--binary',$stepBinary,'--source',$model16Source,'--output',$model16TrimOutput); receiptPath=(Join-Path $model16TrimOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-units-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_units_e2e.py','--binary',$stepBinary,'--models',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--source-receipt',$Esp8266UnitReceipt,'--output',$stepOutput); receiptPath=(Join-Path $stepOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-occurrence-world-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_occurrence_world_e2e.py','--binary',$stepBinary,'--models-root',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--reference',$Esp8266FreecadReference,'--source-receipt',(Join-Path $stepOutput 'receipt.json'),'--output',$occurrenceOutput); receiptPath=(Join-Path $occurrenceOutput 'receipt.json') }
         $candidateMeshOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-candidate-mesh-e2e'

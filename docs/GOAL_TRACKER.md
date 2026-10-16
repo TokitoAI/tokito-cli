@@ -1,10 +1,12 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
 CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
-YOLO are excluded from the current release scope. The frozen-tool capture c
-confirms 76/76 reference solids. The unmodified reader retains both known
-failures; the opt-in model-14 repair now has passing independent sampled
-comparison evidence. General STEP admission remains blocked.
+YOLO are excluded from the current release scope. Current local Windows
+verification passed 45/45 gates on 2026-10-16. The frozen-tool capture confirms
+76/76 reference solids. The unmodified reader retains known failures; the
+opt-in model-14 repair has independent sampled-comparison evidence. The
+model-16 rational-spline candidate remains rejected, and general STEP admission
+is blocked.
 
 ## Active production-readiness plan (2026-10-16)
 
@@ -18,10 +20,10 @@ read-only. The native task goal remains active.
 | --- | --- | --- | --- |
 | Main | Source face, selected units and plain representation links | Implemented, experimental | Original Rust repair reuses 148 existing vertices; immutable input and unchanged unrelated geometry tests pass |
 | Main | Model-14 candidate | Independent comparison passed | All 41 emitted shape occurrences closed, consistent winding, positive volume; 600,000 samples, maximum distance 0.0014101133940020597 mm below 0.02 mm; volume within declared tolerance |
-| Reviewer | Numeric and preservation checks | Reviewed; evidence-claim correction applied | Independent review found and corrected a small-scale relative-area underflow and an unsupported cross-frame count claim; regression tests and digest-pinned model-16 negative E2E added |
-| Main | Current-source verification | 45-gate checkpoint passed | The current delivery receipt and source fingerprints are linked from PR #45. Verification uses a trusted cached target; this is not a clean-cache build. |
+| Reviewer | Numeric, resource and evidence checks | Reviewed; no findings | Review confirmed the aggregate edge-curve storage cap runs before curve allocation, area and coordinate tolerances use separate dimensions, the translated large-offset polygon regression is stable, and the E2E independently pins the storage ceiling and requires the expected candidate. A second review found the Clippy refactors preserve curve fields and insert one midpoint per unique edge. |
+| Main | Current-source verification | Passed 45/45 local Windows gates | Current-source receipt and binary hash are recorded in PR #45. The production binary was built in release mode; only the non-shipping fault-injection test harness uses debug mode to stay within this machine's memory. The verifier reuses a trusted Cargo target cache; this is not a clean-cache build or independent-machine test. |
 | Main | General STEP geometry #19 | Incomplete | One planar fixture comparison passes; rational spline #2875, global source/frame qualification, original all-asset gaps and supported-profile expansion remain |
-| Main / independent reviewer | Spline face #2875 observations | Diagnostic implemented; repair blocked | 520 coincident-position and 582 nearly flat, exactly noncollinear triangles; bounded original Rust inspection, scale-underflow correction and regression tests. Next: source-surface/trim evaluation and independent per-face comparison; no triangle deletion or production admission |
+| Main / independent reviewer | Spline face #2875 observations | Diagnostic implemented; repair blocked | Candidate has 3,393 vertices/6,016 triangles and converges to sampled 0.004714 source-unit chord error, but FreeCAD reports 100 vertices outside trim, 1,291 nonpositive normals, and area remains 1.064× at 385,024 triangles. No repair, export or production admission. Next: continuity-aware source-edge projection near the V seam and internal knot, then independent full-face/solid checks. |
 | Main | Model-14 regression | Independent sampled comparison passed | The post-verifier receipt is linked from PR #45; 41 shapes/36 occurrences, 300,000 samples per direction, max 0.00141011339400206 mm, 17,393,370 distance evaluations. Sampling is not a continuous error bound or component certification. |
 | Main | KiCad command/export/error parity #13 | Incomplete | Implement remaining agreed matrix operations and pinned comparisons |
 | Main | Footprint/library families #24 | Incomplete | Qualify families, pads, body/pin geometry and engineering/library standards |

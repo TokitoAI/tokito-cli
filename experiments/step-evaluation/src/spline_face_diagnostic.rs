@@ -1,0 +1,1465 @@
+//! Read-only STEP B-spline face / trim correspondence diagnostics.
+//!
+//! This remains in the experimental evaluator. It evaluates source control
+//! data with oxideav-ifc's shared geometry kernel and measures projection
+//! residuals; it does not repair, export, or qualify the source model.
+
+use oxideav_ifc::{kernel, StepFile, Value};
+use oxideav_step::schema::Entity;
+use serde_json::{json, Value as Json};
+
+const MAX_FACE_EDGES: usize = 128;
+const MAX_CONTROL_POINTS: usize = 65_536;
+const MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS: usize = 65_536;
+const MAX_CURVE_SPANS: usize = 256;
+const SAMPLES_PER_CURVE_SPAN: usize = 16;
+const MAX_BOUNDARY_SAMPLES: usize = 16_384;
+const MAX_SAMPLE_DETAILS: usize = 128;
+const MAX_BRANCH_SHIFT: f64 = 1_000_000.0;
+const MULTISTART_SUBDIVISIONS: usize = 8;
+const MAX_AXIS_SEEDS: usize = 64;
+const MAX_PROJECTION_ITERATIONS: usize = 24;
+const MAX_SURFACE_EVALUATIONS: usize = 4_000_000;
+const MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS: usize = 50_000_000;
+const MAX_SHARED_KERNEL_GRID_CONTROL_POINT_EVALUATIONS: usize = 2_000_000;
+const MAX_SHARED_KERNEL_INVERSE_CONTROL_POINT_EVALUATIONS: usize = 20_000_000;
+const MAX_EDGE_CURVE_CONTROL_POINT_EVALUATIONS: usize = 20_000_000;
+const SHARED_KERNEL_INVERSE_SURFACE_EVALUATIONS_PER_ITERATION: usize = 5;
+// `oxideav-ifc = 0.0.3` builds inverse seeds with eight samples per
+// B-spline knot span, capped at 256 samples per axis (the implementation's
+// ceil-based cap can yield slightly more than 256 entries). This bounds the
+// linear nearest-sample scan performed once per boundary point.
+const SHARED_KERNEL_INVERSE_SAMPLES_PER_SPAN: usize = 8;
+const SHARED_KERNEL_INVERSE_MAX_SAMPLES_PER_AXIS: usize = 256;
+const MAX_SHARED_KERNEL_INVERSE_DISTANCE_CHECKS: usize = 10_000_000;
+
+type P3 = [f64; 3];
+
+struct SurfaceDefinition {
+    evaluator: kernel::Surface,
+    u_domain: (f64, f64),
+    v_domain: (f64, f64),
+    u_breaks: Vec<f64>,
+    v_breaks: Vec<f64>,
+    u_period: Option<f64>,
+    v_period: Option<f64>,
+    control_point_count: usize,
+    construction_control_point_evaluation_estimate: usize,
+    control_net_diagonal: f64,
+    report: Json,
+}
+
+fn entity<'a>(step: &'a StepFile, id: u64, expected: &str) -> Result<Entity<'a>, String> {
+    let inst = step
+        .get(id)
+        .ok_or_else(|| format!("missing_source_entity:{id}"))?;
+    crate::unit_preflight::shape(inst)?;
+    let entity = Entity { inst };
+    if !entity.is_a(expected) {
+        return Err(format!(
+            "source_entity_type_mismatch:{id}:expected_{expected}"
+        ));
+    }
+    Ok(entity)
+}
+
+fn number(value: &Value) -> Option<f64> {
+    match value {
+        Value::Typed { args, .. } => args.first().and_then(number),
+        other => other.as_number().filter(|value| value.is_finite()),
+    }
+}
+
+fn integer(value: &Value) -> Option<usize> {
+    match value {
+        Value::Typed { args, .. } => args.first().and_then(integer),
+        other => other
+            .as_integer()
+            .and_then(|value| usize::try_from(value).ok()),
+    }
+}
+
+fn required_integer(entity: Entity<'_>, name: &str, limit: usize) -> Result<usize, String> {
+    entity
+        .attr(name)
+        .and_then(integer)
+        .filter(|value| *value > 0 && *value <= limit)
+        .ok_or_else(|| format!("invalid_or_excessive_{name}"))
+}
+
+fn number_list(entity: Entity<'_>, name: &str, max: usize) -> Result<Vec<f64>, String> {
+    let items = entity.list(name).ok_or_else(|| format!("missing_{name}"))?;
+    if items.is_empty() || items.len() > max {
+        return Err(format!("invalid_or_excessive_{name}"));
+    }
+    items
+        .iter()
+        .map(|item| {
+            number(item)
+                .filter(|value| value.abs() <= 1e12)
+                .ok_or_else(|| format!("invalid_value_in_{name}"))
+        })
+        .collect()
+}
+
+fn integer_list(entity: Entity<'_>, name: &str, max: usize) -> Result<Vec<usize>, String> {
+    let items = entity.list(name).ok_or_else(|| format!("missing_{name}"))?;
+    if items.is_empty() || items.len() > max {
+        return Err(format!("invalid_or_excessive_{name}"));
+    }
+    items
+        .iter()
+        .map(|item| {
+            integer(item)
+                .filter(|value| *value > 0)
+                .ok_or_else(|| format!("invalid_value_in_{name}"))
+        })
+        .collect()
+}
+
+fn point(step: &StepFile, id: u64) -> Result<P3, String> {
+    let point = entity(step, id, "CARTESIAN_POINT")?;
+    let coordinates = number_list(point, "coordinates", 3)?;
+    if coordinates.len() != 3 {
+        return Err("three_point_coordinates_required".into());
+    }
+    Ok([coordinates[0], coordinates[1], coordinates[2]])
+}
+
+fn vertex(step: &StepFile, id: u64) -> Result<P3, String> {
+    let vertex = entity(step, id, "VERTEX_POINT")?;
+    point(
+        step,
+        vertex
+            .reference("vertex_geometry")
+            .ok_or("missing_vertex_point")?,
+    )
+}
+
+fn distance(a: P3, b: P3) -> f64 {
+    (0..3)
+        .map(|axis| (a[axis] - b[axis]).powi(2))
+        .sum::<f64>()
+        .sqrt()
+}
+
+fn parse_surface(step: &StepFile, id: u64) -> Result<SurfaceDefinition, String> {
+    let source = entity(step, id, "B_SPLINE_SURFACE")?;
+    if !source.is_a("B_SPLINE_SURFACE_WITH_KNOTS") {
+        return Err("unsupported_surface_requires_bspline_with_knots".into());
+    }
+    let u_degree = required_integer(source, "u_degree", 32)?;
+    let v_degree = required_integer(source, "v_degree", 32)?;
+    let rows = source
+        .list("control_points_list")
+        .ok_or("missing_surface_control_net")?;
+    if rows.len() < 2 || rows.len() > MAX_CONTROL_POINTS {
+        return Err("invalid_surface_control_row_count".into());
+    }
+    let mut controls = Vec::with_capacity(rows.len());
+    let mut total_controls = 0usize;
+    for row in rows {
+        let points = row.as_list().ok_or("invalid_surface_control_row")?;
+        total_controls = total_controls
+            .checked_add(points.len())
+            .filter(|count| *count <= MAX_CONTROL_POINTS)
+            .ok_or("surface_control_point_budget_exceeded")?;
+        if points.len() < 2 {
+            return Err("invalid_surface_control_column_count".into());
+        }
+        let mut control_row = Vec::with_capacity(points.len());
+        for control in points {
+            control_row.push(point(
+                step,
+                control
+                    .as_reference()
+                    .ok_or("surface_control_point_must_be_reference")?,
+            )?);
+        }
+        controls.push(control_row);
+    }
+
+    let weights = if source.is_a("RATIONAL_B_SPLINE_SURFACE") {
+        let rows = source
+            .list("weights_data")
+            .ok_or("missing_surface_weights")?;
+        if rows.len() != controls.len() {
+            return Err("surface_weight_row_count_mismatch".into());
+        }
+        let mut all_weights = Vec::with_capacity(rows.len());
+        for (index, row) in rows.iter().enumerate() {
+            let values = row.as_list().ok_or("invalid_surface_weight_row")?;
+            if values.len() != controls[index].len() {
+                return Err("surface_weight_column_count_mismatch".into());
+            }
+            let parsed = values
+                .iter()
+                .map(|value| {
+                    number(value)
+                        .filter(|weight| *weight > 0. && *weight <= 1e12)
+                        .ok_or_else(|| "invalid_surface_weight".to_string())
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            all_weights.push(parsed);
+        }
+        Some(all_weights)
+    } else {
+        None
+    };
+
+    let u_multiplicities = integer_list(source, "u_multiplicities", 512)?;
+    let v_multiplicities = integer_list(source, "v_multiplicities", 512)?;
+    let u_knots = number_list(source, "u_knots", 512)?;
+    let v_knots = number_list(source, "v_knots", 512)?;
+    let u_closed = source.logical("u_closed").ok_or("unknown_u_closed_flag")?;
+    let v_closed = source.logical("v_closed").ok_or("unknown_v_closed_flag")?;
+
+    let surface = kernel::BSplineSurface::new(
+        u_degree,
+        v_degree,
+        &controls,
+        weights.as_deref(),
+        (&u_knots, &u_multiplicities),
+        (&v_knots, &v_multiplicities),
+        Some(u_closed),
+        Some(v_closed),
+    )
+    .map_err(|error| format!("invalid_surface_definition:{error}"))?;
+    let u_breaks = surface.u_breaks();
+    let v_breaks = surface.v_breaks();
+    let u_grid_samples = shared_kernel_inverse_axis_sample_count(&u_breaks)?;
+    let v_grid_samples = shared_kernel_inverse_axis_sample_count(&v_breaks)?;
+    let construction_control_point_evaluation_estimate =
+        shared_kernel_grid_control_point_evaluation_estimate(
+            u_grid_samples,
+            v_grid_samples,
+            total_controls,
+        )?;
+    let u_domain = surface.u_domain();
+    let v_domain = surface.v_domain();
+    let degrees = surface.degrees();
+    let bounds = controls.iter().flatten().fold(
+        ([f64::INFINITY; 3], [f64::NEG_INFINITY; 3]),
+        |(mut lo, mut hi), p| {
+            for axis in 0..3 {
+                lo[axis] = lo[axis].min(p[axis]);
+                hi[axis] = hi[axis].max(p[axis]);
+            }
+            (lo, hi)
+        },
+    );
+    let control_net_diagonal = distance(bounds.0, bounds.1);
+    if !control_net_diagonal.is_finite() || control_net_diagonal <= 0. {
+        return Err("invalid_surface_control_net_extent".into());
+    }
+    let surface = kernel::Surface::bspline(surface);
+    let periods = surface.periods();
+    let seam = seam_diagnostics(&surface, v_closed, u_domain, v_domain)?;
+    Ok(SurfaceDefinition {
+        evaluator: surface,
+        u_domain,
+        v_domain,
+        u_breaks: u_breaks.clone(),
+        v_breaks: v_breaks.clone(),
+        u_period: periods.0,
+        v_period: periods.1,
+        control_point_count: total_controls,
+        construction_control_point_evaluation_estimate,
+        control_net_diagonal,
+        report: json!({
+            "entityId": id,
+            "entityType": if source.is_a("RATIONAL_B_SPLINE_SURFACE") { "RATIONAL_B_SPLINE_SURFACE_WITH_KNOTS" } else { "B_SPLINE_SURFACE_WITH_KNOTS" },
+            "degrees": [degrees.0, degrees.1],
+            "controlNetShape": [controls.len(), controls.first().map_or(0, Vec::len)],
+            "controlPointCount": total_controls,
+            "sharedKernelInverseGridControlPointEvaluationEstimate": construction_control_point_evaluation_estimate,
+            "sharedKernelInverseGridControlPointEvaluationBudget": MAX_SHARED_KERNEL_GRID_CONTROL_POINT_EVALUATIONS,
+            "rational": weights.is_some(),
+            "uClosed": u_closed,
+            "vClosed": v_closed,
+            "uDomain": u_domain,
+            "vDomain": v_domain,
+            "uBreaks": u_breaks,
+            "vBreaks": v_breaks,
+            "uPeriod": periods.0,
+            "vPeriod": periods.1,
+            "controlNetDiagonalSourceUnits": control_net_diagonal,
+            "vSeam": seam
+        }),
+    })
+}
+
+fn seam_diagnostics(
+    surface: &kernel::Surface,
+    v_closed: bool,
+    u_domain: (f64, f64),
+    v_domain: (f64, f64),
+) -> Result<Json, String> {
+    if !v_closed {
+        return Ok(json!({"closedFlag": false, "evaluated": false}));
+    }
+    let (v0, v1) = v_domain;
+    let span = v1 - v0;
+    if !span.is_finite() || span <= 0. {
+        return Err("invalid_v_parameter_domain".into());
+    }
+    let (u0, u1) = u_domain;
+    let delta = span * 1e-6;
+    if delta <= 0. || !delta.is_finite() || delta >= span * 0.25 {
+        return Err("invalid_seam_probe_step".into());
+    }
+    let mut max_position_gap: f64 = 0.;
+    let mut max_tangent_angle: f64 = 0.;
+    let mut undefined_tangent_probe_count = 0usize;
+    let probes = 16usize;
+    for index in 0..=probes {
+        let u = u0 + (u1 - u0) * (index as f64 / probes as f64);
+        let start = surface.point_at([u, v0]);
+        let end = surface.point_at([u, v1]);
+        let start_inner = surface.point_at([u, v0 + delta]);
+        let end_inner = surface.point_at([u, v1 - delta]);
+        if [start, end, start_inner, end_inner]
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
+        {
+            return Err("nonfinite_seam_surface_evaluation".into());
+        }
+        max_position_gap = max_position_gap.max(distance(start, end));
+        match (unit(sub(start_inner, start)), unit(sub(end, end_inner))) {
+            (Ok(tangent_a), Ok(tangent_b)) => {
+                let cosine = dot(tangent_a, tangent_b).clamp(-1., 1.);
+                max_tangent_angle = max_tangent_angle.max(cosine.acos());
+            }
+            _ => undefined_tangent_probe_count += 1,
+        }
+    }
+    Ok(json!({
+        "closedFlag": true,
+        "evaluated": true,
+        "probeCount": probes + 1,
+        "maximumEndpointPositionGapSourceUnits": max_position_gap,
+        "maximumOneSidedTangentAngleRadians": max_tangent_angle,
+        "undefinedTangentProbeCount": undefined_tangent_probe_count,
+        "finiteDifferenceFractionOfVSpan": 1e-6,
+        "qualification": "sampled_diagnostic_only"
+    }))
+}
+
+fn unit(vector: P3) -> Result<P3, String> {
+    let length = vector.iter().map(|value| value * value).sum::<f64>().sqrt();
+    if !length.is_finite() || length <= 0. {
+        return Err("zero_or_invalid_seam_tangent".into());
+    }
+    Ok(vector.map(|value| value / length))
+}
+
+fn sub(a: P3, b: P3) -> P3 {
+    std::array::from_fn(|axis| a[axis] - b[axis])
+}
+
+fn dot(a: P3, b: P3) -> f64 {
+    a.iter().zip(b).map(|(a, b)| a * b).sum()
+}
+
+struct ParsedCurve {
+    curve: kernel::BSplineCurve,
+    domain: (f64, f64),
+    breaks: Vec<f64>,
+    rational: bool,
+    control_point_count: usize,
+}
+
+fn parse_curve(step: &StepFile, id: u64) -> Result<ParsedCurve, String> {
+    let source = entity(step, id, "B_SPLINE_CURVE")?;
+    if !source.is_a("B_SPLINE_CURVE_WITH_KNOTS") {
+        return Err(format!(
+            "unsupported_edge_curve_requires_bspline_with_knots:{id}"
+        ));
+    }
+    let degree = required_integer(source, "degree", 32)?;
+    let references = source
+        .list("control_points_list")
+        .ok_or("missing_curve_control_points")?;
+    if references.len() < 2 || references.len() > MAX_CONTROL_POINTS {
+        return Err("invalid_curve_control_point_count".into());
+    }
+    let mut controls = Vec::with_capacity(references.len());
+    for reference in references {
+        controls.push(point(
+            step,
+            reference
+                .as_reference()
+                .ok_or("curve_control_point_must_be_reference")?,
+        )?);
+    }
+    let knots = number_list(source, "knots", 512)?;
+    let multiplicities = integer_list(source, "knot_multiplicities", 512)?;
+    let weights = if source.is_a("RATIONAL_B_SPLINE_CURVE") {
+        let values = number_list(source, "weights_data", MAX_CONTROL_POINTS)?;
+        if values.len() != controls.len() || values.iter().any(|weight| *weight <= 0.) {
+            return Err("invalid_curve_weights".into());
+        }
+        Some(values)
+    } else {
+        None
+    };
+    let curve = kernel::BSplineCurve::new(
+        degree,
+        &controls,
+        weights.as_deref(),
+        &knots,
+        &multiplicities,
+    )
+    .map_err(|error| format!("invalid_curve_definition:{error}"))?;
+    let domain = curve.domain();
+    let breaks = curve.breaks();
+    if breaks.len() < 2 || breaks.len() > MAX_CURVE_SPANS + 1 {
+        return Err("invalid_or_excessive_curve_span_count".into());
+    }
+    let rational = weights.is_some();
+    Ok(ParsedCurve {
+        curve,
+        domain,
+        breaks,
+        rational,
+        control_point_count: references.len(),
+    })
+}
+
+fn preflight_curve_control_point_count(step: &StepFile, id: u64) -> Result<usize, String> {
+    let source = entity(step, id, "B_SPLINE_CURVE")?;
+    if !source.is_a("B_SPLINE_CURVE_WITH_KNOTS") {
+        return Err(format!(
+            "unsupported_edge_curve_requires_bspline_with_knots:{id}"
+        ));
+    }
+    let count = source
+        .list("control_points_list")
+        .ok_or("missing_curve_control_points")?
+        .len();
+    if !(2..=MAX_CONTROL_POINTS).contains(&count) {
+        return Err("invalid_curve_control_point_count".into());
+    }
+    Ok(count)
+}
+
+fn checked_edge_curve_control_point_total(current: usize, next: usize) -> Result<usize, String> {
+    current
+        .checked_add(next)
+        .filter(|total| *total <= MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS)
+        .ok_or_else(|| "edge_curve_control_point_storage_budget_exceeded".into())
+}
+
+fn sample_curve(
+    curve: &kernel::BSplineCurve,
+    breaks: &[f64],
+    maximum_total_samples: usize,
+) -> Result<Vec<(f64, P3)>, String> {
+    let expected = breaks
+        .len()
+        .saturating_sub(1)
+        .checked_mul(SAMPLES_PER_CURVE_SPAN)
+        .and_then(|count| count.checked_add(1))
+        .ok_or("curve_sample_count_overflow")?;
+    if expected > maximum_total_samples {
+        return Err("boundary_sample_budget_exceeded".into());
+    }
+    let mut samples = Vec::with_capacity(expected);
+    for span in breaks.windows(2) {
+        let (start, end) = (span[0], span[1]);
+        if !start.is_finite() || !end.is_finite() || end <= start {
+            return Err("invalid_curve_knot_span".into());
+        }
+        for index in 0..SAMPLES_PER_CURVE_SPAN {
+            let t = start + (end - start) * (index as f64 / SAMPLES_PER_CURVE_SPAN as f64);
+            let point = curve.point_at(t);
+            if point
+                .iter()
+                .any(|value| !value.is_finite() || value.abs() > 1e12)
+            {
+                return Err("nonfinite_or_unbounded_curve_sample".into());
+            }
+            samples.push((t, point));
+        }
+    }
+    let end = *breaks.last().ok_or("missing_curve_domain_end")?;
+    let point = curve.point_at(end);
+    if point
+        .iter()
+        .any(|value| !value.is_finite() || value.abs() > 1e12)
+    {
+        return Err("nonfinite_or_unbounded_curve_sample".into());
+    }
+    samples.push((end, point));
+    Ok(samples)
+}
+
+fn axis_seeds(breaks: &[f64], subdivisions: usize) -> Result<Vec<f64>, String> {
+    if breaks.len() < 2 || breaks.len() > MAX_AXIS_SEEDS {
+        return Err("projection_axis_knot_span_limit".into());
+    }
+    let start = breaks[0];
+    let end = *breaks.last().ok_or("missing_projection_domain")?;
+    if !start.is_finite() || !end.is_finite() || end <= start {
+        return Err("invalid_projection_domain".into());
+    }
+    let mut values = (0..=subdivisions)
+        .map(|index| start + (end - start) * index as f64 / subdivisions as f64)
+        .chain(breaks.iter().copied())
+        .collect::<Vec<_>>();
+    values.sort_by(f64::total_cmp);
+    values.dedup_by(|a, b| *a == *b);
+    if values.len() > MAX_AXIS_SEEDS {
+        return Err("projection_axis_seed_limit".into());
+    }
+    Ok(values)
+}
+
+fn shared_kernel_inverse_axis_sample_count(breaks: &[f64]) -> Result<usize, String> {
+    if breaks.len() < 2 || breaks.len() > MAX_AXIS_SEEDS {
+        return Err("shared_kernel_inverse_knot_span_limit".into());
+    }
+    let spans = breaks.len() - 1;
+    let per_span = SHARED_KERNEL_INVERSE_SAMPLES_PER_SPAN.min(
+        SHARED_KERNEL_INVERSE_MAX_SAMPLES_PER_AXIS
+            .div_ceil(spans)
+            .max(1),
+    );
+    spans
+        .checked_mul(per_span)
+        .and_then(|samples| samples.checked_add(1))
+        .ok_or_else(|| "shared_kernel_inverse_sample_count_overflow".into())
+}
+
+fn shared_kernel_inverse_distance_check_count(
+    boundary_samples: usize,
+    u_breaks: &[f64],
+    v_breaks: &[f64],
+) -> Result<(usize, usize, usize), String> {
+    let u_count = shared_kernel_inverse_axis_sample_count(u_breaks)?;
+    let v_count = shared_kernel_inverse_axis_sample_count(v_breaks)?;
+    let grid = u_count
+        .checked_mul(v_count)
+        .ok_or_else(|| "shared_kernel_inverse_grid_size_overflow".to_string())?;
+    let comparisons = boundary_samples
+        .checked_mul(grid)
+        .ok_or_else(|| "shared_kernel_inverse_work_estimate_overflow".to_string())?;
+    if comparisons > MAX_SHARED_KERNEL_INVERSE_DISTANCE_CHECKS {
+        return Err("shared_kernel_inverse_work_budget_exceeded".into());
+    }
+    Ok((u_count, v_count, comparisons))
+}
+
+fn shared_kernel_grid_control_point_evaluation_estimate(
+    u_samples: usize,
+    v_samples: usize,
+    control_point_count: usize,
+) -> Result<usize, String> {
+    u_samples
+        .checked_mul(v_samples)
+        .and_then(|grid_samples| grid_samples.checked_mul(control_point_count))
+        .filter(|count| *count <= MAX_SHARED_KERNEL_GRID_CONTROL_POINT_EVALUATIONS)
+        .ok_or_else(|| "shared_kernel_surface_construction_work_budget_exceeded".into())
+}
+
+fn shared_kernel_inverse_control_point_evaluation_estimate(
+    boundary_samples: usize,
+    control_point_count: usize,
+    construction_estimate: usize,
+) -> Result<usize, String> {
+    let per_sample = MAX_PROJECTION_ITERATIONS
+        .checked_mul(SHARED_KERNEL_INVERSE_SURFACE_EVALUATIONS_PER_ITERATION)
+        .and_then(|count| count.checked_add(1))
+        .ok_or_else(|| "shared_kernel_inverse_iteration_estimate_overflow".to_string())?;
+    boundary_samples
+        .checked_mul(per_sample)
+        .and_then(|count| count.checked_mul(control_point_count))
+        .and_then(|count| count.checked_add(construction_estimate))
+        .filter(|count| *count <= MAX_SHARED_KERNEL_INVERSE_CONTROL_POINT_EVALUATIONS)
+        .ok_or_else(|| "shared_kernel_inverse_control_point_work_budget_exceeded".to_string())
+}
+
+fn finite_difference_bounds(
+    value: f64,
+    step: f64,
+    domain: (f64, f64),
+    periodic: bool,
+) -> Option<(f64, f64)> {
+    if !value.is_finite() || !step.is_finite() || step <= 0. {
+        return None;
+    }
+    let bounds = if periodic {
+        (value - step, value + step)
+    } else {
+        ((value - step).max(domain.0), (value + step).min(domain.1))
+    };
+    (bounds.0.is_finite() && bounds.1.is_finite() && bounds.1 > bounds.0).then_some(bounds)
+}
+
+fn eval_surface(
+    definition: &SurfaceDefinition,
+    uv: [f64; 2],
+    evaluations: &mut usize,
+    control_point_evaluations: &mut usize,
+) -> Result<P3, String> {
+    *evaluations = evaluations
+        .checked_add(1)
+        .filter(|count| *count <= MAX_SURFACE_EVALUATIONS)
+        .ok_or("multistart_surface_evaluation_budget_exceeded")?;
+    *control_point_evaluations = control_point_evaluations
+        .checked_add(definition.control_point_count)
+        .filter(|count| *count <= MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS)
+        .ok_or("multistart_control_point_evaluation_budget_exceeded")?;
+    let (u0, u1) = definition.u_domain;
+    let (v0, v1) = definition.v_domain;
+    if definition.u_period.is_some() {
+        return Err("u_periodic_multistart_not_supported".into());
+    }
+    let u = uv[0].clamp(u0, u1);
+    let v_span = v1 - v0;
+    if !v_span.is_finite() || v_span <= 0. {
+        return Err("invalid_projection_v_domain".into());
+    }
+    let v = if definition.v_period.is_some() {
+        v0 + (uv[1] - v0).rem_euclid(v_span)
+    } else {
+        uv[1].clamp(v0, v1)
+    };
+    let point = definition.evaluator.point_at([u, v]);
+    if point.iter().any(|coordinate| !coordinate.is_finite()) {
+        return Err("nonfinite_multistart_surface_evaluation".into());
+    }
+    Ok(point)
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ProjectionCandidate {
+    uv: [f64; 2],
+    residual: f64,
+    converged: bool,
+}
+
+fn multistart_inverse(
+    definition: &SurfaceDefinition,
+    target: P3,
+    seed_u: &[f64],
+    seed_v: &[f64],
+    evaluations: &mut usize,
+    control_point_evaluations: &mut usize,
+) -> Result<(ProjectionCandidate, usize), String> {
+    let u_span = definition.u_domain.1 - definition.u_domain.0;
+    let v_span = definition.v_domain.1 - definition.v_domain.0;
+    let h_u = (u_span * 1e-6).max(f64::EPSILON * u_span * 32.);
+    let h_v = (v_span * 1e-6).max(f64::EPSILON * v_span * 32.);
+    let mut best: Option<ProjectionCandidate> = None;
+    let mut starts = 0usize;
+    for &seed_u_value in seed_u {
+        for &seed_v_value in seed_v {
+            starts += 1;
+            let mut uv = [seed_u_value, seed_v_value];
+            let mut point = eval_surface(definition, uv, evaluations, control_point_evaluations)?;
+            let mut residual_vector = sub(point, target);
+            let mut error = dot(residual_vector, residual_vector);
+            let mut converged = false;
+            for _ in 0..MAX_PROJECTION_ITERATIONS {
+                let Some((um, up)) =
+                    finite_difference_bounds(uv[0], h_u, definition.u_domain, false)
+                else {
+                    break;
+                };
+                let Some((vm, vp)) = finite_difference_bounds(
+                    uv[1],
+                    h_v,
+                    definition.v_domain,
+                    definition.v_period.is_some(),
+                ) else {
+                    break;
+                };
+                let pm_u = eval_surface(
+                    definition,
+                    [um, uv[1]],
+                    evaluations,
+                    control_point_evaluations,
+                )?;
+                let pp_u = eval_surface(
+                    definition,
+                    [up, uv[1]],
+                    evaluations,
+                    control_point_evaluations,
+                )?;
+                let pm_v = eval_surface(
+                    definition,
+                    [uv[0], vm],
+                    evaluations,
+                    control_point_evaluations,
+                )?;
+                let pp_v = eval_surface(
+                    definition,
+                    [uv[0], vp],
+                    evaluations,
+                    control_point_evaluations,
+                )?;
+                let du = scale(sub(pp_u, pm_u), 1. / (up - um));
+                let dv = scale(sub(pp_v, pm_v), 1. / (vp - vm));
+                let a = dot(du, du);
+                let b = dot(du, dv);
+                let c = dot(dv, dv);
+                let g0 = dot(du, residual_vector);
+                let g1 = dot(dv, residual_vector);
+                let determinant = a * c - b * b;
+                if !determinant.is_finite()
+                    || determinant <= (a * c).abs() * 1e-14
+                    || a <= 0.
+                    || c <= 0.
+                {
+                    break;
+                }
+                let step_u = (-g0 * c + b * g1) / determinant;
+                let step_v = (b * g0 - a * g1) / determinant;
+                if !step_u.is_finite() || !step_v.is_finite() {
+                    break;
+                }
+                let mut accepted = None;
+                let mut factor = 1.;
+                for _ in 0..8 {
+                    let candidate_uv = [
+                        (uv[0] + factor * step_u)
+                            .clamp(definition.u_domain.0, definition.u_domain.1),
+                        if definition.v_period.is_some() {
+                            uv[1] + factor * step_v
+                        } else {
+                            (uv[1] + factor * step_v)
+                                .clamp(definition.v_domain.0, definition.v_domain.1)
+                        },
+                    ];
+                    let candidate_point = eval_surface(
+                        definition,
+                        candidate_uv,
+                        evaluations,
+                        control_point_evaluations,
+                    )?;
+                    let candidate_residual = sub(candidate_point, target);
+                    let candidate_error = dot(candidate_residual, candidate_residual);
+                    if candidate_error < error {
+                        accepted = Some((
+                            candidate_uv,
+                            candidate_point,
+                            candidate_residual,
+                            candidate_error,
+                        ));
+                        break;
+                    }
+                    factor *= 0.5;
+                }
+                let Some((candidate_uv, candidate_point, candidate_residual, candidate_error)) =
+                    accepted
+                else {
+                    converged = error.sqrt() <= definition.control_net_diagonal * 1e-10;
+                    break;
+                };
+                let previous_error = error;
+                uv = candidate_uv;
+                point = candidate_point;
+                residual_vector = candidate_residual;
+                error = candidate_error;
+                if (previous_error - error).abs() <= previous_error.max(1.) * 1e-14
+                    || error.sqrt() <= definition.control_net_diagonal * 1e-10
+                {
+                    converged = true;
+                    break;
+                }
+            }
+            let residual = distance(point, target);
+            if !residual.is_finite() {
+                return Err("nonfinite_multistart_projection_residual".into());
+            }
+            let candidate = ProjectionCandidate {
+                uv,
+                residual,
+                converged,
+            };
+            if best.is_none_or(|current| candidate.residual < current.residual) {
+                best = Some(candidate);
+            }
+        }
+    }
+    best.map(|candidate| (candidate, starts))
+        .ok_or_else(|| "multistart_projection_had_no_seed".to_string())
+}
+
+fn scale(point: P3, factor: f64) -> P3 {
+    point.map(|coordinate| coordinate * factor)
+}
+
+fn unwrap_parameter(raw: f64, previous: f64, period: Option<f64>) -> Result<(f64, f64), String> {
+    let Some(period) = period else {
+        return Ok((raw, 0.));
+    };
+    if !period.is_finite() || period <= 0. {
+        return Err("invalid_parameter_period".into());
+    }
+    let shift = ((previous - raw) / period).round();
+    if !shift.is_finite() || shift.abs() > MAX_BRANCH_SHIFT {
+        return Err("parameter_branch_shift_limit".into());
+    }
+    let value = raw + shift * period;
+    if !value.is_finite() {
+        return Err("nonfinite_unwrapped_parameter".into());
+    }
+    Ok((value, shift))
+}
+
+/// Inspect one source ADVANCED_FACE whose surface and four-dimensional
+/// source trims are available as B-spline entities.
+pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
+    if face_id == 0 {
+        return Err("positive_diagnostic_face_required".into());
+    }
+    let face = entity(step, face_id, "ADVANCED_FACE")?;
+    let face_sense = face
+        .logical("same_sense")
+        .ok_or("unknown_face_surface_sense")?;
+    let bounds = face.list("bounds").ok_or("missing_face_bounds")?;
+    if bounds.len() != 1 {
+        return Err("diagnostic_requires_one_face_bound".into());
+    }
+    let bound_id = bounds[0]
+        .as_reference()
+        .ok_or("invalid_face_bound_reference")?;
+    let bound = entity(step, bound_id, "FACE_OUTER_BOUND")?;
+    let bound_sense = bound
+        .logical("orientation")
+        .ok_or("unknown_face_bound_orientation")?;
+    let loop_id = bound.reference("bound").ok_or("missing_edge_loop")?;
+    let loop_entity = entity(step, loop_id, "EDGE_LOOP")?;
+    let oriented_ids = loop_entity.list("edge_list").ok_or("missing_edge_list")?;
+    if oriented_ids.len() < 3 || oriented_ids.len() > MAX_FACE_EDGES {
+        return Err("invalid_or_excessive_face_edge_count".into());
+    }
+    let surface_id = face
+        .reference("face_geometry")
+        .ok_or("missing_face_surface")?;
+    let surface = parse_surface(step, surface_id)?;
+    let surface_report = surface.report.clone();
+    let u_period = surface.u_period;
+    let v_period = surface.v_period;
+    let seed_u = axis_seeds(&surface.u_breaks, MULTISTART_SUBDIVISIONS)?;
+    let seed_v = axis_seeds(&surface.v_breaks, MULTISTART_SUBDIVISIONS)?;
+
+    struct EdgeData {
+        oriented_id: u64,
+        edge_id: u64,
+        curve_id: u64,
+        curve_same_sense: bool,
+        oriented_sense: bool,
+        loop_sense: bool,
+        start_vertex: u64,
+        end_vertex: u64,
+        curve_domain: (f64, f64),
+        curve_breaks: Vec<f64>,
+        curve_control_point_count: usize,
+        curve_type: &'static str,
+        curve: kernel::BSplineCurve,
+    }
+
+    let mut edges = Vec::with_capacity(oriented_ids.len());
+    let mut seen = std::collections::BTreeSet::new();
+    let mut total_edge_curve_control_points = 0usize;
+    for item in oriented_ids {
+        let oriented_id = item
+            .as_reference()
+            .ok_or("invalid_oriented_edge_reference")?;
+        if !seen.insert(oriented_id) {
+            return Err("duplicate_oriented_edge".into());
+        }
+        let oriented = entity(step, oriented_id, "ORIENTED_EDGE")?;
+        let oriented_sense = oriented
+            .logical("orientation")
+            .ok_or("unknown_oriented_edge_sense")?;
+        let edge_id = oriented
+            .reference("edge_element")
+            .ok_or("missing_edge_element")?;
+        let edge = entity(step, edge_id, "EDGE_CURVE")?;
+        let curve_same_sense = edge
+            .logical("same_sense")
+            .ok_or("unknown_edge_curve_sense")?;
+        let start_vertex = edge.reference("edge_start").ok_or("missing_edge_start")?;
+        let end_vertex = edge.reference("edge_end").ok_or("missing_edge_end")?;
+        let curve_id = edge
+            .reference("edge_geometry")
+            .ok_or("missing_edge_curve_geometry")?;
+        let preflight_control_point_count = preflight_curve_control_point_count(step, curve_id)?;
+        total_edge_curve_control_points = checked_edge_curve_control_point_total(
+            total_edge_curve_control_points,
+            preflight_control_point_count,
+        )?;
+        let parsed_curve = parse_curve(step, curve_id)?;
+        if parsed_curve.control_point_count != preflight_control_point_count {
+            return Err("edge_curve_control_point_preflight_mismatch".into());
+        }
+        let curve_type = if parsed_curve.rational {
+            "RATIONAL_B_SPLINE_CURVE_WITH_KNOTS"
+        } else {
+            "B_SPLINE_CURVE_WITH_KNOTS"
+        };
+        edges.push(EdgeData {
+            oriented_id,
+            edge_id,
+            curve_id,
+            curve_same_sense,
+            oriented_sense,
+            // A false bound reverses both the sequence and each edge's
+            // effective traversal. This identity keeps endpoint chaining explicit.
+            loop_sense: oriented_sense == bound_sense,
+            start_vertex,
+            end_vertex,
+            curve_domain: parsed_curve.domain,
+            curve_breaks: parsed_curve.breaks,
+            curve_control_point_count: parsed_curve.control_point_count,
+            curve_type,
+            curve: parsed_curve.curve,
+        });
+    }
+    let edge_curve_control_point_evaluations = edges.iter().try_fold(0usize, |total, edge| {
+        let sample_count = edge
+            .curve_breaks
+            .len()
+            .saturating_sub(1)
+            .checked_mul(SAMPLES_PER_CURVE_SPAN)
+            .and_then(|count| count.checked_add(1))
+            .ok_or_else(|| "edge_curve_work_estimate_overflow".to_string())?;
+        total
+            .checked_add(
+                sample_count
+                    .checked_mul(edge.curve_control_point_count)
+                    .ok_or_else(|| "edge_curve_work_estimate_overflow".to_string())?,
+            )
+            .ok_or_else(|| "edge_curve_work_estimate_overflow".to_string())
+    })?;
+    if edge_curve_control_point_evaluations > MAX_EDGE_CURVE_CONTROL_POINT_EVALUATIONS {
+        return Err("edge_curve_evaluation_work_budget_exceeded".into());
+    }
+    if !bound_sense {
+        edges.reverse();
+    }
+
+    let mut boundary_samples = Vec::<(usize, usize, f64, P3)>::new();
+    let mut edge_reports = Vec::with_capacity(edges.len());
+    let mut previous_vertex = None;
+    let mut first_vertex = None;
+    let mut max_endpoint_residual: f64 = 0.;
+    let mut total_sample_budget = MAX_BOUNDARY_SAMPLES;
+    for (loop_index, edge) in edges.iter().enumerate() {
+        let (loop_start, loop_end) = if edge.loop_sense {
+            (edge.start_vertex, edge.end_vertex)
+        } else {
+            (edge.end_vertex, edge.start_vertex)
+        };
+        if previous_vertex.is_some_and(|previous| previous != loop_start) {
+            return Err("source_oriented_edge_chain_gap".into());
+        }
+        if first_vertex.is_none() {
+            first_vertex = Some(loop_start);
+        }
+        previous_vertex = Some(loop_end);
+
+        let mut samples = sample_curve(&edge.curve, &edge.curve_breaks, total_sample_budget)?;
+        total_sample_budget = total_sample_budget
+            .checked_sub(samples.len())
+            .ok_or("boundary_sample_budget_exceeded")?;
+        let natural_start = samples.first().ok_or("empty_curve_sample_run")?.1;
+        let natural_end = samples.last().ok_or("empty_curve_sample_run")?.1;
+        let (expected_natural_start, expected_natural_end) = if edge.curve_same_sense {
+            (
+                vertex(step, edge.start_vertex)?,
+                vertex(step, edge.end_vertex)?,
+            )
+        } else {
+            (
+                vertex(step, edge.end_vertex)?,
+                vertex(step, edge.start_vertex)?,
+            )
+        };
+        let start_residual = distance(natural_start, expected_natural_start);
+        let end_residual = distance(natural_end, expected_natural_end);
+        if !start_residual.is_finite() || !end_residual.is_finite() {
+            return Err("nonfinite_edge_endpoint_residual".into());
+        }
+        max_endpoint_residual = max_endpoint_residual.max(start_residual).max(end_residual);
+        let curve_follows_loop = edge.curve_same_sense == edge.loop_sense;
+        if !curve_follows_loop {
+            samples.reverse();
+        }
+        for (sample_index, (parameter, point)) in samples.into_iter().enumerate() {
+            boundary_samples.push((loop_index, sample_index, parameter, point));
+            if boundary_samples.len() > MAX_BOUNDARY_SAMPLES {
+                return Err("boundary_sample_budget_exceeded".into());
+            }
+        }
+        edge_reports.push(json!({
+            "loopIndex": loop_index,
+            "orientedEdgeId": edge.oriented_id,
+            "edgeCurveId": edge.edge_id,
+            "curveGeometryId": edge.curve_id,
+            "curveGeometryType": edge.curve_type,
+            "curveParameterDomain": edge.curve_domain,
+            "curveBreaks": edge.curve_breaks,
+            "topologicalStartVertexId": edge.start_vertex,
+            "topologicalEndVertexId": edge.end_vertex,
+            "orientedEdgeSense": edge.oriented_sense,
+            "edgeCurveSameSense": edge.curve_same_sense,
+            "effectiveLoopSense": edge.loop_sense,
+            "naturalCurveStartResidualSourceUnits": start_residual,
+            "naturalCurveEndResidualSourceUnits": end_residual,
+            "curveSamplesPerSpan": SAMPLES_PER_CURVE_SPAN,
+            "sampleCount": (edge.curve_breaks.len() - 1) * SAMPLES_PER_CURVE_SPAN + 1
+        }));
+    }
+    if previous_vertex != first_vertex {
+        return Err("source_oriented_edge_loop_not_closed".into());
+    }
+    if boundary_samples.is_empty() {
+        return Err("empty_source_boundary_samples".into());
+    }
+    let (shared_inverse_u_samples, shared_inverse_v_samples, shared_inverse_distance_checks) =
+        shared_kernel_inverse_distance_check_count(
+            boundary_samples.len(),
+            &surface.u_breaks,
+            &surface.v_breaks,
+        )?;
+    let shared_inverse_control_point_evaluations =
+        shared_kernel_inverse_control_point_evaluation_estimate(
+            boundary_samples.len(),
+            surface.control_point_count,
+            surface.construction_control_point_evaluation_estimate,
+        )?;
+
+    let mut max_surface_residual: f64 = 0.;
+    let mut sum_squared_residual = 0.;
+    let mut max_multistart_residual: f64 = 0.;
+    let mut sum_squared_multistart_residual = 0.;
+    let mut multistart_converged_samples = 0usize;
+    let mut multistart_start_count = 0usize;
+    let mut surface_evaluation_count = 0usize;
+    let mut control_point_evaluation_count = 0usize;
+    let mut candidate_surface_evaluation_count = 0usize;
+    let mut pole_count = 0usize;
+    let mut max_u_step: f64 = 0.;
+    let mut max_v_step: f64 = 0.;
+    let mut u_branch_shifts = 0usize;
+    let mut v_branch_shifts = 0usize;
+    let mut ambiguous_half_periods = 0usize;
+    let mut previous_uv: Option<[f64; 2]> = None;
+    let mut previous_candidate_uv: Option<[f64; 2]> = None;
+    let mut candidate_uv_vertices = Vec::with_capacity(boundary_samples.len());
+    let mut detail_samples = Vec::with_capacity(MAX_SAMPLE_DETAILS);
+    for (edge_index, sample_index, parameter, source_point) in &boundary_samples {
+        let (raw_uv, pole) = surface.evaluator.inverse(*source_point);
+        if raw_uv.iter().any(|value| !value.is_finite()) {
+            return Err("surface_inverse_returned_nonfinite_parameter".into());
+        }
+        pole_count += usize::from(pole);
+        let projected = surface.evaluator.point_at(raw_uv);
+        if projected.iter().any(|value| !value.is_finite()) {
+            return Err("surface_evaluation_returned_nonfinite_point".into());
+        }
+        let residual = distance(projected, *source_point);
+        if !residual.is_finite() {
+            return Err("nonfinite_surface_boundary_residual".into());
+        }
+        max_surface_residual = max_surface_residual.max(residual);
+        sum_squared_residual += residual * residual;
+
+        let (best_candidate, starts) = multistart_inverse(
+            &surface,
+            *source_point,
+            &seed_u,
+            &seed_v,
+            &mut surface_evaluation_count,
+            &mut control_point_evaluation_count,
+        )?;
+        multistart_start_count = multistart_start_count
+            .checked_add(starts)
+            .filter(|count| *count <= MAX_SURFACE_EVALUATIONS)
+            .ok_or("multistart_candidate_budget_exceeded")?;
+        max_multistart_residual = max_multistart_residual.max(best_candidate.residual);
+        sum_squared_multistart_residual += best_candidate.residual * best_candidate.residual;
+        multistart_converged_samples += usize::from(best_candidate.converged);
+        let candidate_uv = if let Some(previous) = previous_candidate_uv {
+            let (u, _) = unwrap_parameter(best_candidate.uv[0], previous[0], u_period)?;
+            let (v, _) = unwrap_parameter(best_candidate.uv[1], previous[1], v_period)?;
+            [u, v]
+        } else {
+            best_candidate.uv
+        };
+        candidate_uv_vertices.push(candidate_uv);
+        previous_candidate_uv = Some(candidate_uv);
+
+        let mut unwrapped = raw_uv;
+        if let Some(previous) = previous_uv {
+            let (u, u_shift) = unwrap_parameter(raw_uv[0], previous[0], u_period)?;
+            let (v, v_shift) = unwrap_parameter(raw_uv[1], previous[1], v_period)?;
+            unwrapped = [u, v];
+            u_branch_shifts += usize::from(u_shift != 0.);
+            v_branch_shifts += usize::from(v_shift != 0.);
+            if let Some(period) = u_period {
+                ambiguous_half_periods += usize::from(
+                    ((unwrapped[0] - previous[0]).abs() - period * 0.5).abs() <= period * 1e-10,
+                );
+            }
+            if let Some(period) = v_period {
+                ambiguous_half_periods += usize::from(
+                    ((unwrapped[1] - previous[1]).abs() - period * 0.5).abs() <= period * 1e-10,
+                );
+            }
+            max_u_step = max_u_step.max((unwrapped[0] - previous[0]).abs());
+            max_v_step = max_v_step.max((unwrapped[1] - previous[1]).abs());
+        }
+        previous_uv = Some(unwrapped);
+        if detail_samples.len() < MAX_SAMPLE_DETAILS {
+            detail_samples.push(json!({
+                "loopIndex": edge_index,
+                "sampleIndex": sample_index,
+                "curveParameter": parameter,
+                "sourcePoint": source_point,
+                "rawUv": raw_uv,
+                "unwrappedUv": unwrapped,
+                "readerInverseResidualSourceUnits": residual,
+                "multiStartBestUv": best_candidate.uv,
+                "multiStartBestResidualSourceUnits": best_candidate.residual,
+                "multiStartBestConverged": best_candidate.converged,
+                "multiStartSeedCount": starts,
+                "poleFlag": pole
+            }));
+        }
+    }
+    let trim_candidate_result = (|| -> Result<Json, String> {
+        let candidate =
+            crate::trim_polygon_candidate::triangulate_simple_loop(&candidate_uv_vertices)?;
+        let refined =
+            crate::trim_polygon_candidate::refine_uniform(candidate, 0.005, 4, 50_000, |uv| {
+                eval_surface(
+                    &surface,
+                    uv,
+                    &mut candidate_surface_evaluation_count,
+                    &mut control_point_evaluation_count,
+                )
+            })?;
+        Ok(json!({
+            "status": "candidate_only",
+            "algorithm": "bounded_simple_loop_ear_clipping_with_uniform_sampled_chord_refinement",
+            "vertexCount": refined.vertices.len(),
+            "triangleCount": refined.triangles.len(),
+            "signedUvArea": refined.signed_area,
+            "removedAdjacentDuplicateCount": refined.removed_adjacent_duplicates,
+            "predicateCheckCount": refined.predicate_checks,
+            "refinementLevels": refined.refinement_levels,
+            "maxSampledChordErrorSourceUnits": refined.max_chord_error,
+            "chordToleranceSourceUnits": refined.chord_tolerance,
+            "refinementConverged": refined.converged,
+            "refinementFailureReason": refined.failure_reason,
+            "surfaceEvaluationCount": refined.surface_evaluation_count,
+            "uvVertices": refined.vertices,
+            "surfacePointsSourceUnits": refined.points,
+            "triangles": refined.triangles,
+            "sourceMeshModified": false,
+            "geometryQualified": false,
+            "admitted": false,
+            "exportsProduced": []
+        }))
+    })();
+    let trim_candidate = match trim_candidate_result {
+        Ok(report) => report,
+        Err(reason) => json!({
+            "status": "rejected",
+            "reason": reason,
+            "surfaceEvaluationCount": candidate_surface_evaluation_count,
+            "sourceMeshModified": false,
+            "geometryQualified": false,
+            "admitted": false,
+            "exportsProduced": []
+        }),
+    };
+    let trim_candidate_generated = trim_candidate["status"] == "candidate_only";
+
+    Ok(json!({
+        "schema": "tokito.step-spline-face-trim-diagnostic.v1",
+        "faceId": face_id,
+        "surfaceId": surface_id,
+        "boundId": bound_id,
+        "loopId": loop_id,
+        "faceSameSense": face_sense,
+        "boundOrientation": bound_sense,
+        "sourceOrientedEdgeLoopClosed": true,
+        "sourceOrientedEdgeIds": edge_reports.iter().map(|edge| edge["orientedEdgeId"].clone()).collect::<Vec<_>>(),
+        "sourceEdgeCurveControlPointStorageCount": total_edge_curve_control_points,
+        "sourceEdgeCurveControlPointStorageBudget": MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS,
+        "sourceEdgeCurveControlPointEvaluationEstimate": edge_curve_control_point_evaluations,
+        "sourceEdgeCurveControlPointEvaluationBudget": MAX_EDGE_CURVE_CONTROL_POINT_EVALUATIONS,
+        "surface": surface_report,
+        "edges": edge_reports,
+        "trimCandidate": trim_candidate,
+        "trimProjection": {
+            "boundarySampleCount": boundary_samples.len(),
+            "sampleDetails": detail_samples,
+            "sampleDetailsTruncated": boundary_samples.len() > MAX_SAMPLE_DETAILS,
+            "maxSampleDetails": MAX_SAMPLE_DETAILS,
+            "curveSamplesPerKnotSpan": SAMPLES_PER_CURVE_SPAN,
+            "maximumCurveEndpointResidualSourceUnits": max_endpoint_residual,
+            "readerInverseMaximumResidualSourceUnits": max_surface_residual,
+            "readerInverseRootMeanSquareResidualSourceUnits": (sum_squared_residual / boundary_samples.len() as f64).sqrt(),
+            "multiStartMaximumResidualSourceUnits": max_multistart_residual,
+            "multiStartRootMeanSquareResidualSourceUnits": (sum_squared_multistart_residual / boundary_samples.len() as f64).sqrt(),
+            "multiStartConvergedSampleCount": multistart_converged_samples,
+            "multiStartSampleCount": boundary_samples.len(),
+            "multiStartSeedsPerSample": seed_u.len() * seed_v.len(),
+            "multiStartTotalCandidateStarts": multistart_start_count,
+            "multiStartSurfaceEvaluationCount": surface_evaluation_count,
+            "diagnosticControlPointEvaluationCount": control_point_evaluation_count,
+            "diagnosticControlPointEvaluationBudget": MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS,
+            "candidateSurfaceEvaluationCount": candidate_surface_evaluation_count,
+            "sharedKernelInverseGridDimensions": [shared_inverse_u_samples, shared_inverse_v_samples],
+            "sharedKernelInverseDistanceChecks": shared_inverse_distance_checks,
+            "sharedKernelInverseDistanceCheckBudget": MAX_SHARED_KERNEL_INVERSE_DISTANCE_CHECKS,
+            "sharedKernelInverseControlPointEvaluationEstimate": shared_inverse_control_point_evaluations,
+            "sharedKernelInverseControlPointEvaluationBudget": MAX_SHARED_KERNEL_INVERSE_CONTROL_POINT_EVALUATIONS,
+            "surfaceProjectionPoleCount": pole_count,
+            "maximumUnwrappedUStep": max_u_step,
+            "maximumUnwrappedVStep": max_v_step,
+            "uPeriodicBranchShiftCount": u_branch_shifts,
+            "vPeriodicBranchShiftCount": v_branch_shifts,
+            "ambiguousHalfPeriodStepCount": ambiguous_half_periods
+        },
+        "evaluation": {
+            "inputGeometry": "source B-spline control points, knot vectors, rational weights, and oriented 3D B-spline edge curves",
+            "projectionAndSurfaceEvaluator": "pinned oxideav-ifc shared kernel used by the reader; not an independent implementation",
+            "inverseSearch": "bounded multi-start finite-difference least-squares projection implemented in this diagnostic; uses the shared surface point evaluator",
+            "inverseSearchAlgorithmDiffersFromReader": true,
+            "inverseConvergenceStatusAvailable": false,
+            "inverseBranchesEnumerated": false,
+            "surfaceCauseEstablished": false,
+            "repairAttempted": false,
+            "trimCandidateGenerated": trim_candidate_generated,
+            "independentReferenceComparisonPerformed": false,
+            "geometryQualified": false,
+            "admitted": false,
+            "exportsProduced": [],
+            "scope": "bounded source-edge-to-source-surface residuals plus a research-only simple-loop ear-clipping candidate; no source mesh mutation, independent qualification, or production admission"
+        }
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn aggregate_edge_curve_storage_budget_rejects_before_curve_allocation() {
+        assert_eq!(
+            checked_edge_curve_control_point_total(MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS - 2, 2)
+                .unwrap(),
+            MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS
+        );
+        assert_eq!(
+            checked_edge_curve_control_point_total(MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS - 1, 2)
+                .unwrap_err(),
+            "edge_curve_control_point_storage_budget_exceeded"
+        );
+        assert_eq!(
+            checked_edge_curve_control_point_total(usize::MAX, 1).unwrap_err(),
+            "edge_curve_control_point_storage_budget_exceeded"
+        );
+    }
+
+    #[test]
+    fn periodic_unwrap_chooses_nearest_branch_both_directions() {
+        let (positive, positive_shift) = unwrap_parameter(0.1, 9.9, Some(10.)).unwrap();
+        let (negative, negative_shift) = unwrap_parameter(9.9, 0.1, Some(10.)).unwrap();
+        let (aperiodic, no_shift) = unwrap_parameter(0.4, 0.1, None).unwrap();
+        assert!((positive - 10.1).abs() < 1e-12 && positive_shift == 1.);
+        assert!((negative + 0.1).abs() < 1e-12 && negative_shift == -1.);
+        assert!((aperiodic - 0.4).abs() < 1e-12 && no_shift == 0.);
+    }
+
+    #[test]
+    fn periodic_unwrap_rejects_invalid_periods_and_extreme_shifts() {
+        for period in [Some(0.), Some(-1.), Some(f64::NAN), Some(f64::INFINITY)] {
+            assert!(unwrap_parameter(0., 1., period).is_err());
+        }
+        assert!(unwrap_parameter(0., 1e20, Some(1e-9)).is_err());
+    }
+
+    #[test]
+    fn bounded_multistart_recovers_known_point_on_bilinear_surface() {
+        let controls = vec![
+            vec![[0., 0., 0.], [0., 1., 0.]],
+            vec![[1., 0., 0.], [1., 1., 0.]],
+        ];
+        let spline = kernel::BSplineSurface::new(
+            1,
+            1,
+            &controls,
+            None,
+            (&[0., 1.], &[2, 2]),
+            (&[0., 1.], &[2, 2]),
+            Some(false),
+            Some(false),
+        )
+        .unwrap();
+        let target = spline.point_at(0.3, 0.6);
+        let definition = SurfaceDefinition {
+            evaluator: kernel::Surface::bspline(spline),
+            u_domain: (0., 1.),
+            v_domain: (0., 1.),
+            u_breaks: vec![0., 1.],
+            v_breaks: vec![0., 1.],
+            u_period: None,
+            v_period: None,
+            control_point_count: 4,
+            construction_control_point_evaluation_estimate: 81,
+            control_net_diagonal: 2f64.sqrt(),
+            report: json!({}),
+        };
+        let u = axis_seeds(&definition.u_breaks, MULTISTART_SUBDIVISIONS).unwrap();
+        let v = axis_seeds(&definition.v_breaks, MULTISTART_SUBDIVISIONS).unwrap();
+        let mut evaluations = 0;
+        let mut control_point_evaluations = 0;
+        let (candidate, starts) = multistart_inverse(
+            &definition,
+            target,
+            &u,
+            &v,
+            &mut evaluations,
+            &mut control_point_evaluations,
+        )
+        .unwrap();
+        assert_eq!(starts, u.len() * v.len());
+        assert!(candidate.residual < 1e-9, "{candidate:?}");
+        assert!(candidate.converged);
+        assert!((candidate.uv[0] - 0.3).abs() < 1e-8);
+        assert!((candidate.uv[1] - 0.6).abs() < 1e-8);
+        assert!(evaluations <= MAX_SURFACE_EVALUATIONS);
+        assert_eq!(control_point_evaluations, evaluations * 4);
+    }
+
+    #[test]
+    fn shared_kernel_inverse_scan_estimate_matches_pinned_sampling_rule() {
+        assert_eq!(
+            shared_kernel_inverse_axis_sample_count(&[0., 1.]).unwrap(),
+            9
+        );
+        assert_eq!(
+            shared_kernel_inverse_axis_sample_count(&[0., 1., 2.]).unwrap(),
+            17
+        );
+        let many_breaks = (0..MAX_AXIS_SEEDS)
+            .map(|value| value as f64)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            shared_kernel_inverse_axis_sample_count(&many_breaks).unwrap(),
+            316
+        );
+        assert_eq!(
+            shared_kernel_inverse_distance_check_count(100, &[0., 1.], &[0., 1., 2.]).unwrap(),
+            (9, 17, 15_300)
+        );
+        assert_eq!(
+            shared_kernel_inverse_distance_check_count(
+                MAX_BOUNDARY_SAMPLES,
+                &many_breaks,
+                &many_breaks
+            ),
+            Err("shared_kernel_inverse_work_budget_exceeded".into())
+        );
+    }
+
+    #[test]
+    fn shared_kernel_control_point_work_is_bounded_before_grid_and_inverse_work() {
+        assert_eq!(
+            shared_kernel_grid_control_point_evaluation_estimate(9, 17, 54).unwrap(),
+            8_262
+        );
+        assert_eq!(
+            shared_kernel_inverse_control_point_evaluation_estimate(100, 54, 8_262).unwrap(),
+            661_662
+        );
+        assert_eq!(
+            shared_kernel_grid_control_point_evaluation_estimate(316, 316, 65_536),
+            Err("shared_kernel_surface_construction_work_budget_exceeded".into())
+        );
+        assert_eq!(
+            shared_kernel_inverse_control_point_evaluation_estimate(1_000, 65_536, 1),
+            Err("shared_kernel_inverse_control_point_work_budget_exceeded".into())
+        );
+    }
+
+    #[test]
+    fn finite_difference_intervals_use_the_clipped_nonperiodic_extent() {
+        let low = finite_difference_bounds(0., 0.01, (0., 1.), false).unwrap();
+        let high = finite_difference_bounds(1., 0.01, (0., 1.), false).unwrap();
+        let periodic = finite_difference_bounds(0., 0.01, (0., 1.), true).unwrap();
+        assert_eq!(low, (0., 0.01));
+        assert_eq!(high, (0.99, 1.));
+        assert_eq!(periodic, (-0.01, 0.01));
+    }
+
+    #[test]
+    fn nonperiodic_multistart_returns_v_inside_the_evaluated_domain() {
+        let controls = vec![
+            vec![[0., 0., 0.], [0., 1., 0.]],
+            vec![[1., 0., 0.], [1., 1., 0.]],
+        ];
+        let spline = kernel::BSplineSurface::new(
+            1,
+            1,
+            &controls,
+            None,
+            (&[0., 1.], &[2, 2]),
+            (&[0., 1.], &[2, 2]),
+            Some(false),
+            Some(false),
+        )
+        .unwrap();
+        let definition = SurfaceDefinition {
+            evaluator: kernel::Surface::bspline(spline),
+            u_domain: (0., 1.),
+            v_domain: (0., 1.),
+            u_breaks: vec![0., 1.],
+            v_breaks: vec![0., 1.],
+            u_period: None,
+            v_period: None,
+            control_point_count: 4,
+            construction_control_point_evaluation_estimate: 81,
+            control_net_diagonal: 2f64.sqrt(),
+            report: json!({}),
+        };
+        let u = axis_seeds(&definition.u_breaks, MULTISTART_SUBDIVISIONS).unwrap();
+        let v = axis_seeds(&definition.v_breaks, MULTISTART_SUBDIVISIONS).unwrap();
+        let mut evaluations = 0;
+        let mut control_point_evaluations = 0;
+        let (candidate, _) = multistart_inverse(
+            &definition,
+            [0.3, 1.2, 0.],
+            &u,
+            &v,
+            &mut evaluations,
+            &mut control_point_evaluations,
+        )
+        .unwrap();
+        assert!((0. ..=1.).contains(&candidate.uv[0]));
+        assert!((0. ..=1.).contains(&candidate.uv[1]));
+        assert!(
+            distance(
+                eval_surface(
+                    &definition,
+                    candidate.uv,
+                    &mut evaluations,
+                    &mut control_point_evaluations,
+                )
+                .unwrap(),
+                [0.3, 1.2, 0.]
+            ) >= 0.2 - 1e-9
+        );
+    }
+}

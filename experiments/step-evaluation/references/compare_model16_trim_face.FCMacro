@@ -1,0 +1,275 @@
+import hashlib, json, math, sys
+from pathlib import Path
+import FreeCAD, Part
+EXPECTED_VERSION=["1","1","4","20260928 (Git shallow)","Unknown","2026/09/28 13:46:34","(HEAD detached at 4fd3bf320)","4fd3bf320d9566a27e60069fc8387448aaa3a094"]
+FACE_ID=2875
+def read_file(path, cap):
+    p=Path(path).resolve(strict=True)
+    if p.is_symlink() or not p.is_file(): raise ValueError("input is not regular")
+    b=p.read_bytes()
+    if len(b)>cap: raise ValueError("input size limit")
+    return b
+def dist_point(a,b): return math.sqrt(sum((a[i]-b[i])**2 for i in range(3)))
+def cross3(a,b): return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
+def dot3(a,b): return sum(a[i]*b[i] for i in range(3))
+def sub3(a,b): return [a[i]-b[i] for i in range(3)]
+def scale3(a,s): return [a[i]*s for i in range(3)]
+def normalized(v):
+    length=math.sqrt(dot3(v,v))
+    return [x/length for x in v] if length>0 else None
+def main():
+    if list(FreeCAD.Version())!=EXPECTED_VERSION: raise RuntimeError("FreeCAD version mismatch")
+    if "--pass" not in sys.argv: raise ValueError("expected --pass config")
+    i=sys.argv.index("--pass")
+    if len(sys.argv)!=i+2: raise ValueError("one config path required")
+    cfg=json.loads(read_file(sys.argv[i+1],32768))
+    expected={"source","readerReport","splineReport","degenerateReport","output"}
+    if not isinstance(cfg,dict) or set(cfg)!=expected: raise ValueError("invalid config")
+    source=Path(cfg["source"]).resolve(strict=True)
+    reader_path=Path(cfg["readerReport"]).resolve(strict=True)
+    spline_path=Path(cfg["splineReport"]).resolve(strict=True)
+    degenerate_path=Path(cfg["degenerateReport"]).resolve(strict=True)
+    out=Path(cfg["output"]).resolve()
+    if out.exists(): raise FileExistsError("refusing to overwrite")
+    src_bytes=read_file(source,32*1024*1024)
+    reader_bytes=read_file(reader_path,64*1024*1024)
+    spline_bytes=read_file(spline_path,32*1024*1024)
+    degenerate_bytes=read_file(degenerate_path,32*1024*1024)
+    sha=hashlib.sha256(src_bytes).hexdigest()
+    reader_sha=hashlib.sha256(reader_bytes).hexdigest()
+    reader=json.loads(reader_bytes); spline=json.loads(spline_bytes); degenerate=json.loads(degenerate_bytes)
+    if reader.get("sourceSha256")!=sha or spline.get("sourceSha256")!=sha or degenerate.get("sourceSha256")!=sha: raise ValueError("source hash mismatch")
+    if degenerate.get("readerOutputSha256")!=reader_sha: raise ValueError("reader output hash mismatch")
+    samples=spline.get("trimProjection",{}).get("sampleDetails",[])
+    if len(samples)!=100: raise ValueError("expected 100 source boundary samples")
+    source_points=[row["sourcePoint"] for row in samples]
+    shape=Part.read(str(source))
+    if shape.isNull() or not shape.isValid(): raise ValueError("FreeCAD source B-rep invalid")
+    faces=list(shape.Faces)
+    candidates=[]
+    for index,face in enumerate(faces,1):
+        bb=face.BoundBox
+        if not all(bb.XMin-1e-8<=p[0]<=bb.XMax+1e-8 and bb.YMin-1e-8<=p[1]<=bb.YMax+1e-8 and bb.ZMin-1e-8<=p[2]<=bb.ZMax+1e-8 for p in source_points): continue
+        ds=[float(face.distToShape(Part.Vertex(FreeCAD.Vector(*p)))[0]) for p in source_points]
+        candidates.append((max(ds),math.sqrt(sum(d*d for d in ds)/len(ds)),index,face,ds))
+    candidates.sort(key=lambda x:(x[0],x[1]))
+    if not candidates or candidates[0][0]>1e-7: raise ValueError("no exact independent trimmed-face match")
+    face_max,face_rms,face_index,face,source_boundary_distances=candidates[0]
+    trim_candidate=spline.get("trimCandidate",{})
+    trim_candidate_comparison={"status":trim_candidate.get("status"),"independentFreecadTriangulationCompared":False,"geometryQualified":False,"admitted":False,"exportsProduced":[]}
+    if trim_candidate.get("status")=="candidate_only":
+        uv_vertices=trim_candidate.get("uvVertices",[])
+        candidate_source_points=trim_candidate.get("surfacePointsSourceUnits",[])
+        candidate_triangles=trim_candidate.get("triangles",[])
+        if len(uv_vertices)<3 or len(uv_vertices)>60000 or len(candidate_source_points)!=len(uv_vertices) or not candidate_triangles or len(candidate_triangles)>50000:
+            raise ValueError("invalid or over-limit Rust trim candidate")
+        v_domain=spline.get("surface",{}).get("vDomain")
+        v_period=spline.get("surface",{}).get("vPeriod")
+        u_domain=spline.get("surface",{}).get("uDomain")
+        u_period=spline.get("surface",{}).get("uPeriod")
+        if not isinstance(v_domain,list) or len(v_domain)!=2 or not isinstance(u_domain,list) or len(u_domain)!=2:
+            raise ValueError("missing candidate surface parameter domain")
+        def canonical(value, domain, period):
+            if period is None: return value
+            if not math.isfinite(float(period)) or float(period)<=0: raise ValueError("invalid surface period")
+            return float(domain[0])+(float(value)-float(domain[0]))%float(period)
+        freecad_points=[]; parameter_surface_residuals=[]; point_to_trimmed_face=[]; candidate_vertices_inside=0; candidate_vertices_outside=0
+        for uv, source_point in zip(uv_vertices,candidate_source_points):
+            if not isinstance(uv,list) or len(uv)!=2 or any(not math.isfinite(float(x)) for x in uv): raise ValueError("invalid candidate UV point")
+            u=canonical(float(uv[0]),u_domain,u_period); v=canonical(float(uv[1]),v_domain,v_period)
+            p=face.valueAt(u,v); xyz=[float(p.x),float(p.y),float(p.z)]
+            if not isinstance(source_point,list) or len(source_point)!=3 or any(not math.isfinite(float(x)) for x in source_point): raise ValueError("invalid candidate source point")
+            freecad_points.append(xyz)
+            parameter_surface_residuals.append(dist_point(xyz,[float(x) for x in source_point]))
+            point_to_trimmed_face.append(float(face.distToShape(Part.Vertex(p))[0]))
+            if face.isInside(p,1e-7,True): candidate_vertices_inside+=1
+            else: candidate_vertices_outside+=1
+        centroid_distances=[]; triangle_areas=[]; triangle_max_edges=[]; triangle_orientation_dots=[]; parameter_orientation_dots=[]; candidate_triangle_observations=[]; rejected_triangles=0; uv_centroids_inside=0; uv_centroids_outside=0; outside_uv_centroid_examples=[]
+        orientation_cells={}
+        u_lo,u_hi=map(float,u_domain); v_lo,v_hi=map(float,v_domain)
+        for triangle_index,tri in enumerate(candidate_triangles):
+            if not isinstance(tri,list) or len(tri)!=3 or any(not isinstance(i,int) or i<0 or i>=len(freecad_points) for i in tri): raise ValueError("candidate triangle index invalid")
+            a,b,c=[freecad_points[i] for i in tri]
+            ab=[b[k]-a[k] for k in range(3)]; ac=[c[k]-a[k] for k in range(3)]
+            normal=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]]
+            normal_length=math.sqrt(sum(x*x for x in normal)); area=0.5*normal_length
+            edges=[dist_point(a,b),dist_point(b,c),dist_point(c,a)]
+            triangle_areas.append(area); triangle_max_edges.append(max(edges))
+            if not math.isfinite(area) or area<=1e-15: rejected_triangles+=1
+            centroid=[(a[k]+b[k]+c[k])/3.0 for k in range(3)]
+            centroid_distance=float(face.distToShape(Part.Vertex(FreeCAD.Vector(*centroid)))[0])
+            centroid_distances.append(centroid_distance)
+            uv_triangle=[[float(uv_vertices[i][k]) for k in range(2)] for i in tri]
+            uv_center=[sum(uv_triangle[j][k] for j in range(3))/3.0 for k in range(2)]
+            center=FreeCAD.Vector(canonical(uv_center[0],u_domain,u_period),canonical(uv_center[1],v_domain,v_period),0)
+            exact_uv_centroid_point=face.valueAt(center.x,center.y)
+            centroid_inside=face.isInside(exact_uv_centroid_point,1e-7,True)
+            if centroid_inside: uv_centroids_inside+=1
+            else:
+                uv_centroids_outside+=1
+                if len(outside_uv_centroid_examples)<16: outside_uv_centroid_examples.append({"triangleIndex":triangle_index,"uvCentroidCanonical":[center.x,center.y],"surfacePointMm":[float(exact_uv_centroid_point.x),float(exact_uv_centroid_point.y),float(exact_uv_centroid_point.z)]})
+            surface_normal=face.normalAt(center.x,center.y)
+            sn=[float(surface_normal.x),float(surface_normal.y),float(surface_normal.z)]
+            denom=normal_length*math.sqrt(sum(x*x for x in sn))
+            alignment=sum(normal[k]*sn[k] for k in range(3))/denom if denom>0 else -1.0
+            triangle_orientation_dots.append(alignment)
+            uv_cross=(uv_triangle[1][0]-uv_triangle[0][0])*(uv_triangle[2][1]-uv_triangle[0][1])-(uv_triangle[1][1]-uv_triangle[0][1])*(uv_triangle[2][0]-uv_triangle[0][0])
+            uv_winding=1.0 if uv_cross>0 else (-1.0 if uv_cross<0 else 0.0)
+            parameter_alignment=None
+            if uv_winding:
+                h=max(1e-8,min(u_hi-u_lo,v_hi-v_lo)*1e-5)
+                u=center.x; v=center.y
+                p_u0=face.valueAt(max(u_lo,u-h),v); p_u1=face.valueAt(min(u_hi,u+h),v)
+                p_v0=face.valueAt(u,canonical(v-h,v_domain,v_period)); p_v1=face.valueAt(u,canonical(v+h,v_domain,v_period))
+                du=[float(p_u1.x-p_u0.x),float(p_u1.y-p_u0.y),float(p_u1.z-p_u0.z)]
+                dv=[float(p_v1.x-p_v0.x),float(p_v1.y-p_v0.y),float(p_v1.z-p_v0.z)]
+                param_normal=scale3(cross3(du,dv),uv_winding)
+                param_normal=normalized(param_normal)
+                triangle_normal=normalized(normal)
+                if param_normal and triangle_normal:
+                    parameter_alignment=dot3(triangle_normal,param_normal)
+            parameter_orientation_dots.append(parameter_alignment)
+            cell_u=min(7,max(0,int(8*(center.x-u_lo)/max(u_hi-u_lo,1e-30))))
+            cell_v=min(7,max(0,int(8*(center.y-v_lo)/max(v_hi-v_lo,1e-30))))
+            cell=orientation_cells.setdefault((cell_u,cell_v),{"count":0,"faceNormalPositive":0,"faceNormalNonpositive":0,"parameterNormalPositive":0,"parameterNormalNonpositive":0,"minFaceAlignment":1.0,"maxFaceAlignment":-1.0,"uvWindingSigns":{}})
+            cell["count"]+=1
+            cell["faceNormalPositive"]+=int(alignment>0)
+            cell["faceNormalNonpositive"]+=int(alignment<=0)
+            if parameter_alignment is not None:
+                cell["parameterNormalPositive"]+=int(parameter_alignment>0)
+                cell["parameterNormalNonpositive"]+=int(parameter_alignment<=0)
+            cell["minFaceAlignment"]=min(cell["minFaceAlignment"],alignment)
+            cell["maxFaceAlignment"]=max(cell["maxFaceAlignment"],alignment)
+            cell["uvWindingSigns"][str(int(uv_winding))]=cell["uvWindingSigns"].get(str(int(uv_winding)),0)+1
+            candidate_triangle_observations.append({"triangleIndex":triangle_index,"indices":[int(x) for x in tri],"uvVertices":uv_triangle,"uvSignedDoubleArea":uv_cross,"centroidUvCanonical":[center.x,center.y],"centroidToTrimmedFaceMm":centroid_distance,"areaMm2":area,"maximumEdgeMm":max(edges),"normalAlignment":alignment,"parameterNormalAlignment":parameter_alignment})
+        candidate_triangle_observations.sort(key=lambda row:row["centroidToTrimmedFaceMm"],reverse=True)
+        refinement_sensitivity=[]
+        trial_uv=[list(map(float,uv)) for uv in uv_vertices]
+        trial_triangles=[list(map(int,tri)) for tri in candidate_triangles]
+        for refinement_level in range(4):
+            trial_points=[]
+            for uv in trial_uv:
+                u=canonical(uv[0],u_domain,u_period); v=canonical(uv[1],v_domain,v_period)
+                p=face.valueAt(u,v); trial_points.append([float(p.x),float(p.y),float(p.z)])
+            alignments=[]; centroid_chord_errors=[]; area_sum=0.0; edge_max=0.0; invalid=0
+            for tri in trial_triangles:
+                a,b,c=[trial_points[i] for i in tri]
+                ab=[b[k]-a[k] for k in range(3)]; ac=[c[k]-a[k] for k in range(3)]
+                normal=cross3(ab,ac); nlen=math.sqrt(dot3(normal,normal)); area_sum+=0.5*nlen
+                if not math.isfinite(nlen) or nlen<=1e-15: invalid+=1
+                edge_max=max(edge_max,dist_point(a,b),dist_point(b,c),dist_point(c,a))
+                uv_center=[sum(trial_uv[i][k] for i in tri)/3.0 for k in range(2)]
+                center=FreeCAD.Vector(canonical(uv_center[0],u_domain,u_period),canonical(uv_center[1],v_domain,v_period),0)
+                surf_n=face.normalAt(center.x,center.y)
+                slen=math.sqrt(surf_n.x*surf_n.x+surf_n.y*surf_n.y+surf_n.z*surf_n.z)
+                align=dot3(normal,[surf_n.x,surf_n.y,surf_n.z])/(nlen*slen) if nlen>0 and slen>0 else -1.0
+                alignments.append(align)
+                linear_centroid=[(a[k]+b[k]+c[k])/3.0 for k in range(3)]
+                uv_centroid=[sum(trial_uv[i][k] for i in tri)/3.0 for k in range(2)]
+                surface_centroid=face.valueAt(canonical(uv_centroid[0],u_domain,u_period),canonical(uv_centroid[1],v_domain,v_period))
+                centroid_chord_errors.append(dist_point(linear_centroid,[float(surface_centroid.x),float(surface_centroid.y),float(surface_centroid.z)]))
+            refinement_sensitivity.append({"uniformLevel":refinement_level,"vertexCount":len(trial_uv),"triangleCount":len(trial_triangles),"triangleAreaSumMm2":area_sum,"areaRatioToFreecadFace":area_sum/float(face.Area),"maxTriangleEdgeMm":edge_max,"maxSampledCentroidChordErrorMm":max(centroid_chord_errors) if centroid_chord_errors else None,"rmsSampledCentroidChordErrorMm":math.sqrt(sum(x*x for x in centroid_chord_errors)/len(centroid_chord_errors)) if centroid_chord_errors else None,"minNormalAlignment":min(alignments) if alignments else None,"nonpositiveNormalCount":sum(1 for x in alignments if x<=0),"invalidTriangleCount":invalid})
+            if refinement_level==3: break
+            edge_midpoints={}
+            def midpoint(a,b):
+                key=(min(a,b),max(a,b))
+                if key not in edge_midpoints:
+                    edge_midpoints[key]=len(trial_uv)
+                    trial_uv.append([(trial_uv[a][axis]+trial_uv[b][axis])*0.5 for axis in range(2)])
+                return edge_midpoints[key]
+            refined=[]
+            for a,b,c in trial_triangles:
+                ab=midpoint(a,b); bc=midpoint(b,c); ca=midpoint(c,a)
+                refined.extend(([a,ab,ca],[ab,b,bc],[ca,bc,c],[ab,bc,ca]))
+            trial_triangles=refined
+        def metric(values):
+            return {"count":len(values),"max":max(values) if values else None,"rms":math.sqrt(sum(x*x for x in values)/len(values)) if values else None}
+        trim_candidate_comparison={
+          "status":"compared",
+          "independentFreecadTriangulationCompared":True,
+          "freecadFaceIndex":face_index,
+          "uvVertexCount":len(uv_vertices),
+          "triangleCount":len(candidate_triangles),
+          "rustSurfacePointsToFreecadSurface":metric(parameter_surface_residuals),
+          "freecadMappedVerticesToTrimmedFace":metric(point_to_trimmed_face),
+          "candidateVertexTrimContainment":{"inside":candidate_vertices_inside,"outside":candidate_vertices_outside,"toleranceMm":1e-7},
+          "candidateUvCentroidTrimContainment":{"inside":uv_centroids_inside,"outside":uv_centroids_outside,"toleranceMm":1e-7,"outsideExamples":outside_uv_centroid_examples},
+          "triangleCentroidToTrimmedFace":metric(centroid_distances),
+          "triangleAreaMm2":metric(triangle_areas),
+          "triangleMaximumEdgeMm":metric(triangle_max_edges),
+          "uniformRefinementSensitivity":refinement_sensitivity,
+          "minimumTriangleNormalAlignment":min(triangle_orientation_dots) if triangle_orientation_dots else None,
+          "nonpositiveTriangleNormalAlignmentCount":sum(1 for x in triangle_orientation_dots if x<=0),
+          "parameterNormalAlignment":{"count":sum(x is not None for x in parameter_orientation_dots),"minimum":min((x for x in parameter_orientation_dots if x is not None),default=None),"maximum":max((x for x in parameter_orientation_dots if x is not None),default=None),"nonpositiveCount":sum(1 for x in parameter_orientation_dots if x is not None and x<=0)},
+          "uvWinding":{"positive":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]>0),"negative":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]<0),"zero":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]==0)},
+          "normalAlignmentByCanonicalUv8x8":[{"uCell":key[0],"vCell":key[1],**value} for key,value in sorted(orientation_cells.items())],
+          "largestTriangleCentroidDeviations":candidate_triangle_observations[:16],
+          "zeroOrInvalidAreaTriangleCount":rejected_triangles,
+          "geometryQualified":False,
+          "admitted":False,
+          "exportsProduced":[],
+          "scope":"diagnostic comparison of a Rust UV ear-clipping candidate evaluated on the independently imported FreeCAD trimmed face; not production repair, complete-solid validation, or admission"
+        }
+    matches=[]
+    for occ in reader.get("candidateMeshData",{}).get("occurrences",[]):
+        for item in occ.get("shapes",[]):
+            fids=item.get("sourceTriangleFaceIds",[])
+            if FACE_ID in fids: matches.append((occ,item))
+    if len(matches)!=1: raise ValueError("source face does not resolve to one emitted shape")
+    occ,item=matches[0]
+    verts=item["verticesMm"]; tris=item["triangles"]; fids=item["sourceTriangleFaceIds"]
+    if len(tris)!=len(fids) or len(tris)>2000000 or len(verts)>1000000: raise ValueError("invalid/oversize reader mesh")
+    selected=[(index,tri) for index,(tri,fid) in enumerate(zip(tris,fids)) if int(fid)==FACE_ID]
+    indices=sorted({int(i) for _,tri in selected for i in tri})
+    if any(i<0 or i>=len(verts) for i in indices): raise ValueError("reader vertex index invalid")
+    vertex_distances=[]
+    for idx in indices:
+        p=[float(x) for x in verts[idx]]
+        if len(p)!=3 or any(not math.isfinite(x) for x in p): raise ValueError("reader vertex nonfinite")
+        vertex_distances.append(float(face.distToShape(Part.Vertex(FreeCAD.Vector(*p)))[0]))
+    centroid_distances=[]; areas=[]; centroid_observations=[]; relative_degenerate=0; repeated_indices=0; equal_positions=0
+    for triangle_index,tri in selected:
+        if len(tri)!=3: raise ValueError("reader triangle is not triangular")
+        ids=[int(x) for x in tri]
+        if len(set(ids))<3: repeated_indices+=1
+        p=[[float(x) for x in verts[j]] for j in ids]
+        if any(dist_point(p[a],p[b])==0 for a,b in ((0,1),(1,2),(2,0))): equal_positions+=1
+        a=[p[1][i]-p[0][i] for i in range(3)]; b=[p[2][i]-p[0][i] for i in range(3)]
+        cross=[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]
+        cross2=sum(v*v for v in cross)
+        edge2=max(sum((p[u][k]-p[v][k])**2 for k in range(3)) for u,v in ((0,1),(1,2),(2,0)))
+        area=0.5*math.sqrt(cross2)
+        areas.append(area)
+        if edge2>0 and cross2<=edge2*edge2*1e-24: relative_degenerate+=1
+        c=[sum(p[q][axis] for q in range(3))/3 for axis in range(3)]
+        centroid_distance=float(face.distToShape(Part.Vertex(FreeCAD.Vector(*c)))[0])
+        centroid_distances.append(centroid_distance)
+        centroid_observations.append({"shapeTriangleIndex":int(triangle_index),"vertexIndices":ids,"verticesMm":p,"areaMm2":area,"maxEdgeMm":math.sqrt(edge2),"centroidToTrimmedFaceMm":centroid_distance})
+    centroid_observations.sort(key=lambda row:row["centroidToTrimmedFaceMm"],reverse=True)
+    def stats(xs):
+        ordered=sorted(xs)
+        return {"count":len(xs),"max":max(xs) if xs else None,"rms":math.sqrt(sum(x*x for x in xs)/len(xs)) if xs else None,
+                "p50":ordered[len(xs)//2] if xs else None,
+                "within1e-6":sum(x<=1e-6 for x in xs),"within1e-5":sum(x<=1e-5 for x in xs),"within1e-4":sum(x<=1e-4 for x in xs)}
+    result={
+      "schema":"tokito.freecad-reader-face-independent-comparison.v1","freecadVersion":list(FreeCAD.Version()),
+      "sourceSha256":sha,"readerReportSha256":reader_sha,"splineDiagnosticReportSha256":hashlib.sha256(spline_bytes).hexdigest(),
+      "degenerateDiagnosticReportSha256":hashlib.sha256(degenerate_bytes).hexdigest(),
+      "sourceFaceId":FACE_ID,"freecadFaceIndex":face_index,"freecadFaceCandidates":len(candidates),
+      "freecadFaceType":type(face.Surface).__name__,"freecadFaceOrientation":str(face.Orientation),
+      "freecadFaceBounds":[face.BoundBox.XMin,face.BoundBox.XMax,face.BoundBox.YMin,face.BoundBox.YMax,face.BoundBox.ZMin,face.BoundBox.ZMax],
+      "freecadFaceArea":float(face.Area),"sourceBoundaryToFreecadTrimmedFace":stats(source_boundary_distances),
+      "readerOccurrencePath":occ.get("occurrencePath"),"readerPartName":occ.get("partName"),"readerShapeIndex":item.get("shapeIndex"),"readerSourceItemId":item.get("sourceItemId"),
+      "readerTriangleCountForFace":len(selected),"readerUniqueVertexCountForFace":len(indices),
+      "readerVerticesToFreecadTrimmedFace":stats(vertex_distances),"readerTriangleCentroidToFreecadTrimmedFace":stats(centroid_distances),
+      "largestTriangleCentroidDeviations":centroid_observations[:16],
+      "readerTriangleAreaMm2":{"min":min(areas),"max":max(areas),"zero":sum(a==0 for a in areas)},
+      "readerTriangleClassification":{"repeatedIndex":repeated_indices,"equalPositionDistinctIndices":equal_positions,"relativeNearZero":relative_degenerate},
+      "sourceBoundarySampleCount":len(source_points),
+      "rustTrimCandidateComparedAgainstFreecad":trim_candidate_comparison,
+      "scope":"independent FreeCAD/OCCT comparison of source boundary samples and reader-mesh vertices/triangle centroids against the matched trimmed B-rep face; not geometry qualification or repair"
+    }
+    out.parent.mkdir(parents=True,exist_ok=True)
+    with out.open("x",encoding="utf-8") as f: json.dump(result,f,separators=(",",":"),allow_nan=False)
+    print(json.dumps(result,separators=(",",":")),flush=True)
+main()

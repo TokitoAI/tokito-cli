@@ -13,6 +13,29 @@ This isolated pure-Rust experiment evaluates the exact crates.io reader `oxideav
 cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- "explicit/materialized/model.step"
 ```
 
+The digest-pinned ESP8266 model-16 investigation also has a read-only source
+face command. It traces one `ADVANCED_FACE` through its rational B-spline
+surface, bound, oriented 3D edge curves, and bounded inverse-projection
+diagnostics:
+
+```powershell
+cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- `
+  --diagnose-source-face 2875 path\to\embedded-models\16.step
+
+python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
+  --binary path\to\tokito-step-evaluation.exe `
+  --source path\to\embedded-models\16.step `
+  --output target\model16-source-face-trim-e2e
+```
+
+This diagnostic always exits **2**, produces no export, and leaves admission
+false. Its shared-kernel inverse scan has a separate aggregate work budget.
+The optional triangulation is a research candidate only: independent FreeCAD
+checks still find nonpositive normal alignment and unresolved area convergence.
+Its diagnostic-pass receipt confirms evidence collection, not geometry quality.
+The current evidence and the independent FreeCAD comparison macro are described
+in [the face #2875 analysis](../../docs/STEP_FACE_2875_ANALYSIS.md).
+
 One explicit input path is required. The probe refuses Git LFS pointer text and input beyond 32 MiB before parsing. It caps parser instances at 250,000, parameter depth at 48, individual strings at 1 MiB, triangles at 1,000,000 and curve samples at 16,384. Absolute chordal tolerance requested from the reader is 10 micrometres. These are resource controls, not a hard process timeout or a proven worst-case memory bound.
 
 The output is machine-readable JSON. A reader-returned model includes source SHA-256, declared AP schema, reader-reported metres per output unit, part/root/child occurrence counts, triangles, shape/triangle colour counts, triangle face provenance entries, nonfinite positions, duration, and warning total. Up to 128 warning details of 512 Unicode characters each are retained; truncation is explicit. Any reader warning adds `reader_warnings_or_partial_geometry` to the rejection reasons. Fatal errors emit JSON and exit 2 without fabricated geometry fields.
