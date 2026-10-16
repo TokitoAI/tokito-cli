@@ -61,6 +61,25 @@ the reader-mesh provenance, trimmed-face distances and containment, triangle
 centroid distances, oriented normals, and refinement sensitivity. It writes a
 new JSON report and refuses to overwrite one.
 
+### Current-source replay (2026-10-17 local time)
+
+The comparison was regenerated from checkout `7711c6e` using the pinned STEP
+source hash above, a freshly built research probe, fresh reader/face diagnostics,
+and FreeCAD 1.1.4 build `4fd3bf320d9566a27e60069fc8387448aaa3a094`. The fresh
+comparison again matched the trimmed source face at FreeCAD face index 231 and
+rejected the Rust candidate: 100/3,393 vertices are outside the trim and
+1,291/6,016 triangles have nonpositive normal alignment. The report and receipt
+both retain `geometryQualified: false`, `admitted: false`, and no exports.
+
+The non-overwriting local receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\model16-current-head-20261017\\receipt.json`
+(SHA-256 `44647152def86260822fd67d446b8e75759a465239779a58cb2622feeb201836`);
+its comparison report SHA-256 is
+`a669d3351f65417e291d358d4dd632f9cbfec6bb7d79dcf8772bb41ebaf3f12f`. It binds
+the reader report, spline diagnostic, face diagnostic, source, evaluator binary,
+macro and FreeCAD command binary. This is a current-source face-level replay,
+not complete-solid qualification or product STEP support.
+
 ## Rust trim candidate and independent quality checks
 
 The diagnostic now builds a bounded *research candidate* from the sampled UV

@@ -81,11 +81,13 @@ for every advertised feature. General STEP support requires its own geometry
 qualification; AR and YOLO do not block this CLI-only release.
 
 No reliable calendar date is established yet. Report gate completion rather than
-inventing a deadline. The next STEP task is to reproduce the pinned model-16
-face diagnostic and independent FreeCAD comparison from the exact current source,
-then add explicit trim-containment, orientation, closure and refinement gates
-before changing the Rust triangulator. The current candidate remains rejected;
-this face-level investigation would not qualify the full STEP solid or assembly.
+inventing a deadline. A fresh current-source model-16 comparison has reproduced
+the rejection: 100/3,393 candidate vertices lie outside the trimmed face and
+1,291/6,016 triangles have nonpositive normal alignment. The next STEP task is
+continuity-aware UV branch selection per ordered source edge, followed by
+adaptive angular as well as chordal refinement and independent trim, orientation,
+closure and convergence gates. The current candidate remains rejected; this
+face-level investigation does not qualify the full STEP solid or assembly.
 
 ## V1 contract and filesystem requirements
 
