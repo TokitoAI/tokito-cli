@@ -22,11 +22,22 @@ has a passing pinned model-14 reference comparison, documented in
 Final branch delivery requires its current-source receipt. Older checkpoints
 below retain their original gate counts and scope.
 
+The subsequent experimental `--diagnose-face` command classifies the model-16
+failure without repairing or admitting it. Independent review required a
+relative-area underflow correction, now covered by scale-invariance tests.
+That diagnostic is progress toward identifying a repair, not geometry
+qualification or an added production export capability.
+
+The current delivery receipt, model-14 reference receipt and model-16 face
+diagnostic receipt are linked from PR #45 after the final local verification.
+The local build reuses an existing Cargo target cache; this is not a clean-cache
+build. Independent clean-machine installation remains unverified.
+
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Historical head cbeece3 passed 41 gates; the expanded planar-repair checkpoint passed 45 gates at F:\kannan\projects\tokito-cli-verification\delivery\20261016T142818Z-5c27fae1492e4ecc91a7baec9fb5f691/verification.json (trusted cache, all gates executed) | Require final documentation-inclusive receipt and input fingerprint match before branch push; older counts below retain original scope |
+| Existing CLI foundation | Latest current-source local run passed 45/45 gates; its receipt and 350 matching source fingerprints are linked from PR #45. The run uses a trusted target cache, not a clean cache. | Retain the receipt with the delivered PR revision; rerun after further source changes |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
-| Source review | Independent read-only review found no blocker after failed-receipt correction | Review any new implementation changes |
+| Source review | Independent read-only review found no remaining code blocker; its cross-frame documentation finding was corrected and covered by scoped evidence | Review subsequent implementation changes |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
 | Version/toolchain contract | Cargo minimum corrected to 1.87 after real 1.85 dependency failure; actual Rust 1.87.0 locked offline all-target check passed | Verify locked dependencies against declared MSRV or correct declaration from evidence |
 | Security/dependency assessment | OSV checked 188 unique registry name/version pairs across root and experiment locks; patched ruzstd advisory; no matches after update (2026-10-16) | Keep advisory matching current; broader reachability/security review remains separate |

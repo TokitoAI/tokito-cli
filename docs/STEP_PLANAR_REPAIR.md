@@ -110,7 +110,7 @@ adapter acceptance. General STEP support and full KiCad parity remain open.
 
 ## Primary-source research
 
-### Next non-planar failure: source inspection only
+### Next non-planar failure: bounded emitted-triangle diagnostic
 
 Model `16.step` SHA-256
 `7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`
@@ -120,12 +120,40 @@ by equal first/last control points in each U row. Its four-edge trim loop
 closes by source vertex IDs; trim curves are direct 3D splines, not supplied
 UV pcurves. Curve knot intervals cannot be treated as surface UV coordinates.
 
-The read-only source audit did not establish a collapsed pole or explain the
-1,102 reader degenerates. A closed seam alone is not proof of a singular
-surface. The next diagnostic must distinguish coincident indices/positions
-from collinear triangles and compare seam/trim branch mapping against source
-surface evaluation and independent reference evidence. Do not apply the planar
-repair to this non-planar face or delete triangles to conceal the defect.
+The experimental evaluator now accepts `--diagnose-face 2875 PATH_TO_16.step`.
+It reports observations without changing geometry, producing an export or
+admitting the model. This is development tooling, not a product CLI command.
+The 2,506 triangles on this face include 520 coincident-position triangles
+with distinct vertex indices and 582 relatively near-zero triangles that are
+exactly noncollinear in binary64. There are no repeated-index or exactly
+collinear distinct-position triangles in that rejected group. These counts
+refer only to the part-local mesh coordinates examined by the Rust diagnostic;
+they do not assert equal results after occurrence transforms.
+
+Inspection budgets cover the whole reader mesh (two million triangles and one
+million vertices), while detailed records are capped at 128. Relative-area
+classification normalizes edge vectors before multiplication to avoid small
+scale underflow. An independent review found that issue; scale-invariance
+regressions now cover it. Exact collinearity uses original coordinates.
+Tests also cover input immutability, malformed metadata/indices, excessive
+resources and real subprocess non-admission. The pinned-asset negative E2E at
+`experiments/step-evaluation/tests/model16_face_diagnostic_e2e.py` verifies
+model-16 face #2875 counts, source/evaluator digests and refusal status while
+retaining its output receipt outside the repository. No UV coordinates are exposed by
+the reader mesh. Source-surface evaluation, seam/trim branch mapping and an
+independent per-face comparison remain required to establish the cause and
+justify a repair. A closed seam alone is not proof of a singular surface.
+Do not apply the planar repair to this non-planar face or delete triangles to
+conceal the defect.
+
+The dataset's rational B-spline declaration carries degrees, control points,
+closed flags, weights and knot data; those are distinct inputs to surface
+evaluation and trim mapping. The STEP Tools schema documents those fields.
+The Open CASCADE meshing guide describes discretizing 3D curves and associated
+2D face curves into an edge skeleton, then checking the discrete model before
+face meshing. This is useful behavior to compare during a future original
+Rust implementation; it does not establish that the source curves are valid
+or that this reader used the same process.
 
 ### Reference documentation
 
@@ -133,7 +161,8 @@ Consulted 2026-10-16:
 
 - [STEP Tools face_bound schema](https://www.steptools.com/stds/stp_aim/html/t_face_bound.html): bound topology and its orientation are explicit fields.
 - [STEP Tools face_surface schema](https://www.steptools.com/docs/stp_aim/html/t_face_surface.html): surface geometry and `same_sense` are separate from the bound.
-- [Open CASCADE meshing guide](https://github.com/Open-Cascade-SAS/OCCT/blob/master/dox/user_guides/mesh/mesh.md): topology-aware meshing tracks source edges and adjacent-face discretization; this motivates checking shared connectivity rather than appearance alone. This is research guidance, not a copied algorithm or runtime dependency.
+- [STEP Tools B-spline surface schema](https://downloads.steptools.com/docs/cislib/html/t_b_spline_surface.html): declares degree, control-point grid, closed flags and related surface fields.
+- [Open CASCADE meshing guide](https://github.com/Open-Cascade-SAS/OCCT/blob/master/dox/user_guides/mesh/mesh.md): describes linear/angular deflection, 2D and 3D curve discretization, face meshing and discrete-model checks. This is research guidance, not a copied algorithm or runtime dependency.
 - [KiCad footprint format](https://dev-docs.kicad.org/en/file-formats/sexpr-footprint/index.html) and [courtyard conventions](https://klc.kicad.org/footprint/f5/f5.3/): references for the separately tracked library-generation work; current structural audit is not land-pattern or standards qualification.
 
 See [reference evidence](STEP_SOLID_REFERENCE.md), [v1 requirements](CLI_V1_PLAN.md)
