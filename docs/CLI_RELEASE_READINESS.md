@@ -23,11 +23,12 @@ candidate models are not manufacturer-qualified engineering truth.
 
 ## Gates
 
-The expanded local profile has 45 gates, including the independent Rust
+The expanded local profile has 46 gates, including the independent Rust
 sample-distance validator, footprint/library and dataset journeys, pinned KiCad
-10.0.7 comparisons, and the STEP, Altium and twin-refinement experiment crates.
-Current-source Windows verification passed 45/45 gates on 2026-10-16 with
-Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5. The production CLI was compiled
+10.0.7 comparisons, the required SVG reference-evidence validator, and the STEP,
+Altium and twin-refinement experiment crates. Current-source Windows verification
+passed 46/46 gates on 2026-10-17 with Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5.
+The production CLI was compiled
 with the optimized release profile and its subprocess E2Es passed. A trusted
 Cargo target cache was reused; this was not a clean-cache or independent-machine
 verification. The test-only fault-injection binary uses the debug profile to
@@ -49,11 +50,13 @@ not qualify geometry or add production STEP support.
 
 The current delivery receipt, model-14 reference receipt and model-16 face
 diagnostic receipt are recorded in PR #45. Independent clean-machine
-installation remains unverified.
+installation remains unverified. The 46-gate run includes an offline validator
+for the pinned KiCad 10.0.7 SVG reference evidence; it verifies recorded source
+and output hashes and bounded comparisons, but does not rerun KiCad.
 
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Current-source local Windows run passed 45/45 gates; the receipt and binary hash are recorded in PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
+| Existing CLI foundation | Current-source local Windows run passed 46/46 gates; the receipt and binary hash are recorded in PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
 | Source review | Independent read-only review found no remaining code blocker; its cross-frame documentation finding was corrected and covered by scoped evidence | Review subsequent implementation changes |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
@@ -66,7 +69,7 @@ installation remains unverified.
 
 ## Release recommendation
 
-The current branch has passed its local 45-gate suite, but is not ready for a
+The current branch has passed its local 46-gate suite, but is not ready for a
 production release: clean-machine installation, KiCad/footprint-library parity,
 qualified STEP geometry, and component-model completeness remain open. A
 clearly scoped Windows preview / release candidate could be considered only
@@ -78,8 +81,11 @@ for every advertised feature. General STEP support requires its own geometry
 qualification; AR and YOLO do not block this CLI-only release.
 
 No reliable calendar date is established yet. Report gate completion rather than
-inventing a deadline. The next engineering task is original Rust planar-face
-triangulation, followed by the separately failing rational-spline case.
+inventing a deadline. The next STEP task is to reproduce the pinned model-16
+face diagnostic and independent FreeCAD comparison from the exact current source,
+then add explicit trim-containment, orientation, closure and refinement gates
+before changing the Rust triangulator. The current candidate remains rejected;
+this face-level investigation would not qualify the full STEP solid or assembly.
 
 ## V1 contract and filesystem requirements
 

@@ -49,6 +49,15 @@ plot parity, every layer combination, variants, all DNP styles, other KiCad CLI
 commands, or full manufacturing output equivalence. Tokito SVG remains
 explicitly partial; inspect the parity matrix for unsupported behaviors.
 
+## Required local regression check
+
+`scripts/verify-local.ps1` runs
+`tests/kicad_svg_reference_evidence.py` as a required local gate. That offline
+validator checks the pinned 10.0.7 executable version/help captures, source and
+output hashes, SVG metrics, DNP label suppression, and normalized equality with
+the 10.0.5 captures. It validates the recorded evidence; it does not rerun
+KiCad 10.0.7 or expand this one-board comparison into general SVG parity.
+
 The official [KiCad 10.0.7 release note](https://www.kicad.org/blog/2026/10/KiCad-10.0.7-Release/)
 and [Windows download page](https://www.kicad.org/download/windows/) identify
 10.0.7 as the stable release used for this comparison.
