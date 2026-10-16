@@ -1,9 +1,11 @@
 #![forbid(unsafe_code)]
 #![recursion_limit = "256"]
 mod candidate_mesh;
+mod exact_predicate;
 mod face_coverage;
 mod negative_torus;
 mod occurrence_world;
+mod planar_face;
 mod unit_preflight;
 use oxideav_step::{GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};
@@ -344,6 +346,40 @@ fn probe_units(path: &Path) -> Result<Value, String> {
 }
 
 fn main() {
+    let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if raw.first().is_some_and(|arg| arg == "--planar-face") {
+        let result: Result<Value, String> = (|| {
+            if raw.len() != 5 || raw[2] != "--source-tolerance" {
+                return Err("usage: tokito-step-evaluation --planar-face ID --source-tolerance POSITIVE_SOURCE_UNITS STEP_PATH".into());
+            }
+            let face_id = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|n| *n > 0)
+                .ok_or("invalid_face_id")?;
+            let tolerance = raw[3]
+                .to_str()
+                .and_then(|s| s.parse::<f64>().ok())
+                .ok_or("invalid_source_tolerance")?;
+            let bytes = read_bounded(File::open(Path::new(&raw[4])).map_err(|e| e.to_string())?)?;
+            let parsed = oxideav_ifc::parse_step_with_limits(
+                &bytes,
+                &oxideav_ifc::StepLimits {
+                    max_input_len: MAX_BYTES,
+                    max_instances: 250_000,
+                    max_depth: 48,
+                    max_string_len: 1_048_576,
+                },
+            )
+            .map_err(|e| format!("reader_error: {e}"))?;
+            let mut report = planar_face::inspect(&parsed, face_id, tolerance)?;
+            report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+            report["declaredRepresentationLengthUnits"] = unit_preflight::inspect(&parsed);
+            Ok(report)
+        })();
+        println!("{}", result.unwrap_or_else(|error| json!({"schema":"tokito.step-linear-planar-face.v1", "error":error, "admitted":false, "exportsProduced":[]})));
+        std::process::exit(2);
+    }
     let mut paths = Vec::new();
     let mut negative_torus_compat = false;
     let mut units_only = false;

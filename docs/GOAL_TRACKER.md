@@ -4,6 +4,19 @@ CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
 YOLO are excluded from the current release scope. The frozen-tool capture c
 confirms 76/76 reference solids and preserves both known reader failures.
 
+## Current geometry implementation (2026-10-16)
+
+| Owner | Dependency | State | Output / review / next action |
+| --- | --- | --- | --- |
+| Main | Pinned source #51071 | Implemented, experimental | 148 vertices / 146 triangles; independent decimal area/winding/edge checks pass; no reader replacement or admission |
+| Independent reviewer | Exact predicates and topology senses | Reviewed | Cancellation-zero bug corrected with bounded exact collinearity; no concrete blocker found |
+| Main | Current-source local checks | Passed 43-gate checkpoint | Receipt `F:\kannan\projects\tokito-cli-verification\delivery\20261016T083109Z-f384df8ef10c4d3fa1387e90129265b3/verification.json`; 40 STEP unit tests plus six subprocess integration tests pass; rerun for final documentation-inclusive hashes |
+| Main | Source-owned units/frame and solid closure | Incomplete | Establish ownership/conversion, integrate repair, compare full solids; spline #2875 remains separate |
+
+See [planar-face evidence](STEP_SOLID_REFERENCE.md). Full v1 remains unfinished;
+simulation import, additional environments, parity and independent installation
+tests remain explicit gates. AR/YOLO are outside the current CLI release.
+
 ## Active v1 hardening and expanded quality requirements
 
 Production v1, full pinned KiCad/footprint/library behavior, selectable classified

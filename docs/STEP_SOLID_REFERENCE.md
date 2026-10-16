@@ -104,6 +104,51 @@ Compare against the validated solids and independent face evidence. Investigate
 closure or relying on volume alone is not a repair. STEP, component association,
 PCB pose and App/AR admission remain unqualified.
 
+## Original Rust planar-face diagnostic (2026-10-16)
+
+The evaluation binary now accepts an explicit, non-admitting inspection mode:
+
+```powershell
+tokito-step-evaluation --planar-face 51071 --source-tolerance 0.000001 C:\path\to\14.step
+```
+
+This bounded profile supports one explicit PLANE with one outer LINE edge loop.
+It resolves source vertex identities, edge/curve/bound/face senses and plane
+axes, checks line and plane residuals, refuses intersecting or unsupported
+boundaries, and triangulates while preserving every boundary segment. It does
+not replace the reader mesh. The tolerance is explicitly in source units.
+Output always has `admitted: false`, no exports, and process exit 2; successful
+face inspection is not successful model qualification.
+
+On the pinned ESP8266 dataset commit
+`5283bc059e30e51f4d3a81a674425936fc213214`, model `14.step` SHA-256
+`78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b`,
+face #51071 produces 146 triangles from 148 vertices. Maximum residuals are
+2.6017241161468974e-7 source units against LINE geometry and
+3.885780586188048e-16 against the plane, within the explicit 1e-6 tolerance.
+An independent Python Decimal check verifies nonzero triangle areas, winding,
+total projected area, every boundary segment and balanced interior edges.
+
+```powershell
+python experiments/step-evaluation/tests/check_planar_receipt.py RECEIPT.json SOURCE.step
+```
+
+The ignored local receipt is
+`F:\kannan\projects\tokito-cli-verification\planar-face-final-20261016.json`.
+Exact bounded integer accumulation distinguishes genuine binary64 collinearity
+from cancelled floating products; uncertain nonzero orientation still refuses.
+Regression tests include the cancelled-zero determinant, subnormal/extreme
+inputs, 10,000 integer-reference comparisons, source senses/scales, malformed
+geometry, work caps and executable success/refusal diagnostics. Independent
+source review found no concrete blocker; this is not whole-body qualification.
+
+Remaining gates: establish face-owned representation units and reader/model
+frame conversion, integrate without changing other faces, compare repaired
+whole solids against the pinned independent reference, then address #2875's
+rational-spline defect separately. Full STEP, component geometry, placement,
+KiCad parity, 4K rendering and electrical/view features remain unqualified or
+unfinished where listed in the v1 plan.
+
 ## Final isolated capture
 
 The completed frozen-tool capture is
