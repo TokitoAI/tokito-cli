@@ -180,6 +180,11 @@ impl<'a> Audit<'a> {
         )
     }
 }
+/// Resolve only the explicitly selected physical context; no assembly inference.
+pub(crate) fn selected_context(step: &StepFile, id: u64) -> Result<Json, String> {
+    Audit { step, work: 0 }.context(id)
+}
+
 pub(crate) fn shape(inst: &ParsedInstance) -> Result<(), String> {
     if inst.parts.is_empty() {
         if attribute_order(&inst.keyword).is_none_or(|order| order.len() != inst.args.len()) {

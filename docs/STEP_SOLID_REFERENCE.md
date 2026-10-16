@@ -149,6 +149,38 @@ rational-spline defect separately. Full STEP, component geometry, placement,
 KiCad parity, 4K rendering and electrical/view features remain unqualified or
 unfinished where listed in the v1 plan.
 
+## Explicit face representation and units (2026-10-16)
+
+An optional selection now checks topology membership and resolves that
+representation's context directly, without relying on truncated global rows:
+
+```powershell
+tokito-step-evaluation --planar-face 51071 --source-tolerance 0.000001 --source-representation 58073 C:\path\to\14.step
+```
+
+On the same pinned file, representation #58073 contains solid #46427, whose
+outer shell #20483 contains face #51071. Context #50436 declares length unit
+#35545 as millimetres (`metresPerUnit: 0.001`). The actual diagnostic resolves
+these identities and units, retains 148 vertices / 146 triangles, and passes
+the independent decimal receipt checker. Local receipt:
+`F:\kannan\projects\tokito-cli-verification\planar-face-owned-20261016.json`.
+
+This is explicitly selected membership, not enumeration of every possible
+owner. At most 512 representation items share the existing 100,000-work,
+32-depth topology budget. Duplicate/dangling/cyclic/unsupported topology,
+multiple containing items, missing or ambiguous length units, non-3D context
+and invalid CLI selections refuse. A placement item in a representation is
+not implicitly applied to every solid; assembly/model-frame conversion remains
+unverified. Selected context evidence is nested in
+`selectedSourceRepresentation`; conservative top-level admission flags remain
+false. No production model or assembly repair is emitted.
+
+Actual STEP experiment tests pass: 42 unit tests and six subprocess integration
+tests, including selected representation acceptance and malformed selection
+refusals. Clippy passes. A transient Windows linker file lock initially failed
+two attempts; the subsequent complete test run passed. Independent read-only
+review found no concrete blocker in this bounded diagnostic slice.
+
 ## Final isolated capture
 
 The completed frozen-tool capture is

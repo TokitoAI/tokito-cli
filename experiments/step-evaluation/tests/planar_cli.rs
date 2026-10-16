@@ -37,9 +37,53 @@ fn actual_subprocess_reports_face_and_refuses_invalid_requests() {
     ));
     fs::create_dir(&root).unwrap();
     let source = root.join("source.step");
-    let original = fixture();
+    let original = fixture().replace("ENDSEC;END-ISO-10303-21;", "#80=MANIFOLD_SOLID_BREP('',#81);#81=CLOSED_SHELL('',(#75));#82=ADVANCED_BREP_SHAPE_REPRESENTATION('',(#80),#83);#83=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#84)) REPRESENTATION_CONTEXT('',''));#84=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));ENDSEC;END-ISO-10303-21;");
     fs::write(&source, &original).unwrap();
     for (flags, success) in [
+        (
+            vec![
+                "--planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "82",
+            ],
+            true,
+        ),
+        (
+            vec![
+                "--planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "80",
+            ],
+            false,
+        ),
+        (
+            vec![
+                "--planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "0",
+            ],
+            false,
+        ),
+        (
+            vec![
+                "--planar-face",
+                "75",
+                "--source-tolerance",
+                "1e-9",
+                "--source-representation",
+                "invalid",
+            ],
+            false,
+        ),
         (
             vec!["--planar-face", "75", "--source-tolerance", "1e-9"],
             true,
@@ -77,6 +121,14 @@ fn actual_subprocess_reports_face_and_refuses_invalid_requests() {
             assert_eq!(report["boundarySegmentsPreserved"], 4);
             assert_eq!(report["sourceLengthUnitsResolved"], false);
             assert_eq!(report["sourceToModelFrameVerified"], false);
+            if let Some(selected) = report.get("selectedSourceRepresentation") {
+                assert_eq!(selected["selectedRepresentationContainsFace"], true);
+                assert_eq!(
+                    selected["selectedRepresentationLengthUnits"]["metresPerUnit"],
+                    0.001
+                );
+                assert_eq!(selected["sourceToModelFrameVerified"], false);
+            }
         }
         assert_eq!(fs::read_to_string(&source).unwrap(), original);
         assert_eq!(fs::read_dir(&root).unwrap().count(), 1);

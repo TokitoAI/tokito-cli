@@ -17,6 +17,12 @@ impl<'a> Audit<'a> {
     pub fn new(step: &'a StepFile) -> Self {
         Self { step, work: 0 }
     }
+    /// Reuse the bounded source topology traversal without mesh-derived IDs.
+    pub fn contains_face(&mut self, item: u64, face: u64) -> Result<bool, String> {
+        let mut faces = BTreeSet::new();
+        self.walk(item, 0, &mut BTreeSet::new(), &mut faces)?;
+        Ok(faces.contains(&face))
+    }
     fn walk(
         &mut self,
         id: u64,

@@ -6,6 +6,14 @@ confirms 76/76 reference solids and preserves both known reader failures.
 
 ## Current geometry implementation (2026-10-16)
 
+Latest local extension: explicit source representation membership resolves
+#58073 → #46427 → #20483 → #51071 and context #50436's millimetres on the
+pinned 14.step. This closes the selected-context lookup gap, not global
+ownership or assembly/model-frame conversion. Tests: 42 STEP unit tests and
+six subprocess integration tests plus Clippy pass; independent source review
+found no blocker. Full current-source verification is required before delivery.
+See [selected representation evidence](STEP_SOLID_REFERENCE.md).
+
 | Owner | Dependency | State | Output / review / next action |
 | --- | --- | --- | --- |
 | Main | Pinned source #51071 | Implemented, experimental | 148 vertices / 146 triangles; independent decimal area/winding/edge checks pass; no reader replacement or admission |

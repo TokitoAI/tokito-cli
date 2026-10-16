@@ -3,6 +3,7 @@
 mod candidate_mesh;
 mod exact_predicate;
 mod face_coverage;
+mod face_representation;
 mod negative_torus;
 mod occurrence_world;
 mod planar_face;
@@ -349,8 +350,11 @@ fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
     if raw.first().is_some_and(|arg| arg == "--planar-face") {
         let result: Result<Value, String> = (|| {
-            if raw.len() != 5 || raw[2] != "--source-tolerance" {
-                return Err("usage: tokito-step-evaluation --planar-face ID --source-tolerance POSITIVE_SOURCE_UNITS STEP_PATH".into());
+            if !matches!(raw.len(), 5 | 7)
+                || raw[2] != "--source-tolerance"
+                || (raw.len() == 7 && raw[4] != "--source-representation")
+            {
+                return Err("usage: tokito-step-evaluation --planar-face ID --source-tolerance POSITIVE_SOURCE_UNITS [--source-representation ID] STEP_PATH".into());
             }
             let face_id = raw[1]
                 .to_str()
@@ -361,7 +365,9 @@ fn main() {
                 .to_str()
                 .and_then(|s| s.parse::<f64>().ok())
                 .ok_or("invalid_source_tolerance")?;
-            let bytes = read_bounded(File::open(Path::new(&raw[4])).map_err(|e| e.to_string())?)?;
+            let bytes = read_bounded(
+                File::open(Path::new(&raw[raw.len() - 1])).map_err(|e| e.to_string())?,
+            )?;
             let parsed = oxideav_ifc::parse_step_with_limits(
                 &bytes,
                 &oxideav_ifc::StepLimits {
@@ -373,6 +379,15 @@ fn main() {
             )
             .map_err(|e| format!("reader_error: {e}"))?;
             let mut report = planar_face::inspect(&parsed, face_id, tolerance)?;
+            if raw.len() == 7 {
+                let representation = raw[5]
+                    .to_str()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .filter(|n| *n > 0)
+                    .ok_or("invalid_source_representation")?;
+                report["selectedSourceRepresentation"] =
+                    face_representation::inspect(&parsed, representation, face_id)?;
+            }
             report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
             report["declaredRepresentationLengthUnits"] = unit_preflight::inspect(&parsed);
             Ok(report)
