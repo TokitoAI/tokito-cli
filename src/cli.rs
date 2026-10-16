@@ -116,19 +116,25 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
             args.get(18).map(String::as_str),
         )?;
         let output = Path::new(&args[16]);
-        fs::create_dir(output)
-            .map_err(|e| CliError::new(format!("cannot create new candidate directory: {e}")))?;
-        write_new_file(&output.join("active.digital-twin.glb"), &candidate.glb)?;
-        for (name, value) in [
-            ("active.digital-twin.json", &candidate.manifest),
-            ("component-map.json", &candidate.map),
-            ("adaptation-report.json", &candidate.report),
-        ] {
-            write_new_file(
-                &output.join(name),
-                &serde_json::to_vec_pretty(value).map_err(|e| CliError::new(e.to_string()))?,
-            )?;
-        }
+        let files = vec![
+            ("active.digital-twin.glb", candidate.glb.clone()),
+            (
+                "component-map.json",
+                serde_json::to_vec_pretty(&candidate.map)
+                    .map_err(|e| CliError::new(e.to_string()))?,
+            ),
+            (
+                "adaptation-report.json",
+                serde_json::to_vec_pretty(&candidate.report)
+                    .map_err(|e| CliError::new(e.to_string()))?,
+            ),
+            (
+                "active.digital-twin.json",
+                serde_json::to_vec_pretty(&candidate.manifest)
+                    .map_err(|e| CliError::new(e.to_string()))?,
+            ),
+        ];
+        flat_output::publish(output, &files)?;
         println!(
             "{}",
             serde_json::to_string_pretty(&candidate.report)
@@ -206,28 +212,20 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
                 None
             };
             let output = Path::new(&args[8]);
-            // Exclusive creation prevents reuse or replacement of a user's folder.
-            fs::create_dir(output).map_err(|e| {
-                CliError::new(format!("cannot create new twin output directory: {e}"))
-            })?;
-            write_new_file(&output.join("active.digital-twin.glb"), &prepared.glb)?;
-            for (name, value) in [
-                ("active.digital-twin.json", &prepared.manifest),
-                ("component-map.json", &prepared.component_map),
-                ("component-index.json", &prepared.index),
-                ("prepare-report.json", &prepared.report),
-            ] {
-                write_new_file(&output.join(name), &json_bytes(value)?)?;
-            }
+            let mut files = vec![
+                ("active.digital-twin.glb", prepared.glb.clone()),
+                ("component-map.json", json_bytes(&prepared.component_map)?),
+                ("component-index.json", json_bytes(&prepared.index)?),
+                ("prepare-report.json", json_bytes(&prepared.report)?),
+            ];
             if let Some(viewer) = viewer {
-                write_new_file(&output.join("index.html"), viewer.as_bytes())?;
+                files.push(("index.html", viewer.into_bytes()));
             }
             if let Some(population) = population {
-                write_new_file(
-                    &output.join("reference-population-audit.json"),
-                    &json_bytes(&population)?,
-                )?;
+                files.push(("reference-population-audit.json", json_bytes(&population)?));
             }
+            files.push(("active.digital-twin.json", json_bytes(&prepared.manifest)?));
+            flat_output::publish(output, &files)?;
             println!(
                 "{}",
                 String::from_utf8(json_bytes(&prepared.report)?).unwrap()
@@ -778,7 +776,7 @@ fn ensure_lock_output_outside_library(
 }
 
 fn print_help(style: cli_presentation::Style) {
-    println!("{}", style.help(r#"Tokito CLI 0.1.0
+    println!("{}", style.help(&r#"Tokito CLI {version}
 Offline-first Rust tools for existing PCB layouts.
 
 USAGE:
@@ -826,7 +824,7 @@ SCOPE:
   Supported 2D views are partial. Local VRML assembly and source-linked component
   selection are implemented; STEP geometry assembly, schematic-to-PCB, full KiCad
   parity, App admission and registered AR are not complete. Missing models need
-  explicit --allow-partial; a successful export is not physical qualification."#));
+  explicit --allow-partial; a successful export is not physical qualification."#.replace("{version}", env!("CARGO_PKG_VERSION"))));
 }
 
 fn print_command_help(path: &[String], style: cli_presentation::Style) -> Result<(), CliError> {
@@ -1220,7 +1218,16 @@ fn export_pos_command(args: &[String]) -> Result<(), CliError> {
 
 pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     let (style, args) = cli_presentation::parse(args)?;
-    if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
+    if args.is_empty() {
+        print_help(style);
+        return Ok(());
+    }
+    if args[0] == "--help" || args[0] == "-h" {
+        if args.len() != 1 {
+            return Err(CliError::new(
+                "root help accepts no trailing arguments; use tokito-cli help COMMAND",
+            ));
+        }
         print_help(style);
         return Ok(());
     }
@@ -1234,14 +1241,17 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         return print_command_help(&args[..help_index], style);
     }
     if args[0] == "--version" || args[0] == "-V" {
-        println!("tokito-cli 0.1.0");
+        if args.len() != 1 {
+            return Err(CliError::new("version accepts no trailing arguments"));
+        }
+        println!("tokito-cli {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
     if args[0] == "version" {
         if args.len() != 1 {
             return Err(CliError::new("usage: tokito-cli version"));
         }
-        println!("tokito-cli 0.1.0");
+        println!("tokito-cli {}", env!("CARGO_PKG_VERSION"));
         return Ok(());
     }
     if args[0] == "doctor" {
@@ -1607,13 +1617,15 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             ));
         }
         let mut side = "top";
+        let mut side_set = false;
         let mut output_path = None;
         let mut requested_layers = None;
         let mut hide_dnp_footprints_on_fab_layers = false;
         let mut index = 3;
         while index < args.len() {
             match args[index].as_str() {
-                "--side" if index + 1 < args.len() => {
+                "--side" if !side_set && index + 1 < args.len() => {
+                    side_set = true;
                     side = match args[index + 1].as_str() {
                         "top" => "top",
                         "bottom" => "bottom",
@@ -1621,11 +1633,11 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                     };
                     index += 2;
                 }
-                "--output" if index + 1 < args.len() => {
+                "--output" if output_path.is_none() && index + 1 < args.len() => {
                     output_path = Some(PathBuf::from(&args[index + 1]));
                     index += 2;
                 }
-                "--layers" if index + 1 < args.len() => {
+                "--layers" if requested_layers.is_none() && index + 1 < args.len() => {
                     let parsed = args[index + 1]
                         .split(',')
                         .map(str::trim)

@@ -250,7 +250,7 @@ fn extract_pipe_payload(
 }
 
 fn decode_base64(encoded: &[u8], max_output_bytes: usize) -> Result<Vec<u8>, EmbeddedModelError> {
-    if encoded.is_empty() || encoded.len() % 4 != 0 {
+    if encoded.is_empty() || !encoded.len().is_multiple_of(4) {
         return Err(EmbeddedModelError::MalformedData);
     }
     let capacity = encoded

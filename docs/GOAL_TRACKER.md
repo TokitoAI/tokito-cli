@@ -4,6 +4,21 @@ CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
 YOLO are excluded from the current release scope. The frozen-tool capture c
 confirms 76/76 reference solids and preserves both known reader failures.
 
+## Active v1 hardening and expanded quality requirements
+
+Production v1, full pinned KiCad/footprint/library behavior, selectable classified
+3D and precise geometry/views are tracked in [the v1 plan](CLI_V1_PLAN.md).
+Imported verified simulation results were selected for electrical animation;
+a native solver is not selected. AR/YOLO remain excluded.
+
+| Owner | Dependency | State | Evidence / next action |
+| --- | --- | --- | --- |
+| Command auditor | Dispatch/tests | Reviewed | 39 operational leaves; three optional-only happy paths identified |
+| Main | Audit findings | Implementing | Mandatory derivation/adaptation/population E2E; strict arguments and dynamic version identity |
+| Main | Output reliability | Implemented locally | Manifest-last flat twin publication, conservative rollback and unit failure/competing-file test |
+| Main | Declared MSRV | Running | Rust 1.85 failed earcut unstable API; isolated 1.87.0 locked offline all-target check passed; global toolchain unchanged |
+| Release reviewer | Actual source/docs | Reviewed | Clean-machine, dependency, filesystem and geometry gates still open |
+
 ## Current work — independent STEP solid references (2026-10-16)
 
 | Owner | Dependency | State | Evidence / review | Next action |
@@ -1269,3 +1284,43 @@ local CLI behavior only. KiCad CLI/library parity, STEP geometry admission,
 schematic-to-layout, complete qualified 3D coverage, App import, AR/device
 acceptance, and hosted CI remain incomplete or unverified. No GitHub write was
 made in this verification run.
+
+## V1 hardening verification gate
+
+The scoped source/upgrade/publication review found no concrete blocker. The
+minimum Rust 1.87.0 all-target compile check passed after the actual 1.85
+dependency failure. The expanded base profile now has 43 mandatory gates,
+including three previously optional-only command journeys and test-hook
+subprocess failures in adapt/prepare/prototype before manifest publication.
+Current-source complete verification is pending. These are development-release
+reliability improvements, not completion of the remaining v1 geometry/parity,
+simulation, breadboard-view or independent-machine gates.
+
+Security correction: actual OSV matching found RUSTSEC-2026-0344 affecting
+ruzstd 0.8.1. The live verification run was interrupted before delivery.
+Pinned 0.9.1 and both affected lockfiles are now updated; the requery of 188
+registry package/version pairs has no advisory matches. Patched root all-target
+compile checking passes on Rust 1.87. Known-advisory matching is not full security
+certification. Full frozen-source 43-gate verification remains required.
+
+The patched 43-gate attempt passed root tests and then failed Clippy because
+the corrected MSRV enabled manual-is-multiple-of checks, plus a redundant
+publication closure. Equivalent supported integer API calls and the direct
+function pointer corrected those findings; focused warnings-denied Clippy now
+passes. No warnings were suppressed. A fresh complete run is still required.
+
+## Verified v1-hardening checkpoint (2026-10-16)
+
+All 43 mandatory gates passed at
+`target/delivery/local/20261016T074610Z-6690b2a5ba6142b2b23586cace9b156b/verification.json`.
+All recorded inputs and binary hash matched before this documentation update.
+The mandatory suite includes the previously optional-only happy paths and real
+subprocess failure injection for adapt/prepare/prototype. Independent review
+found no concrete blocker in these changes. A final documentation-inclusive
+run precedes commit/push. D: is near its 500 MiB reserve, so that final temporary
+receipt/binary delivery uses the authorized F: verification root.
+
+Static PE imports confirm VCRUNTIME140.dll/UCRT runtime dependencies. This
+is not clean-machine certification. Full parity, qualified STEP bodies,
+additional environment views and imported simulation adapters remain open
+in CLI issue #47 and the v1 plan. AR/YOLO remain excluded.

@@ -87,7 +87,7 @@ explain the source and evidence boundaries.
 For a command-by-command walkthrough with real output excerpts, generated-file
 descriptions and error recovery, read the [CLI command guide](docs/CLI_COMMAND_GUIDE.md).
 
-Use Rust with Cargo; the crate declares Rust 1.85 and edition 2024. Recorded
+Use Rust with Cargo; the crate declares Rust 1.87 and edition 2024. Recorded
 Windows checks used a newer toolchain and do not establish the minimum-version
 or Linux acceptance gates. PowerShell 7 and Python are needed for the local
 verification runner; a browser is sufficient to inspect the checked-in demos.
@@ -470,6 +470,7 @@ tokito_cli/
 | Area | Start here |
 |---|---|
 | Architecture and public API | [Architecture](docs/ARCHITECTURE.md), [canonical engine](docs/CANONICAL_ENGINE.md), [native formats](docs/NATIVE_FORMAT_ARCHITECTURE.md) |
+| V1 requirements and quality ledger | [V1 plan](docs/CLI_V1_PLAN.md) |
 | CLI-only preview and production release gates | [Release readiness](docs/CLI_RELEASE_READINESS.md) |
 | CLI commands, actual output and recovery | [Command guide](docs/CLI_COMMAND_GUIDE.md) |
 | STEP solid ownership and remaining reader failures | [Per-solid reference evidence](docs/STEP_SOLID_REFERENCE.md) |

@@ -767,7 +767,10 @@ fn mesh_from_component_part(
 }
 
 fn mesh_from_vectors(positions: Vec<f32>, normals: Vec<f32>) -> Result<Mesh, EngineError> {
-    if positions.is_empty() || positions.len() != normals.len() || positions.len() % 9 != 0 {
+    if positions.is_empty()
+        || positions.len() != normals.len()
+        || !positions.len().is_multiple_of(9)
+    {
         return Err(EngineError::new(
             "component mesh has invalid flattened geometry",
         ));
@@ -1352,7 +1355,7 @@ fn triangulate(
 
     let mut indices = Vec::<u32>::new();
     Earcut::<f64>::new().earcut(points.iter().copied(), &holes, &mut indices);
-    if indices.is_empty() || indices.len() % 3 != 0 {
+    if indices.is_empty() || !indices.len().is_multiple_of(3) {
         return Err(EngineError::new(
             "Earcut returned an empty or malformed triangulation",
         ));
@@ -1541,7 +1544,10 @@ fn extrude_shell(
             push_face(&mut positions, &mut normals, [a0, b1, a1], normal)?;
         }
     }
-    if positions.is_empty() || positions.len() % 9 != 0 || positions.len() / 3 > MAX_GLTF_VERTICES {
+    if positions.is_empty()
+        || !positions.len().is_multiple_of(9)
+        || positions.len() / 3 > MAX_GLTF_VERTICES
+    {
         return Err(EngineError::new(
             "extruded mesh is empty or exceeds vertex budget",
         ));
@@ -2005,7 +2011,7 @@ fn append_gltf_primitive(
 ) -> Result<Value, EngineError> {
     if mesh.positions.is_empty()
         || mesh.positions.len() != mesh.normals.len()
-        || mesh.positions.len() % 9 != 0
+        || !mesh.positions.len().is_multiple_of(9)
     {
         return Err(EngineError::new(
             "GLB primitive has invalid triangle geometry",

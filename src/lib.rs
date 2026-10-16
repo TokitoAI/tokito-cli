@@ -19,6 +19,7 @@ pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
 pub mod embedded;
+mod flat_output;
 pub mod footprint_family;
 pub mod footprint_inspect;
 pub mod footprint_library;
@@ -1783,8 +1784,9 @@ fn inspect_json(board: &Board) -> String {
 fn package_manifest(board: &Board, inspection: &str, placements: &str) -> String {
     let source_digest = format!("sha256:{}", board.source_sha256);
     let package_id = format!("kicad-{}", &board.source_sha256[..16]);
+    let producer_version = env!("CARGO_PKG_VERSION");
     format!(
-        "{{\n  \"schema\": \"https://tokito.ai/schemas/board-package.schema.json\",\n  \"schemaVersion\": \"0.1.0\",\n  \"packageId\": \"{package_id}\",\n  \"packageLevel\": \"source-and-placement-inventory\",\n  \"mobileImportReady\": false,\n  \"source\": {{\"path\": \"source/board.kicad_pcb\", \"format\": \"kicad_pcb\", \"formatVersion\": {}, \"bytes\": {}, \"sha256\": \"{}\"}},\n  \"artifacts\": {{\"inspection\": {{\"path\": \"derived/inspection.json\", \"schema\": \"tokito.board-inspection.v0\", \"sha256\": \"sha256:{}\"}}, \"placements\": {{\"path\": \"derived/placements.csv\", \"rows\": {}, \"sha256\": \"sha256:{}\"}}}},\n  \"capabilities\": {{\"sourcePreserved\": true, \"placementInventory\": true, \"boardGeometryComplete\": false, \"svg\": false, \"glb\": false, \"step\": false}},\n  \"limitations\": [\"Inventory fields describe only the subset parsed by this Tokito CLI version.\", \"This package is not accepted by the Tokito App digital-twin runtime.\", \"No board mesh, component mesh, SVG, GLB, or STEP geometry is included.\", \"Source-adjacent license and provenance files are not discovered or copied automatically.\"],\n  \"producer\": {{\"name\": \"tokito-cli\", \"version\": \"0.1.0\"}}\n}}\n",
+        "{{\n  \"schema\": \"https://tokito.ai/schemas/board-package.schema.json\",\n  \"schemaVersion\": \"0.1.0\",\n  \"packageId\": \"{package_id}\",\n  \"packageLevel\": \"source-and-placement-inventory\",\n  \"mobileImportReady\": false,\n  \"source\": {{\"path\": \"source/board.kicad_pcb\", \"format\": \"kicad_pcb\", \"formatVersion\": {}, \"bytes\": {}, \"sha256\": \"{}\"}},\n  \"artifacts\": {{\"inspection\": {{\"path\": \"derived/inspection.json\", \"schema\": \"tokito.board-inspection.v0\", \"sha256\": \"sha256:{}\"}}, \"placements\": {{\"path\": \"derived/placements.csv\", \"rows\": {}, \"sha256\": \"sha256:{}\"}}}},\n  \"capabilities\": {{\"sourcePreserved\": true, \"placementInventory\": true, \"boardGeometryComplete\": false, \"svg\": false, \"glb\": false, \"step\": false}},\n  \"limitations\": [\"Inventory fields describe only the subset parsed by this Tokito CLI version.\", \"This package is not accepted by the Tokito App digital-twin runtime.\", \"No board mesh, component mesh, SVG, GLB, or STEP geometry is included.\", \"Source-adjacent license and provenance files are not discovered or copied automatically.\"],\n  \"producer\": {{\"name\": \"tokito-cli\", \"version\": \"{producer_version}\"}}\n}}\n",
         board.version,
         board.source_bytes,
         source_digest,

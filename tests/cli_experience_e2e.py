@@ -23,6 +23,14 @@ def main():
         assert result.returncode == code, (args, result.returncode, result.stdout, result.stderr)
         return result
 
+    for flag in ['--help', '-h', '--version', '-V']:
+        call(flag, 'unexpected', code=2)
+    versions = [call(flag).stdout for flag in ['version', '--version', '-V']]
+    assert len(set(versions)) == 1
+    invalid_argument = '\ud800' if os.name == 'nt' else b'\xff'
+    invalid = subprocess.run([str(binary), invalid_argument], capture_output=True, timeout=30)
+    assert invalid.returncode == 2 and b'valid Unicode' in invalid.stderr
+    assert b'panicked' not in invalid.stderr
     root_help = call('--help').stdout
     assert '\x1b' not in root_help
     assert all(word in root_help for word in ['START HERE:', 'WORKFLOW:', 'doctor', '--color', 'NO_COLOR'])
@@ -72,6 +80,13 @@ def main():
         invalid.write_text('(kicad_pcb (version 20240108) (general (thickness 1.6)))', encoding='utf-8')
         invalid_report=json.loads(call('doctor', invalid, '--json', code=2).stdout)
         assert any(row['code']=='outline' and row['status']=='failed' for row in invalid_report['checks'])
+        for option, first, second in [('--side', 'top', 'bottom'), ('--layers', 'F.Cu', 'B.Cu'),
+                                       ('--output', str(root/'one.svg'), str(root/'two.svg'))]:
+            duplicate_args = ['export', 'svg', board, '--output', root/'duplicate.svg']
+            if option == '--output':
+                duplicate_args = ['export', 'svg', board]
+            call(*duplicate_args, option, first, option, second, code=2)
+            assert not any((root/name).exists() for name in ['one.svg','two.svg','duplicate.svg'])
         before={p.name:p.read_bytes() for p in project.iterdir()}
         call('doctor', project, '--board', board.name)
         assert before == {p.name:p.read_bytes() for p in project.iterdir()}
