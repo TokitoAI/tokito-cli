@@ -9,6 +9,8 @@ use std::path::{Path, PathBuf};
 pub mod assigned_assembly;
 pub mod bom;
 mod cli;
+mod cli_doctor;
+mod cli_presentation;
 pub mod component_forge;
 pub mod component_pose;
 pub mod dataset;
@@ -1208,7 +1210,18 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
     {
         return Err(CliError::new("input must have a .kicad_pcb extension"));
     }
-    let bytes = read_bounded_file(path, MAX_INPUT_BYTES)?;
+    let bytes = read_bounded_file(path, MAX_INPUT_BYTES).map_err(|error| {
+        CliError::new(format!(
+            "cannot read PCB input '{}': {error}",
+            path.display()
+        ))
+    })?;
+    if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
+        return Err(CliError::new(format!(
+            "PCB input is a Git LFS pointer, not materialized board data: {}. Supply the actual .kicad_pcb payload (materialize this asset in its source checkout, or use an existing payload whose SHA-256 matches the pointer). No files were fetched or changed.",
+            path.display()
+        )));
+    }
     let (document, quoted_type_filter_tokens) = parse_document_with_lexical_evidence(&bytes)?;
     if document.head() != Some("kicad_pcb") {
         return Err(CliError::new(

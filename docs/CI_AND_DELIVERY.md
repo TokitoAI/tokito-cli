@@ -23,7 +23,7 @@ Paths above are local examples, not required runtime locations. The runner requi
 
 ## Current checks and evidence
 
-The current baseline profile contains **38 checks**: format; embedded-dataset verifier tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP experiment format/tests/torus regression/Clippy/build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
+The current baseline profile contains **40 checks**: format; embedded-dataset verifier tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS and footprint-type filtering, CLI experience, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP experiment format/tests/torus regression/Clippy/build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
 
 The main E2E runs real subprocesses on four pinned open-source PCB fixtures. It checks SVG/package/placement output, no-overwrite and refusal behavior, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons and the bounded SVG DNP Fab-filter comparison. GLB tests check container structure, bounds, area, winding, closed edges, explicit partial consent and exact renderable component selectors. These fixtures are parser/export evidence, not proof that every dataset board is qualified.
 
@@ -32,6 +32,32 @@ The runner fingerprints source, tests, reference files, docs and scripts before 
 An old receipt remains valid for its own source. It is not current after a test, document or implementation edit changes a recorded input. Check the fingerprints instead of treating the newest timestamp as sufficient evidence.
 
 ## Optional real-dataset journeys
+
+### Explicit cache reuse for the base profile
+
+The default verifier still allocates an isolated new Cargo target. For a
+follow-up base-profile run, an explicit existing verification cache can avoid
+recompiling every dependency under limited memory/storage:
+
+```powershell
+pwsh -File scripts/verify-local.ps1 -TargetBase F:\kannan\projects\tokito-cli-verification -ReuseBuildTarget F:\kannan\projects\tokito-cli-verification\EXISTING_VERIFICATION_TARGET
+```
+
+Replace the last path with an actual existing target. It must be absolute,
+strictly within the selected base, contain Cargo cache metadata, and have no
+linked path/entry. Reuse is refused with optional dataset-profile inputs.
+All formatting, Cargo tests/Clippy/builds and subprocess E2Es still execute;
+the same frozen-input and tested-binary checks remain mandatory. Geometry test
+outputs and delivery receipts have fresh run identifiers. The receipt records
+`cachePolicy: reuse-existing-target`; this is **not a clean dependency build**.
+Only use a trusted cache created by your own verification runs.
+
+On a storage-constrained Windows machine, set `TEMP` and `TMP` in the invoking
+process to an existing writable directory on the authorized build drive before
+running the script. Child Python/Rust tests inherit those paths. This does not
+change system environment settings, skip checks or clean unrelated files.
+The 2026-10-16 base run passed all 40 gates with this setup; C: disk exhaustion
+in the preceding run was an infrastructure failure, not a passing result.
 
 | Parameters supplied together | Additional acceptance scope |
 | --- | --- |

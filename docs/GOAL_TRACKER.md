@@ -1,5 +1,52 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Current work — CLI diagnostics, flow and documentation (2026-10-16)
+
+| Owner | Dependency | State | Evidence / review | Next action |
+| --- | --- | --- | --- | --- |
+| Main | Real demo errors and source loaders | Verified locally | Explicit LFS/candidate-input diagnostics; five missing-input refusal cases; no failed-output publication | Push through PR #45 |
+| Main | Existing importer/outline APIs | Verified locally | Read-only doctor with runtime-only or source/outline scope; model and AR admission unchecked | Push through PR #45 |
+| Main | Desktop palette / mobile token mirror | Verified locally | Tokito human-help/doctor styling; plain machine output and NO_COLOR regressions | Push through PR #45 |
+| Independent reviewers | Current source and saved outputs | Review passed | No concrete blocker in source, verifier or corrected documentation; reviews did not independently run tests | Keep broader geometry gates open |
+| Main | Current command behavior | Documentation updated | README workflow/output examples and docs/CLI_COMMAND_GUIDE.md | Final documentation-inclusive verification and PR/issue updates |
+
+The complete base profile passed **40/40 gates** on Windows. Receipt:
+`target/delivery/local/20261016T053247Z-133a12e1d9f543aa807ca1bfde07f42b/verification.json`.
+Release binary: 5,353,984 bytes, SHA-256
+`51cc8c7dc0f961ce57760b7bad9e6f13710ad9c201c3dfb9a43f4538271efa9d`.
+All recorded input fingerprints and the delivered binary hash matched before
+this post-run narrative update. A final documentation-inclusive run will bind
+these notes as well. The explicit `reuse-existing-target` policy reused trusted
+compilation artifacts; every gate still executed. This is not a clean dependency
+build. TEMP/TMP were process-local under the authorized F: build root.
+
+Earlier attempts remain failures: Windows paging pressure stopped compilation;
+a later run exposed an obsolete root-help assertion (corrected without changing
+geometry comparisons); another stopped in four-board E2E when C: temporary
+storage exhausted (OS error 112). Moving this run's temporary files to F:
+resolved that observed storage failure. No required test was skipped.
+
+Coverage includes 174 root library tests plus integration/doc targets,
+warnings-denied Clippy, release build, four-board CLI journeys, pinned KiCad
+10.0.7 selection/POS comparisons, geometry references, footprints/libraries,
+source-bound bundles, CLI experience and the experimental-crate checks.
+Optional whole-dataset qualification, GUI rendering, App import, physical fit
+and registered AR are not established by the base receipt.
+
+The 64-execution visible demo's two input failures were an LFS pointer and an
+incomplete source-candidate folder. Hash-verified/pinned retries succeeded.
+Its expected untracked-provenance refusal remains enforced; the earlier label
+calling it a missing-URL error was inaccurate. No sibling source changes,
+GitHub Actions, merge or direct main push are part of this delivery.
+
+Next geometry task (main owner; issue #19): independently tessellate and check
+every FreeCAD solid, preserving the aggregate compound mesh as diagnostics.
+The saved 41-solid reference has no boundary edges but has incidence-four
+edges; its current flattened representation cannot establish per-solid manifold
+integrity. Preserve source/tool hashes, strict per-solid winding/closure and
+complete enumeration before improving the original Rust planar-face reader.
+Do not relax gates, weld across solids, or admit STEP geometry from this finding.
+
 ## Verified local checkpoint — native footprint-type filter (2026-10-16)
 
 Changes after pushed PR #45 head `261f7654bd2e8008fba92e1604466497934bd580`

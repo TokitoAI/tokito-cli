@@ -336,7 +336,10 @@ def main() -> None:
         assert "through-hole/custom-pad geometry generation" not in footprint_help.stdout
         root_help = invoke(binary, "--help")
         assert root_help.returncode == 0, root_help.stderr
-        assert "explicit SMD, round/oval plated-hole, or centered non-plated-hole footprint/library candidates" in root_help.stdout
+        assert "component" in root_help.stdout and "footprint" in root_help.stdout
+        # Detailed family capabilities belong to the leaf help after the root
+        # was grouped by workflow. Keep the actual geometry comparisons above.
+        assert "SMD" in footprint_help.stdout
 
         through_hole_library = root / "Header.pretty"
         through_hole_library_result = invoke(

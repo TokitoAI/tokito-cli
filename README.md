@@ -84,6 +84,9 @@ explain the source and evidence boundaries.
 
 ## Quick start
 
+For a command-by-command walkthrough with real output excerpts, generated-file
+descriptions and error recovery, read the [CLI command guide](docs/CLI_COMMAND_GUIDE.md).
+
 Use Rust with Cargo; the crate declares Rust 1.85 and edition 2024. Recorded
 Windows checks used a newer toolchain and do not establish the minimum-version
 or Linux acceptance gates. PowerShell 7 and Python are needed for the local
@@ -93,10 +96,15 @@ verification runner; a browser is sufficient to inspect the checked-in demos.
 cargo build --release --locked
 ./target/release/tokito-cli.exe --version
 ./target/release/tokito-cli.exe --help
+./target/release/tokito-cli.exe --color always --help
+./target/release/tokito-cli.exe doctor
 ./target/release/tokito-cli.exe help twin
 ```
 
 Add `--offline` to Cargo commands after the locked dependencies are cached.
+At a PowerShell `PS>` prompt, invoke the executable before its flags:
+`./target/release/tokito-cli.exe --help`. Bare `help` belongs to PowerShell;
+bare `--help` is not a shell command. Tokito is not an interactive shell.
 The production engine uses pure Rust dependencies and does not invoke KiCad
 or require C/C++ CAD bindings. FreeCAD/KiCad comparisons are separate development
 reference checks.
@@ -127,6 +135,8 @@ shape is not a declaration of complete KiCad command compatibility.
 
 | Command | Actual operation |
 |---|---|
+| `help`, `--help`, `-h`, `version`, `--version`, `-V` | Grouped command discovery, leaf help and version; help accepts a positional input before `--help` |
+| `doctor [PROJECT\|BOARD]` | Offline, read-only runtime information or bounded source/import/outline checks; `--board` disambiguation and stable `--json`; does not qualify models, manufacturing or AR |
 | `inspect` | Supported PCB/package metadata, identity and placement inventory |
 | `project inspect` | Bounded read-only KiCad project-folder discovery, exact PCB choice and source SHA-256 pinning |
 | `project build/verify` | Source-pinned offline bundle with placements, outline, top/bottom SVG, GLB coverage, component UUID/selector map and integrity verification; not yet App-importable |
@@ -137,6 +147,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection; copied STEP/glTF bytes are not decoded geometry or selector qualification |
 | `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE` and checked planar polygon `IndexedFaceSet`), reference wildcards, native DNP exclusion, and [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md) with explicit coverage, or candidate assignments |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
+| `model derive-wrl` | Opt-in new VRML candidate with an explicit unused-invalid-material/zero-area-face change report; original source preserved, solid repair not certified |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
 | `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer, exact-reference/authored-class queries, and visibly unverified class hints for missing labels |
 | `twin adapt-source` | Source adaptation, with optional reviewed `--board-plane-node` bounds |
@@ -221,6 +232,64 @@ pos` is a separate manufacturing CSV projection whose selected options and
 transforms, including auxiliary-origin translation, have been compared with
 KiCad 10.0.5 reference outputs. See the
 [POS export contract](docs/PCB_POSITION_EXPORT.md) and [reference manifest](tests/reference/kicad-cli-10.0.5/pos/manifest.json).
+
+## Command flow and actual output
+
+```mermaid
+flowchart LR
+    A[doctor: source / outline checks] --> B[project inspect: explicit PCB choice]
+    B --> C[resolve models: approved local assets]
+    C --> D[project build: new export bundle]
+    D --> E[project verify: integrity]
+    D --> F[SVG / CSV / selectable GLB]
+    F --> G[Optional twin prototype: browser reference viewer]
+```
+
+All command groups are discoverable from `--help`; use leaf help for full
+arguments. For example, `pcb export --help`, `model --help`, and
+`component footprint library --help` list their implemented children.
+
+Actual SparkFun inspection and outline validation in the live CLI demonstration returned:
+
+```text
+Footprints: 20
+Pads: 29
+Referenced 3D models: 7
+Nets: 9
+Physical outline: valid within supported scope (4 primitives, 1 contours; mm, source Y-down)
+```
+
+Its top SVG contained 109 supported geometry items at 51.900 × 51.900 mm, with
+four omitted-dimension diagnostics. The manufacturing-position export contained
+17 rows, including:
+
+```csv
+Ref,Val,Package,PosX,PosY,Rot,Side
+"C2","10uF","C_0603_1608Metric",136.525000,-106.680000,-90.000000,top
+```
+
+| Operation | Output |
+| --- | --- |
+| `inspect`, `doctor`, `validate outline` | Human report or supported `--json` report |
+| `export svg`, `export placements`, `pcb export pos` | Partial `.svg`, source-inventory `.csv`, manufacturing-position `.csv` |
+| `export glb` | `.glb`; optional JSON coverage on stdout |
+| `project build` | New source-bound directory with views, placement/selector records, GLB, diagnostics and manifest |
+| `component footprint generate` | New `.kicad_mod` and explicit candidate report |
+| `component footprint library create/lock` | New `.pretty` candidate directory or file-identity lock JSON |
+| `twin prototype` | Offline `index.html`, GLB, map/index, manifest and preparation report |
+| `dataset bind/lock`, `package build` | Source-binding/lock JSON or a source-and-inventory package |
+
+Human help and doctor use Tokito mint `#08C9AA`, indigo `#5456F0` and semantic
+status colours where supported. Use leading `--color always` for an explicit
+RGB preview, `--no-color` for plain text, or `NO_COLOR` to suppress colour.
+Auto mode requires a recognised true-colour terminal; machine JSON stays plain.
+The [command guide](docs/CLI_COMMAND_GUIDE.md) provides copyable input setups,
+all command families, real output excerpts, palette provenance and recovery steps.
+
+The live demo exposed a Git-LFS pointer and a missing candidate coverage file.
+The CLI now names those problems and their input paths instead of reporting an
+unrelated parser error or a bare OS error. It does not silently download assets,
+invent coverage, overwrite files, or bypass source binding.
 
 ## Inputs, outputs and compatibility
 
@@ -339,6 +408,8 @@ tokito_cli/
 ├── src/
 │   ├── main.rs                  Process entry and exit
 │   ├── cli.rs                   Command parsing, help and dispatch
+│   ├── cli_doctor.rs            Offline runtime / source / outline diagnostics
+│   ├── cli_presentation.rs      Tokito terminal palette and colour policy
 │   ├── lib.rs                   Public physical engine API
 │   ├── document.rs              Typed source-semantic board document
 │   ├── geometry.rs / topology.rs Supported render geometry and contours
@@ -399,6 +470,7 @@ tokito_cli/
 | Area | Start here |
 |---|---|
 | Architecture and public API | [Architecture](docs/ARCHITECTURE.md), [canonical engine](docs/CANONICAL_ENGINE.md), [native formats](docs/NATIVE_FORMAT_ARCHITECTURE.md) |
+| CLI commands, actual output and recovery | [Command guide](docs/CLI_COMMAND_GUIDE.md) |
 | Full repository tree | [Versioned source and artifact map](docs/REPOSITORY_MAP.md) |
 | Physical exports | [Topology](docs/PCB_TOPOLOGY.md), [GLB](docs/GLB_EXPORT_ARCHITECTURE.md), [model roots](docs/MODEL_RESOLUTION.md), [assignments](docs/MODEL_ASSIGNMENTS.md) |
 | Dataset provenance | [Board intake](docs/DATASET_BOARD_HANDOFF.md), [source locks](docs/DATASET_SOURCE_LOCK.md), [Git/LFS](docs/DATASET_GIT_INVENTORY.md), [external binding](docs/DATASET_EXTERNAL_BINDING.md) |

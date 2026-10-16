@@ -777,84 +777,65 @@ fn ensure_lock_output_outside_library(
     Ok(())
 }
 
-fn print_help() {
-    println!(
-        "Tokito CLI 0.1.0\n\
-         Offline-first Rust tools for existing PCB layouts.\n\
-         \n\
-         USAGE:\n\
-         \ttokito-cli [--help|-h]\n\
-         \ttokito-cli [--version|-V]\n\
-         \ttokito-cli version\n\
-         \ttokito-cli help [COMMAND...]\n\
-         \ttokito-cli pcb [--help]\n\
-         \ttokito-cli project inspect <DIR> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--json]\n\
-         \ttokito-cli project build <DIR> --output <NEW_DIRECTORY> [--board <EXACT_FILENAME.kicad_pcb>] [--expect-sha256 <HEX>] [--allow-partial] [--assemble-wrl --library-root <DIR> [--model-var NAME=DIR]] [--json]\n\
-         \ttokito-cli project verify <BUNDLE_DIRECTORY> [--json]\n\
-         \ttokito-cli inspect <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
-         \ttokito-cli bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
-         \ttokito-cli validate outline <BOARD.kicad_pcb|TOKITO_PACKAGE_DIRECTORY> [--json]\n\
-         \ttokito-cli resolve models <BOARD|PACKAGE> --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--max-model-bytes N] [--max-batch-bytes N] [--extract-dir <NEW_DIR> [--allow-partial]] [--json]\n\
-         \ttokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]\n\
-         \ttokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n\
-         \ttokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\n\
-         \ttokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\n\
-         \ttokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n\
-         \ttokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n\
-         \ttokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\n\
-         \ttokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n\
-         \ttokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n\
-         \ttokito-cli component footprint library audit <LIBRARY.pretty> [--json]\n\
-         \ttokito-cli component footprint library lock <LIBRARY.pretty> --output <NEW.lock.json> [--json]\n\
-         \ttokito-cli component footprint library verify <LIBRARY.pretty> --lock <LOCK.json> [--json]\n\
-         \ttokito-cli twin inspect|prepare|prototype|select <GLB> --component-map <JSON> --manifest <JSON> [--output <NEW_DIR> [--allow-partial] | --reference <REF> | --class <LABEL>]\n\
-         \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
-         \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\n\
-         \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\n\
-         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] [--no-unspecified] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
-         \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
-         \ttokito-cli package verify <DIRECTORY> [--json]\n\
-         \n\
-         COMMAND GROUPS:\n\
-         \tpcb      Existing physical-board import, inspection, model resolution and exports.\n\
-         \tproject  Inspect a project, build a source-bound export bundle, or verify a bundle.\n\
-         \tmodel    Inspect the bounded local VRML profile.\n\
-         \tbom      Reconcile dataset BOM references with PCB identities.\n\
-        \tcomponent Inspect footprint pad structure; generate explicit SMD, round/oval plated-hole, or centered non-plated-hole footprint/library candidates or a provisional body envelope.\n\
-         \ttwin     Audit and prepare per-component renderable selectors, or query authored labels.\n\
-         \tdataset  Lock and verify explicitly listed offline dataset assets.\n\
-         \tpackage  Build or verify a Tokito source-and-inventory package.\n\
-         \n\
-         VERSION:\n\
-         \tversion, --version and -V print the Tokito CLI version.\n\
-         \n\
-         HELP:\n\
-         \t-h and --help print root or command-specific help.\n\
-         \t`help <COMMAND...>` prints help for a supported command path.\n\
-         \n\
-         PCB ALIASES:\n\
-         \ttokito-cli pcb inspect <BOARD|PACKAGE> [--json]\n\
-         \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
-         \ttokito-cli pcb export svg|glb|pos|placements ...\n\
-         \ttokito-cli pcb resolve models <BOARD|PACKAGE> ...\n\
-         \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
-         \n\
-         Use --help after a command path or `tokito-cli help <COMMAND...>` for command-specific help.\n\
-         \n\
-         CURRENT CAPABILITIES:\n\
-         \tInspect board metadata and component placements.\n\
-         \tExport placement rows in the source board coordinate frame.\n\
-         \tExport a KiCad-reference CSV placement view with explicit filters and units.\n\
-         \tExport partial physical-scale SVG views from supported geometry.\n\
-         \tExport a board shell, or explicitly assemble the supported local VRML subset.\n\
-         \tBuild a source-and-placement Tokito package (not mobile importable).\n\
-         \tSTEP source bytes can be copied with an explicit offline export; STEP geometry decoding/export and schematic-to-PCB remain unimplemented. JSON glTF source bundles include approved local buffer/image files; they are still not decoded or placed."
-    );
+fn print_help(style: cli_presentation::Style) {
+    println!("{}", style.help(r#"Tokito CLI 0.1.0
+Offline-first Rust tools for existing PCB layouts.
+
+USAGE:
+  tokito-cli [--color auto|always|never] <COMMAND> [ARGUMENTS]
+  tokito-cli help <COMMAND...>
+
+START HERE:
+  doctor      Check this runtime, or inspect a project/PCB without changing it
+  project     Discover a PCB; build and verify a source-bound export bundle
+  pcb         Inspect, validate, resolve models, and export an existing PCB
+
+COMMAND GROUPS:
+  component   Inspect/generate footprint candidates; manage candidate libraries
+  model       Inspect local VRML models; template and verify model assignments
+  bom         Reconcile exact source references with a supported BOM
+  twin        Inspect, prepare, select and preview authored 3D candidates
+  dataset     Inventory, bind, lock and verify explicitly selected offline assets
+  package     Build and verify source-and-inventory packages
+  version     Print the CLI version
+
+WORKFLOW:
+  1. tokito-cli doctor ./board-project
+  2. tokito-cli project inspect ./board-project
+  3. tokito-cli pcb resolve models board.kicad_pcb --project-root . --library-root ./models
+  4. tokito-cli project build ./board-project --output ./exports --assemble-wrl --library-root ./models
+  5. tokito-cli project verify ./exports
+
+HELP AND PRESENTATION:
+  -h and --help show root or command-specific help.
+  --version|-V prints the CLI version.
+  --color auto|always|never and --no-color are leading global options.
+  NO_COLOR disables colour; redirected output is plain by default.
+  Machine JSON is never decorated.
+
+EXAMPLES:
+  tokito-cli help project build
+  tokito-cli pcb export --help
+  tokito-cli component footprint generate --help
+  tokito-cli doctor ./board-project --json
+
+SHORTCUTS:
+  inspect, validate, resolve and export remain available without the pcb prefix.
+
+SCOPE:
+  Supported 2D views are partial. Local VRML assembly and source-linked component
+  selection are implemented; STEP geometry assembly, schematic-to-PCB, full KiCad
+  parity, App admission and registered AR are not complete. Missing models need
+  explicit --allow-partial; a successful export is not physical qualification."#));
 }
 
-fn print_command_help(path: &[String]) -> Result<(), CliError> {
+fn print_command_help(path: &[String], style: cli_presentation::Style) -> Result<(), CliError> {
+    macro_rules! println {
+        ($($arg:tt)*) => { std::println!("{}", style.help(&format!($($arg)*))) };
+    }
+
     if path.len() == 1 && path[0] == "pcb" {
-        print_pcb_help();
+        print_pcb_help(style);
         return Ok(());
     }
     let path = if path.first().is_some_and(|part| part == "pcb") {
@@ -862,13 +843,17 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
     } else {
         path
     };
+    let path = help_topic_without_arguments(path);
     match path
         .iter()
         .map(String::as_str)
         .collect::<Vec<_>>()
         .as_slice()
     {
-        [] => print_help(),
+        [] => print_help(style),
+        ["doctor"] => println!(
+            "USAGE: tokito-cli doctor [PROJECT|BOARD.kicad_pcb] [--board EXACT_FILENAME] [--json]\nWith no input, reports runtime information only. With a project or PCB, performs bounded source selection/import and supported outline checks without modifying files. --board disambiguates a project. Model references are inventory only, not availability or geometry qualification. Failed checks exit 2; JSON remains machine-readable.\nEXAMPLE: tokito-cli doctor ./board-project --json"
+        ),
         ["version"] => println!("USAGE: tokito-cli version\nPrint the Tokito CLI version."),
         ["project"] => println!(
             "USAGE: tokito-cli project inspect|build|verify ...\nInspect and select an existing physical PCB, build a hashed offline export bundle, or verify one. Schematic files are inventoried only; physical geometry is never inferred from a schematic."
@@ -899,13 +884,18 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         | ["model", "assignments", "verify"] => println!(
             "USAGE: tokito-cli model assignments template <BOARD|PACKAGE> --output <FILE.json>\n       tokito-cli model assignments verify <BOARD|PACKAGE> --manifest <FILE.json> --project-root <DIR> [--json]\nAssigned bodies: export glb <BOARD> --model-assignments <FILE.json> --project-root <DIR> --output <FILE.glb> --allow-partial --json-report\nAssignment and rendered coverage do not certify part identity, pose or geometry."
         ),
-        ["component"] | ["component", "model"] | ["component", "model", "envelope"] => println!(
+        ["component"] => println!(
+            "USAGE: tokito-cli component <COMMAND>\nCOMMANDS:\n  footprint inspect|r0603|generate    Inspect native pads or generate explicit candidates\n  footprint library                 Create, inspect, audit, lock or verify a candidate library\n  model envelope                    Emit an explicitly unqualified nominal rectangular body\nEXAMPLE: tokito-cli component footprint --help"
+        ),
+        ["component", "model"] | ["component", "model", "envelope"] => println!(
             "USAGE: tokito-cli component model envelope <SPEC.json> --board <BOARD|PACKAGE> --output <FILE.wrl> [--json]\nGenerates only a dimensioned rectangular body envelope from explicit source dimensions. This does not generate a footprint, terminals, or a qualified physical CAD model."
         ),
         ["component", "footprint", "inspect"] => println!(
             "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\nReads a bounded native footprint S-expression and reports direct pad fields plus source-declared 3D model paths and explicit offset/scale/rotation vectors. Unsupported or malformed reported fields are diagnosed; other direct pad clauses are listed by name but their values are not decoded. Model paths are not resolved and omitted transforms are not defaulted. This is structural inspection only; it does not validate KiCad semantics, render pad geometry, qualify a manufacturer land pattern, or certify fabrication readiness."
         ),
-        ["component", "footprint"] | ["component", "footprint", "r0603"] => println!(
+        ["component", "footprint"]
+        | ["component", "footprint", "r0603"]
+        | ["component", "footprint", "generate"] => println!(
             "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n       tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nInspects direct pad source structure or generates bounded explicit SMD, plated through-hole (round or oval drill, optional offset), or centered round non-plated-hole geometry from a versioned JSON spec. Graphics support lines, rectangles, circles and simple filled/unfilled polygons. Mixed pad technologies, IPC-7351 calculations, 3D models, KLC checks and physical qualification are not implemented."
         ),
         ["component", "footprint", "library", "create"] => {
@@ -939,20 +929,30 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["twin", "audit-population"] => println!(
             "USAGE: tokito-cli twin audit-population <GLB> --component-map <JSON> --manifest <JSON> --reference-bom <esp32-csv>\nCompares rendered authored classes with a reference BOM. Reports coverage gaps and reused-label conflicts. Does not assert that the reference design matches the photographed board."
         ),
-        ["twin"]
-        | ["twin", "inspect"]
-        | ["twin", "prepare"]
-        | ["twin", "prototype"]
-        | ["twin", "select"] => println!(
-            "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+        ["twin"] => println!(
+            "USAGE: tokito-cli twin <COMMAND>\nCOMMANDS:\n  inspect           Inspect hash-bound GLB/map/manifest identities\n  prepare           Prepare per-component renderable selectors\n  prototype         Generate an offline interactive browser viewer\n  select            Query an exact reference or authored class\n  adapt-source      Adapt a complete source-candidate profile\n  audit-population  Compare authored classes with an ESP32 reference BOM\nEXAMPLE: tokito-cli twin prototype --help\nAll outputs remain reference candidates; no AR registration or App admission is granted."
         ),
+        ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "prototype"] | ["twin", "select"] => {
+            println!(
+                "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+            )
+        }
         ["twin", "adapt-source"] => println!(
             "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR> [--board-plane-node <EXACT_SOURCE_NODE>]\nThe optional node must name one active, nonempty source subtree. Its decoded world bounds are retained separately from whole-scene bounds; author selection does not grant physical or pose qualification."
         ),
-        ["model"] | ["model", "inspect"] => println!(
+        ["model"] => println!(
+            "USAGE: tokito-cli model <COMMAND>\nCOMMANDS:\n  inspect                Inspect supported local VRML mesh geometry\n  derive-wrl             Explicitly derive a new, changed VRML candidate\n  assignments template   Create an exact-identity assignment template\n  assignments verify     Verify explicit local candidate assignments\nEXAMPLE: tokito-cli model assignments --help"
+        ),
+        ["model", "derive-wrl"] => println!(
+            "USAGE: tokito-cli model derive-wrl INPUT.wrl --output NEW.wrl --units millimetres|kicad-wrl [--remove-unused-invalid-materials] [--remove-zero-area-faces]\nAt least one explicit derivation flag is required. Writes a new candidate with a change report; never edits the source or qualifies physical geometry. Removing faces is not proof of a watertight solid."
+        ),
+        ["model", "inspect"] => println!(
             "USAGE: tokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]\nInspects the bounded VRML97 Group/Transform/scene DEF/USE and triangle-mesh profile."
         ),
-        ["export"] | ["export", "placements"] => println!(
+        ["export"] => println!(
+            "USAGE: tokito-cli [pcb] export <COMMAND>\nCOMMANDS:\n  svg          Partial physical-scale drawing of supported source geometry\n  glb          Board shell or bounded local VRML component assembly\n  pos          KiCad-reference manufacturing-position CSV subset\n  placements   Raw source-coordinate component inventory CSV\nEXAMPLE: tokito-cli pcb export glb --help"
+        ),
+        ["export", "placements"] => println!(
             "USAGE: tokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\nWrites source-frame component placement and identity rows."
         ),
         ["export", "pos"] => println!(
@@ -964,7 +964,10 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
         ["export", "glb"] => println!(
             "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] [--no-unspecified] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl emits the bounded supported VRML97 subset (.wrl/.vrml). --component-filter applies case-sensitive comma-separated reference patterns; `*` matches any sequence and `?` one Unicode scalar in Tokito. Empty filter means unfiltered and a no-match filter emits only the board shell. --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID; a custom (property \"DNP\" \"yes\") does not trigger this filter. --no-unspecified excludes footprints with neither native smd nor through_hole type; pads, names and model availability never infer this type. All filters act before model resolution and report selected/excluded coverage; pathological matching work is refused. Selected unresolved models still require --allow-partial. Filters apply only to VRML-to-GLB assembly. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; component filters, --no-dnp and --no-unspecified are unsupported in that mode and in shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
-        ["package"] | ["package", "build"] => println!(
+        ["package"] => println!(
+            "USAGE: tokito-cli package <COMMAND>\nCOMMANDS:\n  build    Create a new v0.1 source-and-inventory package\n  verify   Verify paths, identities and payload integrity\nEXAMPLE: tokito-cli package build --help\nThis package is not admitted by the phone importer."
+        ),
+        ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
         ),
         ["package", "verify"] => println!(
@@ -979,7 +982,66 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
     Ok(())
 }
 
-fn print_pcb_help() {
+fn help_topic_without_arguments(path: &[String]) -> &[String] {
+    const LEAVES: &[&[&str]] = &[
+        &["doctor"],
+        &["version"],
+        &["inspect"],
+        &["project", "inspect"],
+        &["project", "build"],
+        &["project", "verify"],
+        &["validate", "outline"],
+        &["resolve", "models"],
+        &["bom", "reconcile"],
+        &["model", "inspect"],
+        &["model", "derive-wrl"],
+        &["model", "assignments", "template"],
+        &["model", "assignments", "verify"],
+        &["component", "model", "envelope"],
+        &["component", "footprint", "inspect"],
+        &["component", "footprint", "generate"],
+        &["component", "footprint", "r0603"],
+        &["component", "footprint", "library", "create"],
+        &["component", "footprint", "library", "inspect"],
+        &["component", "footprint", "library", "audit"],
+        &["component", "footprint", "library", "lock"],
+        &["component", "footprint", "library", "verify"],
+        &["dataset", "inventory"],
+        &["dataset", "bind"],
+        &["dataset", "bind-external"],
+        &["dataset", "lock"],
+        &["dataset", "verify"],
+        &["twin", "inspect"],
+        &["twin", "prepare"],
+        &["twin", "prototype"],
+        &["twin", "select"],
+        &["twin", "adapt-source"],
+        &["twin", "audit-population"],
+        &["export", "svg"],
+        &["export", "glb"],
+        &["export", "pos"],
+        &["export", "placements"],
+        &["package", "build"],
+        &["package", "verify"],
+    ];
+    LEAVES
+        .iter()
+        .filter(|leaf| {
+            path.len() >= leaf.len()
+                && path
+                    .iter()
+                    .zip(leaf.iter())
+                    .all(|(actual, expected)| actual == expected)
+        })
+        .max_by_key(|leaf| leaf.len())
+        .map_or(path, |leaf| &path[..leaf.len()])
+}
+
+fn print_pcb_help(style: cli_presentation::Style) {
+    macro_rules! println {
+        ($($arg:tt)*) => { std::println!("{}", style.help(&format!($($arg)*))) };
+    }
+
     println!(
         "Tokito CLI PCB\n\
          Existing physical-board operations. Input must be a routed .kicad_pcb\n\
@@ -1157,18 +1219,19 @@ fn export_pos_command(args: &[String]) -> Result<(), CliError> {
 }
 
 pub(super) fn run(args: &[String]) -> Result<(), CliError> {
+    let (style, args) = cli_presentation::parse(args)?;
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
-        print_help();
+        print_help(style);
         return Ok(());
     }
     if args[0] == "help" {
-        return print_command_help(&args[1..]);
+        return print_command_help(&args[1..], style);
     }
     if let Some(help_index) = args
         .iter()
         .position(|argument| argument == "--help" || argument == "-h")
     {
-        return print_command_help(&args[..help_index]);
+        return print_command_help(&args[..help_index], style);
     }
     if args[0] == "--version" || args[0] == "-V" {
         println!("tokito-cli 0.1.0");
@@ -1180,6 +1243,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         }
         println!("tokito-cli 0.1.0");
         return Ok(());
+    }
+    if args[0] == "doctor" {
+        return cli_doctor::run(args, style);
     }
     if args[0] == "project" && args.get(1).map(String::as_str) == Some("build") {
         if args.len() < 5 {
@@ -1379,7 +1445,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 .get(1)
                 .is_some_and(|argument| argument == "--help" || argument == "-h")
         {
-            print_pcb_help();
+            print_pcb_help(style);
             return Ok(());
         }
         let mut delegated = match args[1].as_str() {
@@ -1389,7 +1455,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             "resolve" => vec!["resolve".to_owned()],
             "bom" => vec!["bom".to_owned()],
             _ => {
-                print_pcb_help();
+                print_pcb_help(style);
                 return Err(CliError::new("unknown PCB command"));
             }
         };
@@ -1934,7 +2000,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         );
         return Ok(());
     }
-    print_help();
+    print_help(style);
     Err(CliError::new("unknown command"))
 }
 

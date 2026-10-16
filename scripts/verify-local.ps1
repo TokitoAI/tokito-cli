@@ -4,6 +4,7 @@ param(
     [string]$CargoPath = 'cargo',
     [string]$PythonPath = 'python',
     [string]$TargetBase = '',
+    [string]$ReuseBuildTarget = '',
     [string]$DeliveryBase = '',
     [string]$DatasetRepo = '',
     [string]$DatasetBomReport = '',
@@ -124,7 +125,31 @@ try {
         New-Item -ItemType Directory -Path $targetParent -Force -ErrorAction Stop | Out-Null
         Assert-NoLinkedPath $targetParent
     }
-    $env:CARGO_TARGET_DIR = Join-Path $targetParent $verificationRun
+    if ([string]::IsNullOrWhiteSpace($ReuseBuildTarget)) {
+        $env:CARGO_TARGET_DIR = Join-Path $targetParent $verificationRun
+    } else {
+        if (-not [System.IO.Path]::IsPathFullyQualified($ReuseBuildTarget)) {
+            throw 'ReuseBuildTarget must be an absolute existing verification target.'
+        }
+        $reuseRoot = [System.IO.Path]::GetFullPath($ReuseBuildTarget)
+        $comparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+        if (-not $reuseRoot.StartsWith($targetParent.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
+            throw 'ReuseBuildTarget must be strictly inside TargetBase (or the default local-verification base).'
+        }
+        Assert-NoLinkedPath $reuseRoot
+        if (-not (Test-Path -LiteralPath $reuseRoot -PathType Container) -or
+            -not (Test-Path -LiteralPath (Join-Path $reuseRoot '.rustc_info.json') -PathType Leaf)) {
+            throw 'ReuseBuildTarget must contain an existing Cargo verification cache.'
+        }
+        $optionalInputs = @($DatasetRepo, $DatasetBomReport, $DatasetTwinGlb, $DatasetTwinComponentMap, $DatasetTwinManifest, $DatasetTwinProvenance,
+            $EmbeddedDatasetBoard, $EmbeddedDatasetBoardSha256, $EmbeddedDatasetExpectedModelCount, $EmbeddedDatasetExpectedCapturedBytes, $EmbeddedDatasetExpectedFormat,
+            $SourceCandidateRoot, $Esp32CandidateRoot, $Esp32ReferenceBom, $Esp32Pcb, $Esp32ModelLibrary,
+            $Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference, $NxpRefinementBaseline, $NxpRefinementSpec, $NxpRefinementPcb)
+        if (@($optionalInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+            throw 'ReuseBuildTarget supports the base profile only; omit it for optional dataset profiles.'
+        }
+        $env:CARGO_TARGET_DIR = $reuseRoot
+    }
     if ([string]::IsNullOrWhiteSpace($TargetBase)) {
         Assert-LocalOutputPath $env:CARGO_TARGET_DIR
     } else {
@@ -141,7 +166,7 @@ try {
     $binaryPath = Join-Path $env:CARGO_TARGET_DIR "release/$binaryName"
     $bundleHookTarget = Join-Path $env:CARGO_TARGET_DIR 'bundle-test-hooks'
     $bundleHookBinary = Join-Path $bundleHookTarget "release/$binaryName"
-    $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR 'geometry-e2e'
+    $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR "geometry-e2e/$verificationRun"
     $inputs = Get-InputFingerprints
     $checks = @(
         @{ name = 'format'; command = $cargoCommand.Source; arguments = @('fmt', '--all', '--check') },
@@ -166,6 +191,7 @@ try {
         @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
         @{ name = 'footprint-spec-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_spec_e2e.py', '--binary', $binaryPath) },
         @{ name = 'footprint-inspect-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_inspect_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'cli-experience-e2e'; command = $pythonCommand.Source; arguments = @('tests/cli_experience_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },
@@ -475,6 +501,7 @@ try {
         rustcVersion = $rustcVersion -join "`n"
         pythonVersion = "$pythonVersion"
         buildConfiguration = @{
+            cachePolicy = if ([string]::IsNullOrWhiteSpace($ReuseBuildTarget)) { 'isolated-new-target' } else { 'reuse-existing-target' }
             devDebug = $env:CARGO_PROFILE_DEV_DEBUG
             testDebug = $env:CARGO_PROFILE_TEST_DEBUG
             incremental = $env:CARGO_INCREMENTAL
