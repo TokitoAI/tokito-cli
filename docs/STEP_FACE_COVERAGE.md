@@ -66,3 +66,12 @@ not these subsequent experiment/doc changes. No new push or hosted CI run occurr
 - Verify occurrence/world transforms and component-to-model assignments before
   assembling these replacement candidates into an ESP32 board.
 - Rerun required current-source delivery verification before any code push.
+
+## Per-solid reference update (2026-10-16)
+
+The v2 reference capture preserves independent solid ownership. All 76 FreeCAD
+reference solids passed strict closure and winding in the first real run,
+including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
+edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
+See [the per-solid contract and evidence](STEP_SOLID_REFERENCE.md). Historical failed
+receipts above remain unchanged. This does not enable production STEP or AR.

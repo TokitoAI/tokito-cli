@@ -314,6 +314,10 @@ def mesh_integrity(points, triangles):
         "consistentlyOriented": bool(edge_incidence)
         and all(direction == 0 for direction in edge_direction.values()),
         "undirectedEdgeCount": len(edge_incidence),
+        "boundaryEdgeCount": sum(count == 1 for count in edge_incidence.values()),
+        "nonManifoldEdgeCount": sum(count > 2 for count in edge_incidence.values()),
+        "edgeIncidenceHistogram": dict(sorted(collections.Counter(edge_incidence.values()).items())),
+        "directionImbalanceEdgeCount": sum(direction != 0 for direction in edge_direction.values()),
         "signedVolumeMm3": six_times_volume / 6.0,
     }
 

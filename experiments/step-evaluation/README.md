@@ -146,3 +146,12 @@ python experiments/step-evaluation/tests/diagnose_degenerate_surface.py `
 
 Every run requires a new output path. This is a research diagnostic, not a
 passing release gate or a production STEP adapter.
+
+## Per-solid reference update (2026-10-16)
+
+The v2 reference capture preserves independent solid ownership. All 76 FreeCAD
+reference solids passed strict closure and winding in the first real run,
+including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
+edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
+See [the per-solid contract and evidence](../../docs/STEP_SOLID_REFERENCE.md). Historical failed
+receipts above remain unchanged. This does not enable production STEP or AR.

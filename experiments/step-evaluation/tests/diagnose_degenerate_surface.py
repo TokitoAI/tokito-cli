@@ -99,100 +99,118 @@ def main():
     rows = []
     multi.MAX_SURFACE_SAMPLES = 40_000  # bounded exploratory sampling only
     for item in manifest["models"]:
-        source = args.models_root / item["file"]
-        source_bytes = surface.bounded_read(source, surface.MAX_SOURCE_BYTES)
-        digest = hashlib.sha256(source_bytes).hexdigest()
-        if digest != item["sourceSha256"]:
-            raise ValueError(f"source hash mismatch: {item['file']}")
-        code, stdout, stderr = surface.capture_bounded(
-            [str(args.binary), "--candidate-mesh-data", str(source)],
-            timeout_seconds=300,
-            stdout_limit=multi.MAX_CAPTURE_BYTES,
-            stderr_limit=multi.MAX_STDERR_BYTES,
-        )
-        if code != 2 or stderr:
-            raise ValueError(f"unexpected evaluator response for {item['file']}")
-        candidate = json.loads(stdout)
-        if (
-            candidate.get("sourceSha256") != digest
-            or candidate.get("admitted") is not False
-            or candidate.get("exportsProduced") != []
-        ):
-            raise ValueError(f"candidate source identity or refusal changed for {item['file']}")
-        mesh = candidate["candidateMeshData"]
-        if (
-            not isinstance(mesh, dict)
-            or mesh.get("readerWarnings") != []
-            or mesh.get("geometryQualified") is not False
-            or mesh.get("pcbPlacementQualified") is not False
-        ):
-            raise ValueError(f"candidate warnings or non-admission changed for {item['file']}")
-        points, triangles, removed, removed_faces = filtered_mesh(mesh)
-        candidate_integrity = surface.mesh_integrity(points, triangles)
-        reference_path = args.references_root / (Path(item["file"]).stem + ".freecad.json")
-        reference_bytes = surface.bounded_read(reference_path, multi.MAX_REFERENCE_JSON_BYTES)
-        reference = json.loads(reference_bytes)
-        if (
-            reference.get("schema") != "tokito.freecad-reference-mesh.v1"
-            or reference.get("inputSha256") != digest
-            or reference.get("datasetCommit") != manifest["datasetCommit"]
-            or reference.get("modelFile") != item["file"]
-            or reference.get("freecadVersion") != manifest["freecadVersion"]
-            or reference.get("solidCount") != item["solidCount"]
-            or reference.get("faceCount") != item["faceCount"]
-            or reference.get("valid") is not True
-        ):
-            raise ValueError(f"reference source identity mismatch: {item['file']}")
-        reference_points = reference["verticesMm"]
-        reference_triangles = reference["triangles"]
-        multi.checked_reference_mesh(reference_points, reference_triangles)
-        reference_integrity = surface.mesh_integrity(reference_points, reference_triangles)
-        volume_tolerance = max(
-            1e-12, abs(reference_integrity["signedVolumeMm3"]) * multi.VOLUME_RELATIVE_TOLERANCE
-        )
-        work = [0]
-        forward = multi.directed_bvh_sample_distance(
-            points, triangles, reference_points, reference_triangles, work
-        )
-        reverse = multi.directed_bvh_sample_distance(
-            reference_points, reference_triangles, points, triangles, work
-        )
-        rows.append({
-            "file": item["file"],
-            "sourceSha256": digest,
-            "referenceSha256": hashlib.sha256(reference_bytes).hexdigest(),
-            "trianglesBefore": len(mesh["occurrences"][0]["shapes"][0]["triangles"])
-            if len(mesh["occurrences"]) == 1 and len(mesh["occurrences"][0]["shapes"]) == 1
-            else sum(len(shape["triangles"]) for occurrence in mesh["occurrences"] for shape in occurrence["shapes"]),
-            "trianglesAfter": len(triangles),
-            "degeneratesRemoved": removed,
-            "removedSourceFaces": removed_faces,
-            "candidateClosedAfterRemoval": candidate_integrity["closed"],
-            "candidateConsistentlyOrientedAfterRemoval": candidate_integrity["consistentlyOriented"],
-            "referenceClosed": reference_integrity["closed"],
-            "candidateVolumeMm3": candidate_integrity["signedVolumeMm3"],
-            "referenceVolumeMm3": reference_integrity["signedVolumeMm3"],
-            "volumeWithinPriorTolerance": abs(candidate_integrity["signedVolumeMm3"] - reference_integrity["signedVolumeMm3"]) <= volume_tolerance,
-            "readerToReferenceMaxSampleDistanceMm": forward[0],
-            "referenceToReaderMaxSampleDistanceMm": reverse[0],
-            "exploratorySampleCountPerDirection": min(len(triangles), 10_000) * 4,
-            "triangleDistanceEvaluations": work[0],
-            "productionStepAdmitted": False,
-        })
+        reference_evidence = {}
+        digest = item["sourceSha256"]
+        try:
+            source = args.models_root / item["file"]
+            source_bytes = surface.bounded_read(source, surface.MAX_SOURCE_BYTES)
+            digest = hashlib.sha256(source_bytes).hexdigest()
+            if digest != item["sourceSha256"]:
+                raise ValueError(f"source hash mismatch: {item['file']}")
+            code, stdout, stderr = surface.capture_bounded(
+                [str(args.binary), "--candidate-mesh-data", str(source)],
+                timeout_seconds=300,
+                stdout_limit=multi.MAX_CAPTURE_BYTES,
+                stderr_limit=multi.MAX_STDERR_BYTES,
+            )
+            if code != 2 or stderr:
+                raise ValueError(f"unexpected evaluator response for {item['file']}")
+            candidate = json.loads(stdout)
+            if (
+                candidate.get("sourceSha256") != digest
+                or candidate.get("admitted") is not False
+                or candidate.get("exportsProduced") != []
+            ):
+                raise ValueError(f"candidate source identity or refusal changed for {item['file']}")
+            mesh = candidate["candidateMeshData"]
+            if (
+                not isinstance(mesh, dict)
+                or mesh.get("readerWarnings") != []
+                or mesh.get("geometryQualified") is not False
+                or mesh.get("pcbPlacementQualified") is not False
+            ):
+                raise ValueError(f"candidate warnings or non-admission changed for {item['file']}")
+            points, triangles, removed, removed_faces = filtered_mesh(mesh)
+            candidate_integrity = surface.mesh_integrity(points, triangles)
+            reference_path = args.references_root / (Path(item["file"]).stem + ".freecad.json")
+            reference_bytes = surface.bounded_read(reference_path, multi.MAX_REFERENCE_JSON_BYTES)
+            reference = json.loads(reference_bytes)
+            if (
+                reference.get("schema") != "tokito.freecad-reference-mesh.v2"
+                or reference.get("inputSha256") != digest
+                or reference.get("datasetCommit") != manifest["datasetCommit"]
+                or reference.get("modelFile") != item["file"]
+                or reference.get("freecadVersion") != manifest["freecadVersion"]
+                or reference.get("deflectionMm") != manifest["tessellationDeflectionMm"]
+                or reference.get("solidCount") != item["solidCount"]
+                or reference.get("faceCount") != item["faceCount"]
+                or reference.get("valid") is not True
+            ):
+                raise ValueError(f"reference source identity mismatch: {item['file']}")
+            reference_points, reference_triangles, reference_evidence = multi.checked_solid_reference(reference, item["solidCount"])
+            reference_evidence["referenceSha256"] = hashlib.sha256(reference_bytes).hexdigest()
+            if not reference_evidence["allReferenceSolidsClosedAndConsistentlyOriented"]:
+                raise ValueError(f"per-solid reference integrity failed: {item['file']}")
+            reference_volume = reference_evidence["referenceSolidVolumeSumMm3"]
+            volume_tolerance = max(
+                1e-12, abs(reference_volume) * multi.VOLUME_RELATIVE_TOLERANCE
+            )
+            work = [0]
+            forward = multi.directed_bvh_sample_distance(
+                points, triangles, reference_points, reference_triangles, work
+            )
+            reverse = multi.directed_bvh_sample_distance(
+                reference_points, reference_triangles, points, triangles, work
+            )
+            rows.append({
+                "status": "diagnostic_completed",
+                **reference_evidence,
+                "file": item["file"],
+                "sourceSha256": digest,
+                "referenceSha256": hashlib.sha256(reference_bytes).hexdigest(),
+                "trianglesBefore": len(mesh["occurrences"][0]["shapes"][0]["triangles"])
+                if len(mesh["occurrences"]) == 1 and len(mesh["occurrences"][0]["shapes"]) == 1
+                else sum(len(shape["triangles"]) for occurrence in mesh["occurrences"] for shape in occurrence["shapes"]),
+                "trianglesAfter": len(triangles),
+                "degeneratesRemoved": removed,
+                "removedSourceFaces": removed_faces,
+                "candidateClosedAfterRemoval": candidate_integrity["closed"],
+                "candidateConsistentlyOrientedAfterRemoval": candidate_integrity["consistentlyOriented"],
+                "candidateVolumeMm3": candidate_integrity["signedVolumeMm3"],
+                "referenceVolumeMm3": reference_volume,
+                "volumeWithinPriorTolerance": abs(candidate_integrity["signedVolumeMm3"] - reference_volume) <= volume_tolerance,
+                "readerToReferenceMaxSampleDistanceMm": forward[0],
+                "referenceToReaderMaxSampleDistanceMm": reverse[0],
+                "exploratorySampleCountPerDirection": min(len(triangles), 10_000) * 4,
+                "triangleDistanceEvaluations": work[0],
+                "productionStepAdmitted": False,
+            })
+        except Exception as error:
+            rows.append({
+                **reference_evidence,
+                "file": item["file"],
+                "sourceSha256": digest,
+                "status": "failed",
+                "error": f"{type(error).__name__}: {str(error)[:1200]}",
+                "productionStepAdmitted": False,
+            })
 
     receipt = {
-        "schema": "tokito.step-degenerate-removal-diagnostic.v1",
+        "schema": "tokito.step-degenerate-removal-diagnostic.v2",
         "datasetCommit": manifest["datasetCommit"],
         "manifestSha256": hashlib.sha256(manifest_bytes).hexdigest(),
         "evaluatorSha256": hashlib.sha256(binary_bytes).hexdigest(),
         "freecadVersion": manifest["freecadVersion"],
         "purpose": "diagnose whether dropping zero-area reader triangles preserves closure, orientation, volume and bounded sampled surface agreement",
         "productionStepAdmitted": False,
+        "diagnosticCompleted": all(row.get("status") == "diagnostic_completed" for row in rows),
         "models": rows,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     print(json.dumps(rows, separators=(",", ":")))
+    if not receipt["diagnosticCompleted"]:
+        raise SystemExit(2)
 
 
 if __name__ == "__main__":

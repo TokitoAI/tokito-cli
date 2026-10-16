@@ -202,6 +202,74 @@ def checked_reference_mesh(points, triangles):
             raise ValueError("FreeCAD reference contains a degenerate triangle")
 
 
+def checked_solid_reference(reference, expected_solid_count):
+    """Validate v2 ownership; never infer solid membership from a compound mesh.
+
+    Compound arrays and the sum of all solid arrays each have one fixed budget.
+    Equal coordinates across solids retain independent indices. Invalid solids
+    remain in the evidence; callers must refuse comparison when the gate fails.
+    """
+    if not isinstance(reference, dict) or reference.get("schema") != "tokito.freecad-reference-mesh.v2":
+        raise ValueError("per-solid comparison requires a v2 reference; legacy compound membership is unknown")
+    solids = reference.get("solids")
+    if (
+        type(expected_solid_count) is not int or expected_solid_count <= 0
+        or type(reference.get("solidCount")) is not int
+        or reference["solidCount"] != expected_solid_count
+        or not isinstance(solids, list) or len(solids) != expected_solid_count
+        or any(not isinstance(row, dict) or type(row.get("solidIndex")) is not int
+               or row["solidIndex"] != index for index, row in enumerate(solids))
+    ):
+        raise ValueError("FreeCAD solid inventory is incomplete, duplicated or out of order")
+    compound_points, compound_triangles = reference.get("verticesMm"), reference.get("triangles")
+    checked_reference_mesh(compound_points, compound_triangles)
+    total_vertices = total_triangles = 0
+    # Bound aggregate work BEFORE doing per-solid triangle/integrity scans.
+    for solid in solids:
+        if not isinstance(solid.get("verticesMm"), list) or not isinstance(solid.get("triangles"), list):
+            raise ValueError("FreeCAD solid mesh arrays are missing")
+        total_vertices += len(solid["verticesMm"])
+        total_triangles += len(solid["triangles"])
+        if total_vertices > MAX_REFERENCE_VERTICES or total_triangles > MAX_REFERENCE_TRIANGLES:
+            raise ValueError("FreeCAD per-solid aggregate exceeds mesh limits")
+    evidence = {
+        "freecadSolidCount": reference["solidCount"],
+        "freecadFaceCount": reference.get("faceCount"),
+        "referenceSolidMeshVertexCount": total_vertices,
+        "referenceSolidMeshTriangleCount": total_triangles,
+        "compoundReferenceIntegrity": surface.mesh_integrity(compound_points, compound_triangles),
+        "referenceSolidIntegrity": [],
+        "referenceSolidIdentityScope": "ordinal in this pinned FreeCAD import; not a STEP entity ID",
+        "referenceVolumeScope": "sum of signed per-solid mesh volumes; not geometric-union volume",
+    }
+    points, triangles = [], []
+    for solid in solids:
+        row = {"solidIndex": solid["solidIndex"], "vertexCount": len(solid["verticesMm"]),
+               "triangleCount": len(solid["triangles"]), "faceCount": solid.get("faceCount")}
+        evidence["referenceSolidIntegrity"].append(row)
+        try:
+            if (solid.get("valid") is not True or type(solid.get("faceCount")) is not int
+                    or solid["faceCount"] <= 0):
+                raise ValueError("solid B-rep validity or face count is invalid")
+            checked_reference_mesh(solid["verticesMm"], solid["triangles"])
+            integrity = surface.mesh_integrity(solid["verticesMm"], solid["triangles"])
+            row.update(integrity)
+            row["outwardWinding"] = math.isfinite(integrity["signedVolumeMm3"]) and integrity["signedVolumeMm3"] > 0
+            row["passed"] = integrity["closed"] and integrity["consistentlyOriented"] and row["outwardWinding"]
+            offset = len(points)
+            points.extend(solid["verticesMm"])
+            triangles.extend([[offset + index for index in triangle] for triangle in solid["triangles"]])
+        except ValueError as error:
+            row.update({"passed": False, "error": str(error)[:600]})
+    evidence["allReferenceSolidsClosedAndConsistentlyOriented"] = all(row["passed"] for row in evidence["referenceSolidIntegrity"])
+    evidence["referenceSolidVolumeSumComplete"] = all("signedVolumeMm3" in row for row in evidence["referenceSolidIntegrity"])
+    evidence["referenceSolidVolumeSumMm3"] = (
+        sum(row["signedVolumeMm3"] for row in evidence["referenceSolidIntegrity"])
+        if evidence["referenceSolidVolumeSumComplete"] else None
+    )
+    return points, triangles, evidence
+
+
 def combine_occurrence_mesh(mesh):
     occurrences = mesh.get("occurrences")
     if not isinstance(occurrences, list) or not occurrences:
@@ -282,11 +350,14 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
     output.mkdir(parents=True)
     results = []
     macro = ROOT / "references" / "generate_multi_reference.FCMacro"
+    tool_paths = [Path(__file__), Path(surface.__file__), macro]
+    tool_hashes = {path.name: hashlib.sha256(surface.bounded_read(path, 128 * 1024)).hexdigest() for path in tool_paths}
     config_root = output / "configs"
     config_root.mkdir()
     for row in rows:
         filename = row["file"]
         source_sha = row.get("sourceSha256")
+        reference_evidence = {}
         try:
             filename = row["file"]
             source = source_root / filename
@@ -302,9 +373,17 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
                 "source": str(source),
                 "output": str(reference_path),
             }, separators=(",", ":")), encoding="utf-8")
+            # Explicit FreeCAD options isolate load/save settings and logs from
+            # the tester's normal profile (and its potentially full drive).
+            freecad_config = config_root / (Path(filename).stem + "-freecad")
+            freecad_config.mkdir()
             return_code, stdout, stderr = surface.capture_bounded(
                 [
-                    str(freecadcmd), str(macro), "--pass", str(config_path),
+                    str(freecadcmd),
+                    "--user-cfg", str(freecad_config / "user.cfg"),
+                    "--system-cfg", str(freecad_config / "system.cfg"),
+                    "--log-file", str(freecad_config / "FreeCAD.log"),
+                    str(macro), "--pass", str(config_path),
                 ],
                 timeout_seconds=300,
                 stdout_limit=MAX_STDERR_BYTES,
@@ -315,15 +394,21 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
             reference_bytes = surface.bounded_read(reference_path, MAX_REFERENCE_JSON_BYTES)
             reference = json.loads(reference_bytes)
             if (
-                reference.get("schema") != "tokito.freecad-reference-mesh.v1"
+                reference.get("schema") != "tokito.freecad-reference-mesh.v2"
                 or reference.get("inputSha256") != source_sha
+                or reference.get("modelFile") != filename
                 or reference.get("datasetCommit") != manifest["datasetCommit"]
                 or reference.get("freecadVersion") != manifest["freecadVersion"]
+                or reference.get("deflectionMm") != manifest["tessellationDeflectionMm"]
                 or reference.get("solidCount") != row["solidCount"]
                 or reference.get("faceCount") != row["faceCount"]
                 or reference.get("valid") is not True
             ):
                 raise ValueError(f"generated FreeCAD reference identity mismatch for {filename}")
+            reference_points, reference_triangles, reference_evidence = checked_solid_reference(reference, row["solidCount"])
+            reference_evidence["referenceSha256"] = hashlib.sha256(reference_bytes).hexdigest()
+            if not reference_evidence["allReferenceSolidsClosedAndConsistentlyOriented"]:
+                raise ValueError(f"{filename}: one or more FreeCAD solid meshes failed closure/orientation/outward-winding checks")
             code, stdout, stderr = surface.capture_bounded(
                 [str(binary), "--candidate-mesh-data", str(source)],
                 timeout_seconds=300,
@@ -350,21 +435,17 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
             ):
                 raise ValueError(f"STEP candidate changed units, warnings, or non-admission for {filename}")
             candidate_points, candidate_triangles, occurrence_count, shape_count = combine_occurrence_mesh(mesh)
-            reference_points = reference.get("verticesMm")
-            reference_triangles = reference.get("triangles")
-            checked_reference_mesh(reference_points, reference_triangles)
             candidate_integrity = surface.mesh_integrity(candidate_points, candidate_triangles)
-            reference_integrity = surface.mesh_integrity(reference_points, reference_triangles)
-            for label, integrity in (("reader", candidate_integrity), ("FreeCAD", reference_integrity)):
-                if not integrity["closed"] or not integrity["consistentlyOriented"]:
-                    raise ValueError(f"{filename}: {label} mesh is open or inconsistently oriented")
+            if not candidate_integrity["closed"] or not candidate_integrity["consistentlyOriented"]:
+                raise ValueError(f"{filename}: reader mesh is open or inconsistently oriented")
+            reference_volume = reference_evidence["referenceSolidVolumeSumMm3"]
             volume_scale = max(
                 1e-12,
-                abs(reference_integrity["signedVolumeMm3"]) * VOLUME_RELATIVE_TOLERANCE,
+                abs(reference_volume) * VOLUME_RELATIVE_TOLERANCE,
             )
             if (
-                candidate_integrity["signedVolumeMm3"] * reference_integrity["signedVolumeMm3"] <= 0
-                or abs(candidate_integrity["signedVolumeMm3"] - reference_integrity["signedVolumeMm3"]) > volume_scale
+                candidate_integrity["signedVolumeMm3"] * reference_volume <= 0
+                or abs(candidate_integrity["signedVolumeMm3"] - reference_volume) > volume_scale
             ):
                 raise ValueError(f"{filename}: reader/FreeCAD signed-volume mismatch")
             work = [0]
@@ -374,6 +455,7 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
             if maximum > SAMPLE_TOLERANCE_MM:
                 raise ValueError(f"{filename}: bidirectional surface distance {maximum:.9g} mm exceeds {SAMPLE_TOLERANCE_MM} mm")
             results.append({
+                **reference_evidence,
                 "file": filename,
                 "sourceSha256": source_sha,
                 "status": "passed",
@@ -385,7 +467,7 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
                 "readerTriangleCount": len(candidate_triangles),
                 "referenceTriangleCount": len(reference_triangles),
                 "readerVolumeMm3": candidate_integrity["signedVolumeMm3"],
-                "referenceVolumeMm3": reference_integrity["signedVolumeMm3"],
+                "referenceVolumeMm3": reference_volume,
                 "volumeAbsoluteToleranceMm3": volume_scale,
                 "sampleCountReaderToFreecad": forward[2],
                 "sampleCountFreecadToReader": reverse[2],
@@ -401,6 +483,7 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
             })
         except Exception as error:
             results.append({
+                **reference_evidence,
                 "file": filename,
                 "sourceSha256": source_sha,
                 "status": "failed",
@@ -412,11 +495,14 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
             })
     passed = len(results) == len(rows) and all(row.get("status") == "passed" for row in results)
     receipt = {
-        "schema": "tokito.step-multi-surface-e2e.v1",
+        "schema": "tokito.step-multi-surface-e2e.v2",
         "passed": passed,
         "datasetCommit": manifest["datasetCommit"],
         "manifestSha256": hashlib.sha256(manifest_bytes).hexdigest(),
         "evaluatorSha256": hashlib.sha256(binary_bytes).hexdigest(),
+        "referenceMacroSha256": tool_hashes[macro.name],
+        "comparisonToolSha256": tool_hashes,
+        "referenceConfigurationScope": "fresh per-model user/system settings and logs inside this run; normal FreeCAD profile not loaded",
         "freecadVersion": manifest["freecadVersion"],
         "tessellationDeflectionMm": manifest["tessellationDeflectionMm"],
         "maximumBidirectionalSampleDistanceMm": SAMPLE_TOLERANCE_MM,
@@ -428,6 +514,10 @@ def run(binary, source_root, freecadcmd, manifest_path, output):
         "assemblyPoseQualified": False,
         "scope": "three source-hash-pinned multi-solid mesh comparisons with bidirectional triangle-surface samples, closed-edge/orientation and signed-volume checks; no face-surface proof, component mapping, board placement, or production STEP admission",
     }
+    if any(hashlib.sha256(surface.bounded_read(path, 128 * 1024)).hexdigest() != tool_hashes[path.name] for path in tool_paths):
+        receipt["passed"] = False
+        receipt["toolInputsChangedDuringRun"] = True
+        passed = False
     (output / "receipt.json").write_text(json.dumps(receipt, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     if not passed:
         print("FAIL: " + "; ".join(

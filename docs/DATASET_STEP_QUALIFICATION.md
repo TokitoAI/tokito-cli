@@ -189,3 +189,12 @@ part of the production exporter and creates no GLB. All three STEP sources
 remain unadmitted; component identity, board-space placement and real assembled
 board qualification remain false. See the experiment's
 [procedure and limitations](../experiments/step-evaluation/README.md#multi-model-degenerate-triangle-diagnostic).
+
+## Per-solid reference update (2026-10-16)
+
+The v2 reference capture preserves independent solid ownership. All 76 FreeCAD
+reference solids passed strict closure and winding in the first real run,
+including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
+edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
+See [the per-solid contract and evidence](STEP_SOLID_REFERENCE.md). Historical failed
+receipts above remain unchanged. This does not enable production STEP or AR.

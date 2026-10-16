@@ -1,6 +1,27 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
-## Current work — CLI diagnostics, flow and documentation (2026-10-16)
+CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
+YOLO are excluded from the current release scope. The frozen-tool capture c
+confirms 76/76 reference solids and preserves both known reader failures.
+
+## Current work — independent STEP solid references (2026-10-16)
+
+| Owner | Dependency | State | Evidence / review | Next action |
+| --- | --- | --- | --- | --- |
+| Main | Pinned FreeCAD/source manifest | Implemented | v2 compound plus independent solid meshes; fixed aggregate budgets; no cross-solid welding | Completed capture c; unchanged tool hashes |
+| Main | Strict edge/winding checks | First real run verified | All 76 reference solids pass (5/41/30); reader still rejects 14/16 for degenerates | Preserve failures; original Rust planar-face repair next |
+| Main | Error receipt retention | Tested | Eight unit tests; failed rows retain every solid; volume sum completeness explicit | Full 41-gate base verification next |
+| Independent reviewer | Current source and first real receipt | No blocker after correction | Diagnostic used to discard failed evidence; corrected and regression-tested | Review final capture/receipt |
+
+See [the per-solid evidence contract](STEP_SOLID_REFERENCE.md). These are
+reference-tool changes, not product STEP admission. Production core remains
+original Rust. Earlier CLI delivery is on PR #45 at `6377dd9`, with a final
+40-gate receipt at
+`target/delivery/local/20261016T053441Z-6278cec0137c4fcfa42067f778fe1b45/verification.json`.
+Issues #13/#19/#24 and the CLI project remain In Progress. New changes are
+local until current-source verification passes; no Actions or merge.
+
+## Previous checkpoint — CLI diagnostics, flow and documentation (2026-10-16)
 
 | Owner | Dependency | State | Evidence / review | Next action |
 | --- | --- | --- | --- | --- |
