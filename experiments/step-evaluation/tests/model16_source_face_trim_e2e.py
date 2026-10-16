@@ -106,6 +106,33 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             "trimCandidateMaxSampledChordErrorSourceUnits": trim_candidate.get(
                 "maxSampledChordErrorSourceUnits"
             ),
+            "trimCandidateBoundarySampleCount": len(trim_candidate.get("boundarySamples", [])),
+            "trimCandidateBoundaryTrace": trim_candidate.get("boundaryTrace"),
+            "sourceDrivenBoundaryRefinementProbeCount": len(
+                trim_candidate.get("boundaryRefinementProbes", [])
+            ),
+            "retainedBoundaryRefinementProbeCount": sum(
+                probe.get("retainedInCandidate") is True
+                for probe in trim_candidate.get("boundaryRefinementProbes", [])
+            ),
+            "uvProjectionConvergence": {
+                "sourceBoundarySamplesConverged": sum(
+                    sample.get("projectionConverged") is True
+                    for sample in trim_candidate.get("boundarySamples", [])
+                ),
+                "sourceBoundarySamplesNotConverged": sum(
+                    sample.get("projectionConverged") is False
+                    for sample in trim_candidate.get("boundarySamples", [])
+                ),
+                "sourceEdgeMidpointProbesConverged": sum(
+                    probe.get("projectionConverged") is True
+                    for probe in trim_candidate.get("boundaryRefinementProbes", [])
+                ),
+                "sourceEdgeMidpointProbesNotConverged": sum(
+                    probe.get("projectionConverged") is False
+                    for probe in trim_candidate.get("boundaryRefinementProbes", [])
+                ),
+            },
         }
         if report.get("sourceSha256") != SOURCE_SHA256:
             raise ValueError("CLI source digest mismatch")
@@ -174,10 +201,18 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             vertices = trim_candidate.get("uvVertices", [])
             triangles = trim_candidate.get("triangles", [])
             surface_points = trim_candidate.get("surfacePointsSourceUnits", [])
+            mesh_points = trim_candidate.get("meshPointsSourceUnits", [])
+            boundary_trace = trim_candidate.get("boundaryTrace", {})
+            boundary_samples = trim_candidate.get("boundarySamples", [])
+            boundary_probes = trim_candidate.get("boundaryRefinementProbes", [])
+            exact_projection_tolerance = (
+                surface.get("controlNetDiagonalSourceUnits", 0) * 1e-10
+            )
             if (
                 len(vertices) < 3
                 or len(vertices) > 60_000
                 or len(surface_points) != len(vertices)
+                or len(mesh_points) != len(vertices)
                 or not triangles
                 or len(triangles) > 50_000
                 or any(
@@ -190,6 +225,255 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                 )
             ):
                 raise ValueError("research trim candidate topology is malformed")
+            edge_use_counts = {}
+            edge_directions = {}
+            mesh_adjacency = [set() for _ in vertices]
+            for triangle in triangles:
+                for a, b in ((triangle[0], triangle[1]), (triangle[1], triangle[2]), (triangle[2], triangle[0])):
+                    edge = (min(a, b), max(a, b))
+                    edge_use_counts[edge] = edge_use_counts.get(edge, 0) + 1
+                    directions = edge_directions.setdefault(edge, [0, 0])
+                    directions[0 if a < b else 1] += 1
+                    mesh_adjacency[a].add(b)
+                    mesh_adjacency[b].add(a)
+            boundary_edges = [edge for edge, count in edge_use_counts.items() if count == 1]
+            boundary_degrees = {}
+            boundary_adjacency = {}
+            for a, b in boundary_edges:
+                boundary_degrees[a] = boundary_degrees.get(a, 0) + 1
+                boundary_degrees[b] = boundary_degrees.get(b, 0) + 1
+                boundary_adjacency.setdefault(a, set()).add(b)
+                boundary_adjacency.setdefault(b, set()).add(a)
+            topology = {
+                "vertices": len(vertices),
+                "edges": len(edge_use_counts),
+                "triangles": len(triangles),
+                "boundaryEdges": len(boundary_edges),
+                "boundaryVertices": len(boundary_degrees),
+                "nonManifoldEdges": sum(count > 2 for count in edge_use_counts.values()),
+                "inconsistentInteriorEdges": sum(
+                    count == 2 and edge_directions[edge] != [1, 1]
+                    for edge, count in edge_use_counts.items()
+                ),
+                "boundaryVerticesWithDegreeOtherThanTwo": sum(degree != 2 for degree in boundary_degrees.values()),
+                "eulerCharacteristic": len(vertices) - len(edge_use_counts) + len(triangles),
+            }
+            seen = set()
+            mesh_components = 0
+            for start in range(len(vertices)):
+                if start in seen:
+                    continue
+                mesh_components += 1
+                seen.add(start)
+                stack = [start]
+                while stack:
+                    current = stack.pop()
+                    for neighbour in mesh_adjacency[current] - seen:
+                        seen.add(neighbour)
+                        stack.append(neighbour)
+            seen_boundary = set()
+            boundary_components = 0
+            for start in boundary_adjacency:
+                if start in seen_boundary:
+                    continue
+                boundary_components += 1
+                seen_boundary.add(start)
+                stack = [start]
+                while stack:
+                    current = stack.pop()
+                    for neighbour in boundary_adjacency[current] - seen_boundary:
+                        seen_boundary.add(neighbour)
+                        stack.append(neighbour)
+            topology["connectedComponents"] = mesh_components
+            topology["boundaryComponents"] = boundary_components
+            receipt["summary"]["candidateMeshTopology"] = topology
+            if topology != {
+                "vertices": 3393,
+                "edges": 9408,
+                "triangles": 6016,
+                "boundaryEdges": 768,
+                "boundaryVertices": 768,
+                "nonManifoldEdges": 0,
+                "inconsistentInteriorEdges": 0,
+                "boundaryVerticesWithDegreeOtherThanTwo": 0,
+                "eulerCharacteristic": 1,
+                "connectedComponents": 1,
+                "boundaryComponents": 1,
+            }:
+                raise ValueError("candidate mesh incidence or connected topology changed")
+            if (
+                boundary_trace.get("sampleCount") != projection.get("boundarySampleCount")
+                or boundary_trace.get("sourceSampleOrderPreserved") is not True
+                or boundary_trace.get("candidateLoopClosureUv") is None
+                or not isinstance(boundary_samples, list)
+                or len(boundary_samples) != projection.get("boundarySampleCount")
+            ):
+                raise ValueError("candidate boundary provenance is missing or incomplete")
+            if not isinstance(boundary_probes, list) or len(boundary_probes) != 1440:
+                raise ValueError("source-driven boundary refinement probe count changed")
+            retained_probe_count = 0
+            discarded_probe_count = 0
+            for probe in boundary_probes:
+                vertex_index = probe.get("candidateVertexIndex")
+                probe_uv = probe.get("candidateUv")
+                source_point = probe.get("sourcePointSourceUnits")
+                surface_point = probe.get("surfacePointSourceUnits")
+                mesh_point = probe.get("meshPointSourceUnits")
+                residual = probe.get("surfaceResidualSourceUnits")
+                projection_residual = probe.get("projectionResidualSourceUnits")
+                projection_converged = probe.get("projectionConverged")
+                if (
+                    probe.get("orientedEdgeId") not in EXPECTED_ORIENTED_EDGES
+                    or not isinstance(probe.get("curveParameter"), (int, float))
+                    or not math.isfinite(float(probe["curveParameter"]))
+                    or not isinstance(probe_uv, list)
+                    or len(probe_uv) != 2
+                    or not isinstance(source_point, list)
+                    or len(source_point) != 3
+                    or not isinstance(surface_point, list)
+                    or len(surface_point) != 3
+                    or not isinstance(mesh_point, list)
+                    or len(mesh_point) != 3
+                    or not isinstance(vertex_index, int)
+                    or vertex_index < 0
+                    or not isinstance(probe.get("retainedInCandidate"), bool)
+                    or not isinstance(residual, (int, float))
+                    or not math.isfinite(float(residual))
+                    or residual < 0
+                    or residual > 1e-5
+                    or not isinstance(projection_residual, (int, float))
+                    or not math.isfinite(float(projection_residual))
+                    or projection_residual < 0
+                    or projection_residual > 1e-5
+                    or not isinstance(projection_converged, bool)
+                    or (
+                        projection_converged
+                        and projection_residual > exact_projection_tolerance + 1e-14
+                    )
+                    or any(
+                        not math.isfinite(float(value))
+                        for value in [*probe_uv, *source_point, *surface_point, *mesh_point]
+                    )
+                ):
+                    raise ValueError("source-driven boundary refinement probe is malformed")
+                if probe["retainedInCandidate"]:
+                    retained_probe_count += 1
+                    if not 0 <= vertex_index < len(vertices):
+                        raise ValueError("retained boundary probe is outside the final mesh")
+                    if any(
+                        abs(float(probe_uv[axis]) - float(vertices[vertex_index][axis])) > 1e-14
+                        for axis in range(2)
+                    ) or any(
+                        abs(float(surface_point[axis]) - float(surface_points[vertex_index][axis]))
+                        > 1e-14
+                        for axis in range(3)
+                    ) or any(
+                        abs(float(mesh_point[axis]) - float(mesh_points[vertex_index][axis]))
+                        > 1e-14
+                        for axis in range(3)
+                    ):
+                        raise ValueError("retained boundary probe maps to the wrong mesh vertex")
+                else:
+                    discarded_probe_count += 1
+                    if vertex_index < len(vertices):
+                        raise ValueError("discarded boundary probe unexpectedly appears in the final mesh")
+            if retained_probe_count == 0 or discarded_probe_count == 0:
+                raise ValueError("boundary refinement must report retained and final-pass probes")
+            projection_convergence = receipt["summary"]["uvProjectionConvergence"]
+            if projection_convergence != {
+                "sourceBoundarySamplesConverged": 73,
+                "sourceBoundarySamplesNotConverged": 27,
+                "sourceEdgeMidpointProbesConverged": 1048,
+                "sourceEdgeMidpointProbesNotConverged": 392,
+            }:
+                raise ValueError("pinned UV projection convergence status changed")
+            edge_ids = set()
+            for index, sample in enumerate(boundary_samples):
+                vertex_index = sample.get("candidateVertexIndex")
+                residual = sample.get("surfaceResidualSourceUnits")
+                projection_residual = sample.get("projectionResidualSourceUnits")
+                candidate_uv = sample.get("candidateUv")
+                source_point = sample.get("sourcePointSourceUnits")
+                if (
+                    sample.get("boundaryIndex") != index
+                    or sample.get("orientedEdgeId") not in EXPECTED_ORIENTED_EDGES
+                    or sample.get("edgeCurveId") is None
+                    or sample.get("curveGeometryId") is None
+                    or not isinstance(source_point, list)
+                    or len(source_point) != 3
+                    or not isinstance(candidate_uv, list)
+                    or len(candidate_uv) != 2
+                    or not isinstance(vertex_index, int)
+                    or not 0 <= vertex_index < len(vertices)
+                    or not isinstance(residual, (int, float))
+                    or not math.isfinite(residual)
+                    or residual < 0
+                    or not isinstance(projection_residual, (int, float))
+                    or not math.isfinite(projection_residual)
+                    or projection_residual < 0
+                    or projection_residual > 1e-5
+                    or not isinstance(sample.get("projectionConverged"), bool)
+                    or (
+                        sample.get("projectionConverged")
+                        and projection_residual > exact_projection_tolerance + 1e-14
+                    )
+                    or any(
+                        not math.isfinite(float(value))
+                        for value in [*source_point, *candidate_uv]
+                    )
+                ):
+                    raise ValueError("candidate boundary provenance has an invalid sample")
+                if any(
+                    abs(float(candidate_uv[axis]) - float(vertices[vertex_index][axis])) > 1e-14
+                    for axis in range(2)
+                ):
+                    raise ValueError("candidate boundary sample maps to the wrong retained vertex")
+                point = sample.get("surfacePointSourceUnits")
+                mesh_point = sample.get("candidateMeshPointSourceUnits")
+                mesh_residual = sample.get("meshToSourceTrimResidualSourceUnits")
+                if (
+                    not isinstance(point, list)
+                    or len(point) != 3
+                    or any(
+                        abs(float(point[axis]) - float(surface_points[vertex_index][axis])) > 1e-14
+                        for axis in range(3)
+                    )
+                    or not isinstance(mesh_point, list)
+                    or len(mesh_point) != 3
+                    or not isinstance(mesh_residual, (int, float))
+                    or not math.isfinite(float(mesh_residual))
+                    or mesh_residual < 0
+                    or mesh_residual > 1e-5
+                    or any(
+                        abs(float(mesh_point[axis]) - float(mesh_points[vertex_index][axis]))
+                        > 1e-14
+                        for axis in range(3)
+                    )
+                    or abs(
+                        math.dist(
+                            [float(value) for value in mesh_point],
+                            [float(value) for value in source_point],
+                        )
+                        - float(mesh_residual)
+                    )
+                    > 1e-12
+                ):
+                    raise ValueError("candidate boundary sample maps to the wrong mesh or surface point")
+                edge_ids.add(sample["orientedEdgeId"])
+            closure = boundary_trace["candidateLoopClosureUv"]
+            if (
+                len(edge_ids) != len(EXPECTED_ORIENTED_EDGES)
+                or not isinstance(closure, list)
+                or len(closure) != 2
+                or any(not isinstance(value, (int, float)) or not math.isfinite(value) for value in closure)
+                or math.hypot(float(closure[0]), float(closure[1])) > 1e-6
+                or boundary_trace.get("ambiguousHalfPeriodStepCount") != 0
+                or not isinstance(boundary_trace.get("uPeriodicBranchShiftCount"), int)
+                or not isinstance(boundary_trace.get("vPeriodicBranchShiftCount"), int)
+                or not isinstance(boundary_trace.get("maximumUnwrappedUStep"), (int, float))
+                or not isinstance(boundary_trace.get("maximumUnwrappedVStep"), (int, float))
+            ):
+                raise ValueError("candidate periodic branch trace is invalid or does not close")
         if any(fingerprint(path, limit) != before[str(path)] for path, limit in tracked):
             raise ValueError("source, binary, or test input changed during execution")
         receipt["diagnosticSha256"] = fingerprint(output / "diagnostic.json", 8 * 1024 * 1024)

@@ -4,6 +4,7 @@
 //! data with oxideav-ifc's shared geometry kernel and measures projection
 //! residuals; it does not repair, export, or qualify the source model.
 
+use crate::trim_polygon_candidate::{BoundaryCurveSegment, BoundaryVertexPoint, RefinementOptions};
 use oxideav_ifc::{kernel, StepFile, Value};
 use oxideav_step::schema::Entity;
 use serde_json::{json, Value as Json};
@@ -14,6 +15,7 @@ const MAX_TOTAL_EDGE_CURVE_CONTROL_POINTS: usize = 65_536;
 const MAX_CURVE_SPANS: usize = 256;
 const SAMPLES_PER_CURVE_SPAN: usize = 16;
 const MAX_BOUNDARY_SAMPLES: usize = 16_384;
+const MAX_BOUNDARY_REFINEMENT_PROBES: usize = 8_192;
 const MAX_SAMPLE_DETAILS: usize = 128;
 const MAX_BRANCH_SHIFT: f64 = 1_000_000.0;
 const MULTISTART_SUBDIVISIONS: usize = 8;
@@ -141,6 +143,57 @@ fn distance(a: P3, b: P3) -> f64 {
         .map(|axis| (a[axis] - b[axis]).powi(2))
         .sum::<f64>()
         .sqrt()
+}
+
+fn source_boundary_curve_segments(
+    boundary_samples: &[(usize, usize, f64, P3)],
+    input_vertex_indices: &[usize],
+    edge_count: usize,
+) -> Result<Vec<BoundaryCurveSegment>, String> {
+    if boundary_samples.len() != input_vertex_indices.len()
+        || boundary_samples.len() < 3
+        || edge_count < 3
+        || boundary_samples[0].0 != 0
+    {
+        return Err("trim_candidate_boundary_provenance_count_mismatch".into());
+    }
+    let mut segments = Vec::with_capacity(boundary_samples.len());
+    for index in 0..boundary_samples.len() - 1 {
+        let (curve_index, sample_index, start_parameter, _) = boundary_samples[index];
+        let (next_curve_index, next_sample_index, end_parameter, _) = boundary_samples[index + 1];
+        let start_vertex = input_vertex_indices[index];
+        let end_vertex = input_vertex_indices[index + 1];
+        if curve_index == next_curve_index {
+            if next_sample_index != sample_index + 1 {
+                return Err("trim_candidate_source_curve_sample_gap".into());
+            }
+            if start_vertex != end_vertex {
+                segments.push(BoundaryCurveSegment {
+                    start_vertex,
+                    end_vertex,
+                    curve_index,
+                    start_parameter,
+                    end_parameter,
+                });
+            }
+        } else if next_curve_index != curve_index + 1 || start_vertex != end_vertex {
+            return Err("trim_candidate_source_edge_junction_mismatch".into());
+        }
+    }
+    let (last_curve_index, _, _, _) = boundary_samples
+        .last()
+        .ok_or("empty_source_boundary_samples")?;
+    let first_curve_index = boundary_samples[0].0;
+    if *last_curve_index + 1 != edge_count
+        || first_curve_index != 0
+        || input_vertex_indices[boundary_samples.len() - 1] != input_vertex_indices[0]
+    {
+        return Err("trim_candidate_source_loop_junction_mismatch".into());
+    }
+    if segments.is_empty() || segments.len() > MAX_BOUNDARY_SAMPLES {
+        return Err("trim_candidate_source_boundary_segment_count_invalid".into());
+    }
+    Ok(segments)
 }
 
 fn parse_surface(step: &StepFile, id: u64) -> Result<SurfaceDefinition, String> {
@@ -763,10 +816,15 @@ fn multistart_inverse(
                 point = candidate_point;
                 residual_vector = candidate_residual;
                 error = candidate_error;
-                if (previous_error - error).abs() <= previous_error.max(1.) * 1e-14
-                    || error.sqrt() <= definition.control_net_diagonal * 1e-10
-                {
+                if error.sqrt() <= definition.control_net_diagonal * 1e-10 {
                     converged = true;
+                    break;
+                }
+                let improvement = previous_error - error;
+                let stagnation_tolerance = previous_error.max(f64::MIN_POSITIVE) * 1e-14;
+                if improvement <= stagnation_tolerance {
+                    // A small absolute improvement is not proof of convergence:
+                    // the residual must satisfy the geometric tolerance above.
                     break;
                 }
             }
@@ -1050,9 +1108,15 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
     let mut u_branch_shifts = 0usize;
     let mut v_branch_shifts = 0usize;
     let mut ambiguous_half_periods = 0usize;
+    let mut candidate_u_branch_shifts = 0usize;
+    let mut candidate_v_branch_shifts = 0usize;
+    let mut candidate_ambiguous_half_periods = 0usize;
+    let mut candidate_max_u_step: f64 = 0.;
+    let mut candidate_max_v_step: f64 = 0.;
     let mut previous_uv: Option<[f64; 2]> = None;
     let mut previous_candidate_uv: Option<[f64; 2]> = None;
     let mut candidate_uv_vertices = Vec::with_capacity(boundary_samples.len());
+    let mut candidate_projection_details = Vec::with_capacity(boundary_samples.len());
     let mut detail_samples = Vec::with_capacity(MAX_SAMPLE_DETAILS);
     for (edge_index, sample_index, parameter, source_point) in &boundary_samples {
         let (raw_uv, pole) = surface.evaluator.inverse(*source_point);
@@ -1087,13 +1151,26 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
         sum_squared_multistart_residual += best_candidate.residual * best_candidate.residual;
         multistart_converged_samples += usize::from(best_candidate.converged);
         let candidate_uv = if let Some(previous) = previous_candidate_uv {
-            let (u, _) = unwrap_parameter(best_candidate.uv[0], previous[0], u_period)?;
-            let (v, _) = unwrap_parameter(best_candidate.uv[1], previous[1], v_period)?;
+            let (u, u_shift) = unwrap_parameter(best_candidate.uv[0], previous[0], u_period)?;
+            let (v, v_shift) = unwrap_parameter(best_candidate.uv[1], previous[1], v_period)?;
+            candidate_u_branch_shifts += usize::from(u_shift != 0.);
+            candidate_v_branch_shifts += usize::from(v_shift != 0.);
+            candidate_max_u_step = candidate_max_u_step.max((u - previous[0]).abs());
+            candidate_max_v_step = candidate_max_v_step.max((v - previous[1]).abs());
+            if let Some(period) = u_period {
+                candidate_ambiguous_half_periods +=
+                    usize::from(((u - previous[0]).abs() - period * 0.5).abs() <= period * 1e-10);
+            }
+            if let Some(period) = v_period {
+                candidate_ambiguous_half_periods +=
+                    usize::from(((v - previous[1]).abs() - period * 0.5).abs() <= period * 1e-10);
+            }
             [u, v]
         } else {
             best_candidate.uv
         };
         candidate_uv_vertices.push(candidate_uv);
+        candidate_projection_details.push((best_candidate.residual, best_candidate.converged));
         previous_candidate_uv = Some(candidate_uv);
 
         let mut unwrapped = raw_uv;
@@ -1125,6 +1202,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 "sourcePoint": source_point,
                 "rawUv": raw_uv,
                 "unwrappedUv": unwrapped,
+                "candidateUnwrappedUv": candidate_uv,
                 "readerInverseResidualSourceUnits": residual,
                 "multiStartBestUv": best_candidate.uv,
                 "multiStartBestResidualSourceUnits": best_candidate.residual,
@@ -1134,21 +1212,219 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             }));
         }
     }
+    let candidate_loop_closure_uv = if let (Some(first), Some(last)) =
+        (candidate_uv_vertices.first(), candidate_uv_vertices.last())
+    {
+        [last[0] - first[0], last[1] - first[1]]
+    } else {
+        return Err("trim_candidate_boundary_trace_empty".into());
+    };
     let trim_candidate_result = (|| -> Result<Json, String> {
         let candidate =
             crate::trim_polygon_candidate::triangulate_simple_loop(&candidate_uv_vertices)?;
-        let refined =
-            crate::trim_polygon_candidate::refine_uniform(candidate, 0.005, 4, 50_000, |uv| {
+        let boundary_segments = source_boundary_curve_segments(
+            &boundary_samples,
+            &candidate.input_vertex_indices,
+            edges.len(),
+        )?;
+        let mut boundary_vertex_points_by_index = std::collections::BTreeMap::new();
+        for (boundary_index, (curve_index, sample_index, _, source_point)) in
+            boundary_samples.iter().enumerate()
+        {
+            let edge = edges
+                .get(*curve_index)
+                .ok_or("trim_candidate_boundary_curve_index_invalid")?;
+            let expected_samples = edge
+                .curve_breaks
+                .len()
+                .saturating_sub(1)
+                .checked_mul(SAMPLES_PER_CURVE_SPAN)
+                .and_then(|count| count.checked_add(1))
+                .ok_or("trim_candidate_boundary_sample_count_overflow")?;
+            let canonical_point = if *sample_index == 0 {
+                let vertex_id = if edge.loop_sense {
+                    edge.start_vertex
+                } else {
+                    edge.end_vertex
+                };
+                vertex(step, vertex_id)?
+            } else if *sample_index + 1 == expected_samples {
+                let vertex_id = if edge.loop_sense {
+                    edge.end_vertex
+                } else {
+                    edge.start_vertex
+                };
+                vertex(step, vertex_id)?
+            } else {
+                *source_point
+            };
+            let vertex_index = candidate.input_vertex_indices[boundary_index];
+            if let Some(existing) = boundary_vertex_points_by_index.get(&vertex_index) {
+                if existing != &canonical_point {
+                    return Err("trim_candidate_boundary_vertex_point_conflict".into());
+                }
+            } else {
+                boundary_vertex_points_by_index.insert(vertex_index, canonical_point);
+            }
+        }
+        let boundary_vertices = boundary_vertex_points_by_index
+            .into_iter()
+            .map(|(vertex_index, point)| BoundaryVertexPoint {
+                vertex_index,
+                point,
+            })
+            .collect::<Vec<_>>();
+        let mut boundary_refinement_probes = Vec::<(usize, Json)>::new();
+        let candidate_surface_evaluation_count_cell = std::cell::RefCell::new(0usize);
+        let control_point_evaluation_count_cell =
+            std::cell::RefCell::new(control_point_evaluation_count);
+        let refined = crate::trim_polygon_candidate::refine_uniform_with_boundary(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 0.005,
+                max_refinement_levels: 4,
+                max_triangles: 50_000,
+            },
+            &boundary_segments,
+            &boundary_vertices,
+            |uv| {
+                eval_surface(
+                    &surface,
+                    uv,
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )
+            },
+            |segment, start_uv, end_uv, candidate_vertex_index| {
+                if boundary_refinement_probes.len() >= MAX_BOUNDARY_REFINEMENT_PROBES {
+                    return Err("trim_candidate_boundary_refinement_probe_budget_exceeded".into());
+                }
+                let edge = edges
+                    .get(segment.curve_index)
+                    .ok_or("trim_candidate_boundary_curve_index_invalid")?;
+                let curve_parameter = (segment.start_parameter + segment.end_parameter) * 0.5;
+                let source_point = edge.curve.point_at(curve_parameter);
+                if source_point
+                    .iter()
+                    .any(|value| !value.is_finite() || value.abs() > 1e12)
+                {
+                    return Err("trim_candidate_boundary_curve_midpoint_nonfinite".into());
+                }
+                let seed_uv = [
+                    (start_uv[0] + end_uv[0]) * 0.5,
+                    (start_uv[1] + end_uv[1]) * 0.5,
+                ];
+                let (projection, projection_starts) = multistart_inverse(
+                    &surface,
+                    source_point,
+                    &[seed_uv[0]],
+                    &[seed_uv[1]],
+                    &mut surface_evaluation_count,
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                if projection_starts != 1 {
+                    return Err("trim_candidate_boundary_projection_start_count_invalid".into());
+                }
+                let (u, _) = unwrap_parameter(projection.uv[0], seed_uv[0], u_period)?;
+                let (v, _) = unwrap_parameter(projection.uv[1], seed_uv[1], v_period)?;
+                let candidate_uv = [u, v];
+                let surface_point = eval_surface(
+                    &surface,
+                    candidate_uv,
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                let surface_residual = distance(surface_point, source_point);
+                if !surface_residual.is_finite() {
+                    return Err("trim_candidate_boundary_projection_residual_nonfinite".into());
+                }
+                boundary_refinement_probes.push((
+                    candidate_vertex_index,
+                    json!({
+                        "candidateVertexIndex": candidate_vertex_index,
+                        "loopIndex": segment.curve_index,
+                        "orientedEdgeId": edge.oriented_id,
+                        "edgeCurveId": edge.edge_id,
+                        "curveGeometryId": edge.curve_id,
+                        "curveParameter": curve_parameter,
+                        "sourcePointSourceUnits": source_point,
+                        "projectionSeedUv": seed_uv,
+                        "candidateUv": candidate_uv,
+                        "surfacePointSourceUnits": surface_point,
+                        "meshPointSourceUnits": source_point,
+                        "surfaceResidualSourceUnits": surface_residual,
+                        "projectionResidualSourceUnits": projection.residual,
+                        "projectionConverged": projection.converged,
+                        "projectionStartCount": projection_starts
+                    }),
+                ));
+                Ok((candidate_uv, source_point))
+            },
+        )?;
+        candidate_surface_evaluation_count = candidate_surface_evaluation_count_cell.into_inner();
+        control_point_evaluation_count = control_point_evaluation_count_cell.into_inner();
+        let support_surface_points = refined
+            .vertices
+            .iter()
+            .copied()
+            .map(|uv| {
                 eval_surface(
                     &surface,
                     uv,
                     &mut candidate_surface_evaluation_count,
                     &mut control_point_evaluation_count,
                 )
-            })?;
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if refined.input_vertex_indices.len() != boundary_samples.len()
+            || candidate_projection_details.len() != boundary_samples.len()
+        {
+            return Err("trim_candidate_boundary_provenance_count_mismatch".into());
+        }
+        let candidate_boundary_samples = boundary_samples
+            .iter()
+            .enumerate()
+            .map(
+                |(boundary_index, (loop_index, sample_index, parameter, source_point))| {
+                    let candidate_vertex_index = refined.input_vertex_indices[boundary_index];
+                    let candidate_uv = refined.vertices[candidate_vertex_index];
+                    let surface_point = support_surface_points[candidate_vertex_index];
+                    let mesh_point = refined.points[candidate_vertex_index];
+                    let edge = &edges[*loop_index];
+                    let (projection_residual, projection_converged) =
+                        candidate_projection_details[boundary_index];
+                    json!({
+                        "boundaryIndex": boundary_index,
+                        "loopIndex": loop_index,
+                        "sampleIndex": sample_index,
+                        "orientedEdgeId": edge.oriented_id,
+                        "edgeCurveId": edge.edge_id,
+                        "curveGeometryId": edge.curve_id,
+                        "curveParameter": parameter,
+                        "sourcePointSourceUnits": source_point,
+                        "candidateUv": candidate_uv,
+                        "candidateVertexIndex": candidate_vertex_index,
+                        "surfacePointSourceUnits": surface_point,
+                        "surfaceResidualSourceUnits": distance(surface_point, *source_point),
+                        "candidateMeshPointSourceUnits": mesh_point,
+                        "meshToSourceTrimResidualSourceUnits": distance(mesh_point, *source_point),
+                        "projectionResidualSourceUnits": projection_residual,
+                        "projectionConverged": projection_converged
+                    })
+                },
+            )
+            .collect::<Vec<_>>();
+        let boundary_refinement_probes = boundary_refinement_probes
+            .into_iter()
+            .map(|(candidate_vertex_index, mut probe)| {
+                probe["retainedInCandidate"] =
+                    json!(candidate_vertex_index < refined.vertices.len());
+                probe
+            })
+            .collect::<Vec<_>>();
         Ok(json!({
             "status": "candidate_only",
-            "algorithm": "bounded_simple_loop_ear_clipping_with_uniform_sampled_chord_refinement",
+            "algorithm": "bounded_simple_loop_ear_clipping_with_uniform_refinement_and_source_curve_boundary_midpoint_projection",
             "vertexCount": refined.vertices.len(),
             "triangleCount": refined.triangles.len(),
             "signedUvArea": refined.signed_area,
@@ -1159,10 +1435,25 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "chordToleranceSourceUnits": refined.chord_tolerance,
             "refinementConverged": refined.converged,
             "refinementFailureReason": refined.failure_reason,
-            "surfaceEvaluationCount": refined.surface_evaluation_count,
+            "surfaceEvaluationCount": candidate_surface_evaluation_count,
+            "boundaryRefinementProbeCount": boundary_refinement_probes.len(),
+            "boundaryRefinementProbeBudget": MAX_BOUNDARY_REFINEMENT_PROBES,
             "uvVertices": refined.vertices,
-            "surfacePointsSourceUnits": refined.points,
+            "surfacePointsSourceUnits": support_surface_points,
+            "meshPointsSourceUnits": refined.points,
             "triangles": refined.triangles,
+            "boundaryTrace": {
+                "sampleCount": candidate_uv_vertices.len(),
+                "sourceSampleOrderPreserved": true,
+                "candidateLoopClosureUv": candidate_loop_closure_uv,
+                "maximumUnwrappedUStep": candidate_max_u_step,
+                "maximumUnwrappedVStep": candidate_max_v_step,
+                "uPeriodicBranchShiftCount": candidate_u_branch_shifts,
+                "vPeriodicBranchShiftCount": candidate_v_branch_shifts,
+                "ambiguousHalfPeriodStepCount": candidate_ambiguous_half_periods
+            },
+            "boundarySamples": candidate_boundary_samples,
+            "boundaryRefinementProbes": boundary_refinement_probes,
             "sourceMeshModified": false,
             "geometryQualified": false,
             "admitted": false,
@@ -1229,7 +1520,15 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "maximumUnwrappedVStep": max_v_step,
             "uPeriodicBranchShiftCount": u_branch_shifts,
             "vPeriodicBranchShiftCount": v_branch_shifts,
-            "ambiguousHalfPeriodStepCount": ambiguous_half_periods
+            "ambiguousHalfPeriodStepCount": ambiguous_half_periods,
+            "candidatePeriodicBranchTrace": {
+                "uPeriodicBranchShiftCount": candidate_u_branch_shifts,
+                "vPeriodicBranchShiftCount": candidate_v_branch_shifts,
+                "ambiguousHalfPeriodStepCount": candidate_ambiguous_half_periods,
+                "maximumUnwrappedUStep": candidate_max_u_step,
+                "maximumUnwrappedVStep": candidate_max_v_step,
+                "loopClosureUv": candidate_loop_closure_uv
+            }
         },
         "evaluation": {
             "inputGeometry": "source B-spline control points, knot vectors, rational weights, and oriented 3D B-spline edge curves",
@@ -1308,6 +1607,8 @@ mod tests {
         )
         .unwrap();
         let target = spline.point_at(0.3, 0.6);
+        let mut irreducibly_offset_target = spline.point_at(0.30000001, 0.6);
+        irreducibly_offset_target[2] += 1e-6;
         let definition = SurfaceDefinition {
             evaluator: kernel::Surface::bspline(spline),
             u_domain: (0., 1.),
@@ -1339,6 +1640,17 @@ mod tests {
         assert!(candidate.converged);
         assert!((candidate.uv[0] - 0.3).abs() < 1e-8);
         assert!((candidate.uv[1] - 0.6).abs() < 1e-8);
+        let (offset_candidate, _) = multistart_inverse(
+            &definition,
+            irreducibly_offset_target,
+            &u,
+            &v,
+            &mut evaluations,
+            &mut control_point_evaluations,
+        )
+        .unwrap();
+        assert!(offset_candidate.residual > 1e-7, "{offset_candidate:?}");
+        assert!(!offset_candidate.converged, "{offset_candidate:?}");
         assert!(evaluations <= MAX_SURFACE_EVALUATIONS);
         assert_eq!(control_point_evaluations, evaluations * 4);
     }

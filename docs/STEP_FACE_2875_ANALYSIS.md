@@ -61,15 +61,16 @@ the reader-mesh provenance, trimmed-face distances and containment, triangle
 centroid distances, oriented normals, and refinement sensitivity. It writes a
 new JSON report and refuses to overwrite one.
 
-### Current-source replay (2026-10-17 local time)
+### Earlier support-surface-only replay (2026-10-17; superseded)
 
-The comparison was regenerated from checkout `7711c6e` using the pinned STEP
-source hash above, a freshly built research probe, fresh reader/face diagnostics,
-and FreeCAD 1.1.4 build `4fd3bf320d9566a27e60069fc8387448aaa3a094`. The fresh
-comparison again matched the trimmed source face at FreeCAD face index 231 and
-rejected the Rust candidate: 100/3,393 vertices are outside the trim and
-1,291/6,016 triangles have nonpositive normal alignment. The report and receipt
-both retain `geometryQualified: false`, `admitted: false`, and no exports.
+This pre-source-edge comparison used checkout `7711c6e`, the pinned STEP source,
+fresh reader/face diagnostics, and FreeCAD 1.1.4 build
+`4fd3bf320d9566a27e60069fc8387448aaa3a094`. Its mesh vertices were all
+support-surface evaluations: 100/3,393 fell outside the trim. The later
+source-edge candidate below separates actual mesh coordinates from support
+surface evaluations and supersedes that containment result. The normal result
+remains relevant: 1,291/6,016 triangles had nonpositive alignment. Both runs
+remain unqualified, admitted false, and produce no exports.
 
 The non-overwriting local receipt is
 `F:\\kannan\\projects\\tokito-cli-verification\\model16-current-head-20261017\\receipt.json`
@@ -80,24 +81,87 @@ the reader report, spline diagnostic, face diagnostic, source, evaluator binary,
 macro and FreeCAD command binary. This is a current-source face-level replay,
 not complete-solid qualification or product STEP support.
 
+### Source-edge mesh-boundary candidate (2026-10-17)
+
+The diagnostic now keeps the candidate's **mesh coordinates** separate from its
+support-surface evaluations. Original boundary samples use their STEP
+`VERTEX_POINT` coordinates; refined boundary midpoints are evaluated on the
+oriented 3D STEP edge curve. UVs are still projected to the support surface for
+interior tessellation and comparison. This preserves the trim curve as the
+actual mesh boundary instead of replacing it with points from the slightly
+different support surface.
+
+The fresh model-16 E2E passed with the same 3,393 vertices and 6,016 triangles.
+It recorded 1,440 source-edge midpoint probes, of which 672 are retained in the
+candidate and 768 belong to the final chord-measurement pass. FreeCAD 1.1.4
+matched face #2875 to imported face 231 and found:
+
+| Measurement | Result |
+| --- | ---: |
+| Actual mesh vertices inside the trimmed face at `1e-7 mm` | 3,393 / 3,393 |
+| Mesh boundary edges / vertices | 768 / 768 |
+| Outside mesh-boundary / interior vertices | 0 / 0 |
+| Source boundary samples inside / outside | 100 / 0 |
+| Maximum source-boundary distance to the FreeCAD trim | `1.60e-15 mm` |
+| Support-surface evaluated vertices inside / outside | 3,293 / 100 |
+| Maximum support-surface-to-trim distance | `1.08084e-6 mm` |
+| Nonpositive triangle normal alignment | 1,291 / 6,016 |
+
+The distinction is material: mesh points now follow the STEP trim while the
+support surface still has 100 projected UV boundary points outside the face.
+The actual mesh passes this face's point-containment check, but its normal
+orientation still fails. Complete-solid validity, closure, area convergence
+and cross-face consistency remain unverified. The candidate remains
+`geometryQualified: false`, `admitted: false`, and produces no exports. This is
+an experimental, single-face change; it does not add production STEP support.
+
+The bounded UV inverse is not fully converged: 27/100 source-boundary samples
+and 392/1,440 source-edge midpoint probes are marked non-converged even though
+their residuals meet the diagnostic's `1e-5` bound. The exact mesh boundary
+coordinates come from STEP vertices/curves, so the containment result does not
+prove that these UV projections are accurate enough for production.
+
+An independent combinatorial audit of the candidate mesh found 3,393 vertices,
+9,408 unique edges and 6,016 triangles; all 768 boundary edges have incidence
+one, all 8,640 interior edges have incidence two, and no edge has higher
+incidence. It is one connected component with one boundary loop, consistent
+interior edge orientation, boundary degree two, and Euler characteristic 1.
+This describes a single open triangulated face patch, not a closed solid and
+does not clear its failed normal, UV-inverse, area, or cross-face gates.
+
+The non-overwriting evidence receipt for this tightened E2E and full local
+verification is
+`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-edge-topology-final2-20261017\\evidence-receipt.json`.
+It binds the fresh full Windows verifier receipt (46/46 checks passed; CLI
+SHA-256 recorded in the combined receipt),
+the source-face E2E, the independent FreeCAD report, macro, source, and input
+reports. The E2E's exact output path and receipt hash are captured in the
+combined evidence receipt. The current FreeCAD report SHA-256 is
+`038764afbd2cb56f96dbddbe208c7322f6c62618638a01466622c8505f2c8a0e`. The fresh
+model-16 diagnostic E2E was run separately against the current step-evaluation
+binary; its output is under
+`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-edge-topology-e2e-20261017c\\`.
+
 ## Rust trim candidate and independent quality checks
 
-The diagnostic now builds a bounded *research candidate* from the sampled UV
-loop using simple-polygon ear clipping and three rounds of uniform subdivision.
-It contains 3,393 UV vertices and 6,016 triangles; sampled chord error is
-`0.004714` source units against a `0.005` threshold. The pinned E2E requires
-this candidate and its convergence result. This changes no reader mesh, does
-not produce an export, and does not set qualification or admission.
+The diagnostic builds a bounded *research candidate* from the sampled UV loop
+using simple-polygon ear clipping and three rounds of uniform subdivision. It
+contains 3,393 UV vertices and 6,016 triangles; sampled chord error is
+`0.004714` source units against a `0.005` threshold. The candidate records
+`meshPointsSourceUnits` separately from `surfacePointsSourceUnits`: actual
+boundary positions use source STEP vertices and oriented 3D trim curves, while
+the second array retains independent support-surface evaluations. The pinned
+E2E checks that provenance and still requires refusal. This changes no reader
+mesh, does not produce an export, and does not set qualification or admission.
 
-FreeCAD maps all candidate vertices onto the same underlying B-spline face with
-maximum Rust-to-FreeCAD surface-point residual `3.30e-15` model units. At
-`1e-7 mm`, 3,293 of 3,393 candidate vertices classify inside the trimmed face;
-100 classify outside. Separately, all 6,016 triangle UV centroids classify
-inside, and the 100 sampled source-boundary points lie on the face boundary.
-Passing centroid containment does not prove that every mesh vertex or edge is
-inside the trim. The maximum straight-triangle centroid distance to the trimmed
-face is `0.002669 mm` (RMS `0.000737 mm`), but that positional measurement alone
-does not establish correct normals or area.
+FreeCAD reports all 3,393 actual mesh vertices inside the trimmed face at
+`1e-7 mm`, including all 768 mesh-boundary vertices; no boundary or interior
+mesh vertex is outside. All 100 sampled source-boundary points lie on the trim
+to a maximum `1.60e-15 mm`. By contrast, evaluating the candidate UVs on the
+support surface still places 100 boundary points outside the trim, by at most
+`1.08084e-6 mm`. All 6,016 triangle UV centroids classify inside. The maximum
+straight-triangle centroid distance to the trimmed face is `0.002669 mm` (RMS
+`0.000737 mm`), but this does not establish correct normals or area.
 
 The independent normal comparison rejects the candidate: `1,291 / 6,016`
 triangles have nonpositive alignment with the oriented FreeCAD face normal
@@ -114,9 +178,13 @@ yet minimum normal alignment remains `-0.99999985`. This experiment does not
 identify whether the remaining discrepancy comes from local parameterization,
 branch choice, or a high-curvature/singular region.
 
-Vertex containment, face-normal orientation, area convergence, and complete
-solid validation therefore remain failed qualification gates. The all-inside
-centroid result cannot clear the 100 outside vertices.
+All actual mesh vertices are inside the reference trim, and the measured
+edge-incidence and boundary-graph checks pass for this face patch. These checks
+do not prove vertex-link manifoldness, exclude geometric self-intersection, or
+establish a valid closed solid. Support-surface UV containment and face-normal
+orientation remain failed qualification gates; area convergence and
+complete-solid validation remain unverified. The all-inside centroid and
+mesh-vertex results do not clear the normal or solid gates.
 
 Do not flip triangles or treat this candidate as a repaired face. The next
 investigation is continuity-aware UV branch selection per ordered source edge,
@@ -137,15 +205,12 @@ uses separate area and coordinate tolerances and has a scale-invariance
 regression. When the ESP8266 source set is passed to `scripts/verify-local.ps1`,
 this E2E check runs automatically.
 
-The next geometry task is to sample each ordered 3D source edge adaptively,
-project samples while preserving continuity of the V-period branch, and measure
-the residual and branch changes at the closed seam and near the internal knot.
-Then build an original Rust trim pipeline that produces a valid, nondegenerate,
-consistently oriented mesh. Compare it against FreeCAD for the full face and
-solid, including boundary and vertex containment, surface deviation, triangle
-winding and topology. Passing this one face test would still not establish
-STEP/library parity or qualify other board models. Production admission remains
-disabled.
+The next geometry task is to resolve the mixed per-triangle orientation and
+surface/trim parameter correspondence, then compare area and complete-solid
+topology against FreeCAD. Expand only after the face candidate has consistent
+normals, bounded surface deviation and valid closure. Passing this one face test
+would still not establish STEP/library parity or qualify other board models.
+Production admission remains disabled.
 
 Primary references: [Open CASCADE topology training](https://dev.opencascade.org/sites/default/files/pdf/Topology.pdf)
 for surface-normal direction and face orientation, and [Open CASCADE 7.4

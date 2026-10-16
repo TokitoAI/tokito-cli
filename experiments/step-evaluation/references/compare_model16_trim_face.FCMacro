@@ -59,9 +59,9 @@ def main():
     trim_candidate_comparison={"status":trim_candidate.get("status"),"independentFreecadTriangulationCompared":False,"geometryQualified":False,"admitted":False,"exportsProduced":[]}
     if trim_candidate.get("status")=="candidate_only":
         uv_vertices=trim_candidate.get("uvVertices",[])
-        candidate_source_points=trim_candidate.get("surfacePointsSourceUnits",[])
+        candidate_mesh_points=trim_candidate.get("meshPointsSourceUnits",[])
         candidate_triangles=trim_candidate.get("triangles",[])
-        if len(uv_vertices)<3 or len(uv_vertices)>60000 or len(candidate_source_points)!=len(uv_vertices) or not candidate_triangles or len(candidate_triangles)>50000:
+        if len(uv_vertices)<3 or len(uv_vertices)>60000 or len(candidate_mesh_points)!=len(uv_vertices) or not candidate_triangles or len(candidate_triangles)>50000:
             raise ValueError("invalid or over-limit Rust trim candidate")
         v_domain=spline.get("surface",{}).get("vDomain")
         v_period=spline.get("surface",{}).get("vPeriod")
@@ -73,23 +73,49 @@ def main():
             if period is None: return value
             if not math.isfinite(float(period)) or float(period)<=0: raise ValueError("invalid surface period")
             return float(domain[0])+(float(value)-float(domain[0]))%float(period)
-        freecad_points=[]; parameter_surface_residuals=[]; point_to_trimmed_face=[]; candidate_vertices_inside=0; candidate_vertices_outside=0
-        for uv, source_point in zip(uv_vertices,candidate_source_points):
+        freecad_points=[]; parameter_surface_residuals=[]; point_to_trimmed_face=[]; mesh_point_to_trimmed_face=[]; candidate_vertices_inside=0; candidate_vertices_outside=0; candidate_vertex_inside_flags=[]; support_vertices_inside=0; support_vertices_outside=0; support_vertex_inside_flags=[]
+        for uv, mesh_point in zip(uv_vertices,candidate_mesh_points):
             if not isinstance(uv,list) or len(uv)!=2 or any(not math.isfinite(float(x)) for x in uv): raise ValueError("invalid candidate UV point")
             u=canonical(float(uv[0]),u_domain,u_period); v=canonical(float(uv[1]),v_domain,v_period)
             p=face.valueAt(u,v); xyz=[float(p.x),float(p.y),float(p.z)]
-            if not isinstance(source_point,list) or len(source_point)!=3 or any(not math.isfinite(float(x)) for x in source_point): raise ValueError("invalid candidate source point")
+            if not isinstance(mesh_point,list) or len(mesh_point)!=3 or any(not math.isfinite(float(x)) for x in mesh_point): raise ValueError("invalid candidate mesh point")
+            mesh_point=[float(x) for x in mesh_point]
             freecad_points.append(xyz)
-            parameter_surface_residuals.append(dist_point(xyz,[float(x) for x in source_point]))
+            parameter_surface_residuals.append(dist_point(xyz,mesh_point))
             point_to_trimmed_face.append(float(face.distToShape(Part.Vertex(p))[0]))
-            if face.isInside(p,1e-7,True): candidate_vertices_inside+=1
+            mesh_vertex=FreeCAD.Vector(*mesh_point)
+            vertex_inside=bool(face.isInside(mesh_vertex,1e-7,True)); candidate_vertex_inside_flags.append(vertex_inside)
+            if vertex_inside: candidate_vertices_inside+=1
             else: candidate_vertices_outside+=1
+            support_inside=bool(face.isInside(p,1e-7,True)); support_vertex_inside_flags.append(support_inside)
+            if support_inside: support_vertices_inside+=1
+            else: support_vertices_outside+=1
+            mesh_point_to_trimmed_face.append(float(face.distToShape(Part.Vertex(mesh_vertex))[0]))
+        boundary_samples=trim_candidate.get("boundarySamples",[])
+        if not isinstance(boundary_samples,list) or len(boundary_samples)!=spline.get("trimProjection",{}).get("boundarySampleCount"):
+            raise ValueError("candidate boundary provenance missing or incomplete")
+        boundary_inside=0; boundary_outside=0; boundary_source_residuals=[]; boundary_rows=[]; boundary_unique_vertices=set()
+        for row in boundary_samples:
+            if not isinstance(row,dict): raise ValueError("invalid candidate boundary provenance row")
+            vertex_index=row.get("candidateVertexIndex")
+            if not isinstance(vertex_index,int) or vertex_index<0 or vertex_index>=len(freecad_points): raise ValueError("candidate boundary vertex index invalid")
+            boundary_unique_vertices.add(vertex_index)
+            rust_point=[float(x) for x in candidate_mesh_points[vertex_index]]
+            source_point=[float(x) for x in row.get("sourcePointSourceUnits",[])]
+            if len(source_point)!=3 or any(not math.isfinite(x) for x in source_point): raise ValueError("candidate boundary source point invalid")
+            source_residual=dist_point(rust_point,source_point); boundary_source_residuals.append(source_residual)
+            vertex=FreeCAD.Vector(*rust_point)
+            inside=bool(face.isInside(vertex,1e-7,True)); trim_distance=float(face.distToShape(Part.Vertex(vertex))[0])
+            if inside: boundary_inside+=1
+            else: boundary_outside+=1
+            boundary_rows.append({"boundaryIndex":row.get("boundaryIndex"),"orientedEdgeId":row.get("orientedEdgeId"),"curveParameter":row.get("curveParameter"),"candidateVertexIndex":vertex_index,"insideTrimAtTolerance":inside,"distanceToTrimmedFaceMm":trim_distance,"distanceToSourceTrimSampleMm":source_residual})
+        candidate_boundary_trim_comparison={"sampleCount":len(boundary_samples),"uniqueCandidateVertexCount":len(boundary_unique_vertices),"inside":boundary_inside,"outside":boundary_outside,"classificationToleranceMm":1e-7,"maximumDistanceToTrimmedFaceMm":max((row["distanceToTrimmedFaceMm"] for row in boundary_rows),default=None),"maximumDistanceToSourceTrimSampleMm":max(boundary_source_residuals,default=None),"samples":boundary_rows}
         centroid_distances=[]; triangle_areas=[]; triangle_max_edges=[]; triangle_orientation_dots=[]; parameter_orientation_dots=[]; candidate_triangle_observations=[]; rejected_triangles=0; uv_centroids_inside=0; uv_centroids_outside=0; outside_uv_centroid_examples=[]
         orientation_cells={}
         u_lo,u_hi=map(float,u_domain); v_lo,v_hi=map(float,v_domain)
         for triangle_index,tri in enumerate(candidate_triangles):
             if not isinstance(tri,list) or len(tri)!=3 or any(not isinstance(i,int) or i<0 or i>=len(freecad_points) for i in tri): raise ValueError("candidate triangle index invalid")
-            a,b,c=[freecad_points[i] for i in tri]
+            a,b,c=[[float(x) for x in candidate_mesh_points[i]] for i in tri]
             ab=[b[k]-a[k] for k in range(3)]; ac=[c[k]-a[k] for k in range(3)]
             normal=[ab[1]*ac[2]-ab[2]*ac[1],ab[2]*ac[0]-ab[0]*ac[2],ab[0]*ac[1]-ab[1]*ac[0]]
             normal_length=math.sqrt(sum(x*x for x in normal)); area=0.5*normal_length
@@ -143,6 +169,41 @@ def main():
             cell["uvWindingSigns"][str(int(uv_winding))]=cell["uvWindingSigns"].get(str(int(uv_winding)),0)+1
             candidate_triangle_observations.append({"triangleIndex":triangle_index,"indices":[int(x) for x in tri],"uvVertices":uv_triangle,"uvSignedDoubleArea":uv_cross,"centroidUvCanonical":[center.x,center.y],"centroidToTrimmedFaceMm":centroid_distance,"areaMm2":area,"maximumEdgeMm":max(edges),"normalAlignment":alignment,"parameterNormalAlignment":parameter_alignment})
         candidate_triangle_observations.sort(key=lambda row:row["centroidToTrimmedFaceMm"],reverse=True)
+        edge_use_counts={}
+        edge_direction_counts={}
+        mesh_adjacency=[set() for _ in uv_vertices]
+        for tri in candidate_triangles:
+            for a,b in ((int(tri[0]),int(tri[1])),(int(tri[1]),int(tri[2])),(int(tri[2]),int(tri[0]))):
+                key=(min(a,b),max(a,b)); edge_use_counts[key]=edge_use_counts.get(key,0)+1
+                directions=edge_direction_counts.setdefault(key,[0,0]); directions[0 if a<b else 1]+=1
+                mesh_adjacency[a].add(b); mesh_adjacency[b].add(a)
+        candidate_boundary_mesh_edges=[edge for edge,count in edge_use_counts.items() if count==1]
+        candidate_boundary_mesh_vertices={index for edge in candidate_boundary_mesh_edges for index in edge}
+        edge_incidence_histogram={str(incidence):sum(1 for count in edge_use_counts.values() if count==incidence) for incidence in sorted(set(edge_use_counts.values()))}
+        nonmanifold_edge_count=sum(1 for count in edge_use_counts.values() if count>2)
+        orientation_inconsistent_interior_edge_count=sum(1 for edge,count in edge_use_counts.items() if count==2 and edge_direction_counts[edge]!=[1,1])
+        boundary_vertex_degrees={}
+        boundary_adjacency={index:set() for index in candidate_boundary_mesh_vertices}
+        for a,b in candidate_boundary_mesh_edges:
+            boundary_vertex_degrees[a]=boundary_vertex_degrees.get(a,0)+1
+            boundary_vertex_degrees[b]=boundary_vertex_degrees.get(b,0)+1
+            boundary_adjacency[a].add(b); boundary_adjacency[b].add(a)
+        boundary_degree_histogram={str(degree):sum(1 for value in boundary_vertex_degrees.values() if value==degree) for degree in sorted(set(boundary_vertex_degrees.values()))}
+        def graph_component_count(graph, nodes):
+            unseen=set(nodes); components=0
+            while unseen:
+                components+=1; stack=[unseen.pop()]
+                while stack:
+                    current=stack.pop()
+                    for neighbour in graph.get(current,()):
+                        if neighbour in unseen:
+                            unseen.remove(neighbour); stack.append(neighbour)
+            return components
+        candidate_mesh_topology={"vertexCount":len(uv_vertices),"edgeCount":len(edge_use_counts),"triangleCount":len(candidate_triangles),"edgeIncidenceHistogram":edge_incidence_histogram,"nonManifoldEdgeCount":nonmanifold_edge_count,"interiorEdgeOrientationInconsistencyCount":orientation_inconsistent_interior_edge_count,"connectedComponentCount":graph_component_count({i:neighbors for i,neighbors in enumerate(mesh_adjacency)},range(len(uv_vertices))),"boundaryEdgeCount":len(candidate_boundary_mesh_edges),"boundaryVertexCount":len(candidate_boundary_mesh_vertices),"boundaryDegreeHistogram":boundary_degree_histogram,"boundaryComponentCount":graph_component_count(boundary_adjacency,candidate_boundary_mesh_vertices),"eulerCharacteristic":len(uv_vertices)-len(edge_use_counts)+len(candidate_triangles)}
+        outside_candidate_indices=[index for index,inside in enumerate(candidate_vertex_inside_flags) if not inside]
+        outside_candidate_boundary_indices=[index for index in outside_candidate_indices if index in candidate_boundary_mesh_vertices]
+        outside_candidate_interior_indices=[index for index in outside_candidate_indices if index not in candidate_boundary_mesh_vertices]
+        outside_support_vertex_indices=[index for index,inside in enumerate(support_vertex_inside_flags) if not inside]
         refinement_sensitivity=[]
         trial_uv=[list(map(float,uv)) for uv in uv_vertices]
         trial_triangles=[list(map(int,tri)) for tri in candidate_triangles]
@@ -192,7 +253,12 @@ def main():
           "triangleCount":len(candidate_triangles),
           "rustSurfacePointsToFreecadSurface":metric(parameter_surface_residuals),
           "freecadMappedVerticesToTrimmedFace":metric(point_to_trimmed_face),
-          "candidateVertexTrimContainment":{"inside":candidate_vertices_inside,"outside":candidate_vertices_outside,"toleranceMm":1e-7},
+          "candidateVertexTrimContainment":{"inside":candidate_vertices_inside,"outside":candidate_vertices_outside,"toleranceMm":1e-7,"outsideIndices":outside_candidate_indices},
+          "candidateSupportSurfaceVertexTrimContainment":{"inside":support_vertices_inside,"outside":support_vertices_outside,"toleranceMm":1e-7,"outsideIndices":outside_support_vertex_indices},
+          "candidateMeshVerticesToFreecadTrimmedFace":metric(mesh_point_to_trimmed_face),
+          "candidateMeshBoundaryTrimContainment":{"boundaryEdgeCount":len(candidate_boundary_mesh_edges),"boundaryVertexCount":len(candidate_boundary_mesh_vertices),"outsideMeshBoundaryVertexCount":len(outside_candidate_boundary_indices),"outsideMeshInteriorVertexCount":len(outside_candidate_interior_indices),"outsideMeshBoundaryVertexIndices":outside_candidate_boundary_indices,"outsideMeshInteriorVertexIndices":outside_candidate_interior_indices},
+          "candidateMeshTopology":candidate_mesh_topology,
+          "candidateBoundaryTrimContainment":candidate_boundary_trim_comparison,
           "candidateUvCentroidTrimContainment":{"inside":uv_centroids_inside,"outside":uv_centroids_outside,"toleranceMm":1e-7,"outsideExamples":outside_uv_centroid_examples},
           "triangleCentroidToTrimmedFace":metric(centroid_distances),
           "triangleAreaMm2":metric(triangle_areas),

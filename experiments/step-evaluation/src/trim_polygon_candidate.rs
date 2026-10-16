@@ -12,9 +12,34 @@ const MAX_REFINEMENT_LEVELS: usize = 5;
 pub struct Candidate {
     pub vertices: Vec<[f64; 2]>,
     pub triangles: Vec<[usize; 3]>,
+    /// For every submitted loop sample, the index of its retained vertex.
+    /// Adjacent duplicates and a repeated closing point map to their retained peer.
+    pub input_vertex_indices: Vec<usize>,
     pub signed_area: f64,
     pub removed_adjacent_duplicates: usize,
     pub predicate_checks: usize,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BoundaryCurveSegment {
+    pub start_vertex: usize,
+    pub end_vertex: usize,
+    pub curve_index: usize,
+    pub start_parameter: f64,
+    pub end_parameter: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct BoundaryVertexPoint {
+    pub vertex_index: usize,
+    pub point: [f64; 3],
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct RefinementOptions {
+    pub chord_tolerance: f64,
+    pub max_refinement_levels: usize,
+    pub max_triangles: usize,
 }
 
 #[derive(Debug)]
@@ -22,6 +47,8 @@ pub struct RefinedCandidate {
     pub vertices: Vec<[f64; 2]>,
     pub points: Vec<[f64; 3]>,
     pub triangles: Vec<[usize; 3]>,
+    /// Stable mapping from each submitted loop sample to its refined mesh vertex.
+    pub input_vertex_indices: Vec<usize>,
     pub signed_area: f64,
     pub removed_adjacent_duplicates: usize,
     pub predicate_checks: usize,
@@ -30,7 +57,6 @@ pub struct RefinedCandidate {
     pub chord_tolerance: f64,
     pub converged: bool,
     pub failure_reason: Option<&'static str>,
-    pub surface_evaluation_count: usize,
 }
 
 fn cross(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
@@ -146,14 +172,17 @@ pub fn triangulate_simple_loop(input: &[[f64; 2]]) -> Result<Candidate, String> 
     let orientation_epsilon = span * span * 1e-12;
     let coordinate_epsilon = span * 1e-12;
     let mut vertices = Vec::with_capacity(input.len());
+    let mut input_vertex_indices = Vec::with_capacity(input.len());
     let mut removed_adjacent_duplicates = 0usize;
     for point in input.iter().copied() {
         if vertices
             .last()
             .is_some_and(|last| distance_squared(*last, point) <= duplicate_epsilon.powi(2))
         {
+            input_vertex_indices.push(vertices.len() - 1);
             removed_adjacent_duplicates += 1;
         } else {
+            input_vertex_indices.push(vertices.len());
             vertices.push(point);
         }
     }
@@ -161,7 +190,13 @@ pub fn triangulate_simple_loop(input: &[[f64; 2]]) -> Result<Candidate, String> 
         && distance_squared(vertices[0], *vertices.last().expect("nonempty checked"))
             <= duplicate_epsilon.powi(2)
     {
+        let removed_index = vertices.len() - 1;
         vertices.pop();
+        for mapped_index in &mut input_vertex_indices {
+            if *mapped_index == removed_index {
+                *mapped_index = 0;
+            }
+        }
         removed_adjacent_duplicates += 1;
     }
     if vertices.len() < 3 {
@@ -265,6 +300,7 @@ pub fn triangulate_simple_loop(input: &[[f64; 2]]) -> Result<Candidate, String> 
     Ok(Candidate {
         vertices,
         triangles,
+        input_vertex_indices,
         signed_area: area,
         removed_adjacent_duplicates,
         predicate_checks,
@@ -280,24 +316,109 @@ fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
 
 /// Uniformly refine a UV triangulation until sampled surface-to-chord error
 /// meets the diagnostic tolerance or a hard level/triangle budget is reached.
+#[cfg(test)]
 pub fn refine_uniform<F>(
-    mut candidate: Candidate,
+    candidate: Candidate,
     chord_tolerance: f64,
     max_refinement_levels: usize,
     max_triangles: usize,
-    mut evaluate_surface: F,
+    evaluate_surface: F,
 ) -> Result<RefinedCandidate, String>
 where
     F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
 {
-    if !chord_tolerance.is_finite()
-        || chord_tolerance <= 0.
-        || max_refinement_levels > MAX_REFINEMENT_LEVELS
-        || max_triangles == 0
-        || max_triangles > MAX_REFINED_TRIANGLES
-        || candidate.triangles.len() > max_triangles
+    refine_uniform_with_boundary(
+        candidate,
+        RefinementOptions {
+            chord_tolerance,
+            max_refinement_levels,
+            max_triangles,
+        },
+        &[],
+        &[],
+        evaluate_surface,
+        |_, _, _, _| Err("unexpected_boundary_midpoint_evaluation".into()),
+    )
+}
+
+/// Refine a surface triangulation while sampling declared trim-curve edges
+/// from their source curve instead of interpolating those edges in UV.
+pub fn refine_uniform_with_boundary<F, B>(
+    candidate: Candidate,
+    options: RefinementOptions,
+    boundary_segments: &[BoundaryCurveSegment],
+    boundary_vertices: &[BoundaryVertexPoint],
+    evaluate_surface: F,
+    mut evaluate_boundary_midpoint: B,
+) -> Result<RefinedCandidate, String>
+where
+    F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
+    B: FnMut(
+        BoundaryCurveSegment,
+        [f64; 2],
+        [f64; 2],
+        usize,
+    ) -> Result<([f64; 2], [f64; 3]), String>,
+{
+    refine_uniform_internal(
+        candidate,
+        options,
+        boundary_segments,
+        boundary_vertices,
+        evaluate_surface,
+        &mut evaluate_boundary_midpoint,
+    )
+}
+
+fn refine_uniform_internal<F, B>(
+    mut candidate: Candidate,
+    options: RefinementOptions,
+    initial_boundary_segments: &[BoundaryCurveSegment],
+    initial_boundary_vertices: &[BoundaryVertexPoint],
+    mut evaluate_surface: F,
+    evaluate_boundary_midpoint: &mut B,
+) -> Result<RefinedCandidate, String>
+where
+    F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
+    B: FnMut(
+        BoundaryCurveSegment,
+        [f64; 2],
+        [f64; 2],
+        usize,
+    ) -> Result<([f64; 2], [f64; 3]), String>,
+{
+    if !options.chord_tolerance.is_finite()
+        || options.chord_tolerance <= 0.
+        || options.max_refinement_levels > MAX_REFINEMENT_LEVELS
+        || options.max_triangles == 0
+        || options.max_triangles > MAX_REFINED_TRIANGLES
+        || candidate.triangles.len() > options.max_triangles
     {
         return Err("trim_candidate_refinement_limits_invalid".into());
+    }
+    let mut boundary_segments = std::collections::BTreeMap::new();
+    if !initial_boundary_segments.is_empty() && candidate.vertices.len() < 3 {
+        return Err("trim_candidate_boundary_curve_segment_invalid".into());
+    }
+    for segment in initial_boundary_segments {
+        let vertex_count = candidate.vertices.len();
+        if segment.start_vertex >= vertex_count
+            || segment.end_vertex >= vertex_count
+            || segment.start_vertex == segment.end_vertex
+            || !((segment.start_vertex + 1) % vertex_count == segment.end_vertex
+                || (segment.end_vertex + 1) % vertex_count == segment.start_vertex)
+            || !segment.start_parameter.is_finite()
+            || !segment.end_parameter.is_finite()
+        {
+            return Err("trim_candidate_boundary_curve_segment_invalid".into());
+        }
+        let key = (
+            segment.start_vertex.min(segment.end_vertex),
+            segment.start_vertex.max(segment.end_vertex),
+        );
+        if boundary_segments.insert(key, *segment).is_some() {
+            return Err("trim_candidate_boundary_curve_segment_duplicate".into());
+        }
     }
     let mut points = candidate
         .vertices
@@ -308,10 +429,29 @@ where
     if points.iter().flatten().any(|value| !value.is_finite()) {
         return Err("trim_candidate_surface_evaluation_nonfinite".into());
     }
+    let mut boundary_vertex_points = std::collections::BTreeMap::new();
+    for boundary in initial_boundary_vertices {
+        if boundary.vertex_index >= candidate.vertices.len()
+            || boundary.point.iter().any(|value| !value.is_finite())
+        {
+            return Err("trim_candidate_boundary_vertex_point_invalid".into());
+        }
+        if let Some(existing) = boundary_vertex_points.get(&boundary.vertex_index) {
+            if existing != &boundary.point {
+                return Err("trim_candidate_boundary_vertex_point_conflict".into());
+            }
+        } else {
+            boundary_vertex_points.insert(boundary.vertex_index, boundary.point);
+        }
+    }
+    for (vertex_index, point) in boundary_vertex_points {
+        points[vertex_index] = point;
+    }
     let mut surface_evaluation_count = points.len();
-    for level in 0..=max_refinement_levels {
+    for level in 0..=options.max_refinement_levels {
         let level_vertex_count = candidate.vertices.len();
         let mut edge_midpoints = std::collections::BTreeMap::<(usize, usize), usize>::new();
+        let mut next_boundary_segments = std::collections::BTreeMap::new();
         for triangle in &candidate.triangles {
             for (a, b) in [
                 (triangle[0], triangle[1]),
@@ -321,11 +461,53 @@ where
                 let key = (a.min(b), a.max(b));
                 if let std::collections::btree_map::Entry::Vacant(entry) = edge_midpoints.entry(key)
                 {
-                    let uv = [
-                        (candidate.vertices[a][0] + candidate.vertices[b][0]) * 0.5,
-                        (candidate.vertices[a][1] + candidate.vertices[b][1]) * 0.5,
-                    ];
-                    let point = evaluate_surface(uv)?;
+                    let boundary_segment = boundary_segments.get(&key).copied();
+                    let (uv, point) = if let Some(segment) = boundary_segment {
+                        let midpoint_index = candidate.vertices.len();
+                        let (uv, point) = evaluate_boundary_midpoint(
+                            segment,
+                            candidate.vertices[segment.start_vertex],
+                            candidate.vertices[segment.end_vertex],
+                            midpoint_index,
+                        )?;
+                        let parameter_midpoint =
+                            (segment.start_parameter + segment.end_parameter) * 0.5;
+                        let first_child = BoundaryCurveSegment {
+                            start_vertex: segment.start_vertex,
+                            end_vertex: midpoint_index,
+                            curve_index: segment.curve_index,
+                            start_parameter: segment.start_parameter,
+                            end_parameter: parameter_midpoint,
+                        };
+                        let second_child = BoundaryCurveSegment {
+                            start_vertex: midpoint_index,
+                            end_vertex: segment.end_vertex,
+                            curve_index: segment.curve_index,
+                            start_parameter: parameter_midpoint,
+                            end_parameter: segment.end_parameter,
+                        };
+                        next_boundary_segments.insert(
+                            (
+                                first_child.start_vertex.min(first_child.end_vertex),
+                                first_child.start_vertex.max(first_child.end_vertex),
+                            ),
+                            first_child,
+                        );
+                        next_boundary_segments.insert(
+                            (
+                                second_child.start_vertex.min(second_child.end_vertex),
+                                second_child.start_vertex.max(second_child.end_vertex),
+                            ),
+                            second_child,
+                        );
+                        (uv, point)
+                    } else {
+                        let uv = [
+                            (candidate.vertices[a][0] + candidate.vertices[b][0]) * 0.5,
+                            (candidate.vertices[a][1] + candidate.vertices[b][1]) * 0.5,
+                        ];
+                        (uv, evaluate_surface(uv)?)
+                    };
                     if point.iter().any(|value| !value.is_finite()) {
                         return Err("trim_candidate_surface_evaluation_nonfinite".into());
                     }
@@ -371,58 +553,58 @@ where
                 max_chord_error = max_chord_error.max(distance3(points[middle], linear_midpoint));
             }
         }
-        if max_chord_error <= chord_tolerance {
+        if max_chord_error <= options.chord_tolerance {
             candidate.vertices.truncate(level_vertex_count);
             points.truncate(level_vertex_count);
             return Ok(RefinedCandidate {
                 vertices: candidate.vertices,
                 points,
                 triangles: candidate.triangles,
+                input_vertex_indices: candidate.input_vertex_indices,
                 signed_area: candidate.signed_area,
                 removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
                 predicate_checks: candidate.predicate_checks,
                 refinement_levels: level,
                 max_chord_error,
-                chord_tolerance,
+                chord_tolerance: options.chord_tolerance,
                 converged: true,
                 failure_reason: None,
-                surface_evaluation_count,
             });
         }
-        if level == max_refinement_levels {
+        if level == options.max_refinement_levels {
             candidate.vertices.truncate(level_vertex_count);
             points.truncate(level_vertex_count);
             return Ok(RefinedCandidate {
                 vertices: candidate.vertices,
                 points,
                 triangles: candidate.triangles,
+                input_vertex_indices: candidate.input_vertex_indices,
                 signed_area: candidate.signed_area,
                 removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
                 predicate_checks: candidate.predicate_checks,
                 refinement_levels: level,
                 max_chord_error,
-                chord_tolerance,
+                chord_tolerance: options.chord_tolerance,
                 converged: false,
                 failure_reason: Some("trim_candidate_chord_tolerance_not_reached"),
-                surface_evaluation_count,
             });
         }
-        if candidate.triangles.len().saturating_mul(4) > max_triangles {
+        if candidate.triangles.len().saturating_mul(4) > options.max_triangles {
             candidate.vertices.truncate(level_vertex_count);
             points.truncate(level_vertex_count);
             return Ok(RefinedCandidate {
                 vertices: candidate.vertices,
                 points,
                 triangles: candidate.triangles,
+                input_vertex_indices: candidate.input_vertex_indices,
                 signed_area: candidate.signed_area,
                 removed_adjacent_duplicates: candidate.removed_adjacent_duplicates,
                 predicate_checks: candidate.predicate_checks,
                 refinement_levels: level,
                 max_chord_error,
-                chord_tolerance,
+                chord_tolerance: options.chord_tolerance,
                 converged: false,
                 failure_reason: Some("trim_candidate_triangle_budget_exceeded"),
-                surface_evaluation_count,
             });
         }
         let mut refined = Vec::with_capacity(candidate.triangles.len() * 4);
@@ -437,6 +619,7 @@ where
             refined.push([ab, bc, ca]);
         }
         candidate.triangles = refined;
+        boundary_segments = next_boundary_segments;
     }
     Err("trim_candidate_refinement_unreachable_state".into())
 }
@@ -471,6 +654,14 @@ mod tests {
         assert_eq!(result.vertices.len(), 5);
         assert_eq!(result.triangles.len(), 3);
         assert_eq!(result.removed_adjacent_duplicates, 1);
+    }
+
+    #[test]
+    fn retained_vertices_map_adjacent_and_closing_source_samples() {
+        let points = [[0., 0.], [0., 0.], [2., 0.], [2., 2.], [0., 2.], [0., 0.]];
+        let result = triangulate_simple_loop(&points).unwrap();
+        assert_eq!(result.vertices.len(), 4);
+        assert_eq!(result.input_vertex_indices, [0, 0, 1, 2, 3, 0]);
     }
 
     #[test]
@@ -544,6 +735,55 @@ mod tests {
         assert_eq!(refined.refinement_levels, 0);
         assert_eq!(refined.triangles.len(), 2);
         assert!(refined.max_chord_error <= 1e-8);
+    }
+
+    #[test]
+    fn sampled_refinement_uses_source_curve_for_declared_boundary_midpoints() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 1.], [1., 0.]]).unwrap();
+        let boundary = [BoundaryCurveSegment {
+            start_vertex: 0,
+            end_vertex: 1,
+            curve_index: 7,
+            start_parameter: 0.,
+            end_parameter: 1.,
+        }];
+        let refined = refine_uniform_with_boundary(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 1e-4,
+                max_refinement_levels: 1,
+                max_triangles: 64,
+            },
+            &boundary,
+            &[
+                BoundaryVertexPoint {
+                    vertex_index: 0,
+                    point: [0., 0., 0.1],
+                },
+                BoundaryVertexPoint {
+                    vertex_index: 1,
+                    point: [1., 1., 0.2],
+                },
+            ],
+            |uv| Ok([uv[0], uv[1], uv[0] * uv[0]]),
+            |segment, _, _, _| {
+                assert_eq!(segment.curve_index, 7);
+                let parameter = (segment.start_parameter + segment.end_parameter) * 0.5;
+                let uv = [parameter, parameter * parameter];
+                Ok((uv, [uv[0], uv[1], uv[0] * uv[0]]))
+            },
+        )
+        .unwrap();
+        assert!(refined
+            .vertices
+            .iter()
+            .any(|uv| { (uv[0] - 0.5).abs() < 1e-12 && (uv[1] - 0.25).abs() < 1e-12 }));
+        assert!(!refined
+            .vertices
+            .iter()
+            .any(|uv| (uv[0] - 0.5).abs() < 1e-12 && (uv[1] - 0.5).abs() < 1e-12));
+        assert_eq!(refined.points[0], [0., 0., 0.1]);
+        assert_eq!(refined.points[1], [1., 1., 0.2]);
     }
 
     #[test]
