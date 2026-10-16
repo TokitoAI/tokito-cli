@@ -811,7 +811,7 @@ fn print_help() {
          \ttokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\n\
          \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\n\
          \ttokito-cli export svg <BOARD.kicad_pcb> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\n\
-         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
+         \ttokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] [--no-unspecified] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]\n\
          \ttokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\n\
          \ttokito-cli package verify <DIRECTORY> [--json]\n\
          \n\
@@ -962,7 +962,7 @@ fn print_command_help(path: &[String]) -> Result<(), CliError> {
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\nWrites a partial SVG view from supported board geometry. The DNP option hides only DNP footprint text and graphics on F.Fab/B.Fab; it does not remove pads or affect other layers."
         ),
         ["export", "glb"] => println!(
-            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl emits the bounded supported VRML97 subset (.wrl/.vrml). --component-filter applies case-sensitive comma-separated reference patterns; `*` matches any sequence and `?` one Unicode scalar in Tokito. Empty filter means unfiltered and a no-match filter emits only the board shell. --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID; a custom (property \"DNP\" \"yes\") does not trigger this filter. Both filters act before model resolution and report selected/excluded coverage; pathological matching work is refused. Selected unresolved models still require --allow-partial. Filters apply only to VRML-to-GLB assembly. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; component filters and --no-dnp are unsupported in that mode and in shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
+            "USAGE: tokito-cli export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] [--no-unspecified] | --model-assignments <FILE.json> --project-root <DIR>] [--outline-chaining-tolerance 0.000001|0.001|0.01] [--allow-partial] [--json-report]\nExports a validated board shell. --assemble-wrl emits the bounded supported VRML97 subset (.wrl/.vrml). --component-filter applies case-sensitive comma-separated reference patterns; `*` matches any sequence and `?` one Unicode scalar in Tokito. Empty filter means unfiltered and a no-match filter emits only the board shell. --no-dnp filters only footprints carrying the native KiCad (attr dnp) marker, by unique UUID; a custom (property \"DNP\" \"yes\") does not trigger this filter. --no-unspecified excludes footprints with neither native smd nor through_hole type; pads, names and model availability never infer this type. All filters act before model resolution and report selected/excluded coverage; pathological matching work is refused. Selected unresolved models still require --allow-partial. Filters apply only to VRML-to-GLB assembly. --model-assignments emits explicitly assigned candidate bodies and always requires --allow-partial; component filters, --no-dnp and --no-unspecified are unsupported in that mode and in shell-only mode. STEP, general VRML, glTF/GLB model import and phone import are unsupported."
         ),
         ["package"] | ["package", "build"] => println!(
             "USAGE: tokito-cli package build <BOARD.kicad_pcb> --output <DIRECTORY>\nCreates the v0.1 source-and-inventory package; it is not phone-importable."
@@ -1627,7 +1627,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
     if args[0] == "export" && args.get(1).is_some_and(|value| value == "glb") {
         if args.len() < 5 {
             return Err(CliError::new(
-                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
+                "usage: tokito-cli export glb <BOARD|TOKITO_PACKAGE> --output <FILE.glb> [--assemble-wrl --project-root <DIR> [--library-root <DIR>] [--model-var NAME=DIR] [--component-filter <PATTERN[,PATTERN...]>] [--no-dnp] [--no-unspecified] | --model-assignments <FILE.json> --project-root <DIR>] [--allow-partial] [--json-report]",
             ));
         }
         let mut output_path = None;
@@ -1638,6 +1638,7 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         let mut chaining_tolerance = None;
         let mut component_filter = None;
         let mut no_dnp = false;
+        let mut no_unspecified = false;
         let mut project_root = None;
         let mut library_roots = Vec::new();
         let mut variables = std::collections::BTreeMap::new();
@@ -1720,6 +1721,10 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                     no_dnp = true;
                     index += 1;
                 }
+                "--no-unspecified" if !no_unspecified => {
+                    no_unspecified = true;
+                    index += 1;
+                }
                 option => {
                     return Err(CliError::new(format!(
                         "unknown, duplicate, or incomplete GLB option: {option}"
@@ -1738,9 +1743,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
         }
         let board = load_board_input(Path::new(&args[2]))?;
         if let Some(path) = assignments_path {
-            if component_filter.is_some() || no_dnp {
+            if component_filter.is_some() || no_dnp || no_unspecified {
                 return Err(CliError::new(
-                    "GLB component filters and --no-dnp currently require --assemble-wrl",
+                    "GLB component filters, --no-dnp and --no-unspecified currently require --assemble-wrl",
                 ));
             }
             let board = if let Some(tolerance) = chaining_tolerance {
@@ -1797,6 +1802,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
             if no_dnp {
                 filter = filter.excluding_dnp();
             }
+            if no_unspecified {
+                filter = filter.excluding_unspecified();
+            }
             let mut config = ModelResolverConfig::new(project_root.ok_or_else(|| {
                 CliError::new("GLB --assemble-wrl requires --project-root <DIR>")
             })?);
@@ -1819,9 +1827,9 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 report: model_export.report,
             }
         } else {
-            if component_filter.is_some() || no_dnp {
+            if component_filter.is_some() || no_dnp || no_unspecified {
                 return Err(CliError::new(
-                    "GLB component filters and --no-dnp currently require --assemble-wrl",
+                    "GLB component filters, --no-dnp and --no-unspecified currently require --assemble-wrl",
                 ));
             }
             if project_root.is_some() || !library_roots.is_empty() || !variables.is_empty() {
@@ -1838,7 +1846,20 @@ pub(super) fn run(args: &[String]) -> Result<(), CliError> {
                 model_report_json.unwrap_or_else(|| export.report.report_json())
             );
         } else {
-            if let Some(filter) = dnp_filter_coverage {
+            if let Some(filter) = &export.report.unspecified_filter {
+                let dnp_count = dnp_filter_coverage.map_or(0, |dnp| dnp.components_excluded);
+                println!(
+                    "Wrote {} GLB ({} of {} component models emitted; {} unresolved; excluded {} unspecified component(s), {} DNP component(s), {} overlap) to {}",
+                    export.report.scope,
+                    export.report.component_models_emitted,
+                    export.report.component_count,
+                    export.report.component_models_unresolved,
+                    filter.components_excluded,
+                    dnp_count,
+                    filter.overlap_with_dnp_components,
+                    output_path.display()
+                );
+            } else if let Some(filter) = dnp_filter_coverage {
                 println!(
                     "Wrote {} GLB ({} of {} component models emitted; {} unresolved; excluded {} DNP component(s) and {} model reference(s)) to {}",
                     export.report.scope,

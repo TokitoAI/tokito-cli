@@ -1,5 +1,25 @@
 # Tokito Native PCB Engine and Selectable 2D/3D Digital Twin
 
+## Verified local checkpoint — native footprint-type filter (2026-10-16)
+
+Changes after pushed PR #45 head `261f7654bd2e8008fba92e1604466497934bd580`
+implement `export glb --assemble-wrl --no-unspecified` in original Rust. It
+classifies raw native footprint attributes, validates identities before
+exclusion, and reports model/component counts plus DNP overlap. Default output
+compatibility remains covered. These changes are verified locally and not pushed yet.
+
+Ten focused API tests and six offline subprocess comparisons passed. The
+independent KiCad 10.0.7 capture confirms type filtering, modifier-only/empty
+attributes, DNP combinations and reference-pattern combinations. This compares
+selection identities using a synthetic metadata fixture and real model files;
+it does not qualify geometry or a real board. All **39/39 local verification
+gates passed** at `target/delivery/local/20261016T044433Z-ee1815c9117240c3afb9efd45ab6f6a2/verification.json`.
+The delivered binary is 5,288,448 bytes, SHA-256
+`b96f953963c5414ba25d48c6c709d66e930d335836450c21fb21d2896daf6800`.
+Every recorded source/test fingerprint matched before this narrative update.
+The 38-gate receipt below describes the preceding pushed baseline. See
+[the exact filter contract and task ledger](KICAD_FOOTPRINT_TYPE_FILTER.md).
+
 ## Latest delivery status — local verification and prototype evidence (2026-10-15)
 
 This section supersedes earlier verification snapshots below. The latest source

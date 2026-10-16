@@ -151,6 +151,7 @@ try {
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
         @{ name = 'kicad-10.0.7-pos-e2e'; command = $pythonCommand.Source; arguments = @('tests/kicad_pos_compat_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'kicad-10.0.7-type-filter-e2e'; command = $pythonCommand.Source; arguments = @('tests/kicad_type_filter_e2e.py', '--binary', $binaryPath) },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath, '--output-dir', $geometryOutputPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },

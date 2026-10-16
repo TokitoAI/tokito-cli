@@ -34,14 +34,18 @@ const MAX_COMPONENT_REFERENCE_CHARS: usize = 4_096;
 pub struct ModelAssemblyFilter {
     component_patterns: Option<Vec<String>>,
     exclude_dnp: bool,
+    exclude_unspecified: bool,
 }
 
-/// Selection result retaining DNP exclusions for accurate export coverage.
+/// Selection result retaining native DNP and footprint-type exclusions.
+/// A component can belong to both exclusion sets; selected ordinals exclude
+/// their union. Counts attributed to individual filters must not be summed.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ModelAssemblySelection {
     pub selected_component_ordinals: BTreeSet<usize>,
     pub excluded_dnp_component_count: usize,
     pub excluded_dnp_component_ordinals: BTreeSet<usize>,
+    pub excluded_unspecified_component_ordinals: BTreeSet<usize>,
 }
 
 impl ModelAssemblyFilter {
@@ -126,6 +130,7 @@ impl ModelAssemblyFilter {
         Ok(Self {
             component_patterns: Some(patterns.to_vec()),
             exclude_dnp: false,
+            exclude_unspecified: false,
         })
     }
 
@@ -139,8 +144,19 @@ impl ModelAssemblyFilter {
         self.exclude_dnp
     }
 
+    /// Exclude footprints without an explicit native SMD or through-hole type.
+    /// This does not infer type from pads, names, or model availability.
+    pub fn excluding_unspecified(mut self) -> Self {
+        self.exclude_unspecified = true;
+        self
+    }
+
+    pub fn excludes_unspecified(&self) -> bool {
+        self.exclude_unspecified
+    }
+
     pub fn is_active(&self) -> bool {
-        self.component_patterns.is_some() || self.exclude_dnp
+        self.component_patterns.is_some() || self.exclude_dnp || self.exclude_unspecified
     }
 
     pub fn requested_patterns(&self) -> Option<Vec<String>> {
@@ -167,6 +183,11 @@ impl ModelAssemblyFilter {
         // malformed input contains repeated `(attr ...)` nodes.
         let excluded_dnp_ordinals = if self.exclude_dnp {
             Some(board.dnp_component_ordinals()?)
+        } else {
+            None
+        };
+        let excluded_unspecified_ordinals = if self.exclude_unspecified {
+            Some(board.unspecified_component_ordinals()?)
         } else {
             None
         };
@@ -209,15 +230,24 @@ impl ModelAssemblyFilter {
             if !matched {
                 continue;
             }
-            if excluded_dnp_ordinals
+            let excluded_dnp = excluded_dnp_ordinals
                 .as_ref()
-                .is_some_and(|excluded| excluded.contains(&component.source.ordinal))
-            {
+                .is_some_and(|excluded| excluded.contains(&component.source.ordinal));
+            let excluded_unspecified = excluded_unspecified_ordinals
+                .as_ref()
+                .is_some_and(|excluded| excluded.contains(&component.source.ordinal));
+            if excluded_dnp {
                 result.excluded_dnp_component_count += 1;
                 result
                     .excluded_dnp_component_ordinals
                     .insert(component.source.ordinal);
-            } else {
+            }
+            if excluded_unspecified {
+                result
+                    .excluded_unspecified_component_ordinals
+                    .insert(component.source.ordinal);
+            }
+            if !excluded_dnp && !excluded_unspecified {
                 result
                     .selected_component_ordinals
                     .insert(component.source.ordinal);

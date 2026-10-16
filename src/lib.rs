@@ -73,6 +73,7 @@ enum Token {
     Open,
     Close,
     Value(String),
+    QuotedValue(String),
 }
 
 #[derive(Debug)]
@@ -158,6 +159,9 @@ pub struct PhysicalBoardDocument {
     outline: topology::OutlineReport,
     engineering: document::EngineeringData,
     source_document: Sexp,
+    // The public source tree normalizes strings to atoms. Retain lexical
+    // evidence needed to validate native footprint type tokens independently.
+    quoted_type_filter_tokens: bool,
 }
 
 type Board = PhysicalBoardDocument;
@@ -193,8 +197,8 @@ pub struct SvgExportOptions {
 }
 
 pub use glb::{
-    AssignedGlbExport, DnpFilterCoverage, GlbCoverageReport, GlbExport, GlbModelExport,
-    UnresolvedComponentCoverage,
+    AssignedGlbExport, DnpFilterCoverage, FootprintTypeFilterCoverage, GlbCoverageReport,
+    GlbExport, GlbModelExport, UnresolvedComponentCoverage,
 };
 
 impl SvgSide {
@@ -478,6 +482,32 @@ impl PhysicalBoardDocument {
     }
 
     fn dnp_component_ordinals(&self) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        self.source_filtered_component_ordinals("--no-dnp", "DNP", |source| {
+            Ok(has_native_dnp_attribute(source))
+        })
+    }
+
+    fn unspecified_component_ordinals(
+        &self,
+    ) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        if self.quoted_type_filter_tokens {
+            return Err(EngineError::new(
+                "cannot safely apply --no-unspecified: quoted footprint attribute tokens or filter structure heads",
+            ));
+        }
+        self.source_filtered_component_ordinals(
+            "--no-unspecified",
+            "type-unspecified",
+            has_unspecified_footprint_type,
+        )
+    }
+
+    fn source_filtered_component_ordinals(
+        &self,
+        flag: &str,
+        description: &str,
+        should_exclude: impl Fn(&Sexp) -> Result<bool, EngineError>,
+    ) -> Result<std::collections::BTreeSet<usize>, EngineError> {
         let mut by_uuid = std::collections::BTreeMap::<&str, Vec<usize>>::new();
         for component in &self.engineering().components {
             if let Some(uuid) = component
@@ -496,59 +526,61 @@ impl PhysicalBoardDocument {
         for component in &self.engineering().components {
             let source = source_at_path(&self.source_document, &component.source.source_path)
                 .ok_or_else(|| {
-                    EngineError::new("cannot safely apply --no-dnp: missing source component")
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: missing source component"
+                    ))
                 })?;
-            if !has_native_dnp_attribute(source) {
+            if !should_exclude(source)? {
                 continue;
             }
 
             let fields: Vec<_> = source.children("uuid").collect();
             if fields.len() > 1 {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
             let field = fields.first().copied().ok_or_else(|| {
-                EngineError::new(
-                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                )
+                EngineError::new(format!(
+                    "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                ))
             })?;
             let values = field.items().ok_or_else(|| {
-                EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                )
+                EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                ))
             })?;
             if values.len() > 2 {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
             let uuid = field
                 .value_at(1)
                 .filter(|uuid| !uuid.is_empty())
                 .ok_or_else(|| {
-                    EngineError::new(
-                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                    )
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                    ))
                 })?;
             if component.source.source_uuid.as_deref() != Some(uuid) {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
 
             let ordinals = by_uuid
                 .get(uuid)
                 .filter(|ordinals| ordinals.len() == 1)
                 .ok_or_else(|| {
-                    EngineError::new(
-                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                    )
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                    ))
                 })?;
             if ordinals[0] != component.source.ordinal {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                )));
             }
             excluded.insert(ordinals[0]);
         }
@@ -656,7 +688,7 @@ fn lex(input: &[u8]) -> Result<Vec<Token>, CliError> {
                 tokens.push(Token::Close);
                 cursor += 1;
             }
-            b'"' => tokens.push(Token::Value(read_quoted(input, &mut cursor)?)),
+            b'"' => tokens.push(Token::QuotedValue(read_quoted(input, &mut cursor)?)),
             _ => {
                 let start = cursor;
                 while cursor < input.len()
@@ -780,7 +812,7 @@ fn parse_one(
         .ok_or_else(|| CliError::new("unexpected end of board file"))?;
     *cursor += 1;
     match token {
-        Token::Value(value) => Ok(Sexp::Atom(value.clone())),
+        Token::Value(value) | Token::QuotedValue(value) => Ok(Sexp::Atom(value.clone())),
         Token::Close => Err(CliError::new("unexpected closing parenthesis")),
         Token::Open => {
             let mut items = Vec::new();
@@ -799,6 +831,10 @@ fn parse_one(
 }
 
 fn parse_document(input: &[u8]) -> Result<Sexp, CliError> {
+    parse_document_with_lexical_evidence(input).map(|(document, _)| document)
+}
+
+fn parse_document_with_lexical_evidence(input: &[u8]) -> Result<(Sexp, bool), CliError> {
     if input.len() > MAX_INPUT_BYTES {
         return Err(CliError::new(format!(
             "board file exceeds the size limit ({} bytes)",
@@ -812,7 +848,38 @@ fn parse_document(input: &[u8]) -> Result<Sexp, CliError> {
     if cursor != tokens.len() {
         return Err(CliError::new("unexpected content after board document"));
     }
-    Ok(root)
+    let mut heads: Vec<Option<&str>> = Vec::new();
+    let mut quoted_type_filter_tokens = false;
+    for token in &tokens {
+        match token {
+            Token::Open => heads.push(None),
+            Token::Close => {
+                heads.pop();
+            }
+            Token::Value(value) | Token::QuotedValue(value) => {
+                let footprint_parent = heads.len() >= 2
+                    && matches!(heads[heads.len() - 2], Some("footprint" | "module"));
+                let attribute_record = matches!(heads.last(), Some(Some("attr")))
+                    || (matches!(heads.last(), Some(None)) && value == "attr");
+                let filter_structure_head = matches!(heads.last(), Some(None))
+                    && matches!(
+                        value.as_str(),
+                        "kicad_pcb" | "footprint" | "module" | "uuid"
+                    );
+                if matches!(token, Token::QuotedValue(_))
+                    && (filter_structure_head || (footprint_parent && attribute_record))
+                {
+                    quoted_type_filter_tokens = true;
+                }
+                if let Some(head) = heads.last_mut() {
+                    if head.is_none() {
+                        *head = Some(value);
+                    }
+                }
+            }
+        }
+    }
+    Ok((root, quoted_type_filter_tokens))
 }
 
 fn parse_number(value: Option<&str>) -> Option<f64> {
@@ -869,6 +936,49 @@ fn is_dnp(node: &Sexp) -> bool {
 
 fn has_native_dnp_attribute(node: &Sexp) -> bool {
     has_attribute(node, "dnp")
+}
+
+fn has_unspecified_footprint_type(node: &Sexp) -> Result<bool, EngineError> {
+    let attributes: Vec<_> = node.children("attr").collect();
+    if attributes.len() > 1 {
+        return Err(EngineError::new(
+            "cannot safely apply --no-unspecified: repeated footprint attribute records",
+        ));
+    }
+    let Some(attribute) = attributes.first() else {
+        return Ok(true);
+    };
+    let mut footprint_type = None;
+    for item in attribute.items().unwrap_or_default().iter().skip(1) {
+        let Some(value) = item.atom() else {
+            return Err(EngineError::new(
+                "cannot safely apply --no-unspecified: nested footprint attribute content",
+            ));
+        };
+        match value {
+            "smd" | "through_hole" if footprint_type.is_none() => footprint_type = Some(value),
+            "smd" | "through_hole" => {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-unspecified: duplicate or conflicting footprint types",
+                ));
+            }
+            // Accepted non-type flags in the pinned KiCad 10.0.7 source format.
+            // They never establish SMD/THT type or physical body availability.
+            "virtual"
+            | "board_only"
+            | "exclude_from_pos_files"
+            | "exclude_from_bom"
+            | "allow_missing_courtyard"
+            | "dnp"
+            | "allow_soldermask_bridges" => {}
+            _ => {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-unspecified: unsupported footprint attribute",
+                ));
+            }
+        }
+    }
+    Ok(footprint_type.is_none())
 }
 
 fn has_attribute(node: &Sexp, expected: &str) -> bool {
@@ -1099,7 +1209,7 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
         return Err(CliError::new("input must have a .kicad_pcb extension"));
     }
     let bytes = read_bounded_file(path, MAX_INPUT_BYTES)?;
-    let document = parse_document(&bytes)?;
+    let (document, quoted_type_filter_tokens) = parse_document_with_lexical_evidence(&bytes)?;
     if document.head() != Some("kicad_pcb") {
         return Err(CliError::new(
             "input is not a KiCad PCB S-expression document",
@@ -1234,6 +1344,7 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
         outline,
         engineering,
         source_document: document,
+        quoted_type_filter_tokens,
     })
 }
 

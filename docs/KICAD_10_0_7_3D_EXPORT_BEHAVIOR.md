@@ -66,7 +66,9 @@ onto the VRML command or infer a selection behavior that was not observed.
 
 Tokito's current `export glb --assemble-wrl` path is a local **model importer
 and GLB assembler**. It reads a bounded VRML97 model subset and supports
-Tokito-specific `--component-filter` and `--no-dnp` selection. These options
+Tokito-specific `--component-filter`, `--no-dnp` and `--no-unspecified`
+selection. The [native type-filter evidence](KICAD_FOOTPRINT_TYPE_FILTER.md)
+compares six 10.0.7 selection cases and a quoted-type refusal. These options
 filter which source footprint models Tokito places into its GLB output; they
 do not implement KiCad's `pcb export step` or `pcb export vrml` command.
 

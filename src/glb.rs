@@ -49,6 +49,26 @@ pub struct DnpFilterCoverage {
     pub model_references_excluded: usize,
 }
 
+/// Intentional native footprint-type exclusions. These counts may overlap DNP
+/// exclusions; the ordinary selected/filtered counters describe their union.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FootprintTypeFilterCoverage {
+    pub components_excluded: usize,
+    pub model_references_excluded: usize,
+    pub overlap_with_dnp_components: usize,
+}
+
+impl FootprintTypeFilterCoverage {
+    fn as_json(&self) -> Value {
+        json!({
+            "enabled": true,
+            "componentsExcluded": self.components_excluded,
+            "modelReferencesExcluded": self.model_references_excluded,
+            "overlapWithDnpComponents": self.overlap_with_dnp_components
+        })
+    }
+}
+
 /// Model assembly output with variant-specific exclusion metadata.
 #[derive(Clone, Debug)]
 pub struct GlbModelExport {
@@ -99,6 +119,8 @@ pub struct GlbCoverageReport {
     pub component_filter: Option<Vec<String>>,
     pub no_dnp: bool,
     pub excluded_dnp_component_count: usize,
+    /// Present only when the caller explicitly enabled native type filtering.
+    pub unspecified_filter: Option<FootprintTypeFilterCoverage>,
     pub component_models_emitted: usize,
     pub component_models_unresolved: usize,
     pub model_references: usize,
@@ -153,7 +175,7 @@ pub struct UnresolvedModelCoverage {
 impl GlbCoverageReport {
     /// Stable machine-readable receipt. It omits the local PCB file path but preserves bounded model paths read from the board.
     pub fn report_json(&self) -> String {
-        let value = json!({
+        let mut value = json!({
             "reportVersion": GLB_REPORT_VERSION,
             "scope": self.scope,
             "shellGeometryComplete": self.shell_geometry_complete,
@@ -211,6 +233,9 @@ impl GlbCoverageReport {
                 "sourceGeometryEdited":false
             }
         });
+        if let Some(filter) = &self.unspecified_filter {
+            value["coverage"]["unspecifiedFilter"] = filter.as_json();
+        }
         format!(
             "{}\n",
             serde_json::to_string_pretty(&value).expect("finite GLB coverage report")
@@ -280,6 +305,7 @@ pub(crate) fn export_board_shell(
         component_filter: None,
         no_dnp: false,
         excluded_dnp_component_count: 0,
+        unspecified_filter: None,
         component_models_emitted: 0,
         component_models_unresolved: component_count,
         model_references,
@@ -441,6 +467,27 @@ pub(crate) fn export_board_assembly(
         component_filter: filter.requested_patterns(),
         no_dnp: filter.excludes_dnp(),
         excluded_dnp_component_count: selection.excluded_dnp_component_count,
+        unspecified_filter: filter
+            .excludes_unspecified()
+            .then(|| FootprintTypeFilterCoverage {
+                components_excluded: selection.excluded_unspecified_component_ordinals.len(),
+                model_references_excluded: board
+                    .engineering()
+                    .models
+                    .iter()
+                    .filter(|model| {
+                        model.source.component_ordinal.is_some_and(|ordinal| {
+                            selection
+                                .excluded_unspecified_component_ordinals
+                                .contains(&ordinal)
+                        })
+                    })
+                    .count(),
+                overlap_with_dnp_components: selection
+                    .excluded_unspecified_component_ordinals
+                    .intersection(&selection.excluded_dnp_component_ordinals)
+                    .count(),
+            }),
         component_models_emitted,
         component_models_unresolved,
         model_references: source_model_references,
@@ -1904,6 +1951,9 @@ fn gltf_assembly_document(
             "componentsExcluded": dnp_filter.components_excluded,
             "modelReferencesExcluded": dnp_filter.model_references_excluded
         });
+    }
+    if let Some(filter) = &report.unspecified_filter {
+        document["asset"]["extras"]["tokito"]["coverage"]["unspecifiedFilter"] = filter.as_json();
     }
     Ok(document)
 }

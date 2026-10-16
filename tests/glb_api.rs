@@ -137,7 +137,7 @@ impl Drop for AssemblyFixture {
 }
 
 #[test]
-fn additive_model_api_preserves_unfiltered_bytes_and_report() {
+fn additive_model_api_wrappers_agree_and_omit_default_filter_metadata() {
     let f = AssemblyFixture::new("");
     let legacy = f
         .board
@@ -150,6 +150,166 @@ fn additive_model_api_preserves_unfiltered_bytes_and_report() {
     assert_eq!(legacy.bytes, current.bytes);
     assert_eq!(legacy.report.report_json(), current.report_json());
     assert!(!current.dnp_filter.applied);
+    assert!(current.report.unspecified_filter.is_none());
+    assert!(!current.report_json().contains("unspecifiedFilter"));
+}
+
+#[test]
+fn unspecified_filter_uses_only_native_type_and_preserves_specified_models() {
+    for footprint_type in ["smd", "through_hole"] {
+        let f = AssemblyFixture::new(&format!(
+            "(footprint test (layer F.Cu) (at 7 7) (uuid typed-r2) (attr {footprint_type}) (property Reference R2) (model Resistor_SMD.3dshapes/R_0603_1608Metric.wrl))"
+        ));
+        let filter =
+            tokito_cli::model_assembly::ModelAssemblyFilter::default().excluding_unspecified();
+        let export = f
+            .board
+            .export_glb_with_models_filtered(&f.resolver(), GlbExportOptions::default(), &filter)
+            .unwrap();
+        assert_eq!(export.report.selected_component_count, 1);
+        assert_eq!(export.report.filtered_component_count, 1);
+        assert_eq!(export.report.component_models_emitted, 1);
+        assert!(!export.report.partial_export);
+        let coverage = export.report.unspecified_filter.as_ref().unwrap();
+        assert_eq!(coverage.components_excluded, 1);
+        assert_eq!(coverage.model_references_excluded, 1);
+        let glb = gltf::binary::Glb::from_slice(&export.bytes).unwrap();
+        let document: serde_json::Value = serde_json::from_slice(&glb.json).unwrap();
+        let names: Vec<_> = document["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .filter_map(|node| node["name"].as_str())
+            .collect();
+        assert!(names.contains(&"ref:R2"));
+        assert!(!names.contains(&"ref:R1"));
+        let receipt: serde_json::Value = serde_json::from_str(&export.report_json()).unwrap();
+        assert_eq!(
+            receipt["coverage"]["unspecifiedFilter"],
+            document["asset"]["extras"]["tokito"]["coverage"]["unspecifiedFilter"]
+        );
+    }
+}
+
+#[test]
+fn unspecified_and_dnp_exclusions_report_overlap_and_skip_missing_models() {
+    let f = AssemblyFixture::new(
+        "(footprint test (layer F.Cu) (at 7 7) (uuid untyped-dnp) (attr dnp) (property Reference R2) (model missing-one.wrl) (model missing-two.step))
+         (footprint test (layer F.Cu) (at 7 7) (uuid typed-dnp) (attr smd dnp) (property Reference R3) (model missing-three.wrl))
+         (footprint test (layer F.Cu) (at 7 7) (uuid typed) (attr smd) (property Reference R4) (model Resistor_SMD.3dshapes/R_0603_1608Metric.wrl))",
+    );
+    let filter = tokito_cli::model_assembly::ModelAssemblyFilter::default()
+        .excluding_dnp()
+        .excluding_unspecified();
+    let export = f
+        .board
+        .export_glb_with_models_filtered(&f.resolver(), GlbExportOptions::default(), &filter)
+        .unwrap();
+    assert_eq!(export.report.source_component_count, 4);
+    assert_eq!(export.report.selected_component_count, 1);
+    assert_eq!(export.report.filtered_component_count, 3);
+    assert_eq!(export.dnp_filter.components_excluded, 2);
+    assert_eq!(export.dnp_filter.model_references_excluded, 3);
+    let unspecified = export.report.unspecified_filter.as_ref().unwrap();
+    assert_eq!(unspecified.components_excluded, 2);
+    assert_eq!(unspecified.model_references_excluded, 3);
+    assert_eq!(unspecified.overlap_with_dnp_components, 1);
+    assert_eq!(export.report.filtered_model_references, 4);
+    assert_eq!(export.report.component_models_emitted, 1);
+    assert!(!export.report.partial_export);
+}
+
+#[test]
+fn unspecified_classification_accepts_native_modifiers_but_rejects_ambiguous_source() {
+    let filter = tokito_cli::model_assembly::ModelAssemblyFilter::default().excluding_unspecified();
+    for attributes in [
+        "",
+        "(attr)",
+        "(attr board_only)",
+        "(attr virtual)",
+        "(attr dnp exclude_from_pos_files exclude_from_bom allow_missing_courtyard allow_soldermask_bridges)",
+    ] {
+        let f = AssemblyFixture::new(&format!(
+            "(footprint test (layer F.Cu) (at 7 7) (uuid untyped) {attributes} (property Reference R2) (property Type smd) (pad 1 smd rect (at 0 0) (size 1 1) (layers F.Cu)))"
+        ));
+        let selection = filter.selection(&f.board).unwrap();
+        assert_eq!(selection.excluded_unspecified_component_ordinals.len(), 2);
+        assert!(selection.selected_component_ordinals.is_empty());
+    }
+    for attributes in [
+        "(attr smd through_hole)",
+        "(attr smd smd)",
+        "(attr smd) (attr through_hole)",
+        "(attr (smd))",
+        "(attr unknown)",
+        "(attr \"smd\")",
+        "(attr \"through_hole\")",
+        "(attr smd \"board_only\")",
+        "(\"attr\" smd)",
+    ] {
+        let f = AssemblyFixture::new(&format!(
+            "(footprint test (layer F.Cu) (at 7 7) (uuid malformed) {attributes} (property Reference R2))"
+        ));
+        assert!(
+            filter
+                .selection(&f.board)
+                .unwrap_err()
+                .to_string()
+                .contains("--no-unspecified")
+        );
+    }
+    for uuid in [
+        "",
+        "(uuid assembly-r1)",
+        "(uuid extra) (uuid duplicate)",
+        "(uuid extra nested)",
+        "(\"uuid\" extra)",
+    ] {
+        let f = AssemblyFixture::new(&format!(
+            "(footprint test (layer F.Cu) (at 7 7) {uuid} (property Reference R2))"
+        ));
+        assert!(
+            filter
+                .selection(&f.board)
+                .unwrap_err()
+                .to_string()
+                .contains("--no-unspecified")
+        );
+    }
+    for head in ["\"footprint\"", "\"module\""] {
+        let f = AssemblyFixture::new(&format!(
+            "({head} test (layer F.Cu) (at 7 7) (uuid quoted-head) (attr smd) (property Reference R2))"
+        ));
+        assert!(
+            filter
+                .selection(&f.board)
+                .unwrap_err()
+                .to_string()
+                .contains("--no-unspecified")
+        );
+    }
+    let f = AssemblyFixture::new(
+        "(footprint test (layer F.Cu) (at 7 7) (uuid valid-head) (attr smd) (property Reference R2) (property Description \"footprint\"))",
+    );
+    assert_eq!(
+        filter
+            .selection(&f.board)
+            .unwrap()
+            .selected_component_ordinals
+            .len(),
+        1
+    );
+    let path = f.root.join("assembly.kicad_pcb");
+    let source = std::fs::read_to_string(&path).unwrap();
+    std::fs::write(&path, source.replacen("(kicad_pcb", "(\"kicad_pcb\"", 1)).unwrap();
+    let quoted_root = load_kicad_board(&path).unwrap();
+    assert!(
+        filter
+            .selection(&quoted_root)
+            .unwrap_err()
+            .to_string()
+            .contains("--no-unspecified")
+    );
 }
 
 #[test]
