@@ -220,6 +220,10 @@ fn twin_command(args: &[String]) -> Result<(), CliError> {
             ];
             if let Some(viewer) = viewer {
                 files.push(("index.html", viewer.into_bytes()));
+                files.push((
+                    "presentation-profile.json",
+                    json_bytes(&twin_viewer::presentation_profile())?,
+                ));
             }
             if let Some(population) = population {
                 files.push(("reference-population-audit.json", json_bytes(&population)?));
@@ -932,7 +936,7 @@ fn print_command_help(path: &[String], style: cli_presentation::Style) -> Result
         ),
         ["twin", "inspect"] | ["twin", "prepare"] | ["twin", "prototype"] | ["twin", "select"] => {
             println!(
-                "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with orbit, zoom and per-component highlighting. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
+                "USAGE: tokito-cli twin adapt-source <GLB> --component-map <JSON> --geometry-index <JSON> --provenance <JSON> --coverage <JSON> --board-id <ID> --board-revision <REV> --output <NEW_DIR>\n       tokito-cli twin prototype <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial] [--reference-bom <esp32-csv>]\n       tokito-cli twin inspect <GLB> --component-map <JSON> --manifest <JSON>\n       tokito-cli twin prepare <GLB> --component-map <JSON> --manifest <JSON> --output <NEW_DIR> [--allow-partial]\n       tokito-cli twin select <GLB> --component-map <JSON> --manifest <JSON> --reference <REF>|--class <AUTHORED_LABEL>\nprototype uses the same preparation gates and writes an offline index.html with the Ultimaker reference presentation, optional material-studio lighting, orbit, zoom, per-component highlighting and a Save 4K PNG action. presentation-profile.json records shared defaults. 4K export requires graphics-device support. Moves selector names onto isolated mesh-bearing nodes without changing geometry or transforms. Outputs an unregistered reference candidate; board-reference admission, physical fit, App import and colour rendering require separate acceptance."
             )
         }
         ["twin", "adapt-source"] => println!(

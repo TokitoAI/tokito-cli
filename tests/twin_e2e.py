@@ -119,6 +119,15 @@ def run(binary):
         assert "https://" not in html and "<script src=" not in html
         assert "Reference candidate" in html and 'id="view"' in html
         assert "source-text hint" in html and "unverified" in html
+        profile = json.loads((prototype / "presentation-profile.json").read_text())
+        assert profile["id"] == "tokito.ultimaker-studio.v1"
+        assert profile["snapshotPixels"] == [3840, 2160]
+        assert profile["defaultLighting"] == "ultimaker-reference"
+        assert profile["geometryModified"] is False
+        assert 'id="presentation"' in html and 'snapshot4k' in html
+        import re
+        embedded_profile = re.search(r'<script id="presentation" type="application/json">(.*?)</script>', html, re.S)
+        assert embedded_profile and json.loads(embedded_profile.group(1)) == profile
         original_html = (prototype / "index.html").read_bytes()
         invoke(binary, "twin", "prototype", *common, "--output", prototype, "--allow-partial", succeeds=False)
         assert (prototype / "index.html").read_bytes() == original_html

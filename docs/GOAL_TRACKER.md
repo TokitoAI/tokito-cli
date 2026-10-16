@@ -10,6 +10,17 @@ is blocked.
 
 ## Active production-readiness plan (2026-10-16)
 
+Presentation requirement: use the accepted Ultimaker viewer as the shared
+versioned default for old/new board inspection views, retain source colours
+and geometry, and produce actual 3840 × 2160 PNG captures. Implemented with six
+real-board Edge browser journeys passing PNG dimensions/content, selection-colour
+invariance and camera restoration, download, lighting modes, offline selection and
+simulated GPU-limit refusal. All six GLBs/maps/manifests and existing component
+record fields remain unchanged. The current CLI gate receipt is recorded with
+PR #45; see
+[the presentation standard](THREED_PRESENTATION_STANDARD.md). This requirement
+does not clear STEP, missing-model or physical-precision release gates.
+
 Goal: deliver the advertised CLI features with verified engineering geometry,
 source-linked selectable components, explicit missing-model handling and an
 independently tested installation. No production claim, merge or tag follows
@@ -18,6 +29,7 @@ read-only. The native task goal remains active.
 
 | Owner | Dependency | State | Evidence / review / next action |
 | --- | --- | --- | --- |
+| Main | Accepted Ultimaker visual reference and six pinned demo variants | Shared standard implemented; browser and release reproduction passed | Versioned default, optional material studio, actual 4K PNG export; six browser journeys and byte-exact release reproduction. GLB/map/manifest bytes and existing component fields unchanged. Geometry qualification remains separate. See THREED_PRESENTATION_STANDARD.md |
 | Main | Source face, selected units and plain representation links | Implemented, experimental | Original Rust repair reuses 148 existing vertices; immutable input and unchanged unrelated geometry tests pass |
 | Main | Model-14 candidate | Independent comparison passed | All 41 emitted shape occurrences closed, consistent winding, positive volume; 600,000 samples, maximum distance 0.0014101133940020597 mm below 0.02 mm; volume within declared tolerance |
 | Reviewer | Numeric, resource and evidence checks | Reviewed; no findings | Review confirmed the aggregate edge-curve storage cap runs before curve allocation, area and coordinate tolerances use separate dimensions, the translated large-offset polygon regression is stable, and the E2E independently pins the storage ceiling and requires the expected candidate. A second review found the Clippy refactors preserve curve fields and insert one midpoint per unique edge. |

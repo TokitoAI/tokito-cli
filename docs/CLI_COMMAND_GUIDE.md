@@ -143,6 +143,13 @@ verification is separate from geometry qualification and App admission.
 
 ## Local model and component assembly journey
 
+`twin prototype` uses the [Ultimaker presentation
+standard](THREED_PRESENTATION_STANDARD.md) and emits `presentation-profile.json`
+beside the offline viewer. Use its Lighting selector for the neutral reference
+or material-studio mode, and **Save 4K PNG** for a full 3840 × 2160 model capture.
+Unsupported device limits produce an explicit export error. Source model
+precision and complete coverage still require independent qualification.
+
 The following uses an **authored single-resistor test layout** and a pinned
 real library body. It demonstrates commands, not an independently qualified
 physical board. Continue using a fresh `$out` from the previous example.

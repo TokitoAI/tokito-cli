@@ -15,3 +15,10 @@ unregistered reference prototypes, with physical fit and AR guidance unverified.
 ESP8266 is an explicit partial source-reference assembly; pads, drills, silkscreen and physical pose remain unqualified.
 
 See [demo provenance, commands and limits](../docs/DEMO_BUNDLE.md).
+
+Current viewer regeneration uses the [Ultimaker presentation
+standard](../docs/THREED_PRESENTATION_STANDARD.md), with source colours preserved,
+optional material-studio lighting and **Save 4K PNG**. The pinned GLBs and
+component transforms remain the authoritative source assets. Existing named
+screenshots retain their historical provenance; a new presentation does not
+qualify previously missing or incomplete component geometry.

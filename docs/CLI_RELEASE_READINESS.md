@@ -6,6 +6,14 @@ test suite alone.
 
 ## Candidate release boundary
 
+The shared Ultimaker presentation profile is implemented for existing packaged
+demos and future generated viewers. Six real-board Edge journeys passed actual
+3840 × 2160 PNG generation/download, state restoration, lighting roundtrips,
+offline selection and simulated device-limit refusal. Source GLB/map/manifest
+bytes remain unchanged. See [presentation evidence](evidence/ultimaker-presentation-browser-20261016.json)
+and [the standard](THREED_PRESENTATION_STANDARD.md). This is presentation
+acceptance; geometry qualification and production readiness remain separate.
+
 A Windows preview can expose supported PCB inspection/outline validation,
 partial source-linked SVG/placement exports, source-bound offline bundles,
 bounded VRML assembly with selectable component identities, footprint/library
