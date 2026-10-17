@@ -3,22 +3,25 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import subprocess
 import tempfile
+from e2e_temp import e2e_temp_root
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", type=Path, required=True)
-    binary = parser.parse_args().binary.resolve(strict=True)
+    parser.add_argument("--temp-root", type=Path)
+    args = parser.parse_args()
+    binary = args.binary.resolve(strict=True)
     repo = Path(__file__).resolve().parents[1]
     board = repo / "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb"
     library = repo / "tests/fixtures/open-source/kicad-resistor-models"
     model = library / "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl"
     expected_sha = "eadfec9e71c67b1dd3910c72b45d811a06f0ab5397d0609354b10e9a3a4c1fdd"
     assert hashlib.sha256(model.read_bytes()).hexdigest() == expected_sha
-    parent = repo / "target/model-resolution-e2e"
-    parent.mkdir(parents=True, exist_ok=True)
+    parent = e2e_temp_root(args.temp_root if args.temp_root is not None else repo / "target/model-resolution-e2e")
     with tempfile.TemporaryDirectory(prefix="isolated-", dir=parent) as temp:
         work = Path(temp)
 
@@ -39,6 +42,13 @@ def main():
         for actual, expected in zip(decoded["localBoundsMm"]["max"], [0.8001, 0.39878, 0.44958]):
             assert abs(actual - expected) < 1e-12
         assert not decoded["boardTransformsVerified"] and not decoded["componentSelectionReady"]
+        vrml_alias = work / "same-model.vrml"
+        shutil.copyfile(model, vrml_alias)
+        vrml_decoded = json.loads(run("model", "inspect", vrml_alias,
+                                      "--units", "kicad-wrl", "--json"))
+        assert vrml_decoded["sourceSha256"] == expected_sha
+        assert (vrml_decoded["rootShapes"], vrml_decoded["meshParts"],
+                vrml_decoded["triangles"]) == (29, 26, 276)
         run("model", "inspect", model, fail=True)
         run("model", "inspect", model, "--units", "infer", fail=True)
         text = run("resolve", "models", board, *options)

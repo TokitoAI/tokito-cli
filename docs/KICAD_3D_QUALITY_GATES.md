@@ -82,6 +82,17 @@ The new STEP probe is an isolated qualification experiment. Production STEP
 admission remains unavailable until real dataset assets, face completeness,
 units, transforms, resource limits and independent reference comparisons pass.
 
+### ESP8266 STEP filter evidence — 2026-10-15
+
+The pinned multi-model comparison sampled one asset (`0.step`) within the
+0.02 mm criterion; it rejected `14.step` and `16.step` for four and 1,102
+degenerate triangles, respectively. Removing those triangles in an isolated
+diagnostic did not qualify them: both filtered reader meshes failed closed-edge
+and winding checks, and `16.step` also had a 0.0840 mm reader-to-reference
+sampled distance. This is evidence to keep the production path fail-closed,
+not a proposal to silently filter degenerate geometry. The exact method and
+receipts are in [dataset STEP qualification](DATASET_STEP_QUALIFICATION.md#esp8266-multi-solid-source-model-surface-probe--2026-10-15).
+
 ## Required quality gates
 
 | Gate | Current evidence | Remaining acceptance |

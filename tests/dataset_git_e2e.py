@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import zlib
+from e2e_temp import e2e_temp_root
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,7 +27,7 @@ def inventory(binary, root, revision, succeeds=True):
 
 def external_binding(binary):
     # Fixture is content identity only: format/geometry remain explicitly unqualified.
-    with tempfile.TemporaryDirectory(prefix="external-binding-", dir=ROOT / "target") as temp:
+    with tempfile.TemporaryDirectory(prefix="external-binding-", dir=e2e_temp_root(ROOT / "target")) as temp:
         root = Path(temp)
         git(root, "init", "--quiet")
         for key, value in [("user.name", "Tokito fixture"), ("user.email", "fixture@example.invalid"), ("core.autocrlf", "false")]:
@@ -95,7 +96,7 @@ def external_binding(binary):
 
 
 def run(binary):
-    with tempfile.TemporaryDirectory(prefix="dataset-git-", dir=ROOT / "target") as temp:
+    with tempfile.TemporaryDirectory(prefix="dataset-git-", dir=e2e_temp_root(ROOT / "target")) as temp:
         root = Path(temp)
         git(root, "init", "--quiet")
         for key, value in [("user.name", "Tokito CLI fixture"), ("user.email", "fixture@example.invalid"), ("core.autocrlf", "false")]:

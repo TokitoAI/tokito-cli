@@ -1,4 +1,6 @@
 //! Synthetic identity/model inputs; never physical model qualification.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use serde_json::{Value, json};
 use std::{
     fs,
@@ -21,9 +23,7 @@ struct Fixture {
 }
 impl Fixture {
     fn new(footprints: &str) -> Self {
-        let parent =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/model-assignments-tests");
-        fs::create_dir_all(&parent).unwrap();
+        let parent = test_scratch::directory("model-assignments-tests");
         let parent = parent.canonicalize().unwrap();
         #[cfg(windows)]
         let parent = PathBuf::from(parent.to_string_lossy().trim_start_matches(r"\\?\"));

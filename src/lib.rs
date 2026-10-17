@@ -1,5 +1,6 @@
 //! Pure Rust, offline PCB import and a partial canonical physical document.
 //! CLI parsing is separate; existing v0.1 inspection/package projections remain stable.
+#![recursion_limit = "256"]
 use std::collections::BTreeSet;
 use std::fs::{self, OpenOptions};
 use std::io::{Read, Write};
@@ -8,6 +9,8 @@ use std::path::{Path, PathBuf};
 pub mod assigned_assembly;
 pub mod bom;
 mod cli;
+mod cli_doctor;
+mod cli_presentation;
 pub mod component_forge;
 pub mod component_pose;
 pub mod dataset;
@@ -15,10 +18,17 @@ pub mod dataset_external;
 pub mod dataset_git;
 pub mod digital_twin;
 pub mod document;
+pub mod embedded;
+mod flat_output;
 pub mod footprint_family;
+pub mod footprint_inspect;
+pub mod footprint_library;
+pub mod footprint_spec;
 mod geometry;
 mod glb;
+mod gltf_bundle;
 pub mod model_assembly;
+mod model_asset_export;
 pub mod model_assignments;
 pub mod model_mesh;
 pub mod model_resolver;
@@ -66,6 +76,7 @@ enum Token {
     Open,
     Close,
     Value(String),
+    QuotedValue(String),
 }
 
 #[derive(Debug)]
@@ -151,6 +162,9 @@ pub struct PhysicalBoardDocument {
     outline: topology::OutlineReport,
     engineering: document::EngineeringData,
     source_document: Sexp,
+    // The public source tree normalizes strings to atoms. Retain lexical
+    // evidence needed to validate native footprint type tokens independently.
+    quoted_type_filter_tokens: bool,
 }
 
 type Board = PhysicalBoardDocument;
@@ -186,8 +200,8 @@ pub struct SvgExportOptions {
 }
 
 pub use glb::{
-    AssignedGlbExport, DnpFilterCoverage, GlbCoverageReport, GlbExport, GlbModelExport,
-    UnresolvedComponentCoverage,
+    AssignedGlbExport, DnpFilterCoverage, FootprintTypeFilterCoverage, GlbCoverageReport,
+    GlbExport, GlbModelExport, UnresolvedComponentCoverage,
 };
 
 impl SvgSide {
@@ -471,6 +485,32 @@ impl PhysicalBoardDocument {
     }
 
     fn dnp_component_ordinals(&self) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        self.source_filtered_component_ordinals("--no-dnp", "DNP", |source| {
+            Ok(has_native_dnp_attribute(source))
+        })
+    }
+
+    fn unspecified_component_ordinals(
+        &self,
+    ) -> Result<std::collections::BTreeSet<usize>, EngineError> {
+        if self.quoted_type_filter_tokens {
+            return Err(EngineError::new(
+                "cannot safely apply --no-unspecified: quoted footprint attribute tokens or filter structure heads",
+            ));
+        }
+        self.source_filtered_component_ordinals(
+            "--no-unspecified",
+            "type-unspecified",
+            has_unspecified_footprint_type,
+        )
+    }
+
+    fn source_filtered_component_ordinals(
+        &self,
+        flag: &str,
+        description: &str,
+        should_exclude: impl Fn(&Sexp) -> Result<bool, EngineError>,
+    ) -> Result<std::collections::BTreeSet<usize>, EngineError> {
         let mut by_uuid = std::collections::BTreeMap::<&str, Vec<usize>>::new();
         for component in &self.engineering().components {
             if let Some(uuid) = component
@@ -489,59 +529,61 @@ impl PhysicalBoardDocument {
         for component in &self.engineering().components {
             let source = source_at_path(&self.source_document, &component.source.source_path)
                 .ok_or_else(|| {
-                    EngineError::new("cannot safely apply --no-dnp: missing source component")
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: missing source component"
+                    ))
                 })?;
-            if !has_native_dnp_attribute(source) {
+            if !should_exclude(source)? {
                 continue;
             }
 
             let fields: Vec<_> = source.children("uuid").collect();
             if fields.len() > 1 {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
             let field = fields.first().copied().ok_or_else(|| {
-                EngineError::new(
-                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                )
+                EngineError::new(format!(
+                    "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                ))
             })?;
             let values = field.items().ok_or_else(|| {
-                EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                )
+                EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                ))
             })?;
             if values.len() > 2 {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
             let uuid = field
                 .value_at(1)
                 .filter(|uuid| !uuid.is_empty())
                 .ok_or_else(|| {
-                    EngineError::new(
-                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                    )
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                    ))
                 })?;
             if component.source.source_uuid.as_deref() != Some(uuid) {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: malformed or multiple source UUID fields",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: malformed or multiple source UUID fields",
+                )));
             }
 
             let ordinals = by_uuid
                 .get(uuid)
                 .filter(|ordinals| ordinals.len() == 1)
                 .ok_or_else(|| {
-                    EngineError::new(
-                        "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                    )
+                    EngineError::new(format!(
+                        "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                    ))
                 })?;
             if ordinals[0] != component.source.ordinal {
-                return Err(EngineError::new(
-                    "cannot safely apply --no-dnp: a DNP footprint has a missing or ambiguous canonical UUID",
-                ));
+                return Err(EngineError::new(format!(
+                    "cannot safely apply {flag}: a {description} footprint has a missing or ambiguous canonical UUID",
+                )));
             }
             excluded.insert(ordinals[0]);
         }
@@ -569,14 +611,38 @@ impl PhysicalBoardDocument {
         })
     }
 
-    /// Export the supported local VRML subset with explicit model filters.
-    /// The legacy `export_glb_with_models` method preserves the unfiltered default.
+    /// Export the supported local VRML subset with optional native DNP exclusion.
     pub fn export_glb_with_model_options(
         &self,
         resolver: &model_resolver::ModelResolver,
         options: GlbModelExportOptions,
     ) -> Result<GlbModelExport, EngineError> {
-        glb::export_board_assembly(self, resolver, options.allow_partial, options.exclude_dnp)
+        let filter = if options.exclude_dnp {
+            model_assembly::ModelAssemblyFilter::default().excluding_dnp()
+        } else {
+            model_assembly::ModelAssemblyFilter::default()
+        };
+        self.export_glb_with_model_filter(resolver, options.allow_partial, &filter)
+    }
+
+    /// Export selected component references from the supported local VRML subset.
+    /// Patterns support the bounded Tokito `*` and `?` filter syntax.
+    pub fn export_glb_with_models_filtered(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        options: GlbExportOptions,
+        filter: &model_assembly::ModelAssemblyFilter,
+    ) -> Result<GlbModelExport, EngineError> {
+        self.export_glb_with_model_filter(resolver, options.allow_partial, filter)
+    }
+
+    fn export_glb_with_model_filter(
+        &self,
+        resolver: &model_resolver::ModelResolver,
+        allow_partial: bool,
+        filter: &model_assembly::ModelAssemblyFilter,
+    ) -> Result<GlbModelExport, EngineError> {
+        glb::export_board_assembly(self, resolver, allow_partial, filter)
     }
     pub fn build_package(&self, output: impl AsRef<Path>) -> Result<(), EngineError> {
         package_build(self, output.as_ref())
@@ -625,7 +691,7 @@ fn lex(input: &[u8]) -> Result<Vec<Token>, CliError> {
                 tokens.push(Token::Close);
                 cursor += 1;
             }
-            b'"' => tokens.push(Token::Value(read_quoted(input, &mut cursor)?)),
+            b'"' => tokens.push(Token::QuotedValue(read_quoted(input, &mut cursor)?)),
             _ => {
                 let start = cursor;
                 while cursor < input.len()
@@ -749,7 +815,7 @@ fn parse_one(
         .ok_or_else(|| CliError::new("unexpected end of board file"))?;
     *cursor += 1;
     match token {
-        Token::Value(value) => Ok(Sexp::Atom(value.clone())),
+        Token::Value(value) | Token::QuotedValue(value) => Ok(Sexp::Atom(value.clone())),
         Token::Close => Err(CliError::new("unexpected closing parenthesis")),
         Token::Open => {
             let mut items = Vec::new();
@@ -768,6 +834,10 @@ fn parse_one(
 }
 
 fn parse_document(input: &[u8]) -> Result<Sexp, CliError> {
+    parse_document_with_lexical_evidence(input).map(|(document, _)| document)
+}
+
+fn parse_document_with_lexical_evidence(input: &[u8]) -> Result<(Sexp, bool), CliError> {
     if input.len() > MAX_INPUT_BYTES {
         return Err(CliError::new(format!(
             "board file exceeds the size limit ({} bytes)",
@@ -781,7 +851,38 @@ fn parse_document(input: &[u8]) -> Result<Sexp, CliError> {
     if cursor != tokens.len() {
         return Err(CliError::new("unexpected content after board document"));
     }
-    Ok(root)
+    let mut heads: Vec<Option<&str>> = Vec::new();
+    let mut quoted_type_filter_tokens = false;
+    for token in &tokens {
+        match token {
+            Token::Open => heads.push(None),
+            Token::Close => {
+                heads.pop();
+            }
+            Token::Value(value) | Token::QuotedValue(value) => {
+                let footprint_parent = heads.len() >= 2
+                    && matches!(heads[heads.len() - 2], Some("footprint" | "module"));
+                let attribute_record = matches!(heads.last(), Some(Some("attr")))
+                    || (matches!(heads.last(), Some(None)) && value == "attr");
+                let filter_structure_head = matches!(heads.last(), Some(None))
+                    && matches!(
+                        value.as_str(),
+                        "kicad_pcb" | "footprint" | "module" | "uuid"
+                    );
+                if matches!(token, Token::QuotedValue(_))
+                    && (filter_structure_head || (footprint_parent && attribute_record))
+                {
+                    quoted_type_filter_tokens = true;
+                }
+                if let Some(head) = heads.last_mut() {
+                    if head.is_none() {
+                        *head = Some(value);
+                    }
+                }
+            }
+        }
+    }
+    Ok((root, quoted_type_filter_tokens))
 }
 
 fn parse_number(value: Option<&str>) -> Option<f64> {
@@ -838,6 +939,49 @@ fn is_dnp(node: &Sexp) -> bool {
 
 fn has_native_dnp_attribute(node: &Sexp) -> bool {
     has_attribute(node, "dnp")
+}
+
+fn has_unspecified_footprint_type(node: &Sexp) -> Result<bool, EngineError> {
+    let attributes: Vec<_> = node.children("attr").collect();
+    if attributes.len() > 1 {
+        return Err(EngineError::new(
+            "cannot safely apply --no-unspecified: repeated footprint attribute records",
+        ));
+    }
+    let Some(attribute) = attributes.first() else {
+        return Ok(true);
+    };
+    let mut footprint_type = None;
+    for item in attribute.items().unwrap_or_default().iter().skip(1) {
+        let Some(value) = item.atom() else {
+            return Err(EngineError::new(
+                "cannot safely apply --no-unspecified: nested footprint attribute content",
+            ));
+        };
+        match value {
+            "smd" | "through_hole" if footprint_type.is_none() => footprint_type = Some(value),
+            "smd" | "through_hole" => {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-unspecified: duplicate or conflicting footprint types",
+                ));
+            }
+            // Accepted non-type flags in the pinned KiCad 10.0.7 source format.
+            // They never establish SMD/THT type or physical body availability.
+            "virtual"
+            | "board_only"
+            | "exclude_from_pos_files"
+            | "exclude_from_bom"
+            | "allow_missing_courtyard"
+            | "dnp"
+            | "allow_soldermask_bridges" => {}
+            _ => {
+                return Err(EngineError::new(
+                    "cannot safely apply --no-unspecified: unsupported footprint attribute",
+                ));
+            }
+        }
+    }
+    Ok(footprint_type.is_none())
 }
 
 fn has_attribute(node: &Sexp, expected: &str) -> bool {
@@ -958,6 +1102,9 @@ fn project_footprints(document: &Sexp, data: &document::EngineeringData) -> Vec<
                     .to_owned(),
                 pad_count,
                 model_count,
+                // Keep the legacy inspection projection stable: it reports
+                // both the native marker and the existing DNP property.
+                // Native `--no-dnp` model filtering uses Component::is_dnp.
                 dnp: is_dnp(node),
                 excluded_from_pos_files: has_attribute(node, "exclude_from_pos_files"),
             })
@@ -1064,8 +1211,19 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
     {
         return Err(CliError::new("input must have a .kicad_pcb extension"));
     }
-    let bytes = read_bounded_file(path, MAX_INPUT_BYTES)?;
-    let document = parse_document(&bytes)?;
+    let bytes = read_bounded_file(path, MAX_INPUT_BYTES).map_err(|error| {
+        CliError::new(format!(
+            "cannot read PCB input '{}': {error}",
+            path.display()
+        ))
+    })?;
+    if bytes.starts_with(b"version https://git-lfs.github.com/spec/v1") {
+        return Err(CliError::new(format!(
+            "PCB input is a Git LFS pointer, not materialized board data: {}. Supply the actual .kicad_pcb payload (materialize this asset in its source checkout, or use an existing payload whose SHA-256 matches the pointer). No files were fetched or changed.",
+            path.display()
+        )));
+    }
+    let (document, quoted_type_filter_tokens) = parse_document_with_lexical_evidence(&bytes)?;
     if document.head() != Some("kicad_pcb") {
         return Err(CliError::new(
             "input is not a KiCad PCB S-expression document",
@@ -1200,6 +1358,7 @@ fn load_board(path: &Path) -> Result<Board, CliError> {
         outline,
         engineering,
         source_document: document,
+        quoted_type_filter_tokens,
     })
 }
 
@@ -1625,8 +1784,9 @@ fn inspect_json(board: &Board) -> String {
 fn package_manifest(board: &Board, inspection: &str, placements: &str) -> String {
     let source_digest = format!("sha256:{}", board.source_sha256);
     let package_id = format!("kicad-{}", &board.source_sha256[..16]);
+    let producer_version = env!("CARGO_PKG_VERSION");
     format!(
-        "{{\n  \"schema\": \"https://tokito.ai/schemas/board-package.schema.json\",\n  \"schemaVersion\": \"0.1.0\",\n  \"packageId\": \"{package_id}\",\n  \"packageLevel\": \"source-and-placement-inventory\",\n  \"mobileImportReady\": false,\n  \"source\": {{\"path\": \"source/board.kicad_pcb\", \"format\": \"kicad_pcb\", \"formatVersion\": {}, \"bytes\": {}, \"sha256\": \"{}\"}},\n  \"artifacts\": {{\"inspection\": {{\"path\": \"derived/inspection.json\", \"schema\": \"tokito.board-inspection.v0\", \"sha256\": \"sha256:{}\"}}, \"placements\": {{\"path\": \"derived/placements.csv\", \"rows\": {}, \"sha256\": \"sha256:{}\"}}}},\n  \"capabilities\": {{\"sourcePreserved\": true, \"placementInventory\": true, \"boardGeometryComplete\": false, \"svg\": false, \"glb\": false, \"step\": false}},\n  \"limitations\": [\"Inventory fields describe only the subset parsed by this Tokito CLI version.\", \"This package is not accepted by the Tokito App digital-twin runtime.\", \"No board mesh, component mesh, SVG, GLB, or STEP geometry is included.\", \"Source-adjacent license and provenance files are not discovered or copied automatically.\"],\n  \"producer\": {{\"name\": \"tokito-cli\", \"version\": \"0.1.0\"}}\n}}\n",
+        "{{\n  \"schema\": \"https://tokito.ai/schemas/board-package.schema.json\",\n  \"schemaVersion\": \"0.1.0\",\n  \"packageId\": \"{package_id}\",\n  \"packageLevel\": \"source-and-placement-inventory\",\n  \"mobileImportReady\": false,\n  \"source\": {{\"path\": \"source/board.kicad_pcb\", \"format\": \"kicad_pcb\", \"formatVersion\": {}, \"bytes\": {}, \"sha256\": \"{}\"}},\n  \"artifacts\": {{\"inspection\": {{\"path\": \"derived/inspection.json\", \"schema\": \"tokito.board-inspection.v0\", \"sha256\": \"sha256:{}\"}}, \"placements\": {{\"path\": \"derived/placements.csv\", \"rows\": {}, \"sha256\": \"sha256:{}\"}}}},\n  \"capabilities\": {{\"sourcePreserved\": true, \"placementInventory\": true, \"boardGeometryComplete\": false, \"svg\": false, \"glb\": false, \"step\": false}},\n  \"limitations\": [\"Inventory fields describe only the subset parsed by this Tokito CLI version.\", \"This package is not accepted by the Tokito App digital-twin runtime.\", \"No board mesh, component mesh, SVG, GLB, or STEP geometry is included.\", \"Source-adjacent license and provenance files are not discovered or copied automatically.\"],\n  \"producer\": {{\"name\": \"tokito-cli\", \"version\": \"{producer_version}\"}}\n}}\n",
         board.version,
         board.source_bytes,
         source_digest,

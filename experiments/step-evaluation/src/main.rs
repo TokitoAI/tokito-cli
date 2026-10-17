@@ -1,9 +1,17 @@
 #![forbid(unsafe_code)]
 #![recursion_limit = "256"]
 mod candidate_mesh;
+mod exact_predicate;
 mod face_coverage;
+mod face_representation;
 mod negative_torus;
 mod occurrence_world;
+mod planar_face;
+mod planar_repair;
+mod source_uncertainty;
+mod spline_face_diagnostic;
+mod triangle_diagnostics;
+mod trim_polygon_candidate;
 mod unit_preflight;
 use oxideav_step::{GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};
@@ -70,6 +78,8 @@ fn probe(
     path: &Path,
     negative_torus_compat: bool,
     include_candidate_mesh: bool,
+    repair: Option<(u64, u64, f64)>,
+    diagnostic_face: Option<u64>,
 ) -> Result<Value, String> {
     let start = Instant::now();
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
@@ -133,7 +143,17 @@ fn probe(
             Value::Null,
         )
     };
+    let (model, repair_report) = if let Some((face, representation, tolerance)) = repair {
+        let (repaired, report) =
+            planar_repair::apply(&original, &model, face, representation, tolerance)?;
+        (repaired, report)
+    } else {
+        (model, Value::Null)
+    };
     let occurrence_world = occurrence_world_report(&model, &declared_units);
+    let triangle_diagnostic = diagnostic_face
+        .map(|face| triangle_diagnostics::inspect(&model, face))
+        .transpose()?;
     let candidate_mesh_data = if include_candidate_mesh {
         let result = occurrence_world["lengthScaleModelUnitsToMm"]
             .as_f64()
@@ -238,6 +258,8 @@ fn probe(
         "missingTriangleProvenanceEntries": missing_triangle_provenance_entries,
         "excessProvenanceEntries": excess_provenance_entries,
         "sourceFaceCompletenessVerified": false,
+        "experimentalPlanarRepair":repair_report,
+        "experimentalFaceDiagnostics":triangle_diagnostic,
         "sourceFaceCoverage": {"shapeDetails":face_coverage_details,"shapeDetailsTruncated":shapes>MAX_SHAPE_PROVENANCE_SUMMARIES,"shapesInspected":shapes,"unmatchedShapeFaceSets":unmatched_shape_face_sets,"allEmittedShapeFaceSetsMatch":shapes>0&&unmatched_shape_face_sets==0,"allSourceShapesCovered":false,"geometryQualified":false},
         "occurrenceColourOverrides": model.occurrence_colours.len(),
         "localBounds": if positions > nonfinite { json!({"min": bounds, "max": upper}) } else { Value::Null },
@@ -343,7 +365,159 @@ fn probe_units(path: &Path) -> Result<Value, String> {
     }))
 }
 
+fn probe_spline_face(
+    path: &Path,
+    face_id: u64,
+    source_representation: Option<u64>,
+) -> Result<Value, String> {
+    let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
+    let limits = oxideav_ifc::StepLimits {
+        max_input_len: MAX_BYTES,
+        max_instances: 250_000,
+        max_depth: 48,
+        max_string_len: 1_048_576,
+    };
+    let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
+        .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
+    let mut report = spline_face_diagnostic::inspect(&parsed, face_id)?;
+    if let Some(representation) = source_representation {
+        let selected = face_representation::inspect(&parsed, representation, face_id)?;
+        let context_id = selected["selectedRepresentationLengthUnits"]["contextId"]
+            .as_u64()
+            .ok_or("selected_representation_context_id_missing")?;
+        report["selectedSourceRepresentation"] = selected;
+        report["declaredSourceGeometricUncertainty"] =
+            source_uncertainty::inspect_context(&parsed, context_id)?;
+    }
+    report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+    report["sourceBytes"] = json!(bytes.len());
+    report["admitted"] = json!(false);
+    report["exportsProduced"] = json!([]);
+    Ok(report)
+}
+
 fn main() {
+    let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if raw
+        .first()
+        .is_some_and(|arg| arg == "--diagnose-source-face")
+    {
+        let result = (|| -> Result<Value, String> {
+            if !matches!(raw.len(), 3 | 5)
+                || (raw.len() == 5 && raw[2] != "--source-representation")
+            {
+                return Err("usage: tokito-step-evaluation --diagnose-source-face POSITIVE_ID [--source-representation POSITIVE_ID] STEP_PATH".into());
+            }
+            let face = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|n| *n > 0)
+                .ok_or("invalid_diagnostic_face_id")?;
+            let source_representation = if raw.len() == 5 {
+                Some(
+                    raw[3]
+                        .to_str()
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .filter(|n| *n > 0)
+                        .ok_or("invalid_source_representation")?,
+                )
+            } else {
+                None
+            };
+            let path = if source_representation.is_some() {
+                &raw[4]
+            } else {
+                &raw[2]
+            };
+            probe_spline_face(Path::new(path), face, source_representation)
+        })();
+        println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
+    if raw.first().is_some_and(|arg| arg == "--diagnose-face") {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 3 {
+                return Err(
+                    "usage: tokito-step-evaluation --diagnose-face POSITIVE_ID STEP_PATH".into(),
+                );
+            }
+            let face = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|n| *n > 0)
+                .ok_or("invalid_diagnostic_face_id")?;
+            probe(Path::new(&raw[2]), false, false, None, Some(face))
+        })();
+        println!("{}",result.unwrap_or_else(|error|json!({"probeSchema":"tokito.step-evaluation.v1","error":error,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
+    if raw
+        .first()
+        .is_some_and(|arg| arg == "--planar-face" || arg == "--repair-planar-face")
+    {
+        let result: Result<Value, String> = (|| {
+            if !matches!(raw.len(), 5 | 7)
+                || raw[2] != "--source-tolerance"
+                || (raw.len() == 7 && raw[4] != "--source-representation")
+            {
+                return Err("usage: tokito-step-evaluation --planar-face ID --source-tolerance POSITIVE_SOURCE_UNITS [--source-representation ID] STEP_PATH".into());
+            }
+            let face_id = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|n| *n > 0)
+                .ok_or("invalid_face_id")?;
+            let tolerance = raw[3]
+                .to_str()
+                .and_then(|s| s.parse::<f64>().ok())
+                .ok_or("invalid_source_tolerance")?;
+            if raw[0] == "--repair-planar-face" {
+                if raw.len() != 7 {
+                    return Err("repair_requires_explicit_source_representation".into());
+                }
+                let representation = raw[5]
+                    .to_str()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .filter(|n| *n > 0)
+                    .ok_or("invalid_source_representation")?;
+                return probe(
+                    Path::new(&raw[6]),
+                    false,
+                    true,
+                    Some((face_id, representation, tolerance)),
+                    None,
+                );
+            }
+            let bytes = read_bounded(
+                File::open(Path::new(&raw[raw.len() - 1])).map_err(|e| e.to_string())?,
+            )?;
+            let parsed = oxideav_ifc::parse_step_with_limits(
+                &bytes,
+                &oxideav_ifc::StepLimits {
+                    max_input_len: MAX_BYTES,
+                    max_instances: 250_000,
+                    max_depth: 48,
+                    max_string_len: 1_048_576,
+                },
+            )
+            .map_err(|e| format!("reader_error: {e}"))?;
+            let mut report = planar_face::inspect(&parsed, face_id, tolerance)?;
+            if raw.len() == 7 {
+                let representation = raw[5]
+                    .to_str()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .filter(|n| *n > 0)
+                    .ok_or("invalid_source_representation")?;
+                report["selectedSourceRepresentation"] =
+                    face_representation::inspect(&parsed, representation, face_id)?;
+            }
+            report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
+            report["declaredRepresentationLengthUnits"] = unit_preflight::inspect(&parsed);
+            Ok(report)
+        })();
+        println!("{}", result.unwrap_or_else(|error| json!({"schema":"tokito.step-linear-planar-face.v1", "error":error, "admitted":false, "exportsProduced":[]})));
+        std::process::exit(2);
+    }
     let mut paths = Vec::new();
     let mut negative_torus_compat = false;
     let mut units_only = false;
@@ -382,6 +556,8 @@ fn main() {
                 Path::new(&paths[0]),
                 negative_torus_compat,
                 include_candidate_mesh,
+                None,
+                None,
             )
         }
     } else {

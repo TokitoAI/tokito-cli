@@ -4,6 +4,7 @@ param(
     [string]$CargoPath = 'cargo',
     [string]$PythonPath = 'python',
     [string]$TargetBase = '',
+    [string]$ReuseBuildTarget = '',
     [string]$DeliveryBase = '',
     [string]$DatasetRepo = '',
     [string]$DatasetBomReport = '',
@@ -11,6 +12,11 @@ param(
     [string]$DatasetTwinComponentMap = '',
     [string]$DatasetTwinManifest = '',
     [string]$DatasetTwinProvenance = '',
+    [string]$EmbeddedDatasetBoard = '',
+    [string]$EmbeddedDatasetBoardSha256 = '',
+    [string]$EmbeddedDatasetExpectedModelCount = '',
+    [string]$EmbeddedDatasetExpectedCapturedBytes = '',
+    [string]$EmbeddedDatasetExpectedFormat = '',
     [string]$SourceCandidateRoot = '',
     [string]$Esp32CandidateRoot = '',
     [string]$Esp32ReferenceBom = '',
@@ -38,6 +44,8 @@ $rustcPath = if ($env:RUSTC) { $env:RUSTC } else { Join-Path (Split-Path -Parent
 $rustcCommand = Get-Command $rustcPath -ErrorAction Stop
 $previousTarget = $env:CARGO_TARGET_DIR
 $previousRustc = $env:RUSTC
+$previousE2eTempRoot = $env:TOKITO_E2E_TEMP_ROOT
+$previousCargoBuildJobs = $env:CARGO_BUILD_JOBS
 
 function Assert-LocalOutputPath([string]$Path) {
     $fullPath = [System.IO.Path]::GetFullPath($Path)
@@ -70,6 +78,31 @@ function Assert-NoLinkedPath([string]$Path) {
     }
 }
 
+function Assert-NoLinkedTree([string]$Path) {
+    Assert-NoLinkedPath $Path
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        throw "Verification output directory is missing: $Path"
+    }
+    foreach ($item in (Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction Stop)) {
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            throw "Linked verification output is not allowed: $($item.FullName)"
+        }
+    }
+}
+
+function Initialize-VerifiedOutputDirectory([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($TargetBase)) {
+        Assert-LocalOutputPath $Path
+    } else {
+        Assert-NoLinkedPath $Path
+    }
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        throw "Verification output path is not a directory: $Path"
+    }
+    New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
+    Assert-NoLinkedTree $Path
+}
+
 function Get-InputFingerprints {
     $paths = @('Cargo.toml', 'Cargo.lock', 'scripts/verify-local.ps1', 'scripts/real-cli-e2e.ps1', 'README.md')
     foreach ($optionalRootFile in @('AGENTS.md')) {
@@ -82,7 +115,11 @@ function Get-InputFingerprints {
                 Where-Object {
                     $_.FullName -notmatch '(?i)(^|[\\/])__pycache__([\\/]|$)' -and
                     $_.FullName -notmatch '(?i)(^|[\\/])target([\\/]|$)' -and
-                    $_.Extension -notin @('.pyc', '.pyo')
+                    # KiCad creates these per-user editor/view preferences
+                    # beside a board file. They are not source fixtures and
+                    # must not make a portable verification receipt depend on
+                    # local UI state.
+                    $_.Extension -notin @('.pyc', '.pyo', '.kicad_prl')
                 } |
                 ForEach-Object { [System.IO.Path]::GetRelativePath($projectRoot, $_.FullName) }
         }
@@ -100,8 +137,13 @@ function Get-InputFingerprints {
 Push-Location -LiteralPath $projectRoot
 try {
     $env:RUSTC = $rustcCommand.Source
+    # Keep the Windows linker workload bounded on memory-constrained hosts.
+    # A caller may explicitly request more parallelism through the environment.
+    if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
+        $env:CARGO_BUILD_JOBS = '1'
+    }
     # Fresh outputs avoid replacing Windows test executables that may be locked.
-    # Each run remains isolated inside this checkout; previous evidence is retained.
+    # Each run remains isolated under the selected base; prior evidence is retained.
     $verificationRun = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N')
     if ([string]::IsNullOrWhiteSpace($TargetBase)) {
         $targetParent = Join-Path $projectRoot 'target/local-verification'
@@ -115,7 +157,31 @@ try {
         New-Item -ItemType Directory -Path $targetParent -Force -ErrorAction Stop | Out-Null
         Assert-NoLinkedPath $targetParent
     }
-    $env:CARGO_TARGET_DIR = Join-Path $targetParent $verificationRun
+    if ([string]::IsNullOrWhiteSpace($ReuseBuildTarget)) {
+        $env:CARGO_TARGET_DIR = Join-Path $targetParent $verificationRun
+    } else {
+        if (-not [System.IO.Path]::IsPathFullyQualified($ReuseBuildTarget)) {
+            throw 'ReuseBuildTarget must be an absolute existing verification target.'
+        }
+        $reuseRoot = [System.IO.Path]::GetFullPath($ReuseBuildTarget)
+        $comparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+        if (-not $reuseRoot.StartsWith($targetParent.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
+            throw 'ReuseBuildTarget must be strictly inside TargetBase (or the default local-verification base).'
+        }
+        Assert-NoLinkedPath $reuseRoot
+        if (-not (Test-Path -LiteralPath $reuseRoot -PathType Container) -or
+            -not (Test-Path -LiteralPath (Join-Path $reuseRoot '.rustc_info.json') -PathType Leaf)) {
+            throw 'ReuseBuildTarget must contain an existing Cargo verification cache.'
+        }
+        $optionalInputs = @($DatasetRepo, $DatasetBomReport, $DatasetTwinGlb, $DatasetTwinComponentMap, $DatasetTwinManifest, $DatasetTwinProvenance,
+            $EmbeddedDatasetBoard, $EmbeddedDatasetBoardSha256, $EmbeddedDatasetExpectedModelCount, $EmbeddedDatasetExpectedCapturedBytes, $EmbeddedDatasetExpectedFormat,
+            $SourceCandidateRoot, $Esp32CandidateRoot, $Esp32ReferenceBom, $Esp32Pcb, $Esp32ModelLibrary,
+            $Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference, $NxpRefinementBaseline, $NxpRefinementSpec, $NxpRefinementPcb)
+        if (@($optionalInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count -gt 0) {
+            throw 'ReuseBuildTarget supports the base profile only; omit it for optional dataset profiles.'
+        }
+        $env:CARGO_TARGET_DIR = $reuseRoot
+    }
     if ([string]::IsNullOrWhiteSpace($TargetBase)) {
         Assert-LocalOutputPath $env:CARGO_TARGET_DIR
     } else {
@@ -128,44 +194,90 @@ try {
             }
         }
     }
+    $env:TOKITO_E2E_TEMP_ROOT = Join-Path $targetParent 'e2e-scratch'
+    $modelResolutionOutputPath = Join-Path $targetParent 'model-resolution-e2e'
+    $compatibilityOutputPath = Join-Path $targetParent 'compat-v0'
+    $realCliOutputPath = Join-Path $targetParent 'real-cli-e2e'
     $binaryName = if ($IsWindows) { 'tokito-cli.exe' } else { 'tokito-cli' }
     $binaryPath = Join-Path $env:CARGO_TARGET_DIR "release/$binaryName"
     $bundleHookTarget = Join-Path $env:CARGO_TARGET_DIR 'bundle-test-hooks'
-    $bundleHookBinary = Join-Path $bundleHookTarget "release/$binaryName"
-    $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR 'geometry-e2e'
+    # Fault-injection hooks are test-only and need no release optimization.
+    # Build this second binary with the dev profile to keep peak Windows memory
+    # bounded; the production binary above still uses the release profile.
+    $bundleHookBinary = Join-Path $bundleHookTarget "debug/$binaryName"
+    $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR "geometry-e2e/$verificationRun"
+    foreach ($outputPath in @(
+        $env:TOKITO_E2E_TEMP_ROOT,
+        $modelResolutionOutputPath,
+        $compatibilityOutputPath,
+        $realCliOutputPath,
+        $geometryOutputPath
+    )) {
+        Initialize-VerifiedOutputDirectory $outputPath
+    }
     $inputs = Get-InputFingerprints
     $checks = @(
         @{ name = 'format'; command = $cargoCommand.Source; arguments = @('fmt', '--all', '--check') },
+        @{ name = 'embedded-dataset-verifier-tests'; command = $pythonCommand.Source; arguments = @('tests/test_embedded_dataset_e2e.py') },
+        @{ name = 'temp-path-safety-tests'; command = $pythonCommand.Source; arguments = @('tests/test_e2e_temp.py') },
         @{ name = 'tests'; command = $cargoCommand.Source; arguments = @('test', '--offline', '--locked') },
         @{ name = 'clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
         @{ name = 'e2e'; command = $pythonCommand.Source; arguments = @('tests/e2e_cli.py', '--binary', $binaryPath) },
+        @{ name = 'kicad-10.0.7-pos-e2e'; command = $pythonCommand.Source; arguments = @('tests/kicad_pos_compat_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'kicad-10.0.7-type-filter-e2e'; command = $pythonCommand.Source; arguments = @('tests/kicad_type_filter_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'kicad-10.0.7-svg-reference-evidence'; command = $pythonCommand.Source; arguments = @('tests/kicad_svg_reference_evidence.py') },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath, '--output-dir', $geometryOutputPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
+        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath, '--temp-root', $modelResolutionOutputPath) },
+        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath, '--output-root', $compatibilityOutputPath) },
         @{ name = 'bom-e2e'; command = $pythonCommand.Source; arguments = @('tests/bom_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
         @{ name = 'project-intake-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_intake_e2e.py', '--bin', $binaryPath) },
         @{ name = 'project-bundle-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'project-bundle-test-hooks-build'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked', '--features', 'e2e-test-hooks', '--target-dir', $bundleHookTarget) },
+        @{ name = 'project-bundle-test-hooks-build'; command = $cargoCommand.Source; arguments = @('build', '--offline', '--locked', '--features', 'e2e-test-hooks', '--target-dir', $bundleHookTarget) },
+        @{ name = 'twin-publication-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/command_completion_e2e.py', '--binary', $bundleHookBinary, '--fault-hooks') },
         @{ name = 'project-bundle-cleanup-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $bundleHookBinary, '--fault-hook-only') },
         @{ name = 'footprint-family-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_family_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'footprint-spec-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_spec_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'footprint-inspect-e2e'; command = $pythonCommand.Source; arguments = @('tests/footprint_inspect_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'cli-experience-e2e'; command = $pythonCommand.Source; arguments = @('tests/cli_experience_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'command-completion-e2e'; command = $pythonCommand.Source; arguments = @('tests/command_completion_e2e.py', '--binary', $binaryPath) },
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) },
+        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath, '-OutputRoot', $realCliOutputPath) },
         @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
+        @{ name = 'step-reference-tests'; command = $pythonCommand.Source; arguments = @('experiments/step-evaluation/tests/test_solid_reference.py') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'torus-inverse-regression'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'torus_inverse_regression', '--offline', '--locked') },
+        @{ name = 'surface-distance-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked') },
+        @{ name = 'surface-distance-build'; command = $cargoCommand.Source; arguments = @('rustc', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked', '--', '-C', 'opt-level=2') },
         @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
-        @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--bins', '--offline', '--locked') },
         @{ name = 'altium-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'altium-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
-        @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') }
+        @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'output-path-audit'; command = $pythonCommand.Source; arguments = @('tests/output_paths_audit.py', '--base', $targetParent, '--path', $env:TOKITO_E2E_TEMP_ROOT, '--path', $modelResolutionOutputPath, '--path', $compatibilityOutputPath, '--path', $realCliOutputPath, '--path', $geometryOutputPath) }
     )
+    $embeddedDatasetInputs = @($EmbeddedDatasetBoard, $EmbeddedDatasetBoardSha256, $EmbeddedDatasetExpectedModelCount, $EmbeddedDatasetExpectedCapturedBytes, $EmbeddedDatasetExpectedFormat)
+    $embeddedDatasetInputCount = @($embeddedDatasetInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
+    if ($embeddedDatasetInputCount -notin @(0,5)) { throw 'Embedded dataset board, SHA-256, expected model count, captured-byte total and format must be supplied together.' }
+    if ($embeddedDatasetInputCount -eq 5) {
+        Assert-NoLinkedPath $EmbeddedDatasetBoard
+        if (-not (Test-Path -LiteralPath $EmbeddedDatasetBoard -PathType Leaf)) { throw "Missing embedded dataset board: $EmbeddedDatasetBoard" }
+        if ($EmbeddedDatasetBoardSha256 -notmatch '^[0-9A-Fa-f]{64}$') { throw 'Embedded dataset board SHA-256 must contain 64 hexadecimal characters.' }
+        $embeddedModelCount = 0
+        if (-not [int]::TryParse($EmbeddedDatasetExpectedModelCount, [ref]$embeddedModelCount) -or $embeddedModelCount -le 0) { throw 'Embedded dataset expected model count must be a positive integer.' }
+        $embeddedCapturedBytes = 0
+        if (-not [int]::TryParse($EmbeddedDatasetExpectedCapturedBytes, [ref]$embeddedCapturedBytes) -or $embeddedCapturedBytes -le 0) { throw 'Embedded dataset expected captured-byte total must be a positive integer.' }
+        if ($EmbeddedDatasetExpectedFormat -notin @('step','wrl','glb','gltf')) { throw 'Embedded dataset expected format must be step, wrl, glb, or gltf.' }
+        $embeddedReceipt = Join-Path $env:CARGO_TARGET_DIR 'embedded-dataset-e2e.json'
+        $embeddedAssets = Join-Path $env:CARGO_TARGET_DIR 'embedded-model-assets'
+        $checks += @{ name='embedded-dataset-e2e'; command=$pythonCommand.Source; arguments=@('tests/embedded_dataset_e2e.py','--binary',$binaryPath,'--board',$EmbeddedDatasetBoard,'--expected-sha256',$EmbeddedDatasetBoardSha256,'--expected-model-count',[string]$embeddedModelCount,'--expected-captured-bytes',[string]$embeddedCapturedBytes,'--expected-format',$EmbeddedDatasetExpectedFormat,'--extract-dir',$embeddedAssets,'--require-unique-owners','--receipt',$embeddedReceipt); receiptPath=$embeddedReceipt }
+    }
     $checks += @(
         @{ name='twin-refinement-format'; command=$cargoCommand.Source; arguments=@('fmt','--manifest-path','experiments/twin-refinement/Cargo.toml','--all','--check') },
         @{ name='twin-refinement-tests'; command=$cargoCommand.Source; arguments=@('test','--manifest-path','experiments/twin-refinement/Cargo.toml','--offline','--locked') },
@@ -200,11 +312,22 @@ try {
     if ($esp8266InputCount -notin @(0,3)) { throw 'ESP8266 source, independent unit receipt and FreeCAD reference must be supplied together.' }
     if ($esp8266InputCount -eq 3) {
         foreach ($path in @($Esp8266SourceRoot, $Esp8266UnitReceipt, $Esp8266FreecadReference)) { Assert-NoLinkedPath $path; if (-not (Test-Path -LiteralPath $path)) { throw "Missing ESP8266 input: $path" } }
-        $stepOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-units-e2e'
+        # This probe enforces that its receipt directory lives inside the CLI
+        # checkout's target tree. Keep build artifacts on an optional external
+        # Cargo target (for example, when the system drive is low on space), but
+        # place this source-derived receipt under the guarded project target.
+        $stepOutput=Join-Path $projectRoot "target/github-delivery/step-length-unit-preflight-$verificationRun"
+        Assert-LocalOutputPath $stepOutput
         $occurrenceOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-occurrence-world-e2e'
         $altiumOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-altium-e2e'
         $stepBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-step-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $stepCandidateBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/model16_spade_candidate' + $(if ($IsWindows) { '.exe' } else { '' }))
         $altiumBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-altium-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $model16Source=Join-Path $Esp8266SourceRoot 'structured-source/embedded-models/16.step'
+        Assert-NoLinkedPath $model16Source
+        if (-not (Test-Path -LiteralPath $model16Source -PathType Leaf)) { throw "Missing pinned ESP8266 model-16 source: $model16Source" }
+        $model16TrimOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-model16-source-face-trim-e2e'
+        $checks += @{ name='esp8266-model16-source-face-trim-e2e'; command=$pythonCommand.Source; arguments=@('experiments/step-evaluation/tests/model16_source_face_trim_e2e.py','--binary',$stepBinary,'--source',$model16Source,'--output',$model16TrimOutput,'--candidate-generator',$stepCandidateBinary); receiptPath=(Join-Path $model16TrimOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-units-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_units_e2e.py','--binary',$stepBinary,'--models',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--source-receipt',$Esp8266UnitReceipt,'--output',$stepOutput); receiptPath=(Join-Path $stepOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-occurrence-world-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_occurrence_world_e2e.py','--binary',$stepBinary,'--models-root',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--reference',$Esp8266FreecadReference,'--source-receipt',(Join-Path $stepOutput 'receipt.json'),'--output',$occurrenceOutput); receiptPath=(Join-Path $occurrenceOutput 'receipt.json') }
         $candidateMeshOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-candidate-mesh-e2e'
@@ -389,6 +512,16 @@ try {
         }
         $results += $checkResult
     }
+    $outputSafetyRoots = @(
+        $env:TOKITO_E2E_TEMP_ROOT,
+        $modelResolutionOutputPath,
+        $compatibilityOutputPath,
+        $realCliOutputPath,
+        $geometryOutputPath
+    )
+    foreach ($outputSafetyRoot in $outputSafetyRoots) {
+        Assert-NoLinkedTree $outputSafetyRoot
+    }
     if (($inputs | ConvertTo-Json -Compress) -ne ((Get-InputFingerprints) | ConvertTo-Json -Compress)) {
         throw 'Source/test inputs changed during verification; rerun before delivery.'
     }
@@ -440,9 +573,18 @@ try {
         rustcVersion = $rustcVersion -join "`n"
         pythonVersion = "$pythonVersion"
         buildConfiguration = @{
+            cachePolicy = if ([string]::IsNullOrWhiteSpace($ReuseBuildTarget)) { 'isolated-new-target' } else { 'reuse-existing-target' }
+            cargoBuildJobs = $env:CARGO_BUILD_JOBS
             devDebug = $env:CARGO_PROFILE_DEV_DEBUG
             testDebug = $env:CARGO_PROFILE_TEST_DEBUG
             incremental = $env:CARGO_INCREMENTAL
+        }
+        outputPathSafety = @{
+            base = [System.IO.Path]::GetFullPath($targetParent)
+            preflightPassed = $true
+            postflightPassed = $true
+            checkedRoots = $outputSafetyRoots
+            policy = 'Reject reparse points in output-root ancestors and descendants; require canonical output roots beneath the selected verification base.'
         }
         checks = $results
         inputsSha256 = $inputs
@@ -455,5 +597,7 @@ try {
 finally {
     $env:RUSTC = $previousRustc
     $env:CARGO_TARGET_DIR = $previousTarget
+    $env:TOKITO_E2E_TEMP_ROOT = $previousE2eTempRoot
+    $env:CARGO_BUILD_JOBS = $previousCargoBuildJobs
     Pop-Location
 }

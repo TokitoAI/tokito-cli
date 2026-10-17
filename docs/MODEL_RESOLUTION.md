@@ -19,24 +19,177 @@ traversal, UNC/device paths, alternate data streams, symlinks and reparse points
 are rejected. Root spelling is conservative and component-exact on Windows too,
 so case aliases can be rejected. Roots and variables are bounded to 64, path
 text to 4096 bytes, and assets to 64 MiB by default (reusable API ceiling 256 MiB).
-Asset bytes are captured with SHA-256; errors and shared projections omit
-filesystem paths. Local API access to the actual path is explicitly local-only.
+External asset bytes are captured with SHA-256; errors and shared projections
+omit filesystem paths. Local API access to the actual path is explicitly
+local-only.
 Standard metadata/path checks detect ordinary mutation; they do not constitute
 an adversarial race-proof filesystem sandbox. Library/license metadata is
 caller-owned provenance, not automatically inferred from an adjacent file.
 
-The CLI caps batches at 1024 references and 256 MiB of accepted captured bytes.
-`--max-model-bytes` and `--max-batch-bytes` may lower those byte limits. The
-aggregate check happens after a bounded read/hash, so a failing batch can
-process at most one additional per-file budget before it stops. Repeated library
-API calls or retained byte snapshots need a caller-owned aggregate budget.
+The CLI caps batches at 1024 references and 256 MiB of retained captured bytes.
+`--max-model-bytes` and `--max-batch-bytes` may lower those byte limits. JSON
+glTF dependency reads receive the remaining batch budget before file capture;
+metadata is checked first and the read is capped at the smaller of the remaining
+batch bytes and per-file limit, plus one detection byte. Dependencies beyond the
+remaining budget are reported as incomplete and are not retained. Repeated
+library API calls or retained byte snapshots still need a caller-owned aggregate
+budget.
 
-The recognized asset extensions are STEP/STP, WRL, GLB and glTF. `resolved`
-means captured file bytes only; even malformed geometry is opaque at this stage.
+Each `resolve models --json` record also names its owning footprint when the
+source locator can be joined: `ownerComponent` contains the source component
+ordinal, source UUID, reference, identity diagnostics, and
+`selectableIdentityReady`. The report totals model references whose owners
+have or lack unique UUID/reference pairs, so multi-model components remain
+visible. This establishes a source identity crosswalk only; it
+does not set `componentSelectionReady`, validate the model geometry, or prove
+that a downstream GLB/App selector works. The pinned Ultimainboard intake
+currently maps all 310 model references to unique footprint identities.
+
+The recognized asset extensions are STEP/STP, WRL/VRML, GLB and glTF. WRL and
+VRML share the same bounded VRML97 adapter; the extension is not evidence that
+the full VRML97 node system is supported. `resolved` means captured and
+hash-identified bytes only; even malformed geometry is opaque at this stage.
 Hidden, missing, malformed path, unknown variable, unsupported extension,
 oversized, ambiguous and I/O cases remain distinct. A JSON inventory succeeds
 with unresolved entries; invalid invocation/configuration or batch limits fail
 the command. All geometry/selection/mobile readiness flags remain false.
+
+## Embedded KiCad model payloads
+
+`resolve models` also handles a board model whose URI is exactly
+`kicad-embed://<name>`. It matches the exact name against the parsed board's
+`embedded_files` records. A component-local record with data is used directly;
+when it contains metadata only, the resolver finds the unique board-level
+payload and checks the declared type and checksum against the component-local
+metadata. A mismatch is reported as `embedded_metadata_conflict`; absent or
+ambiguous payloads remain explicit failures. It then decodes KiCad's
+pipe-delimited Base64 Zstandard payload with a pure-Rust decoder and verifies
+the stored MMH3-128 checksum (current or legacy) or historical SHA-256 before
+reporting the asset as resolved. Names are exact; the resolver does not
+percent-decode them, search other boards, or create a temporary model file.
+Shared JSON records `origin: embedded_board`, the embedded name, source locator,
+decompressed size, and SHA-256; local filesystem paths are absent.
+
+The per-asset output limit also bounds decompression. The compressed payload has
+a separate capped allowance for Zstandard framing overhead, and trailing or
+concatenated frames are rejected. Missing, ambiguous, non-model, malformed,
+oversized, unsupported-extension, and checksum failures have explicit statuses.
+This is payload extraction only: `STEP` remains unsupported by the production
+mesh/GLB assembler. A successful embedded STEP lookup is not evidence that its
+geometry, units, placement, or physical correspondence to the owning footprint
+are correct. `.stpz` and
+`.wrz` remain unsupported until their nested compression formats have explicit
+bounded decoders; classifying their extensions alone would not make them
+usable geometry inputs.
+
+KiCad 10.0.7 serializes component metadata separately from its board-level
+payload table. The repository includes regressions for that split layout and
+for conflicting checksums. The MMH3-V1 implementation now models KiCad's legacy
+four-byte tail padding and length accounting. Its independent WRL vector is
+also accepted by the locally pinned KiCad 10.0.7 executable, which emits one
+mesh without a checksum error. This verifies legacy checksum acceptance and
+mesh presence, not geometric equivalence between the two exporters.
+
+On the pinned Ultimainboard 2.1.4 generated-KiCad candidate (board SHA-256
+`f763641f75470b4fb5b95391ae1ec40ab4ffe2a80bc28dafd2685901c08680b7`), the
+resolver captured **310 of 310 embedded STEP references** (201,945,392 bytes)
+after the legacy checksum correction. `tests/embedded_dataset_e2e.py` repeats
+this as a source-hash-pinned subprocess check and requires every reference to
+resolve from the board payload and the aggregate byte count to match the pinned
+201,945,392-byte expectation. It also checks that owner-identity coverage is
+reported consistently; this snapshot records 310 model references with unique
+UUID/reference owners and zero owner-identity gaps. This is asset intake only: STEP mesh generation,
+units, geometry, placement and full-board assembly remain unqualified. The
+report's `geometryValidated`, `componentSelectionReady`, and `mobileImportReady`
+values remain false for the payload-only workflow.
+
+### Copy resolved source-model payloads
+
+`resolve models --extract-dir <NEW_DIRECTORY>` can now copy the original resolved
+single-file STEP/STP, WRL/VRML and GLB bytes into an offline folder under
+`assets/<sha256>.<format>`. JSON glTF documents and their external resources
+use an isolated content-addressed bundle folder. Identical single-file assets
+are deduplicated, and each PCB model reference keeps its own manifest row with
+the owning UUID and reference. `manifest.json` pins the source board SHA-256,
+each payload hash and size, per-reference export status, and the overall
+incompleteness flags. `payloadBytes` sums primary model and dependency bytes per
+reference, while `uniqueAssetBytes`
+reports the actual deduplicated file bytes written. The
+destination must not already exist; the command refuses replacement. A complete
+copy is required by default; `--allow-partial` is required when any model is
+unresolved, a JSON glTF resource cannot be copied, or a model format is not
+supported by this source exporter.
+
+This is source export only. STEP and other model geometry is not decoded, no
+footprint/model transforms are applied, dimensions or physical fit are not
+verified, and the operation does not produce a component-selectable GLB or an
+App-importable package. The manifest keeps `geometryDecoded`,
+`geometryValidated`, `placementApplied`, `componentSelectionReady`, and
+`mobileImportReady` false.
+
+For JSON `.gltf` version 2.0, the exporter also resolves external
+`buffers[*].uri` and `images[*].uri` references. Images must use exactly one of
+`uri` or `bufferView`. Only data URIs and local relative paths are accepted.
+Spaces in URI paths must be percent-encoded. Paths are decoded for filesystem
+lookup and then checked for platform-safe components. Traversal, absolute paths,
+network/file schemes, query/fragment syntax, Windows device names,
+case-alias collisions, extension
+payloads, and any dependency path rooted at `scene.gltf/` are refused. A
+dependency whose first path segment collides with the emitted `scene.gltf`
+file is also refused, including case-insensitive aliases.
+Resources are read only from the same caller-approved roots as the source glTF,
+subject to per-file and remaining aggregate byte limits. A dependency that would
+exceed either limit is reported as incomplete before its payload is retained.
+The original JSON document
+is copied unchanged to `assets/gltf/<bundle-sha256>/scene.gltf`; its local
+relative resources are copied below that folder using the decoded relative
+paths, so the document's URI references continue to resolve. The manifest
+records the dependency paths, sizes and hashes. A malformed glTF or any
+unresolved resource prevents that glTF bundle from being exported; the caller
+must pass `--allow-partial` to export other resolved model assets in that case.
+This is core-file-closure packaging only: it does not validate the full glTF
+schema or mesh semantics, extension-specific external files, geometry, units,
+placement or physical fit. A document with extension usage is explicitly
+incomplete until extension resources are understood and captured.
+
+```powershell
+.\target\release\tokito-cli.exe resolve models .\board.kicad_pcb --project-root . --extract-dir .\target\board-model-source --json
+.\target\release\tokito-cli.exe resolve models .\board.kicad_pcb --project-root . --extract-dir .\target\board-model-source-partial --allow-partial --json
+```
+
+The pinned Ultimainboard intake checked the exported payload directory: the CLI
+summary's manifest hash matched the manifest bytes; all 310 rows had unique
+UUIDs and unique references; each row's declared byte length matched its file;
+all 39 assets matched canonical SHA-256 names and file hashes; and the directory
+contained no unreferenced files. Their 24,722,098 unique bytes matched
+`uniqueAssetBytes`. The manifest reported 201,945,392 bytes summed across model
+references while keeping geometry and placement unqualified. The per-run receipt
+is `C:\TokitoCliFinalVerification\target\20261014T175050Z-495fdfa4f991499da829b6b37f7a2bdf\embedded-dataset-e2e-20261015c.json`.
+The E2E writes 24,722,098 unique payload bytes under its temporary target; the
+201,945,392-byte figure is the sum across model references before deduplication.
+Keep adequate free space before supplying this board to the full verifier.
+
+Example (PowerShell, with the matching pinned board file):
+
+```powershell
+python tests/embedded_dataset_e2e.py --binary target/release/tokito-cli.exe --board .\target\dataset-intake\257ea7e6\data\board-sources\ultimainboard-2.1.4\generated-kicad\Ultimainboard-2.1.4.imported.kicad_pcb --expected-sha256 f763641f75470b4fb5b95391ae1ec40ab4ffe2a80bc28dafd2685901c08680b7 --expected-model-count 310 --expected-captured-bytes 201945392 --expected-format step --receipt target\embedded-dataset-e2e.json
+```
+
+The full local verifier accepts the same board hash, count, byte total and format through
+`-EmbeddedDatasetBoard`, `-EmbeddedDatasetBoardSha256`,
+`-EmbeddedDatasetExpectedModelCount`, `-EmbeddedDatasetExpectedCapturedBytes`,
+and `-EmbeddedDatasetExpectedFormat`.
+
+The exporter uses exclusive creation, staged files and hash checks, and refuses
+linked path components before writing. Its filesystem operations are path-based,
+not anchored to open directory handles; use a trusted writable parent and a new
+destination. It is not race-proof against a concurrent process able to replace
+directories in that parent.
+KiCad-source references:
+[embedded file serialization](https://docs.kicad.org/doxygen/embedded__files_8cpp_source.html),
+[MMH3 implementation](https://docs.kicad.org/doxygen/mmh3__hash_8h_source.html),
+[KiCad hash formatting](https://docs.kicad.org/doxygen/hash__128_8h_source.html),
+[KiCad 10.0.7 board parser/serializer](https://gitlab.com/kicad/code/kicad/-/raw/10.0.7/pcbnew/pcb_io/kicad_sexpr/pcb_io_kicad_sexpr.cpp?ref_type=tags).
 
 Example (PowerShell):
 
@@ -47,17 +200,25 @@ Example (PowerShell):
 
 ## Mesh profile
 
-The original bounded parser accepts flat VRML97 Shapes, triangle-only
-IndexedFaceSet/Coordinate data, Material fields and material DEF/USE. It preserves
-local source-shape identity, material parameters, source crease angle and solid
-flags; face normals are derived as flat normals. It does not smooth normals.
+The original bounded parser accepts `Group`, `Transform`, scene `DEF`/`USE`,
+`Shape`, planar polygon `IndexedFaceSet`/`Coordinate` data, and Material fields
+with material DEF/USE. Scene references must point to an earlier supported node;
+reused geometry is expanded under its new parent transform and counts against
+shape, vertex and triangle budgets. Nested translation, axis-angle rotation,
+nonzero scale and center are composed in source order. It preserves local
+source-shape identity, material parameters, source crease angle and solid flags;
+face normals are derived as flat normals. It does not smooth normals.
+`Transform.scaleOrientation` follows the VRML97 matrix order
+`T * C * R * SR * S * -SR * -C`.
 Unit profiles are explicit: millimetres or ordinary legacy KiCad WRL coordinates
 (0.1 inch = 2.54 mm per unit). No automatic unit inference is performed.
 
-Unknown nodes/fields, Transform/Inline, textures, supplied normals, non-triangle
-faces, duplicate fields/definitions, invalid indices, nonfinite coordinates,
-degenerate triangles and exceeded byte/token/depth/shape/vertex/triangle budgets
-are rejected. It is a small qualified profile, not general VRML or STEP support.
+Unknown nodes/fields, `Inline`, textures, supplied normals,
+non-planar or degenerate polygons, duplicate fields/definitions, invalid indices,
+nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle budgets
+are rejected. Planar polygons are triangulated only when the result preserves
+source winding and projected area. It is a bounded VRML profile, not complete
+VRML97, STEP, or STEP-export support.
 The [pinned official resistor](../tests/fixtures/open-source/kicad-resistor-models/README.md)
 is the positive fixture; mathematical negative cases are explicitly synthetic.
 

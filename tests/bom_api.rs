@@ -1,4 +1,6 @@
 //! Synthetic ingestion/reconciliation tests, not physical population evidence.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use serde_json::{Value, json};
 use std::{
     fs::{self, OpenOptions},
@@ -25,8 +27,7 @@ struct BoardInput(PathBuf);
 static NEXT_BOARD_INPUT: AtomicU64 = AtomicU64::new(0);
 impl BoardInput {
     fn new(footprints: &str) -> Self {
-        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/bom-api-tests");
-        fs::create_dir_all(&dir).unwrap();
+        let dir = test_scratch::directory("bom-api-tests");
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

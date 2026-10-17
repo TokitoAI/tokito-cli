@@ -248,6 +248,19 @@ def glb_check(path, expected_selectors=("ref:R1",)):
             assert max(point[axis] for point in component_positions) > min(point[axis] for point in component_positions)
     return document
 
+
+def component_position_bounds(document, selector):
+    node = next(node for node in document["nodes"]
+                if node.get("name") == selector and node.get("mesh") is not None)
+    mesh = document["meshes"][node["mesh"]]
+    return [
+        (
+            document["accessors"][primitive["attributes"]["POSITION"]]["min"],
+            document["accessors"][primitive["attributes"]["POSITION"]]["max"],
+        )
+        for primitive in mesh["primitives"]
+    ]
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--binary", required=True, type=Path)
@@ -292,6 +305,7 @@ def main():
     pos_help = invoke(binary, "pcb", "export", "pos", "--help").stdout
     assert "manufacturing-position CSV" in pos_help
     assert "--use-drill-file-origin" in pos_help
+    assert "KiCad 10.0.5 and 10.0.7 comparisons" in pos_help
     svg_help = invoke(binary, "help", "export", "svg").stdout
     assert "--hide-DNP-footprints-on-fab-layers" in svg_help
     with tempfile.TemporaryDirectory(prefix="tokito-cli-e2e-") as output:
@@ -461,6 +475,80 @@ def main():
         assert coverage["unresolvedModelsTotal"] == 0 and coverage["unresolvedModels"] == []
         assembly_document = glb_check(assembly_glb)
         assert assembly_document["asset"]["extras"]["tokito"]["coverage"]["componentModelsEmitted"] == 1
+        assert json.loads(invoke(
+            binary, "export", "glb", assembly_fixture, "--output", output / "empty-filter.glb",
+            "--assemble-wrl", "--project-root", model_root, "--component-filter", "",
+            "--json-report",
+        ).stdout)["coverage"]["componentFilter"] is None
+
+        transformed_model_root = output / "transformed-vrml-models"
+        transformed_model_root.mkdir()
+        original_model_text = (model_root / "Resistor_SMD.3dshapes" / "R_0603_1608Metric.wrl").read_text(encoding="utf-8")
+        _, original_model_body = original_model_text.split("\n", 1)
+        (transformed_model_root / "translated.VRML").write_text(
+            "#VRML V2.0 utf8\nTransform { translation 1 0 0 children [\n"
+            + original_model_body
+            + "\n] }\n",
+            encoding="utf-8",
+        )
+        transformed_board = output / "transformed-vrml.kicad_pcb"
+        transformed_board.write_text(
+            assembly_fixture.read_text(encoding="utf-8").replace(
+                "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl", "translated.VRML"
+            ),
+            encoding="utf-8",
+        )
+        transformed_glb = output / "transformed-vrml.glb"
+        transformed_report = json.loads(invoke(
+            binary, "export", "glb", transformed_board, "--output", transformed_glb,
+            "--assemble-wrl", "--project-root", transformed_model_root, "--json-report",
+        ).stdout)
+        assert not transformed_report["partialExport"]
+        assert transformed_report["coverage"]["componentModelsEmitted"] == 1
+        transformed_document = glb_check(transformed_glb)
+        base_bounds = component_position_bounds(assembly_document, "ref:R1")
+        moved_bounds = component_position_bounds(transformed_document, "ref:R1")
+        assert len(base_bounds) == len(moved_bounds) > 0
+        for (base_min, base_max), (moved_min, moved_max) in zip(base_bounds, moved_bounds):
+            for axis, shift in enumerate((0.0, 0.0, 0.00254)):
+                assert abs((moved_min[axis] - base_min[axis]) - shift) <= 1e-6
+                assert abs((moved_max[axis] - base_max[axis]) - shift) <= 1e-6
+        transformed_filtered_glb = output / "filtered-vrml-alias.glb"
+        transformed_filtered = json.loads(invoke(
+            binary, "export", "glb", transformed_board,
+            "--output", transformed_filtered_glb, "--assemble-wrl",
+            "--project-root", transformed_model_root, "--component-filter", "R1",
+            "--json-report",
+        ).stdout)
+        assert not transformed_filtered["partialExport"]
+        assert transformed_filtered["coverage"]["componentFilter"] == ["R1"]
+        glb_check(transformed_filtered_glb, ("ref:R1",))
+
+        oriented_model_root = output / "scale-oriented-vrml-models"
+        oriented_model_root.mkdir()
+        (oriented_model_root / "oriented-scale.wrl").write_text(
+            "#VRML V2.0 utf8\nTransform { scale 1.5 0.75 1 "
+            "scaleOrientation 0 0 1 0.7853981633974483 children [\n"
+            + original_model_body
+            + "\n] }\n",
+            encoding="utf-8",
+        )
+        oriented_board = output / "scale-oriented-vrml.kicad_pcb"
+        oriented_board.write_text(
+            assembly_fixture.read_text(encoding="utf-8").replace(
+                "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl", "oriented-scale.wrl"
+            ),
+            encoding="utf-8",
+        )
+        oriented_glb = output / "scale-oriented-vrml.glb"
+        oriented_report = json.loads(invoke(
+            binary, "export", "glb", oriented_board, "--output", oriented_glb,
+            "--assemble-wrl", "--project-root", oriented_model_root, "--json-report",
+        ).stdout)
+        assert not oriented_report["partialExport"]
+        assert oriented_report["coverage"]["componentModelsEmitted"] == 1
+        oriented_document = glb_check(oriented_glb, ("ref:R1",))
+        assert len(component_position_bounds(oriented_document, "ref:R1")) > 0
 
         source_text = assembly_fixture.read_text(encoding="utf-8").rstrip()
         assert source_text.endswith(")")
@@ -548,8 +636,311 @@ def main():
             binary, "export", "glb", dnp_source,
             "--output", shell_no_dnp_glb, "--no-dnp", "--allow-partial", succeeds=False,
         )
-        assert "requires --assemble-wrl" in no_dnp_shell_error.stderr
+        assert "require --assemble-wrl" in no_dnp_shell_error.stderr
         assert not shell_no_dnp_glb.exists()
+
+        duplicate_attr_source = output / "two-resistor-duplicate-dnp-attributes.kicad_pcb"
+        duplicate_attr_source.write_text(
+            dnp_source.read_text(encoding="utf-8").replace(
+                '(attr dnp)', '(attr smd) (attr dnp)', 1,
+            ),
+            encoding="utf-8",
+        )
+        duplicate_attr_glb = output / "two-resistor-duplicate-dnp-attributes.glb"
+        duplicate_attr_report = json.loads(invoke(
+            binary, "export", "glb", duplicate_attr_source,
+            "--output", duplicate_attr_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--json-report",
+        ).stdout)
+        assert duplicate_attr_report["coverage"]["dnpFilter"]["componentsExcluded"] == 1
+        assert duplicate_attr_report["coverage"]["selectedComponentCount"] == 1
+        glb_check(duplicate_attr_glb, ("ref:R1",))
+
+        malformed_dnp_uuid_source = output / "two-resistor-dnp-without-uuid.kicad_pcb"
+        malformed_dnp_uuid_source.write_text(
+            dnp_source.read_text(encoding="utf-8").replace('(uuid "assembly-r2")', '', 1),
+            encoding="utf-8",
+        )
+        malformed_dnp_uuid_glb = output / "two-resistor-dnp-without-uuid.glb"
+        malformed_dnp_uuid_error = invoke(
+            binary, "export", "glb", malformed_dnp_uuid_source,
+            "--output", malformed_dnp_uuid_glb, "--assemble-wrl", "--project-root", model_root,
+            "--no-dnp", "--allow-partial", succeeds=False,
+        )
+        assert "DNP footprint has a missing or ambiguous canonical UUID" in malformed_dnp_uuid_error.stderr
+        assert not malformed_dnp_uuid_glb.exists()
+        for pattern in ("R*", "R?"):
+            wildcard_glb = output / f"wildcard-{pattern.replace('*', 'star').replace('?', 'any')}.glb"
+            wildcard_report = json.loads(invoke(
+                binary, "export", "glb", multi_source, "--output", wildcard_glb,
+                "--assemble-wrl", "--project-root", model_root,
+                "--component-filter", pattern, "--json-report",
+            ).stdout)
+            assert wildcard_report["coverage"]["componentFilter"] == [pattern]
+            assert wildcard_report["coverage"]["componentModelsEmitted"] == 2
+            assert not wildcard_report["partialExport"]
+            glb_check(wildcard_glb, ("ref:R1", "ref:R2"))
+
+        for unmatched_pattern in ("R404", "ZZ*", "r*"):
+            no_match_glb = output / f"no-match-{unmatched_pattern.replace('*', 'star')}.glb"
+            no_match_report = json.loads(invoke(
+                binary, "export", "glb", multi_source, "--output", no_match_glb,
+                "--assemble-wrl", "--project-root", model_root,
+                "--component-filter", unmatched_pattern, "--json-report",
+            ).stdout)
+            assert no_match_report["coverage"]["componentFilter"] == [unmatched_pattern]
+            assert no_match_report["coverage"]["componentCount"] == 2
+            assert no_match_report["coverage"]["selectedComponentCount"] == 0
+            assert no_match_report["coverage"]["filteredComponentCount"] == 2
+            assert no_match_report["coverage"]["modelReferences"] == 2
+            assert no_match_report["coverage"]["selectedModelReferences"] == 0
+            assert no_match_report["coverage"]["filteredModelReferences"] == 2
+            assert not no_match_report["partialExport"]
+            glb_check(no_match_glb, expected_selectors=())
+
+        for comma_patterns, expected_refs in [
+            ("R1,R1", ("ref:R1",)),
+            (" R1 ,", ("ref:R1",)),
+            (",R2", ("ref:R2",)),
+            ("R1,,R2", ("ref:R1", "ref:R2")),
+            (",", ("ref:R1", "ref:R2")),
+        ]:
+            filtered_by_list_glb = output / f"comma-patterns-{len(comma_patterns)}-{ord(comma_patterns[0])}.glb"
+            filtered_by_list = json.loads(invoke(
+                binary, "export", "glb", multi_source,
+                "--output", filtered_by_list_glb, "--assemble-wrl", "--project-root", model_root,
+                "--component-filter", comma_patterns, "--json-report",
+            ).stdout)
+            if comma_patterns == ",":
+                assert filtered_by_list["coverage"]["componentFilter"] is None
+            assert not filtered_by_list["partialExport"]
+            glb_check(filtered_by_list_glb, expected_refs)
+
+        filtered_source = output / "filtered-two-resistor-assembly.kicad_pcb"
+        step_asset_root = output / "step-model-assets"
+        step_asset_root.mkdir()
+        (step_asset_root / "selected-component.step").write_text(
+            "ISO-10303-21;\nHEADER;\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n",
+            encoding="ascii",
+        )
+        filtered_source.write_text(
+            source_text[:-1]
+            + '\n  (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu") (at 7 7 0) (uuid "assembly-r2")\n'
+            + '    (property "Reference" "R2")\n'
+            + '    (model "selected-component.step"))\n)',
+            encoding="utf-8",
+        )
+        filtered_glb = output / "filtered-r1.glb"
+        filtered_report = json.loads(invoke(
+            binary, "export", "glb", filtered_source, "--output", filtered_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--library-root", step_asset_root, "--component-filter", "R1",
+            "--json-report",
+        ).stdout)
+        filtered_coverage = filtered_report["coverage"]
+        assert filtered_report["scope"] == "board_shell_and_selected_supported_vrml_models"
+        assert not filtered_report["partialExport"]
+        assert filtered_coverage["componentFilter"] == ["R1"]
+        assert filtered_coverage["componentCount"] == 2
+        assert filtered_coverage["selectedComponentCount"] == 1
+        assert filtered_coverage["sourceComponentCount"] == 2
+        assert filtered_coverage["filteredComponentCount"] == 1
+        assert filtered_coverage["componentModelsEmitted"] == 1
+        assert filtered_coverage["componentModelsUnresolved"] == 0
+        assert filtered_coverage["modelReferences"] == 2
+        assert filtered_coverage["selectedModelReferences"] == 1
+        assert filtered_coverage["sourceModelReferences"] == 2
+        assert filtered_coverage["filteredModelReferences"] == 1
+        assert filtered_coverage["modelReferencesEmitted"] == 1
+        assert filtered_coverage["modelReferencesUnresolved"] == 0
+        filtered_document = glb_check(filtered_glb, ("ref:R1",))
+        assert len(filtered_document["scenes"][0]["nodes"]) == 2
+
+        selected_step_glb = output / "selected-step-model.glb"
+        selected_step_refusal = invoke(
+            binary, "export", "glb", filtered_source, "--output", selected_step_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--library-root", step_asset_root, "--component-filter", "R2",
+            "--json-report", succeeds=False,
+        )
+        assert "1 component(s) and 1 model reference(s)" in selected_step_refusal.stderr
+        assert not selected_step_glb.exists()
+        selected_step_report = json.loads(invoke(
+            binary, "export", "glb", filtered_source, "--output", selected_step_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--library-root", step_asset_root, "--component-filter", "R2",
+            "--allow-partial", "--json-report",
+        ).stdout)
+        assert selected_step_report["partialExport"]
+        assert selected_step_report["coverage"]["modelReferencesEmitted"] == 0
+        assert selected_step_report["coverage"]["modelReferencesUnresolved"] == 1
+        assert selected_step_report["coverage"]["unresolvedModels"][0]["status"] == "unsupported_asset_format"
+        glb_check(selected_step_glb, expected_selectors=())
+
+        dnp_source = output / "dnp-model-filter.kicad_pcb"
+        dnp_source.write_text(
+            filtered_source.read_text(encoding="utf-8")
+            .replace('(property "Reference" "R2")', '(property "Reference" "R2")\n    (attr smd dnp)')
+            .replace("selected-component.step", "missing-dnp-model.step"),
+            encoding="utf-8",
+        )
+        dnp_filtered_glb = output / "dnp-filter.glb"
+        dnp_filtered = json.loads(invoke(
+            binary, "export", "glb", dnp_source, "--output", dnp_filtered_glb,
+            "--assemble-wrl", "--project-root", model_root, "--library-root", step_asset_root,
+            "--no-dnp", "--json-report",
+        ).stdout)
+        dnp_coverage = dnp_filtered["coverage"]
+        assert not dnp_filtered["partialExport"]
+        assert dnp_filtered["reportVersion"] == "1.2.0"
+        assert dnp_coverage["noDnp"] is True
+        assert dnp_coverage["componentFilter"] is None
+        assert dnp_coverage["componentCount"] == 2
+        assert dnp_coverage["selectedComponentCount"] == 1
+        assert dnp_coverage["sourceComponentCount"] == 2
+        assert dnp_coverage["filteredComponentCount"] == 1
+        assert dnp_coverage["excludedDnpComponentCount"] == 1
+        assert dnp_coverage["sourceModelReferences"] == 2
+        assert dnp_coverage["filteredModelReferences"] == 1
+        assert dnp_coverage["modelReferencesUnresolved"] == 0
+        glb_check(dnp_filtered_glb, expected_selectors=("ref:R1",))
+
+        custom_dnp_property_source = output / "custom-dnp-property-is-not-native.kicad_pcb"
+        custom_dnp_property_source.write_text(
+            filtered_source.read_text(encoding="utf-8")
+            .replace('(property "Reference" "R2")', '(property "Reference" "R2")\n    (property "DNP" "yes")')
+            .replace("selected-component.step", "custom-property-model.step"),
+            encoding="utf-8",
+        )
+        custom_dnp_property_glb = output / "custom-dnp-property-is-not-native.glb"
+        custom_dnp_property_report = json.loads(invoke(
+            binary, "export", "glb", custom_dnp_property_source,
+            "--output", custom_dnp_property_glb, "--assemble-wrl",
+            "--project-root", model_root, "--library-root", step_asset_root,
+            "--no-dnp", "--allow-partial", "--json-report",
+        ).stdout)
+        assert custom_dnp_property_report["coverage"]["excludedDnpComponentCount"] == 0
+        assert custom_dnp_property_report["coverage"]["componentCount"] == 2
+        assert custom_dnp_property_report["partialExport"]
+        glb_check(custom_dnp_property_glb, expected_selectors=("ref:R1",))
+
+        dnp_and_ref_filter_glb = output / "dnp-and-ref-filter.glb"
+        dnp_and_ref_filter = json.loads(invoke(
+            binary, "export", "glb", dnp_source, "--output", dnp_and_ref_filter_glb,
+            "--assemble-wrl", "--project-root", model_root, "--library-root", step_asset_root,
+            "--component-filter", "R*", "--no-dnp", "--json-report",
+        ).stdout)
+        assert dnp_and_ref_filter["coverage"]["componentFilter"] == ["R*"]
+        assert dnp_and_ref_filter["coverage"]["excludedDnpComponentCount"] == 1
+        assert not dnp_and_ref_filter["partialExport"]
+        glb_check(dnp_and_ref_filter_glb, expected_selectors=("ref:R1",))
+
+        unfiltered_dnp_glb = output / "unfiltered-dnp.glb"
+        unfiltered_dnp = json.loads(invoke(
+            binary, "export", "glb", dnp_source, "--output", unfiltered_dnp_glb,
+            "--assemble-wrl", "--project-root", model_root, "--library-root", step_asset_root,
+            "--allow-partial", "--json-report",
+        ).stdout)
+        assert unfiltered_dnp["partialExport"]
+        assert unfiltered_dnp["coverage"]["noDnp"] is False
+        assert unfiltered_dnp["coverage"]["componentCount"] == 2
+        assert unfiltered_dnp["coverage"]["componentModelsUnresolved"] == 1
+        assert unfiltered_dnp["coverage"]["unresolvedModels"][0]["status"] == "missing"
+
+        oversized_pattern = "R" + ("?" * 1024)
+        rejected_glb = output / "oversized-component-filter-pattern.glb"
+        rejected = invoke(
+            binary, "export", "glb", filtered_source, "--output", rejected_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", oversized_pattern, succeeds=False,
+        )
+        assert rejected.returncode != 0 and "pattern exceeds 1024 characters" in rejected.stderr
+        assert not rejected_glb.exists()
+
+        duplicate_flag_glb = output / "duplicate-component-filter-option.glb"
+        duplicate_flag = invoke(
+            binary, "export", "glb", filtered_source, "--output", duplicate_flag_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", "R1", "--component-filter", "R2", succeeds=False,
+        )
+        assert "unknown, duplicate, or incomplete GLB option" in duplicate_flag.stderr
+        assert not duplicate_flag_glb.exists()
+
+        shell_filter_glb = output / "shell-component-filter.glb"
+        shell_filter = invoke(
+            binary, "export", "glb", filtered_source, "--output", shell_filter_glb,
+            "--component-filter", "R1", succeeds=False,
+        )
+        assert "require --assemble-wrl" in shell_filter.stderr
+        assert not shell_filter_glb.exists()
+
+        assignment_filter_glb = output / "assignment-component-filter.glb"
+        assignment_filter = invoke(
+            binary, "export", "glb", filtered_source, "--output", assignment_filter_glb,
+            "--model-assignments", output / "missing-assignments.json",
+            "--project-root", model_root, "--component-filter", "R1", succeeds=False,
+        )
+        assert "require --assemble-wrl" in assignment_filter.stderr
+        assert not assignment_filter_glb.exists()
+
+        duplicate_reference_source = output / "duplicate-source-reference.kicad_pcb"
+        duplicate_reference_source.write_text(
+            source_text[:-1]
+            + '\n  (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu") (at 7 7 0) (uuid "assembly-r1-duplicate")\n'
+            + '    (property "Reference" "R1")\n'
+            + '    (model "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl"))\n)',
+            encoding="utf-8",
+        )
+        ambiguous_glb = output / "ambiguous-component-reference.glb"
+        ambiguous = invoke(
+            binary, "export", "glb", duplicate_reference_source,
+            "--output", ambiguous_glb, "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", "R1", succeeds=False,
+        )
+        assert "assembled GLB has" in ambiguous.stderr
+        assert not ambiguous_glb.exists()
+        duplicate_partial_glb = output / "duplicate-component-reference-partial.glb"
+        duplicate_partial = json.loads(invoke(
+            binary, "export", "glb", duplicate_reference_source,
+            "--output", duplicate_partial_glb, "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", "R1", "--allow-partial", "--json-report",
+        ).stdout)
+        assert duplicate_partial["partialExport"]
+        assert duplicate_partial["coverage"]["componentCount"] == 2
+        assert duplicate_partial["coverage"]["selectedComponentCount"] == 2
+        assert duplicate_partial["coverage"]["componentModelsUnresolved"] == 2
+
+        unmodeled_source = output / "selected-component-without-model.kicad_pcb"
+        two_resistor_text = filtered_source.read_text(encoding="utf-8").rstrip()
+        unmodeled_source.write_text(
+            two_resistor_text[:-1]
+            + '\n  (footprint "Resistor_SMD:R_0603_1608Metric" (layer "F.Cu") (at 9 9 0) (uuid "assembly-r3")\n'
+            + '    (property "Reference" "R3"))\n)',
+            encoding="utf-8",
+        )
+        unmodeled_glb = output / "selected-component-without-model.glb"
+        unmodeled_refusal = invoke(
+            binary, "export", "glb", unmodeled_source, "--output", unmodeled_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", "R3", "--json-report", succeeds=False,
+        )
+        assert "1 component(s) and 0 model reference(s)" in unmodeled_refusal.stderr
+        assert not unmodeled_glb.exists()
+        unmodeled_report = json.loads(invoke(
+            binary, "export", "glb", unmodeled_source, "--output", unmodeled_glb,
+            "--assemble-wrl", "--project-root", model_root,
+            "--component-filter", "R3", "--allow-partial", "--json-report",
+        ).stdout)
+        unmodeled_coverage = unmodeled_report["coverage"]
+        assert unmodeled_report["partialExport"]
+        assert unmodeled_coverage["componentCount"] == 3
+        assert unmodeled_coverage["selectedComponentCount"] == 1
+        assert unmodeled_coverage["componentModelsUnresolved"] == 1
+        assert unmodeled_coverage["modelReferences"] == 2
+        assert unmodeled_coverage["selectedModelReferences"] == 0
+        assert unmodeled_coverage["sourceModelReferences"] == 2
+        assert unmodeled_coverage["filteredModelReferences"] == 2
+        glb_check(unmodeled_glb, expected_selectors=())
 
         unsupported_side_source = output / "unsupported-side.kicad_pcb"
         unsupported_side_source.write_text(
@@ -621,7 +1012,7 @@ def main():
         glb_check(partial_glb, expected_selectors=())
         invoke(binary, "export", "svg", fixture_root / FIXTURES[0][0], "--output", output / "bad.svg",
                "--layers", "not-a-board-layer", succeeds=False)
-    print("PASS CLI E2E journeys, including DNP Fab and selectable GLB filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, drill-origin error handling, package input, no overwrite and parsed VRML assembly GLB; no device/desktop CAD conformance claimed")
+    print("PASS CLI E2E journeys, including DNP Fab filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, wildcard/edge-case component and DNP filters, STEP-skip accounting, drill-origin handling, package input, no overwrite and parsed VRML assembly GLB; no STEP export or device/desktop CAD conformance claimed")
 
 if __name__ == "__main__":
     main()

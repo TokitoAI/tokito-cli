@@ -61,21 +61,28 @@ subset has been independently captured.
 The reviewed primary-source manual documents the KiCad 10.0 option surface and
 defaults: [KiCad 10.0 CLI manual, PCB position export](https://docs.kicad.org/10.0/en/cli/cli.html#pcb-export-pos).
 On 2026-10-11, the installed reference executable reported KiCad CLI 10.0.5.
-Its outputs were captured from the pinned Uno, NXP MCXA ESC, SparkFun, and
-Raspberry Pi Pico PCB fixtures. Uno has no auxiliary origin and confirms the
+On 2026-10-14, the pinned reference executable reported KiCad CLI 10.0.7
+(SHA-256 `cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a`).
+The 10.0.5 and 10.0.7 outputs were captured from the same pinned Uno, NXP MCXA
+ESC, SparkFun, and Raspberry Pi Pico PCB fixtures. Uno has no auxiliary origin and confirms the
 `(0,0)` fallback; SparkFun and Pico exercise nonzero origins, and a second Pico
 capture checks bottom-X negation after origin translation.
-[The manifest](../tests/reference/kicad-cli-10.0.5/pos/manifest.json)
-records each source and reference-output SHA-256. Rust unit tests compare output
-to the pinned CSVs after normalizing platform line endings. Pico's duplicate
+[The 10.0.5 manifest](../tests/reference/kicad-cli-10.0.5/pos/manifest.json)
+and [10.0.7 manifest](../tests/reference/kicad-cli-10.0.7/pos/manifest.json)
+record source and output hashes, options, versions, and row counts. The local
+compatibility E2E runs Tokito against the 10.0.7 corpus without invoking the
+reference executable. Twelve outputs match after normalizing only line endings;
+the two Pico files have the same ordered named rows and identical empty-reference
+row multisets, whose ordering is not identifiable. The existing Rust unit tests
+also compare the 10.0.5 corpus. Pico's duplicate
 empty-reference rows are compared by row value as an unordered group because
 those rows carry no reference key; all named rows retain ordered comparison.
 Subprocess E2E tests also exercise command parsing, package input,
 unsupported-option refusal, malformed-origin refusal and no-overwrite
 behavior. Tokito's product path has no KiCad runtime dependency.
 
-These comparisons establish only the listed CSV behavior against KiCad 10.0.5.
-The repository's proposed parity target remains KiCad 10.0.7, so this work does
-not establish 10.0.7 parity or complete KiCad CLI parity. Variants, other POS
-formats, SVG/GLB/STEP export semantics, DRC, schematic and footprint-library
-workflows remain separate open work.
+These comparisons establish only the listed POS CSV behavior against KiCad
+10.0.5 and 10.0.7. They do not establish complete POS error/default parity or
+complete KiCad CLI parity. Variants, other POS formats, SVG/GLB/STEP export
+semantics, DRC, schematic and footprint-library workflows remain separate open
+work.

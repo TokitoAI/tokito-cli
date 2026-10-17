@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
+from e2e_temp import assert_no_reparse_components
 
 
 REPOSITORY = Path(__file__).resolve().parent.parent
@@ -127,12 +128,20 @@ def reconstruct(name, filename, expected_snapshot, output):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
+    parser.add_argument("--output-root", type=Path)
     arguments = parser.parse_args()
     binary = arguments.binary.resolve(strict=True)
-    output_root = (REPOSITORY / "target" / "compat-v0").resolve()
-    if not output_root.is_relative_to(REPOSITORY):
-        raise AssertionError("Compatibility output directory resolves outside the CLI checkout")
+    output_root = arguments.output_root or (REPOSITORY / "target" / "compat-v0")
+    output_root = output_root.expanduser()
+    if not output_root.is_absolute():
+        raise ValueError("Compatibility output root must be an absolute path")
+    assert_no_reparse_components(output_root)
     output_root.mkdir(parents=True, exist_ok=True)
+    assert_no_reparse_components(output_root)
+    output_root = output_root.resolve(strict=True)
+    repo_root = REPOSITORY.resolve(strict=True)
+    if arguments.output_root is None and not output_root.is_relative_to(repo_root):
+        raise AssertionError("Compatibility output directory resolves outside the CLI checkout")
     with tempfile.TemporaryDirectory(prefix="historical-packages-", dir=output_root) as temporary:
         output = Path(temporary)
         for name, filename, snapshot in CASES:

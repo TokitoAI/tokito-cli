@@ -13,6 +13,7 @@ use crate::component_pose::{
 use crate::document::{Component, ModelReference, SourceLocator};
 use crate::model_mesh::{MeshLimits, ModelUnits, parse_vrml_mesh};
 use crate::model_resolver::{ModelAssetFormat, ModelResolutionStatus, ModelResolver};
+use std::collections::BTreeSet;
 
 /// Assembly-wide cap applied before any additional placed mesh is retained.
 /// The flattened GLB positions/normals use 72 bytes per triangle, before JSON
@@ -20,6 +21,290 @@ use crate::model_resolver::{ModelAssetFormat, ModelResolutionStatus, ModelResolv
 /// the independent 128 MiB container ceiling.
 const MAX_AGGREGATE_ASSEMBLY_TRIANGLES: usize = 250_000;
 const MAX_RETAINED_MODEL_DIAGNOSTICS: usize = 2_048;
+const MAX_COMPONENT_FILTER_MATCH_WORK: usize = 1_000_000;
+const MAX_COMPONENT_REFERENCE_CHARS: usize = 4_096;
+
+/// Component filters for local source-model to GLB assembly. Matching is
+/// case-sensitive; `*` matches any sequence and `?` one Unicode scalar in
+/// Tokito. KiCad comparisons currently verify ASCII references only. A bounded
+/// aggregate work budget prevents pathological pattern/reference sets from
+/// consuming unbounded time. This selects model references only; it is not a
+/// STEP/board exporter.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ModelAssemblyFilter {
+    component_patterns: Option<Vec<String>>,
+    exclude_dnp: bool,
+    exclude_unspecified: bool,
+}
+
+/// Selection result retaining native DNP and footprint-type exclusions.
+/// A component can belong to both exclusion sets; selected ordinals exclude
+/// their union. Counts attributed to individual filters must not be summed.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ModelAssemblySelection {
+    pub selected_component_ordinals: BTreeSet<usize>,
+    pub excluded_dnp_component_count: usize,
+    pub excluded_dnp_component_ordinals: BTreeSet<usize>,
+    pub excluded_unspecified_component_ordinals: BTreeSet<usize>,
+}
+
+impl ModelAssemblyFilter {
+    pub fn exact_component_references(
+        board: &PhysicalBoardDocument,
+        references: &[String],
+    ) -> Result<Self, crate::EngineError> {
+        if references.is_empty() {
+            return Err(crate::EngineError::new(
+                "component filter requires at least one exact reference",
+            ));
+        }
+        let mut selected = BTreeSet::new();
+        for reference in references {
+            if reference.is_empty() || reference.trim() != reference {
+                return Err(crate::EngineError::new(
+                    "component filter references must be nonempty and have no surrounding whitespace",
+                ));
+            }
+            if reference
+                .chars()
+                .any(|character| matches!(character, '*' | '?'))
+            {
+                return Err(crate::EngineError::new(
+                    "component-filter wildcards are not supported; provide exact references",
+                ));
+            }
+            if !selected.insert(reference.clone()) {
+                return Err(crate::EngineError::new(format!(
+                    "duplicate component-filter reference: {reference}"
+                )));
+            }
+        }
+        for reference in &selected {
+            let matches = board
+                .engineering()
+                .components
+                .iter()
+                .filter(|component| component.reference.as_deref() == Some(reference.as_str()))
+                .count();
+            match matches {
+                0 => {
+                    return Err(crate::EngineError::new(format!(
+                        "unknown component-filter reference: {reference}"
+                    )));
+                }
+                1 => {}
+                _ => {
+                    return Err(crate::EngineError::new(format!(
+                        "ambiguous component-filter reference: {reference}"
+                    )));
+                }
+            }
+        }
+        Self::component_patterns(&selected.into_iter().collect::<Vec<_>>())
+    }
+
+    /// Build a KiCad-style component-reference pattern list. An empty list
+    /// means no filter, matching the observed empty 10.0.5 CLI behavior.
+    /// Unknown patterns are retained and simply select no component.
+    pub fn component_patterns(patterns: &[String]) -> Result<Self, crate::EngineError> {
+        if patterns.is_empty() {
+            return Ok(Self::default());
+        }
+        if patterns.len() > 1024 {
+            return Err(crate::EngineError::new(
+                "component filter exceeds 1024 patterns",
+            ));
+        }
+        for pattern in patterns {
+            if pattern.is_empty() || pattern.trim() != pattern {
+                return Err(crate::EngineError::new(
+                    "component filter patterns must be nonempty and have no surrounding whitespace",
+                ));
+            }
+            if pattern.chars().count() > 1024 {
+                return Err(crate::EngineError::new(
+                    "component filter pattern exceeds 1024 characters",
+                ));
+            }
+        }
+        Ok(Self {
+            component_patterns: Some(patterns.to_vec()),
+            exclude_dnp: false,
+            exclude_unspecified: false,
+        })
+    }
+
+    /// Exclude components explicitly marked DNP in their source footprint.
+    pub fn excluding_dnp(mut self) -> Self {
+        self.exclude_dnp = true;
+        self
+    }
+
+    pub fn excludes_dnp(&self) -> bool {
+        self.exclude_dnp
+    }
+
+    /// Exclude footprints without an explicit native SMD or through-hole type.
+    /// This does not infer type from pads, names, or model availability.
+    pub fn excluding_unspecified(mut self) -> Self {
+        self.exclude_unspecified = true;
+        self
+    }
+
+    pub fn excludes_unspecified(&self) -> bool {
+        self.exclude_unspecified
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.component_patterns.is_some() || self.exclude_dnp || self.exclude_unspecified
+    }
+
+    pub fn requested_patterns(&self) -> Option<Vec<String>> {
+        self.component_patterns.clone()
+    }
+
+    /// Resolve the selected component ordinals once, applying one aggregate
+    /// matching-work budget to the complete board instead of restarting it for
+    /// every component/model query.
+    pub fn selected_component_ordinals(
+        &self,
+        board: &PhysicalBoardDocument,
+    ) -> Result<BTreeSet<usize>, crate::EngineError> {
+        Ok(self.selection(board)?.selected_component_ordinals)
+    }
+
+    pub fn selection(
+        &self,
+        board: &PhysicalBoardDocument,
+    ) -> Result<ModelAssemblySelection, crate::EngineError> {
+        // The source document is authoritative for native DNP attributes.
+        // Component extraction intentionally keeps a compact first-attribute
+        // projection, so it cannot safely decide this filter on its own when
+        // malformed input contains repeated `(attr ...)` nodes.
+        let excluded_dnp_ordinals = if self.exclude_dnp {
+            Some(board.dnp_component_ordinals()?)
+        } else {
+            None
+        };
+        let excluded_unspecified_ordinals = if self.exclude_unspecified {
+            Some(board.unspecified_component_ordinals()?)
+        } else {
+            None
+        };
+        let components = &board.engineering().components;
+        let compiled_patterns = self.component_patterns.as_ref().map(|patterns| {
+            patterns
+                .iter()
+                .map(|pattern| pattern.chars().collect::<Vec<_>>())
+                .collect::<Vec<_>>()
+        });
+        let mut remaining_work = MAX_COMPONENT_FILTER_MATCH_WORK;
+        let mut result = ModelAssemblySelection::default();
+        for component in components {
+            let matched = if let Some(patterns) = &compiled_patterns {
+                let Some(reference) = component.reference.as_deref() else {
+                    continue;
+                };
+                let reference_char_count = reference
+                    .chars()
+                    .take(MAX_COMPONENT_REFERENCE_CHARS + 1)
+                    .count();
+                if reference_char_count > MAX_COMPONENT_REFERENCE_CHARS {
+                    return Err(crate::EngineError::new(
+                        "component reference exceeds the filter matching limit",
+                    ));
+                }
+                consume_filter_work(&mut remaining_work, reference_char_count)?;
+                let reference = reference.chars().collect::<Vec<_>>();
+                let mut matched = false;
+                for pattern in patterns {
+                    if component_reference_matches(pattern, &reference, &mut remaining_work)? {
+                        matched = true;
+                        break;
+                    }
+                }
+                matched
+            } else {
+                true
+            };
+            if !matched {
+                continue;
+            }
+            let excluded_dnp = excluded_dnp_ordinals
+                .as_ref()
+                .is_some_and(|excluded| excluded.contains(&component.source.ordinal));
+            let excluded_unspecified = excluded_unspecified_ordinals
+                .as_ref()
+                .is_some_and(|excluded| excluded.contains(&component.source.ordinal));
+            if excluded_dnp {
+                result.excluded_dnp_component_count += 1;
+                result
+                    .excluded_dnp_component_ordinals
+                    .insert(component.source.ordinal);
+            }
+            if excluded_unspecified {
+                result
+                    .excluded_unspecified_component_ordinals
+                    .insert(component.source.ordinal);
+            }
+            if !excluded_dnp && !excluded_unspecified {
+                result
+                    .selected_component_ordinals
+                    .insert(component.source.ordinal);
+            }
+        }
+        Ok(result)
+    }
+}
+
+/// Bounded-space glob matching for KiCad's observed `*`/`?` syntax.
+/// Pattern and reference matching is deliberately case-sensitive.
+fn component_reference_matches(
+    pattern: &[char],
+    reference: &[char],
+    remaining_work: &mut usize,
+) -> Result<bool, crate::EngineError> {
+    let (mut pattern_index, mut reference_index) = (0, 0);
+    let mut last_star = None;
+    let mut star_reference_index = 0;
+
+    while reference_index < reference.len() {
+        consume_filter_work(remaining_work, 1)?;
+        if pattern_index < pattern.len()
+            && (pattern[pattern_index] == '?'
+                || pattern[pattern_index] == reference[reference_index])
+        {
+            pattern_index += 1;
+            reference_index += 1;
+        } else if pattern_index < pattern.len() && pattern[pattern_index] == '*' {
+            last_star = Some(pattern_index);
+            pattern_index += 1;
+            star_reference_index = reference_index;
+        } else if let Some(star_index) = last_star {
+            star_reference_index += 1;
+            reference_index = star_reference_index;
+            pattern_index = star_index + 1;
+        } else {
+            return Ok(false);
+        }
+    }
+
+    while pattern_index < pattern.len() && pattern[pattern_index] == '*' {
+        consume_filter_work(remaining_work, 1)?;
+        pattern_index += 1;
+    }
+    Ok(pattern_index == pattern.len())
+}
+
+fn consume_filter_work(
+    remaining_work: &mut usize,
+    amount: usize,
+) -> Result<(), crate::EngineError> {
+    *remaining_work = remaining_work
+        .checked_sub(amount)
+        .ok_or_else(|| crate::EngineError::new("component filter matching work budget exceeded"))?;
+    Ok(())
+}
 
 /// An individual model successfully converted into the Tokito GLB coordinate frame.
 #[derive(Clone, Debug)]
@@ -108,13 +393,32 @@ pub fn assemble_supported_vrml_models(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
 ) -> ModelAssembly {
-    assemble_supported_vrml_models_excluding(board, resolver, &std::collections::BTreeSet::new())
+    let selected = board
+        .engineering()
+        .components
+        .iter()
+        .map(|component| component.source.ordinal)
+        .collect();
+    assemble_supported_vrml_models_for_components(board, resolver, &selected)
 }
 
-pub(crate) fn assemble_supported_vrml_models_excluding(
+/// Resolve, parse and place only components admitted by a reference-pattern filter.
+/// Filtered model paths are never resolved or read from disk.
+pub fn assemble_supported_vrml_models_with_filter(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
-    excluded_component_ordinals: &std::collections::BTreeSet<usize>,
+    filter: &ModelAssemblyFilter,
+) -> Result<ModelAssembly, crate::EngineError> {
+    let selected = filter.selected_component_ordinals(board)?;
+    Ok(assemble_supported_vrml_models_for_components(
+        board, resolver, &selected,
+    ))
+}
+
+pub(crate) fn assemble_supported_vrml_models_for_components(
+    board: &PhysicalBoardDocument,
+    resolver: &ModelResolver,
+    selected_component_ordinals: &BTreeSet<usize>,
 ) -> ModelAssembly {
     let planes = board
         .engineering()
@@ -169,7 +473,7 @@ pub(crate) fn assemble_supported_vrml_models_excluding(
             );
             continue;
         };
-        if excluded_component_ordinals.contains(&component.source.ordinal) {
+        if !selected_component_ordinals.contains(&component.source.ordinal) {
             continue;
         }
         let unique_uuid = component
@@ -251,7 +555,7 @@ pub(crate) fn assemble_supported_vrml_models_excluding(
                 continue;
             }
         };
-        let resolution = resolver.resolve(model);
+        let resolution = resolver.resolve_board_model(board, model);
         let Some(asset) = resolution.asset else {
             record_diagnostic(
                 &mut result,
@@ -422,6 +726,69 @@ mod tests {
     use crate::{load_kicad_board, model_resolver::ModelResolverConfig};
     use std::fs;
     use std::path::PathBuf;
+
+    #[test]
+    fn reference_globs_are_case_sensitive_and_support_star_and_single_character() {
+        for (pattern, reference, expected) in [
+            ("U*", "U3", true),
+            ("U?", "U3", true),
+            ("U??", "U3", false),
+            ("*3", "U3", true),
+            ("U*3", "U3", true),
+            ("u*", "U3", false),
+            ("R?", "R", false),
+            ("R*", "R", true),
+        ] {
+            let pattern_chars = pattern.chars().collect::<Vec<_>>();
+            let reference_chars = reference.chars().collect::<Vec<_>>();
+            let mut remaining_work = MAX_COMPONENT_FILTER_MATCH_WORK;
+            assert_eq!(
+                component_reference_matches(&pattern_chars, &reference_chars, &mut remaining_work,)
+                    .unwrap(),
+                expected,
+                "pattern {pattern:?} and reference {reference:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn adversarial_reference_glob_stops_at_the_aggregate_work_budget() {
+        let pattern = format!("*{}b", "a".repeat(600));
+        let pattern = pattern.chars().collect::<Vec<_>>();
+        let reference = "a".repeat(MAX_COMPONENT_REFERENCE_CHARS);
+        let reference = reference.chars().collect::<Vec<_>>();
+        let mut remaining_work = MAX_COMPONENT_FILTER_MATCH_WORK;
+        let error = component_reference_matches(&pattern, &reference, &mut remaining_work)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("matching work budget exceeded"));
+    }
+
+    #[test]
+    fn reference_filter_does_not_claim_native_unicode_parity() {
+        // Tokito currently treats `?` as one Unicode scalar. KiCad 10.0.5
+        // comparison fixtures cover ASCII reference designators only.
+        let pattern = "??".chars().collect::<Vec<_>>();
+        let reference = "é1".chars().collect::<Vec<_>>();
+        let mut remaining_work = MAX_COMPONENT_FILTER_MATCH_WORK;
+        assert!(component_reference_matches(&pattern, &reference, &mut remaining_work).unwrap());
+    }
+
+    #[test]
+    fn empty_filter_means_no_filter_and_unknown_patterns_remain_valid() {
+        assert!(
+            ModelAssemblyFilter::component_patterns(&[])
+                .unwrap()
+                .requested_patterns()
+                .is_none()
+        );
+        assert_eq!(
+            ModelAssemblyFilter::component_patterns(&["R404".to_owned()])
+                .unwrap()
+                .requested_patterns(),
+            Some(vec!["R404".to_owned()])
+        );
+    }
 
     #[test]
     fn aggregate_geometry_budget_checks_total_before_retaining_next_mesh() {

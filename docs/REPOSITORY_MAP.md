@@ -1,11 +1,11 @@
 # Versioned repository file map
 
-Snapshot updated on 11 October 2026 for project intake, the 0603 footprint slice, and POS auxiliary-origin reference coverage. This lists
+Snapshot updated on 15 October 2026 for embedded model intake/export, KiCad 10.0.7 POS references, and the source asset E2E. This lists
 source, documentation, scripts, fixtures and frozen models; ignored build caches,
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-316 versioned/planned delivery files, including this map.
+368 project files are visible to `rg --files` in this checkout, including current local changes.
 
 ```text
 tokito_cli/
@@ -125,6 +125,7 @@ tokito_cli/
 │   ├── KICAD_3D_QUALITY_GATES.md
 │   ├── KICAD_CLI_BEHAVIOR.md
 │   ├── KICAD_CLI_PARITY_MATRIX.md
+│   ├── KICAD_10_0_5_FILTER_AUDIT.md
 │   ├── KICAD_COMPLETION_GATES.md
 │   ├── KICAD_GLB_REFERENCE.md
 │   ├── PCB_POSITION_EXPORT.md
@@ -148,6 +149,8 @@ tokito_cli/
 │   ├── TOKITO_BOARD_PACKAGE_V0.md
 │   └── ULTIMAKER_SELECTABLE_PROTOTYPE.md
 ├── examples/
+│   ├── footprints/
+│   │   └── r0603-reference.json
 │   └── inspect_engine.rs
 ├── experiments/
 │   ├── altium-evaluation/
@@ -211,6 +214,7 @@ tokito_cli/
 │   ├── digital_twin.rs
 │   ├── document.rs
 │   ├── footprint_family.rs
+│   ├── footprint_spec.rs
 │   ├── geometry.rs
 │   ├── glb.rs
 │   ├── lib.rs
@@ -219,6 +223,8 @@ tokito_cli/
 │   ├── model_assignments.rs
 │   ├── model_mesh.rs
 │   ├── model_resolver.rs
+│   ├── model_asset_export.rs
+│   ├── gltf_bundle.rs
 │   ├── package_input.rs
 │   ├── pos_export.rs
 │   ├── population_audit.rs
@@ -229,9 +235,14 @@ tokito_cli/
 │   └── twin_viewer.rs
 ├── tests/
 │   ├── reference/
-│   │   └── kicad-cli-10.0.5/
-│   │       └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
+│   │   ├── kicad-cli-10.0.5/
+│   │   │   └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
+│   │   └── kicad-cli-10.0.7/
+│   │   │   └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
 │   ├── fixtures/
+│   │   ├── embedded-models/
+│   │   │   ├── README.md
+│   │   │   └── step-sample.zst
 │   │   ├── assembly-e2e/
 │   │   │   └── single-resistor.kicad_pcb
 │   │   ├── compat-v0/
@@ -338,15 +349,20 @@ tokito_cli/
 │   ├── esp8266_prototype_e2e.py
 │   ├── footprint_family.rs
 │   ├── footprint_family_e2e.py
+│   ├── footprint_spec_e2e.py
 │   ├── geometry_e2e.py
 │   ├── glb_api.rs
 │   ├── glb_e2e.py
+│   ├── embedded_dataset_e2e.py
+│   ├── embedded_model_cli.rs
 │   ├── kicad_glb_reference.py
+│   ├── kicad_pos_compat_e2e.py
 │   ├── model_assignments_api.rs
 │   ├── model_assignments_e2e.py
 │   ├── model_mesh_api.rs
 │   ├── model_resolution_e2e.py
 │   ├── model_resolver_api.rs
+│   ├── gltf_bundle_cli.rs
 │   ├── nxp_refinement_e2e.py
 │   ├── prototype_browser.js
 │   ├── project_intake_e2e.py

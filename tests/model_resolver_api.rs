@@ -1,13 +1,17 @@
 //! Synthetic byte assets exercise lookup/security only, never mesh correctness.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokito_cli::document::{ModelReference, SourceLocator};
 use tokito_cli::model_resolver::{
     ModelAssetFormat, ModelResolutionStatus as Status, ModelResolver, ModelResolverConfig,
 };
+
+static NEXT_FIXTURE: AtomicU64 = AtomicU64::new(0);
 
 struct Fixture {
     root: PathBuf,
@@ -17,15 +21,11 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/model-resolver-tests");
-        fs::create_dir_all(&parent).unwrap();
+        let parent = test_scratch::directory("model-resolver-tests");
         let root = parent.join(format!(
             "{}-{}",
             std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
+            NEXT_FIXTURE.fetch_add(1, Ordering::Relaxed)
         ));
         let project = root.join("project");
         let library = root.join("library");
@@ -102,6 +102,21 @@ fn resolves_exact_relative_builtin_library_variable_and_approved_absolute() {
     for path in ["part.wrl", "${KICAD10_3DMODEL_DIR}/part.wrl"] {
         assert_eq!(resolver.resolve(&model(path)).status, Status::Resolved);
     }
+    fs::write(
+        fixture.library.join("variant.vrml"),
+        b"synthetic VRML bytes",
+    )
+    .unwrap();
+    let variant = resolver.resolve(&model("${KICAD10_3DMODEL_DIR}/variant.vrml"));
+    assert_eq!(variant.status, Status::Resolved);
+    let variant_asset = variant.asset.unwrap();
+    assert_eq!(variant_asset.format(), ModelAssetFormat::Wrl);
+    assert_eq!(variant_asset.bytes(), b"synthetic VRML bytes");
+
+    fs::write(fixture.library.join("uppercase.VRML"), b"uppercase alias").unwrap();
+    let uppercase = resolver.resolve(&model("${KICAD10_3DMODEL_DIR}/uppercase.VRML"));
+    assert_eq!(uppercase.status, Status::Resolved);
+    assert_eq!(uppercase.asset.unwrap().format(), ModelAssetFormat::Wrl);
 }
 #[test]
 fn distinguishes_missing_hidden_unsupported_unknown_and_invalid() {

@@ -115,6 +115,22 @@ pub(super) fn load_package(root: &Path) -> Result<Board, CliError> {
         ));
     }
     expected["limitations"] = manifest["limitations"].clone();
+    // Producer identity is metadata, not the package schema or a publisher
+    // signature. A new executable must not invalidate an intact older package
+    // solely because its producer version differs.
+    let producer_version = manifest["producer"]["version"]
+        .as_str()
+        .filter(|version| {
+            !version.is_empty()
+                && version.len() <= 64
+                && version
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || b".-+".contains(&byte))
+        })
+        .ok_or_else(|| {
+            CliError::new("package producer version must be bounded ASCII version text")
+        })?;
+    expected["producer"]["version"] = Value::String(producer_version.to_owned());
     if manifest != expected {
         return Err(CliError::new(
             "package manifest contract or source/artifact integrity checks failed",
@@ -148,6 +164,14 @@ mod tests {
         assert_eq!(imported.footprints.len(), board.footprints.len());
         let manifest_path = root.join("manifest.json");
         let original = fs::read_to_string(&manifest_path).expect("manifest");
+        let mut older: Value = serde_json::from_str(&original).unwrap();
+        older["producer"]["version"] = Value::String("0.0.1".into());
+        fs::write(&manifest_path, serde_json::to_vec(&older).unwrap()).unwrap();
+        assert!(load_package(&root).is_ok());
+        older["producer"]["name"] = Value::String("unknown-producer".into());
+        fs::write(&manifest_path, serde_json::to_vec(&older).unwrap()).unwrap();
+        assert!(load_package(&root).is_err());
+        fs::write(&manifest_path, &original).unwrap();
         fs::write(
             &manifest_path,
             original.replace("source/board.kicad_pcb", "../external.kicad_pcb"),

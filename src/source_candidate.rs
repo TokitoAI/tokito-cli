@@ -18,18 +18,30 @@ fn err(s: impl Into<String>) -> EngineError {
     EngineError::new(s)
 }
 fn bounded(path: &Path, limit: usize) -> Result<Vec<u8>, EngineError> {
-    let meta = std::fs::symlink_metadata(path).map_err(|e| err(e.to_string()))?;
+    let context = |e: std::io::Error| {
+        err(format!(
+            "cannot read source candidate input '{}': {e}. Supply all five input files from the same pinned candidate; no output was created during input loading.",
+            path.display()
+        ))
+    };
+    let meta = std::fs::symlink_metadata(path).map_err(context)?;
     if !meta.is_file() || meta.len() > limit as u64 {
-        return Err(err("source candidate input is not a bounded regular file"));
+        return Err(err(format!(
+            "source candidate input is not a bounded regular file: {}",
+            path.display()
+        )));
     }
     let mut bytes = Vec::new();
     std::fs::File::open(path)
-        .map_err(|e| err(e.to_string()))?
+        .map_err(context)?
         .take(limit as u64 + 1)
         .read_to_end(&mut bytes)
-        .map_err(|e| err(e.to_string()))?;
+        .map_err(context)?;
     if bytes.len() > limit {
-        return Err(err("source candidate input grew beyond limit"));
+        return Err(err(format!(
+            "source candidate input grew beyond limit: {}",
+            path.display()
+        )));
     }
     Ok(bytes)
 }

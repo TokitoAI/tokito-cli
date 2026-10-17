@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
+from e2e_temp import e2e_temp_root
 
 
 def main():
@@ -12,8 +13,7 @@ def main():
     options = parser.parse_args()
     binary = Path(options.binary).resolve(strict=True)
     root = Path(__file__).resolve().parents[1]
-    parent = root / 'target' / 'bom-e2e'
-    parent.mkdir(parents=True, exist_ok=True)
+    parent = e2e_temp_root(root / 'target' / 'bom-e2e')
     with tempfile.TemporaryDirectory(dir=parent) as folder:
         folder = Path(folder)
         board = folder / 'synthetic-identity-only.kicad_pcb'

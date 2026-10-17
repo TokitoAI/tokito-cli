@@ -1,6 +1,8 @@
 //! Synthetic cases test importer semantics only. They are not physical boards,
 //! manufacturing inputs, model qualifications or AR alignment evidence.
 
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -17,9 +19,7 @@ struct TestInput {
 
 impl TestInput {
     fn new(source: &str) -> Self {
-        let parent = Path::new(env!("CARGO_MANIFEST_DIR")).join("target/engine-api-tests");
-        fs::create_dir_all(&parent).unwrap();
-        let parent = parent.canonicalize().unwrap();
+        let parent = test_scratch::directory("engine-api-tests");
         let stamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
