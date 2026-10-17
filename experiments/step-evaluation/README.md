@@ -36,11 +36,28 @@ the representation contains the selected face and reports the context's
 declared length uncertainty after unit conversion. This is provenance and
 diagnostic metadata only; it does not relax numerical projection status or
 serve as an acceptance tolerance.
-The optional triangulation is a research candidate only: independent FreeCAD
-checks still find nonpositive normal alignment and unresolved area convergence.
-Its diagnostic-pass receipt confirms evidence collection, not geometry quality.
+The optional triangulation is a research candidate only. On pinned ESP8266
+model 16, the current bounded run builds 12,801 vertices and 24,064 triangles;
+sampled chord error is within tolerance, but the per-triangle centroid normal
+gate still finds 3,995 nonpositive alignments. FreeCAD 1.1.4 independently
+reproduces that count and minimum alignment. The diagnostic exits **2**, keeps
+geometry unqualified, and produces no export. Centroid sampling is not a proof
+of orientation across every point on a curved facet, and this single-face result
+does not qualify a complete STEP solid. The E2E receipt confirms bounded
+evidence and refusal behavior, not geometry quality.
 The current evidence and the independent FreeCAD comparison macro are described
 in [the face #2875 analysis](../../docs/STEP_FACE_2875_ANALYSIS.md).
+
+The latest bounded FreeCAD audit samples the 32 candidate triangles with the
+most negative centroid-normal alignment at each vertex, edge midpoint, and
+centroid. All 224 sampled face normals remain nonpositive against their
+candidate triangle normals. The lowest-U bin has 3,130 failures among 8,981
+triangles (34.85%); the worst triangle's seven samples remain near -1
+alignment. This localizes a stable orientation conflict but does not identify
+whether the cause is UV connectivity, a singular parameterization,
+triangulation, or source geometry. FreeCAD evaluates the Tokito triangles; it
+has not produced an independent triangulation. The candidate stays refused and
+unexported.
 
 One explicit input path is required. The probe refuses Git LFS pointer text and input beyond 32 MiB before parsing. It caps parser instances at 250,000, parameter depth at 48, individual strings at 1 MiB, triangles at 1,000,000 and curve samples at 16,384. Absolute chordal tolerance requested from the reader is 10 micrometres. These are resource controls, not a hard process timeout or a proven worst-case memory bound.
 

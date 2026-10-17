@@ -168,6 +168,31 @@ def main():
             cell["maxFaceAlignment"]=max(cell["maxFaceAlignment"],alignment)
             cell["uvWindingSigns"][str(int(uv_winding))]=cell["uvWindingSigns"].get(str(int(uv_winding)),0)+1
             candidate_triangle_observations.append({"triangleIndex":triangle_index,"indices":[int(x) for x in tri],"uvVertices":uv_triangle,"uvSignedDoubleArea":uv_cross,"centroidUvCanonical":[center.x,center.y],"centroidToTrimmedFaceMm":centroid_distance,"areaMm2":area,"maximumEdgeMm":max(edges),"normalAlignment":alignment,"parameterNormalAlignment":parameter_alignment})
+        worst_orientation_rows=sorted((row for row in candidate_triangle_observations if row["normalAlignment"]<=0),key=lambda row:(row["normalAlignment"],row["triangleIndex"]))[:32]
+        def orientation_sample(raw_uv, triangle_normal):
+            u=canonical(float(raw_uv[0]),u_domain,u_period); v=canonical(float(raw_uv[1]),v_domain,v_period)
+            try:
+                normal=face.normalAt(u,v); normal_vector=[float(normal.x),float(normal.y),float(normal.z)]
+            except Exception as error:
+                return {"uvUnwrapped":[float(raw_uv[0]),float(raw_uv[1])],"uvCanonical":[u,v],"freecadFaceNormal":None,"candidateTriangleAlignment":None,"normalEvaluationError":type(error).__name__}
+            unit_normal=normalized(normal_vector); alignment=dot3(triangle_normal,unit_normal) if unit_normal else None
+            return {"uvUnwrapped":[float(raw_uv[0]),float(raw_uv[1])],"uvCanonical":[u,v],"freecadFaceNormal":normal_vector,"candidateTriangleAlignment":alignment}
+        surface_data=spline.get("surface",{})
+        v_knots=sorted({float(value) for value in surface_data.get("vBreaks",[]) if math.isfinite(float(value))})
+        orientation_failure_samples=[]
+        for row in worst_orientation_rows:
+            ids=row["indices"]; raw_uv=row["uvVertices"]
+            source_points_for_triangle=[[float(x) for x in candidate_mesh_points[index]] for index in ids]
+            triangle_normal=normalized(cross3(sub3(source_points_for_triangle[1],source_points_for_triangle[0]),sub3(source_points_for_triangle[2],source_points_for_triangle[0])))
+            if triangle_normal is None: continue
+            mids=[[(raw_uv[a][axis]+raw_uv[b][axis])*0.5 for axis in range(2)] for a,b in ((0,1),(1,2),(2,0))]
+            sample_uv=[*raw_uv,*mids,[(sum(uv[k] for uv in raw_uv)/3.0) for k in range(2)]]
+            sample_labels=["vertex-a","vertex-b","vertex-c","edge-ab","edge-bc","edge-ca","centroid"]
+            samples_at_vertices=[{"label":label,**orientation_sample(uv,triangle_normal)} for label,uv in zip(sample_labels,sample_uv)]
+            center_raw=sample_uv[-1]; center_u=canonical(center_raw[0],u_domain,u_period); center_v=canonical(center_raw[1],v_domain,v_period)
+            nearest_knot=min(v_knots,key=lambda knot:abs(knot-center_v)) if v_knots else None
+            seam_distance=min(abs(center_v-v_lo),abs(v_hi-center_v)) if v_period is not None else None
+            orientation_failure_samples.append({"triangleIndex":row["triangleIndex"],"vertexIndices":ids,"uvVerticesUnwrapped":raw_uv,"uvVerticesCanonical":[[canonical(uv[0],u_domain,u_period),canonical(uv[1],v_domain,v_period)] for uv in raw_uv],"uvSignedDoubleArea":row["uvSignedDoubleArea"],"candidateMeshVerticesSourceUnits":source_points_for_triangle,"candidateTriangleUnitNormal":triangle_normal,"centroidAlignment":row["normalAlignment"],"samples":samples_at_vertices,"centroidNearestVBreak":nearest_knot,"centroidDistanceToNearestVBreak":abs(center_v-nearest_knot) if nearest_knot is not None else None,"centroidDistanceToPeriodicVSeam":seam_distance})
         candidate_triangle_observations.sort(key=lambda row:row["centroidToTrimmedFaceMm"],reverse=True)
         edge_use_counts={}
         edge_direction_counts={}
@@ -247,7 +272,9 @@ def main():
             return {"count":len(values),"max":max(values) if values else None,"rms":math.sqrt(sum(x*x for x in values)/len(values)) if values else None}
         trim_candidate_comparison={
           "status":"compared",
-          "independentFreecadTriangulationCompared":True,
+          "candidateTriangulationOrigin":"Tokito Rust UV ear-clipping candidate",
+          "independentFreecadTriangulationCompared":False,
+          "independentFreecadFaceEvaluation":True,
           "freecadFaceIndex":face_index,
           "uvVertexCount":len(uv_vertices),
           "triangleCount":len(candidate_triangles),
@@ -269,6 +296,7 @@ def main():
           "parameterNormalAlignment":{"count":sum(x is not None for x in parameter_orientation_dots),"minimum":min((x for x in parameter_orientation_dots if x is not None),default=None),"maximum":max((x for x in parameter_orientation_dots if x is not None),default=None),"nonpositiveCount":sum(1 for x in parameter_orientation_dots if x is not None and x<=0)},
           "uvWinding":{"positive":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]>0),"negative":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]<0),"zero":sum(1 for row in candidate_triangle_observations if row["uvSignedDoubleArea"]==0)},
           "normalAlignmentByCanonicalUv8x8":[{"uCell":key[0],"vCell":key[1],**value} for key,value in sorted(orientation_cells.items())],
+          "candidateOrientationFailureAudit":{"nonpositiveTriangleCount":sum(1 for value in triangle_orientation_dots if value<=0),"storedWorstTriangleCount":len(orientation_failure_samples),"selection":"32 most negative candidate centroid alignments","samplesPerTriangle":["three vertices","three edge midpoints","centroid"],"surfaceCauseEstablished":False,"worstTriangles":orientation_failure_samples},
           "largestTriangleCentroidDeviations":candidate_triangle_observations[:16],
           "zeroOrInvalidAreaTriangleCount":rejected_triangles,
           "geometryQualified":False,

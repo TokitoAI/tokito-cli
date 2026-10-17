@@ -78,10 +78,11 @@ The non-overwriting local receipt is
 its comparison report SHA-256 is
 `a669d3351f65417e291d358d4dd632f9cbfec6bb7d79dcf8772bb41ebaf3f12f`. It binds
 the reader report, spline diagnostic, face diagnostic, source, evaluator binary,
-macro and FreeCAD command binary. This is a current-source face-level replay,
-not complete-solid qualification or product STEP support.
+macro and FreeCAD command binary. At that earlier checkpoint it was a
+current-source face-level replay, not complete-solid qualification or product
+STEP support; its normal count is superseded by the level-4 candidate below.
 
-### Source-edge mesh-boundary candidate (2026-10-17)
+### Initial level-3 source-edge mesh-boundary candidate (2026-10-17; superseded)
 
 The diagnostic now keeps the candidate's **mesh coordinates** separate from its
 support-surface evaluations. Original boundary samples use their STEP
@@ -130,14 +131,14 @@ interior edge orientation, boundary degree two, and Euler characteristic 1.
 This describes a single open triangulated face patch, not a closed solid and
 does not clear its failed normal, UV-inverse, area, or cross-face gates.
 
-The non-overwriting evidence receipt for this tightened E2E and full local
-verification is
+The earlier non-overwriting evidence receipt for the tightened E2E and the
+then-current full local verification is
 `F:\\kannan\\projects\\tokito-cli-verification\\model16-source-uncertainty-final2-20261017\\evidence-receipt.json`.
-It binds the full Windows verifier receipt, the source-face E2E, the independent
-FreeCAD report, macro, source, and input reports. The E2E's exact output path and
+It binds the Windows verifier receipt, source-face E2E, FreeCAD report, macro,
+source, and input reports for that checkpoint. The E2E's exact output path and
 receipt hash are captured in the combined evidence receipt. The verifier profile
 contains 48 gates, including pre/postflight output-path confinement checks. The
-current FreeCAD report SHA-256 is
+FreeCAD report SHA-256 at that checkpoint is
 `038764afbd2cb56f96dbddbe208c7322f6c62618638a01466622c8505f2c8a0e`. The fresh
 model-16 diagnostic E2E was run separately against the current step-evaluation
 binary; its output is under
@@ -152,13 +153,15 @@ shell contains face `#2875`; its geometric context is `#206`. That context
 assigns uncertainty measure `#7888` in millimetre unit `#5056`, yielding a
 declared length uncertainty of `1e-5 mm` in the context units.
 
-All 100 source-boundary and 1,440 source-edge midpoint projection residuals
-fall within this declared value. Their maximum is `1.08084e-6 mm`. The
-diagnostic keeps the stricter numerical solver status separate: 27/100
-boundary projections and 392/1,440 midpoint projections remain marked
-non-converged by the numerical criterion. The declared uncertainty is reported
-as source metadata only; the E2E does not use it as an admission tolerance or
-clear failed normal, area, trim-projection, or complete-solid gates.
+At the current refinement level, all 100 source-boundary and 2,976
+source-edge midpoint projection residuals fall within this declared value.
+The E2E records 73/100 boundary projections and 2,167/2,976 midpoint
+projections as numerically converged; the remaining 27 and 809 are explicitly
+non-converged. The earlier 1,440-midpoint checkpoint and its maximum residual
+of `1.08084e-6 mm` are historical and do not describe this larger probe set.
+The declared uncertainty is source metadata only; it is not an admission
+tolerance and does not clear failed normal, area, trim-projection, or
+complete-solid gates.
 
 The source-context lookup currently requires exactly one assigned uncertainty
 entry, validates its length unit independently from the context unit, and
@@ -170,39 +173,42 @@ geometry, and produces no export.
 
 ## Rust trim candidate and independent quality checks
 
-The diagnostic builds a bounded *research candidate* from the sampled UV loop
-using simple-polygon ear clipping and three rounds of uniform subdivision. It
-contains 3,393 UV vertices and 6,016 triangles; sampled chord error is
-`0.004714` source units against a `0.005` threshold. The candidate records
-`meshPointsSourceUnits` separately from `surfacePointsSourceUnits`: actual
-boundary positions use source STEP vertices and oriented 3D trim curves, while
-the second array retains independent support-surface evaluations. The pinned
-E2E checks that provenance and still requires refusal. This changes no reader
-mesh, does not produce an export, and does not set qualification or admission.
+The current diagnostic builds a bounded *research candidate* from the sampled
+UV loop using simple-polygon ear clipping and uniform subdivision. Refinement
+continues until both sampled chord error and signed triangle-centroid normal
+alignment pass or the four-level budget is reached. For this source, the budget
+returns 12,801 UV vertices and 24,064 triangles at level 4; chord error is
+`0.001181615` source units against a `0.005` threshold, but orientation still
+fails. The candidate records `meshPointsSourceUnits` separately from
+`surfacePointsSourceUnits`: actual boundary positions use source STEP vertices
+and oriented 3D trim curves, while the second array retains independent
+support-surface evaluations. The pinned E2E checks this provenance and requires
+refusal. This changes no reader mesh, does not produce an export, and does not
+set qualification or admission.
 
-FreeCAD reports all 3,393 actual mesh vertices inside the trimmed face at
-`1e-7 mm`, including all 768 mesh-boundary vertices; no boundary or interior
-mesh vertex is outside. All 100 sampled source-boundary points lie on the trim
-to a maximum `1.60e-15 mm`. By contrast, evaluating the candidate UVs on the
-support surface still places 100 boundary points outside the trim, by at most
-`1.08084e-6 mm`. All 6,016 triangle UV centroids classify inside. The maximum
-straight-triangle centroid distance to the trimmed face is `0.002669 mm` (RMS
-`0.000737 mm`), but this does not establish correct normals or area.
+FreeCAD 1.1.4 independently matched this run to trimmed face 231 of the same
+STEP solid. All 12,801 source-curve mesh vertices and all 1,536 mesh-boundary
+vertices lie on or inside the trimmed face at `1e-7 mm`; the 100 sampled source
+boundary points are inside with maximum distance `1.60e-15 mm`. The 24,064 UV
+triangle centroids classify inside, and their maximum distance to the trimmed
+face is `0.000618 mm` (RMS `0.000175 mm`). However, 200 of the 12,801
+support-surface-evaluated vertices fall outside the trim at `1e-7 mm`, with
+maximum distance `1.08084e-6 mm`. The source-curve mesh points and evaluated
+support-surface points therefore remain distinct evidence.
 
-The independent normal comparison rejects the candidate: `1,291 / 6,016`
-triangles have nonpositive alignment with the oriented FreeCAD face normal
-(minimum `-0.999992`). All UV triangles have positive winding. A separate
-finite-difference estimate of `dS/du × dS/dv` agrees with FreeCAD's face-normal
-test at aggregate and 8×8-cell count level; per-triangle sign correlation was
-not recorded, so this does not establish pointwise agreement. Uniform
-refinement reduces sampled chord error and brings the summed triangle area
-closer to the FreeCAD face area, but does not close the normal gap. At 24,064 /
-96,256 / 385,024 triangles, respectively, 3,995 / 11,905 / 42,336 remain
-nonpositive (16.6% / 12.4% / 11.0%); area ratios are 1.383× / 1.156× / 1.064×.
-At 385,024 triangles, maximum sampled centroid chord error is `0.0000657 mm`,
-yet minimum normal alignment remains `-0.99999985`. This experiment does not
-identify whether the remaining discrepancy comes from local parameterization,
-branch choice, or a high-curvature/singular region.
+The Rust gate and independent FreeCAD face evaluation agree on the
+centroid-normal result: `3,995 / 24,064` triangles have nonpositive alignment
+with the oriented face normal, with minimum `-0.9999979635`. The face
+orientation is Forward and all 24,064 UV triangles have positive winding.
+FreeCAD evaluates the Rust candidate triangles against its independently
+imported trimmed face; it does not create an independent triangulation. This
+gate samples each triangle at its UV centroid; it is not a proof of orientation
+at every point on a curved facet. At 24,064 / 96,256 / 385,024 / 1,540,096 triangles, the independent
+uniform-refinement sensitivity retains 3,995 / 11,905 / 42,336 / 130,048
+nonpositive normals (16.6% / 12.4% / 11.0% / 8.4%); area ratios are
+1.383× / 1.156× / 1.064× / 1.022×. Even the 1.54-million-triangle case has
+minimum alignment `-0.9999999519`; uniform refinement alone does not solve the
+orientation defect. Its cause remains unresolved.
 
 All actual mesh vertices are inside the reference trim, and the measured
 edge-incidence and boundary-graph checks pass for this face patch. These checks
@@ -221,15 +227,108 @@ independent reference. Open CASCADE describes face normal direction from
 `dS/du × dS/dv` with the face orientation controlling the sign; its meshing
 release notes also distinguish linear and angular deflection controls.
 
+## Previous full-source verification checkpoint (2026-10-17)
+
+The root Windows verifier passed 48/48 gates at this checkpoint. It reused the
+previously trusted F: Cargo target cache; this is not a clean-cache or
+independent-machine run. The receipt is stored at
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-delivery-20261017c\\20261017T021951Z-d290e204bcf344df9fe428f07781fa19\\verification.json`;
+its SHA-256 and binary hash are recorded in PR #45. It covers the current CLI
+and experiment checks, but does not remove the geometry refusal or qualify STEP
+solids. This run predates the bounded worst-triangle audit added to the FreeCAD
+macro below; the next verification receipt is authoritative for the final tree.
+
+## Bounded worst-triangle orientation audit (2026-10-17)
+
+The updated FreeCAD macro retained the 32 triangles with the most negative
+centroid-normal alignment and sampled each at its three vertices, three edge
+midpoints, and centroid. All 224 FreeCAD face-normal samples had nonpositive
+alignment with their candidate triangle normal. The worst triangle has
+alignment `-0.9999979635`; its seven samples are consistently opposed, while
+the source face normal is nearly +Z and the candidate triangle normal nearly
+-Z. This confirms a stable local orientation conflict for these candidate
+facets; it does not prove whether the cause is a UV branch, triangulation,
+singularity, or source-surface defect.
+
+The failure remains concentrated toward low U: `3,130 / 8,981` triangles in
+the lowest-U bin are nonpositive (`34.85%`). For the worst triangle, the
+centroid is approximately `0.6723` from the periodic V seam and `0.3203` from
+the nearest V knot, so the worst sample is not simply on that seam or knot.
+The diagnostic preserves both unwrapped and canonical UV values, mapped
+vertices, triangle normal and per-sample FreeCAD normals.
+`surfaceCauseEstablished` remains false. No triangle was flipped and no face
+was exported.
+
+The report is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017c\\freecad-candidate-comparison.json`
+(SHA-256 `3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc`);
+its evidence receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017c\\face-orientation-audit-receipt.json`
+(SHA-256 `720e909fca89359c8ec3da2cc5e5bdc62ffb90d4b14e9ea246b0a4c748a6ce10`).
+The receipt binds FreeCAD 1.1.4 commit
+`4fd3bf320d9566a27e60069fc8387448aaa3a094`, source SHA-256
+`7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`, Rust
+diagnostic SHA-256
+`9ff3f2ac52a4a8c4a8df8aaa4d415f09cd3eabc51bd9b1ea9b9fdba2a87ffc3d`, and
+macro SHA-256
+`72bcc9f0f7ea911680b2f33183cbfbe25630713c1efbc9ed300f18c60ee1849f`.
+FreeCAD evaluated the Rust candidate against its imported B-rep; it did not
+generate an independent triangulation. Geometry remains unqualified, admission
+remains false, and the report contains no exports.
+
+## Current full-source verification checkpoint (2026-10-17)
+
+After the bounded FreeCAD audit and the reversed-winding regression were added,
+the current Windows root suite passed 48/48 gates. It reused the trusted F:
+Cargo target cache and is not a clean-cache or independent-machine test. The
+stable copy of its receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-release-final3-20261017\\verification.json`;
+PR #45 records the receipt and binary hashes. This run checks diagnostic and
+refusal behavior, not geometric correctness: model-16 remains unqualified and
+no STEP export is produced.
+
+Next, inspect low-U candidate connectivity and local parameterization with
+bounded per-triangle UV derivatives and edge-neighbour continuity. Then compare
+against an independently generated FreeCAD/OCCT triangulation with recorded
+linear-deflection and angular controls. Do not alter face sense or reverse
+triangles unless a separately evidenced orientation rule justifies it.
+
 ## Regression and remaining gate
 
 `experiments/step-evaluation/tests/model16_source_face_trim_e2e.py` pins the
-source hash and verifies the diagnostic subprocess's topology, residuals,
-pre-allocation curve-storage budget, expected candidate counts, convergence,
-chord bound, refusal status and no-export behavior. The Rust polygon predicate
-uses separate area and coordinate tolerances and has a scale-invariance
-regression. When the ESP8266 source set is passed to `scripts/verify-local.ps1`,
-this E2E check runs automatically.
+source hash and verifies topology, residuals, pre-allocation curve-storage
+budget, the expected level-4 candidate, chord and centroid-normal results,
+refusal status, and no-export behavior. The Rust tests also cover both face
+senses, both triangle windings, degenerate normals, nonfinite alignment and a
+wrongly oriented planar patch. The Rust polygon predicate uses separate area
+and coordinate tolerances and has a scale-invariance regression. When the
+ESP8266 source set is passed to `scripts/verify-local.ps1`, this E2E check runs
+automatically.
+
+The current source-bound Rust refusal receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-e2e-final-20261017\\receipt.json`
+(SHA-256 `a24516ecea940451a70e2ae70ead89c3b6fe0e77b5880febe7da06d8dbae69c4`);
+its diagnostic SHA-256 is
+`9ff3f2ac52a4a8c4a8df8aaa4d415f09cd3eabc51bd9b1ea9b9fdba2a87ffc3d`. The
+earlier FreeCAD report was
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017\\freecad-candidate-comparison.json`
+(SHA-256 `0a0e21ee1b86df5db28549d7204d25431cc771f31b74312decc02c19c39ddc13`);
+it was bound to FreeCAD `1.1.4` commit `4fd3bf320d9566a27e60069fc8387448aaa3a094`,
+the same source hash, and the version-pinned comparison macro. That report
+predates the corrected evidence label below.
+
+The corrected independent FreeCAD face-evaluation report is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017b\\freecad-candidate-comparison.json`
+(SHA-256 `46c64bb4b8685d091d7b5af951b01180b7603a06c59edbc076e4359ed246f276`);
+its evidence receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017b\\freecad-evidence-receipt.json`
+(SHA-256 `c60d1bce3d87611ca5044387cfabdc63d63b08d48370988a512daa5aacf44401`).
+It is bound to FreeCAD `1.1.4` commit `4fd3bf320d9566a27e60069fc8387448aaa3a094`,
+the same source and Rust-diagnostic hashes, and the corrected macro. It confirms
+`3,995 / 24,064` nonpositive centroid-normal alignments (minimum
+`-0.9999979635379913`) while explicitly recording that no independent
+triangulation was compared. Geometry remains unqualified and exports remain
+empty.
 
 The next geometry task is to resolve the mixed per-triangle orientation and
 surface/trim parameter correspondence, then compare area and complete-solid
@@ -239,6 +338,11 @@ would still not establish STEP/library parity or qualify other board models.
 Production admission remains disabled.
 
 Primary references: [Open CASCADE topology training](https://dev.opencascade.org/sites/default/files/pdf/Topology.pdf)
-for surface-normal direction and face orientation, and [Open CASCADE 7.4
-release notes](https://dev.opencascade.org/sites/default/files/documents/release_notes_7.4.0.pdf)
-for linear and angular deflection controls in BRepMesh.
+for surface-normal direction and face orientation; [Open CASCADE 7.4 release
+notes](https://dev.opencascade.org/sites/default/files/documents/release_notes_7.4.0.pdf)
+for BRepMesh linear and angular deflection controls; and the [OCCT 7.8 upgrade
+guide](https://dev.opencascade.org/doc/occt-7.8.0/overview/html/occt__upgrade.html)
+for the separate `Deflection` and `Angle` meshing parameters and its note that
+deflection control changed. This supports the next independent comparison
+design: record both linear and angular settings and compare the resulting mesh;
+it does not establish that Tokito should reproduce OCCT triangle-for-triangle.

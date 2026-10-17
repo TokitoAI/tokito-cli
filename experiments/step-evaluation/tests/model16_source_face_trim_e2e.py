@@ -122,6 +122,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             "boundId": report.get("boundId"),
             "loopId": report.get("loopId"),
             "orientedEdgeIds": edges,
+            "faceSameSense": report.get("faceSameSense"),
             "sourceBoundarySampleCount": projection.get("boundarySampleCount"),
             "readerInverseMaximumResidualSourceUnits": projection.get(
                 "readerInverseMaximumResidualSourceUnits"
@@ -150,7 +151,19 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             "trimCandidateStatus": trim_candidate.get("status"),
             "trimCandidateVertexCount": trim_candidate.get("vertexCount"),
             "trimCandidateTriangleCount": trim_candidate.get("triangleCount"),
+            "trimCandidateChordConverged": trim_candidate.get("chordConverged"),
+            "trimCandidateOrientationConverged": trim_candidate.get("orientationConverged"),
+            "triangleOrientationCheckCount": trim_candidate.get("orientationCheckCount"),
+            "minimumTriangleNormalAlignment": trim_candidate.get(
+                "minimumTriangleNormalAlignment"
+            ),
+            "nonpositiveTriangleNormalCount": trim_candidate.get(
+                "nonpositiveTriangleNormalCount"
+            ),
             "trimCandidateRefinementConverged": trim_candidate.get("refinementConverged"),
+            "trimCandidateRefinementFailureReason": trim_candidate.get(
+                "refinementFailureReason"
+            ),
             "trimCandidateMaxSampledChordErrorSourceUnits": trim_candidate.get(
                 "maxSampledChordErrorSourceUnits"
             ),
@@ -227,6 +240,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             or report.get("surfaceId") != 10410
             or report.get("boundId") != 8995
             or report.get("loopId") != 8007
+            or report.get("faceSameSense") is not True
             or edges != EXPECTED_ORIENTED_EDGES
             or edge_senses != EXPECTED_EDGE_SENSES
             or report.get("sourceOrientedEdgeLoopClosed") is not True
@@ -258,11 +272,20 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             or evaluation.get("admitted") is not False
             or evaluation.get("exportsProduced") != []
             or trim_candidate.get("status") != "candidate_only"
-            or trim_candidate.get("vertexCount") != 3393
-            or trim_candidate.get("triangleCount") != 6016
-            or trim_candidate.get("refinementLevels") != 3
-            or trim_candidate.get("refinementConverged") is not True
-            or trim_candidate.get("refinementFailureReason") is not None
+            or trim_candidate.get("vertexCount") != 12801
+            or trim_candidate.get("triangleCount") != 24064
+            or trim_candidate.get("refinementLevels") != 4
+            or trim_candidate.get("chordConverged") is not True
+            or trim_candidate.get("orientationConverged") is not False
+            or trim_candidate.get("orientationCheckCount") != 24064
+            or trim_candidate.get("nonpositiveTriangleNormalCount") != 3995
+            or not is_json_number(
+                trim_candidate.get("minimumTriangleNormalAlignment")
+            )
+            or trim_candidate.get("minimumTriangleNormalAlignment") >= 0
+            or trim_candidate.get("refinementConverged") is not False
+            or trim_candidate.get("refinementFailureReason")
+            != "trim_candidate_normal_orientation_not_reached"
             or trim_candidate.get("sourceMeshModified") is not False
             or trim_candidate.get("geometryQualified") is not False
             or trim_candidate.get("admitted") is not False
@@ -372,11 +395,11 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             topology["boundaryComponents"] = boundary_components
             receipt["summary"]["candidateMeshTopology"] = topology
             if topology != {
-                "vertices": 3393,
-                "edges": 9408,
-                "triangles": 6016,
-                "boundaryEdges": 768,
-                "boundaryVertices": 768,
+                "vertices": 12801,
+                "edges": 36864,
+                "triangles": 24064,
+                "boundaryEdges": 1536,
+                "boundaryVertices": 1536,
                 "nonManifoldEdges": 0,
                 "inconsistentInteriorEdges": 0,
                 "boundaryVerticesWithDegreeOtherThanTwo": 0,
@@ -393,7 +416,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                 or len(boundary_samples) != projection.get("boundarySampleCount")
             ):
                 raise ValueError("candidate boundary provenance is missing or incomplete")
-            if not isinstance(boundary_probes, list) or len(boundary_probes) != 1440:
+            if not isinstance(boundary_probes, list) or len(boundary_probes) != 2976:
                 raise ValueError("source-driven boundary refinement probe count changed")
             retained_probe_count = 0
             discarded_probe_count = 0
@@ -467,8 +490,8 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             if projection_convergence != {
                 "sourceBoundarySamplesConverged": 73,
                 "sourceBoundarySamplesNotConverged": 27,
-                "sourceEdgeMidpointProbesConverged": 1048,
-                "sourceEdgeMidpointProbesNotConverged": 392,
+                "sourceEdgeMidpointProbesConverged": 2167,
+                "sourceEdgeMidpointProbesNotConverged": 809,
             }:
                 raise ValueError("pinned UV projection convergence status changed")
             edge_ids = set()

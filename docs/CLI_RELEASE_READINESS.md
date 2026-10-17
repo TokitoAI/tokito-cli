@@ -25,42 +25,54 @@ candidate models are not manufacturer-qualified engineering truth.
 
 The expanded local profile has 48 gates, including temp-path confinement tests,
 the final output-tree audit, the independent Rust sample-distance validator,
-footprint/library and dataset journeys, pinned KiCad
-10.0.7 comparisons, the required SVG reference-evidence validator, and the STEP,
-Altium and twin-refinement experiment crates. Current-source Windows verification
-passed 48/48 gates on 2026-10-17 with Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5.
-The production CLI was compiled
-with the optimized release profile and its subprocess E2Es passed. A trusted
-Cargo target cache was reused; this was not a clean-cache or independent-machine
-verification. The test-only fault-injection binary uses the debug profile to
-avoid exhausting memory on this 8 GB Windows machine. The verifier reused the
-trusted F: Cargo cache and its receipt is bound in the external evidence record
-at `F:\\kannan\\projects\\tokito-cli-verification\\model16-source-uncertainty-final2-20261017\\evidence-receipt.json`.
+footprint/library and dataset journeys, pinned KiCad 10.0.7 comparisons, the
+required SVG reference-evidence validator, and the STEP, Altium and twin-refinement
+experiment crates. The current-source Windows root verification passed 48/48
+gates after the bounded worst-triangle FreeCAD audit was added. It used Cargo
+and Rust 1.94.1, Python 3.11.5, and a trusted existing Cargo target cache; it is
+not a clean-cache or independent-machine run. Its external receipt is
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-release-final3-20261017\\verification.json`;
+the PR records its hash and the release binary hash. These local checks do not
+establish installation or production qualification.
 
 The opt-in planar repair has a passing pinned model-14 reference comparison,
 documented in [STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not
 general STEP admission. The model-16 rational-spline trim candidate remains
-rejected by independent containment, normal and area-convergence checks.
+rejected by containment and orientation evidence; area convergence remains
+unverified.
 Older checkpoints below retain their original gate counts and scope.
 
 The experimental `--diagnose-source-face` command inspects the model-16
 rational B-spline surface and ordered 3D trim edges, then computes a bounded
-research triangulation candidate. Independent review corrections and the
-candidate are covered by large-offset area, tolerance, resource-cap and
-digest-pinned E2E tests. It changes no reader mesh, produces no export, and does
-not qualify geometry or add production STEP support.
+research triangulation candidate. Its new refinement gate requires sampled
+chord error and positive triangle-centroid normal alignment, using the STEP
+face sense. A sign-semantics review found and corrected double-counting of UV
+winding; regressions cover both face senses and triangle windings. The pinned
+run returns 12,801 vertices and 24,064 triangles; chord error passes, but
+3,995/24,064 centroid normal alignments are nonpositive. Rust and FreeCAD 1.1.4
+independently evaluate the same Rust candidate triangles and agree on that count
+and the minimum alignment; FreeCAD does not triangulate the face independently.
+The candidate remains unqualified, the command exits with refusal, and it
+produces no export. Centroid sampling does not prove orientation over every
+point on curved facets; the finding does not repair the reader, qualify a
+complete solid or add production STEP support.
 
 The current delivery receipt, model-14 reference receipt and model-16 face
-diagnostic receipt are recorded in PR #45. Independent clean-machine
+diagnostic receipt are recorded in PR #45. The latest bounded FreeCAD audit
+found that all 224 normal samples over the 32 worst triangles remain
+nonpositive; the lowest-U bin has 3,130/8,981 failures (34.85%). Its cause remains
+unestablished, the diagnostic has not compared an independently generated
+triangulation, and no geometry is admitted. See the exact hashes and limits in
+[the face #2875 investigation](STEP_FACE_2875_ANALYSIS.md). Independent clean-machine
 installation remains unverified. The 48-gate run includes an offline validator
 for the pinned KiCad 10.0.7 SVG reference evidence; it verifies recorded source
 and output hashes and bounded comparisons, but does not rerun KiCad.
 
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Current-source local Windows run passed 48/48 gates; the receipt and binary hash are bound in the external evidence record and PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
+| Existing CLI foundation | Current-source local Windows run passed 48/48 gates after the bounded FreeCAD audit update; the receipt and binary hash are bound in the external evidence record and PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
-| Source review | Independent read-only review found no remaining code blocker; its cross-frame documentation finding was corrected and covered by scoped evidence | Review subsequent implementation changes |
+| Source review | Independent read-only review caught and verified a face-sense/UV-winding sign correction; it notes centroid sampling is diagnostic rather than a continuous orientation proof | Keep admission closed; investigate adaptive/continuity-aware refinement |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
 | Version/toolchain contract | Cargo minimum corrected to 1.87 after real 1.85 dependency failure; actual Rust 1.87.0 locked offline all-target check passed | Verify locked dependencies against declared MSRV or correct declaration from evidence |
 | Security/dependency assessment | OSV checked 188 unique registry name/version pairs across root and experiment locks; patched ruzstd advisory; no matches after update (2026-10-16) | Keep advisory matching current; broader reachability/security review remains separate |
@@ -83,12 +95,14 @@ for every advertised feature. General STEP support requires its own geometry
 qualification; AR and YOLO do not block this CLI-only release.
 
 No reliable calendar date is established yet. Report gate completion rather than
-inventing a deadline. A fresh current-source model-16 comparison has reproduced
-the rejection: 100/3,393 candidate vertices lie outside the trimmed face and
-1,291/6,016 triangles have nonpositive normal alignment. The next STEP task is
-continuity-aware UV branch selection per ordered source edge, followed by
-adaptive angular as well as chordal refinement and independent trim, orientation,
-closure and convergence gates. The current candidate remains rejected; this
+inventing a deadline. The latest model-16 face candidate has 12,801 source-curve
+mesh vertices inside the trimmed face, while 200 of 12,801 support-surface
+evaluations lie outside the trim. Its 24,064 triangles include 3,995 with
+nonpositive centroid-normal alignment (minimum `-0.9999979635`), independently
+confirmed by FreeCAD. The candidate remains unqualified and no export is
+produced. The next STEP task is continuity-aware UV branch selection per
+ordered source edge, followed by adaptive angular as well as chordal refinement
+and independent trim, orientation, closure and convergence gates. This
 face-level investigation does not qualify the full STEP solid or assembly.
 
 ## V1 contract and filesystem requirements

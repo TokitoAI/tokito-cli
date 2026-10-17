@@ -411,8 +411,33 @@ fn sub(a: P3, b: P3) -> P3 {
     std::array::from_fn(|axis| a[axis] - b[axis])
 }
 
+fn cross(a: P3, b: P3) -> P3 {
+    [
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    ]
+}
+
 fn dot(a: P3, b: P3) -> f64 {
     a.iter().zip(b).map(|(a, b)| a * b).sum()
+}
+
+fn oriented_triangle_normal_alignment(
+    points: [P3; 3],
+    tangent_u: P3,
+    tangent_v: P3,
+    face_same_sense: bool,
+) -> f64 {
+    let face_sense_sign = if face_same_sense { 1. } else { -1. };
+    let expected_normal = scale(cross(tangent_u, tangent_v), face_sense_sign);
+    let triangle_normal = cross(sub(points[1], points[0]), sub(points[2], points[0]));
+    let denominator =
+        (dot(expected_normal, expected_normal) * dot(triangle_normal, triangle_normal)).sqrt();
+    if !denominator.is_finite() || denominator <= 0. {
+        return 0.;
+    }
+    dot(expected_normal, triangle_normal) / denominator
 }
 
 struct ParsedCurve {
@@ -1278,7 +1303,11 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
         let candidate_surface_evaluation_count_cell = std::cell::RefCell::new(0usize);
         let control_point_evaluation_count_cell =
             std::cell::RefCell::new(control_point_evaluation_count);
-        let refined = crate::trim_polygon_candidate::refine_uniform_with_boundary(
+        let normal_u_step = ((surface.u_domain.1 - surface.u_domain.0).abs() * 1e-5)
+            .max(f64::EPSILON * (surface.u_domain.1 - surface.u_domain.0).abs() * 64.);
+        let normal_v_step = ((surface.v_domain.1 - surface.v_domain.0).abs() * 1e-5)
+            .max(f64::EPSILON * (surface.v_domain.1 - surface.v_domain.0).abs() * 64.);
+        let refined = crate::trim_polygon_candidate::refine_uniform_with_boundary_and_orientation(
             candidate,
             RefinementOptions {
                 chord_tolerance: 0.005,
@@ -1360,6 +1389,57 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 ));
                 Ok((candidate_uv, source_point))
             },
+            |_uv_triangle, point_triangle| {
+                let uv_center = [
+                    (_uv_triangle[0][0] + _uv_triangle[1][0] + _uv_triangle[2][0]) / 3.,
+                    (_uv_triangle[0][1] + _uv_triangle[1][1] + _uv_triangle[2][1]) / 3.,
+                ];
+                let Some((u_min, u_max)) =
+                    finite_difference_bounds(uv_center[0], normal_u_step, surface.u_domain, false)
+                else {
+                    return Ok(0.);
+                };
+                let Some((v_min, v_max)) = finite_difference_bounds(
+                    uv_center[1],
+                    normal_v_step,
+                    surface.v_domain,
+                    surface.v_period.is_some(),
+                ) else {
+                    return Ok(0.);
+                };
+                let point_u_min = eval_surface(
+                    &surface,
+                    [u_min, uv_center[1]],
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                let point_u_max = eval_surface(
+                    &surface,
+                    [u_max, uv_center[1]],
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                let point_v_min = eval_surface(
+                    &surface,
+                    [uv_center[0], v_min],
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                let point_v_max = eval_surface(
+                    &surface,
+                    [uv_center[0], v_max],
+                    &mut candidate_surface_evaluation_count_cell.borrow_mut(),
+                    &mut control_point_evaluation_count_cell.borrow_mut(),
+                )?;
+                let tangent_u = scale(sub(point_u_max, point_u_min), 1. / (u_max - u_min));
+                let tangent_v = scale(sub(point_v_max, point_v_min), 1. / (v_max - v_min));
+                Ok(oriented_triangle_normal_alignment(
+                    point_triangle,
+                    tangent_u,
+                    tangent_v,
+                    face_sense,
+                ))
+            },
         )?;
         candidate_surface_evaluation_count = candidate_surface_evaluation_count_cell.into_inner();
         control_point_evaluation_count = control_point_evaluation_count_cell.into_inner();
@@ -1433,6 +1513,11 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "refinementLevels": refined.refinement_levels,
             "maxSampledChordErrorSourceUnits": refined.max_chord_error,
             "chordToleranceSourceUnits": refined.chord_tolerance,
+            "chordConverged": refined.chord_converged,
+            "orientationConverged": refined.orientation_converged,
+            "orientationCheckCount": refined.orientation_check_count,
+            "minimumTriangleNormalAlignment": refined.minimum_normal_alignment,
+            "nonpositiveTriangleNormalCount": refined.nonpositive_normal_count,
             "refinementConverged": refined.converged,
             "refinementFailureReason": refined.failure_reason,
             "surfaceEvaluationCount": candidate_surface_evaluation_count,
@@ -1552,6 +1637,41 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn oriented_triangle_normal_uses_face_sense_without_double_counting_uv_winding() {
+        let origin = [0., 0., 0.];
+        let x = [1., 0., 0.];
+        let y = [0., 1., 0.];
+        let tangent_u = x;
+        let tangent_v = y;
+
+        assert_eq!(
+            oriented_triangle_normal_alignment([origin, x, y], tangent_u, tangent_v, true),
+            1.
+        );
+        assert_eq!(
+            oriented_triangle_normal_alignment([origin, y, x], tangent_u, tangent_v, false),
+            1.
+        );
+        assert_eq!(
+            oriented_triangle_normal_alignment([origin, x, y], tangent_u, tangent_v, false),
+            -1.
+        );
+        assert_eq!(
+            oriented_triangle_normal_alignment([origin, y, x], tangent_u, tangent_v, true),
+            -1.
+        );
+        assert_eq!(
+            oriented_triangle_normal_alignment(
+                [origin, origin, origin],
+                tangent_u,
+                tangent_v,
+                true
+            ),
+            0.
+        );
+    }
 
     #[test]
     fn aggregate_edge_curve_storage_budget_rejects_before_curve_allocation() {

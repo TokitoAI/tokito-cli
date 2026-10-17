@@ -55,9 +55,17 @@ pub struct RefinedCandidate {
     pub refinement_levels: usize,
     pub max_chord_error: f64,
     pub chord_tolerance: f64,
+    pub chord_converged: bool,
+    pub orientation_converged: Option<bool>,
+    pub orientation_check_count: usize,
+    pub minimum_normal_alignment: Option<f64>,
+    pub nonpositive_normal_count: usize,
     pub converged: bool,
     pub failure_reason: Option<&'static str>,
 }
+
+type TriangleOrientationCheck<'a> =
+    dyn FnMut([[f64; 2]; 3], [[f64; 3]; 3]) -> Result<f64, String> + 'a;
 
 fn cross(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
     (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
@@ -343,6 +351,7 @@ where
 
 /// Refine a surface triangulation while sampling declared trim-curve edges
 /// from their source curve instead of interpolating those edges in UV.
+#[cfg(test)]
 pub fn refine_uniform_with_boundary<F, B>(
     candidate: Candidate,
     options: RefinementOptions,
@@ -367,6 +376,41 @@ where
         boundary_vertices,
         evaluate_surface,
         &mut evaluate_boundary_midpoint,
+        None,
+    )
+}
+
+/// Refine a surface triangulation until both sampled chord error and the
+/// supplied oriented-normal checks pass, or a hard level/triangle budget is
+/// reached. Normal alignment is signed: nonpositive values are never treated
+/// as a passing orientation.
+pub fn refine_uniform_with_boundary_and_orientation<F, B, O>(
+    candidate: Candidate,
+    options: RefinementOptions,
+    boundary_segments: &[BoundaryCurveSegment],
+    boundary_vertices: &[BoundaryVertexPoint],
+    evaluate_surface: F,
+    mut evaluate_boundary_midpoint: B,
+    mut evaluate_triangle_orientation: O,
+) -> Result<RefinedCandidate, String>
+where
+    F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
+    B: FnMut(
+        BoundaryCurveSegment,
+        [f64; 2],
+        [f64; 2],
+        usize,
+    ) -> Result<([f64; 2], [f64; 3]), String>,
+    O: FnMut([[f64; 2]; 3], [[f64; 3]; 3]) -> Result<f64, String>,
+{
+    refine_uniform_internal(
+        candidate,
+        options,
+        boundary_segments,
+        boundary_vertices,
+        evaluate_surface,
+        &mut evaluate_boundary_midpoint,
+        Some(&mut evaluate_triangle_orientation),
     )
 }
 
@@ -377,6 +421,7 @@ fn refine_uniform_internal<F, B>(
     initial_boundary_vertices: &[BoundaryVertexPoint],
     mut evaluate_surface: F,
     evaluate_boundary_midpoint: &mut B,
+    mut evaluate_triangle_orientation: Option<&mut TriangleOrientationCheck<'_>>,
 ) -> Result<RefinedCandidate, String>
 where
     F: FnMut([f64; 2]) -> Result<[f64; 3], String>,
@@ -523,6 +568,9 @@ where
         }
 
         let mut max_chord_error: f64 = 0.0;
+        let mut orientation_check_count = 0usize;
+        let mut minimum_normal_alignment: Option<f64> = None;
+        let mut nonpositive_normal_count = 0usize;
         for triangle in &candidate.triangles {
             let [a, b, c] = *triangle;
             let centroid_uv = [
@@ -543,6 +591,28 @@ where
             });
             max_chord_error = max_chord_error.max(distance3(centroid, linear_centroid));
 
+            if let Some(check) = evaluate_triangle_orientation.as_mut() {
+                let alignment = (**check)(
+                    [
+                        candidate.vertices[a],
+                        candidate.vertices[b],
+                        candidate.vertices[c],
+                    ],
+                    [points[a], points[b], points[c]],
+                )?;
+                if !alignment.is_finite() || !(-1.000_001..=1.000_001).contains(&alignment) {
+                    return Err("trim_candidate_triangle_normal_alignment_invalid".into());
+                }
+                let alignment = alignment.clamp(-1.0, 1.0);
+                orientation_check_count = orientation_check_count
+                    .checked_add(1)
+                    .ok_or("trim_candidate_orientation_check_count_overflow")?;
+                minimum_normal_alignment = Some(
+                    minimum_normal_alignment.map_or(alignment, |current| current.min(alignment)),
+                );
+                nonpositive_normal_count += usize::from(alignment <= 0.0);
+            }
+
             for (first, second) in [(a, b), (b, c), (c, a)] {
                 let key = (first.min(second), first.max(second));
                 let middle = *edge_midpoints
@@ -553,7 +623,12 @@ where
                 max_chord_error = max_chord_error.max(distance3(points[middle], linear_midpoint));
             }
         }
-        if max_chord_error <= options.chord_tolerance {
+        let chord_converged = max_chord_error <= options.chord_tolerance;
+        let orientation_converged = evaluate_triangle_orientation
+            .as_ref()
+            .map(|_| nonpositive_normal_count == 0);
+        let converged = chord_converged && orientation_converged.unwrap_or(true);
+        if converged {
             candidate.vertices.truncate(level_vertex_count);
             points.truncate(level_vertex_count);
             return Ok(RefinedCandidate {
@@ -567,6 +642,11 @@ where
                 refinement_levels: level,
                 max_chord_error,
                 chord_tolerance: options.chord_tolerance,
+                chord_converged,
+                orientation_converged,
+                orientation_check_count,
+                minimum_normal_alignment,
+                nonpositive_normal_count,
                 converged: true,
                 failure_reason: None,
             });
@@ -585,8 +665,17 @@ where
                 refinement_levels: level,
                 max_chord_error,
                 chord_tolerance: options.chord_tolerance,
+                chord_converged,
+                orientation_converged,
+                orientation_check_count,
+                minimum_normal_alignment,
+                nonpositive_normal_count,
                 converged: false,
-                failure_reason: Some("trim_candidate_chord_tolerance_not_reached"),
+                failure_reason: Some(if !chord_converged {
+                    "trim_candidate_chord_tolerance_not_reached"
+                } else {
+                    "trim_candidate_normal_orientation_not_reached"
+                }),
             });
         }
         if candidate.triangles.len().saturating_mul(4) > options.max_triangles {
@@ -603,6 +692,11 @@ where
                 refinement_levels: level,
                 max_chord_error,
                 chord_tolerance: options.chord_tolerance,
+                chord_converged,
+                orientation_converged,
+                orientation_check_count,
+                minimum_normal_alignment,
+                nonpositive_normal_count,
                 converged: false,
                 failure_reason: Some("trim_candidate_triangle_budget_exceeded"),
             });
@@ -627,6 +721,29 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn positive_z_alignment(points: [[f64; 3]; 3]) -> Result<f64, String> {
+        let ab = [
+            points[1][0] - points[0][0],
+            points[1][1] - points[0][1],
+            points[1][2] - points[0][2],
+        ];
+        let ac = [
+            points[2][0] - points[0][0],
+            points[2][1] - points[0][1],
+            points[2][2] - points[0][2],
+        ];
+        let normal = [
+            ab[1] * ac[2] - ab[2] * ac[1],
+            ab[2] * ac[0] - ab[0] * ac[2],
+            ab[0] * ac[1] - ab[1] * ac[0],
+        ];
+        let length = normal.iter().map(|value| value * value).sum::<f64>().sqrt();
+        if !length.is_finite() || length <= f64::MIN_POSITIVE {
+            return Err("planar_test_triangle_normal_invalid".into());
+        }
+        Ok(normal[2] / length)
+    }
 
     #[test]
     fn triangulates_convex_loop_and_preserves_winding() {
@@ -732,9 +849,114 @@ mod tests {
         let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
         let refined = refine_uniform(candidate, 1e-8, 2, 64, |uv| Ok([uv[0], uv[1], 0.0])).unwrap();
         assert!(refined.converged);
+        assert!(refined.chord_converged);
+        assert_eq!(refined.orientation_converged, None);
         assert_eq!(refined.refinement_levels, 0);
         assert_eq!(refined.triangles.len(), 2);
         assert!(refined.max_chord_error <= 1e-8);
+    }
+
+    #[test]
+    fn oriented_refinement_converges_for_a_consistent_planar_patch() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
+        let refined = refine_uniform_with_boundary_and_orientation(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 1e-8,
+                max_refinement_levels: 0,
+                max_triangles: 64,
+            },
+            &[],
+            &[],
+            |uv| Ok([uv[0], uv[1], 0.0]),
+            |_, _, _, _| Err("unexpected_boundary_midpoint_evaluation".into()),
+            |_, points| positive_z_alignment(points),
+        )
+        .unwrap();
+
+        assert!(refined.converged);
+        assert!(refined.chord_converged);
+        assert_eq!(refined.orientation_converged, Some(true));
+        assert_eq!(refined.orientation_check_count, 2);
+        assert_eq!(refined.nonpositive_normal_count, 0);
+        assert_eq!(refined.minimum_normal_alignment, Some(1.0));
+    }
+
+    #[test]
+    fn oriented_refinement_rejects_reversed_winding_against_positive_z_face() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [0., 1.], [1., 1.], [1., 0.]]).unwrap();
+        let refined = refine_uniform_with_boundary_and_orientation(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 1e-8,
+                max_refinement_levels: 0,
+                max_triangles: 64,
+            },
+            &[],
+            &[],
+            |uv| Ok([uv[0], uv[1], 0.0]),
+            |_, _, _, _| Err("unexpected_boundary_midpoint_evaluation".into()),
+            |_, points| positive_z_alignment(points),
+        )
+        .unwrap();
+
+        assert!(refined.chord_converged);
+        assert_eq!(refined.orientation_converged, Some(false));
+        assert_eq!(refined.orientation_check_count, 2);
+        assert_eq!(refined.nonpositive_normal_count, 2);
+        assert_eq!(refined.minimum_normal_alignment, Some(-1.0));
+        assert!(!refined.converged);
+    }
+
+    #[test]
+    fn oriented_refinement_does_not_accept_bad_normals_when_chord_error_passes() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
+        let refined = refine_uniform_with_boundary_and_orientation(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 1e-8,
+                max_refinement_levels: 0,
+                max_triangles: 64,
+            },
+            &[],
+            &[],
+            |uv| Ok([uv[0], uv[1], 0.0]),
+            |_, _, _, _| Err("unexpected_boundary_midpoint_evaluation".into()),
+            |_, _| Ok(-1.0),
+        )
+        .unwrap();
+
+        assert!(!refined.converged);
+        assert!(refined.chord_converged);
+        assert_eq!(refined.orientation_converged, Some(false));
+        assert_eq!(refined.orientation_check_count, 2);
+        assert_eq!(refined.nonpositive_normal_count, 2);
+        assert_eq!(refined.minimum_normal_alignment, Some(-1.0));
+        assert_eq!(
+            refined.failure_reason,
+            Some("trim_candidate_normal_orientation_not_reached")
+        );
+    }
+
+    #[test]
+    fn oriented_refinement_rejects_nonfinite_alignment_evidence() {
+        let candidate = triangulate_simple_loop(&[[0., 0.], [1., 0.], [1., 1.], [0., 1.]]).unwrap();
+        let error = refine_uniform_with_boundary_and_orientation(
+            candidate,
+            RefinementOptions {
+                chord_tolerance: 1e-8,
+                max_refinement_levels: 0,
+                max_triangles: 64,
+            },
+            &[],
+            &[],
+            |uv| Ok([uv[0], uv[1], 0.0]),
+            |_, _, _, _| Err("unexpected_boundary_midpoint_evaluation".into()),
+            |_, _| Ok(f64::NAN),
+        )
+        .unwrap_err();
+
+        assert_eq!(error, "trim_candidate_triangle_normal_alignment_invalid");
     }
 
     #[test]
