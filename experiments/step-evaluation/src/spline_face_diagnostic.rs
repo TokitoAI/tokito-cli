@@ -17,6 +17,9 @@ const SAMPLES_PER_CURVE_SPAN: usize = 16;
 const MAX_BOUNDARY_SAMPLES: usize = 16_384;
 const MAX_BOUNDARY_REFINEMENT_PROBES: usize = 8_192;
 const MAX_SAMPLE_DETAILS: usize = 128;
+const MAX_ORIENTATION_OBSERVATIONS: usize = 100_000;
+const MAX_ORIENTATION_DIAGNOSTIC_TRIANGLES: usize = 50_000;
+const ORIENTATION_U_BIN_COUNT: usize = 8;
 const MAX_BRANCH_SHIFT: f64 = 1_000_000.0;
 const MULTISTART_SUBDIVISIONS: usize = 8;
 const MAX_AXIS_SEEDS: usize = 64;
@@ -438,6 +441,326 @@ fn oriented_triangle_normal_alignment(
         return 0.;
     }
     dot(expected_normal, triangle_normal) / denominator
+}
+
+#[derive(Clone, Copy, Debug)]
+struct OrientationObservation {
+    uv_centroid: [f64; 2],
+    alignment: f64,
+    triangle_normal: Option<P3>,
+    parameter_normal: Option<P3>,
+}
+
+#[derive(Default)]
+struct AlignmentStatistics {
+    count: usize,
+    positive_count: usize,
+    nonpositive_count: usize,
+    undefined_parameter_normal_count: usize,
+    sum: f64,
+    minimum: Option<f64>,
+    maximum: Option<f64>,
+}
+
+impl AlignmentStatistics {
+    fn add(&mut self, alignment: f64, parameter_normal_defined: bool) -> Result<(), String> {
+        if !alignment.is_finite() || !(-1.000_001..=1.000_001).contains(&alignment) {
+            return Err("trim_candidate_orientation_continuity_alignment_invalid".into());
+        }
+        let alignment = alignment.clamp(-1.0, 1.0);
+        self.count = self
+            .count
+            .checked_add(1)
+            .ok_or("trim_candidate_orientation_continuity_count_overflow")?;
+        self.positive_count += usize::from(alignment > 0.0);
+        self.nonpositive_count += usize::from(alignment <= 0.0);
+        self.undefined_parameter_normal_count += usize::from(!parameter_normal_defined);
+        self.sum += alignment;
+        self.minimum = Some(self.minimum.map_or(alignment, |value| value.min(alignment)));
+        self.maximum = Some(self.maximum.map_or(alignment, |value| value.max(alignment)));
+        Ok(())
+    }
+
+    fn report(&self) -> Json {
+        json!({
+            "count": self.count,
+            "positiveCount": self.positive_count,
+            "nonpositiveCount": self.nonpositive_count,
+            "undefinedParameterNormalCount": self.undefined_parameter_normal_count,
+            "minimumAlignment": self.minimum,
+            "maximumAlignment": self.maximum,
+            "meanAlignment": (self.count > 0).then_some(self.sum / self.count as f64)
+        })
+    }
+}
+
+#[derive(Default)]
+struct DotStatistics {
+    compared_pair_count: usize,
+    nonpositive_dot_pair_count: usize,
+    undefined_pair_count: usize,
+    sum: f64,
+    minimum: Option<f64>,
+    maximum: Option<f64>,
+}
+
+impl DotStatistics {
+    fn add(&mut self, first: Option<P3>, second: Option<P3>) -> Result<(), String> {
+        let (Some(first), Some(second)) = (first, second) else {
+            self.undefined_pair_count += 1;
+            return Ok(());
+        };
+        let value = dot(first, second);
+        if !value.is_finite() {
+            return Err("trim_candidate_orientation_continuity_dot_nonfinite".into());
+        }
+        let value = value.clamp(-1.0, 1.0);
+        self.compared_pair_count = self
+            .compared_pair_count
+            .checked_add(1)
+            .ok_or("trim_candidate_orientation_continuity_pair_count_overflow")?;
+        self.nonpositive_dot_pair_count += usize::from(value <= 0.0);
+        self.sum += value;
+        self.minimum = Some(self.minimum.map_or(value, |current| current.min(value)));
+        self.maximum = Some(self.maximum.map_or(value, |current| current.max(value)));
+        Ok(())
+    }
+
+    fn report(&self) -> Json {
+        json!({
+            "comparedPairCount": self.compared_pair_count,
+            "nonpositiveDotPairCount": self.nonpositive_dot_pair_count,
+            "undefinedPairCount": self.undefined_pair_count,
+            "minimumDot": self.minimum,
+            "maximumDot": self.maximum,
+            "meanDot": (self.compared_pair_count > 0)
+                .then_some(self.sum / self.compared_pair_count as f64)
+        })
+    }
+}
+
+#[derive(Default)]
+struct EdgeUse {
+    count: usize,
+    first_triangle: Option<usize>,
+    second_triangle: Option<usize>,
+    first_direction: Option<bool>,
+    second_direction: Option<bool>,
+}
+
+fn record_orientation_observation(
+    observations: &std::cell::RefCell<Vec<OrientationObservation>>,
+    observation: OrientationObservation,
+) -> Result<(), String> {
+    let mut observations = observations.borrow_mut();
+    if observations.len() >= MAX_ORIENTATION_OBSERVATIONS {
+        return Err("trim_candidate_orientation_observation_budget_exceeded".into());
+    }
+    observations.push(observation);
+    Ok(())
+}
+
+fn orientation_continuity_report(
+    uv_vertices: &[[f64; 2]],
+    triangles: &[[usize; 3]],
+    observations: &[OrientationObservation],
+    u_domain: (f64, f64),
+    cached_observation_count: usize,
+) -> Result<Json, String> {
+    let u_span = u_domain.1 - u_domain.0;
+    if triangles.is_empty()
+        || triangles.len() > MAX_ORIENTATION_DIAGNOSTIC_TRIANGLES
+        || observations.len() != triangles.len()
+        || cached_observation_count < observations.len()
+        || cached_observation_count > MAX_ORIENTATION_OBSERVATIONS
+        || !u_domain.0.is_finite()
+        || !u_domain.1.is_finite()
+        || !u_span.is_finite()
+        || u_span <= 0.0
+    {
+        return Err("trim_candidate_orientation_continuity_input_invalid".into());
+    }
+
+    let mut winding_positive_count = 0usize;
+    let mut winding_negative_count = 0usize;
+    let mut winding_zero_count = 0usize;
+    let mut u_bins = (0..ORIENTATION_U_BIN_COUNT)
+        .map(|_| AlignmentStatistics::default())
+        .collect::<Vec<_>>();
+    let mut geometric_normal_dot_by_u = (0..ORIENTATION_U_BIN_COUNT)
+        .map(|_| DotStatistics::default())
+        .collect::<Vec<_>>();
+    let mut parameter_normal_dot_by_u = (0..ORIENTATION_U_BIN_COUNT)
+        .map(|_| DotStatistics::default())
+        .collect::<Vec<_>>();
+    let mut edge_uses = std::collections::BTreeMap::<(usize, usize), EdgeUse>::new();
+
+    for (triangle_index, (triangle, observation)) in triangles.iter().zip(observations).enumerate()
+    {
+        let [a, b, c] = *triangle;
+        if a >= uv_vertices.len()
+            || b >= uv_vertices.len()
+            || c >= uv_vertices.len()
+            || a == b
+            || b == c
+            || c == a
+        {
+            return Err("trim_candidate_orientation_continuity_triangle_index_invalid".into());
+        }
+        let uv_a = uv_vertices[a];
+        let uv_b = uv_vertices[b];
+        let uv_c = uv_vertices[c];
+        let signed_double_area =
+            (uv_b[0] - uv_a[0]) * (uv_c[1] - uv_a[1]) - (uv_b[1] - uv_a[1]) * (uv_c[0] - uv_a[0]);
+        if !signed_double_area.is_finite()
+            || observation
+                .uv_centroid
+                .iter()
+                .any(|value| !value.is_finite())
+        {
+            return Err("trim_candidate_orientation_continuity_uv_nonfinite".into());
+        }
+        match signed_double_area.partial_cmp(&0.0) {
+            Some(std::cmp::Ordering::Greater) => winding_positive_count += 1,
+            Some(std::cmp::Ordering::Less) => winding_negative_count += 1,
+            _ => winding_zero_count += 1,
+        }
+
+        let u_fraction = ((observation.uv_centroid[0] - u_domain.0) / u_span).clamp(0.0, 1.0);
+        let u_bin = ((u_fraction * ORIENTATION_U_BIN_COUNT as f64).floor() as usize)
+            .min(ORIENTATION_U_BIN_COUNT - 1);
+        u_bins[u_bin].add(
+            observation.alignment,
+            observation.parameter_normal.is_some(),
+        )?;
+
+        for (first, second) in [(a, b), (b, c), (c, a)] {
+            let key = (first.min(second), first.max(second));
+            let direction = first < second;
+            let edge = edge_uses.entry(key).or_default();
+            match edge.count {
+                0 => {
+                    edge.first_triangle = Some(triangle_index);
+                    edge.first_direction = Some(direction);
+                }
+                1 => {
+                    edge.second_triangle = Some(triangle_index);
+                    edge.second_direction = Some(direction);
+                }
+                _ => {}
+            }
+            edge.count = edge
+                .count
+                .checked_add(1)
+                .ok_or("trim_candidate_orientation_continuity_edge_count_overflow")?;
+        }
+    }
+
+    let mut boundary_edge_count = 0usize;
+    let mut interior_edge_count = 0usize;
+    let mut nonmanifold_edge_count = 0usize;
+    let mut inconsistent_interior_edge_winding_count = 0usize;
+    let mut geometric_normal_dot = DotStatistics::default();
+    let mut parameter_normal_dot = DotStatistics::default();
+    for (edge_key, edge) in &edge_uses {
+        match edge.count {
+            1 => boundary_edge_count += 1,
+            2 => {
+                interior_edge_count += 1;
+                if edge.first_direction == edge.second_direction {
+                    inconsistent_interior_edge_winding_count += 1;
+                }
+                let first = edge
+                    .first_triangle
+                    .ok_or("trim_candidate_orientation_continuity_first_triangle_missing")?;
+                let second = edge
+                    .second_triangle
+                    .ok_or("trim_candidate_orientation_continuity_second_triangle_missing")?;
+                let edge_u = (uv_vertices[edge_key.0][0] + uv_vertices[edge_key.1][0]) * 0.5;
+                if !edge_u.is_finite() {
+                    return Err("trim_candidate_orientation_continuity_edge_u_nonfinite".into());
+                }
+                let edge_u_bin = ((((edge_u - u_domain.0) / u_span).clamp(0.0, 1.0)
+                    * ORIENTATION_U_BIN_COUNT as f64)
+                    .floor() as usize)
+                    .min(ORIENTATION_U_BIN_COUNT - 1);
+                for statistics in [
+                    &mut geometric_normal_dot,
+                    &mut geometric_normal_dot_by_u[edge_u_bin],
+                ] {
+                    statistics.add(
+                        observations[first].triangle_normal,
+                        observations[second].triangle_normal,
+                    )?;
+                }
+                for statistics in [
+                    &mut parameter_normal_dot,
+                    &mut parameter_normal_dot_by_u[edge_u_bin],
+                ] {
+                    statistics.add(
+                        observations[first].parameter_normal,
+                        observations[second].parameter_normal,
+                    )?;
+                }
+            }
+            _ => nonmanifold_edge_count += 1,
+        }
+    }
+
+    let u_bin_reports = u_bins
+        .iter()
+        .enumerate()
+        .map(|(u_bin, statistics)| {
+            let u_min = u_domain.0
+                + (u_domain.1 - u_domain.0) * u_bin as f64 / ORIENTATION_U_BIN_COUNT as f64;
+            let u_max = u_domain.0
+                + (u_domain.1 - u_domain.0) * (u_bin + 1) as f64 / ORIENTATION_U_BIN_COUNT as f64;
+            json!({
+                "uBin": u_bin,
+                "uRange": [u_min, u_max],
+                "parameterNormalAlignment": statistics.report()
+            })
+        })
+        .collect::<Vec<_>>();
+    let adjacent_normal_u_bin_reports = (0..ORIENTATION_U_BIN_COUNT)
+        .map(|u_bin| {
+            json!({
+                "uBin": u_bin,
+                "adjacentTrianglePairCount": geometric_normal_dot_by_u[u_bin].compared_pair_count
+                    + geometric_normal_dot_by_u[u_bin].undefined_pair_count,
+                "geometricTriangleNormalDot": geometric_normal_dot_by_u[u_bin].report(),
+                "parameterNormalDot": parameter_normal_dot_by_u[u_bin].report()
+            })
+        })
+        .collect::<Vec<_>>();
+
+    Ok(json!({
+        "schema": "tokito.step-trim-candidate-orientation-continuity.v1",
+        "diagnosticOnly": true,
+        "admissionAffecting": false,
+        "sampleScope": "final_refinement_level_only",
+        "finalTriangleCount": triangles.len(),
+        "uDomain": [u_domain.0, u_domain.1],
+        "cachedObservationCountAcrossRefinementLevels": cached_observation_count,
+        "observationCacheLimit": MAX_ORIENTATION_OBSERVATIONS,
+        "uvWindingSigns": {
+            "positive": winding_positive_count,
+            "negative": winding_negative_count,
+            "zero": winding_zero_count
+        },
+        "parameterNormalAlignmentByU8": u_bin_reports,
+        "adjacentNormalContinuityByU8": adjacent_normal_u_bin_reports,
+        "edgeAdjacency": {
+            "uniqueEdgeCount": edge_uses.len(),
+            "boundaryEdgeCount": boundary_edge_count,
+            "interiorEdgeCount": interior_edge_count,
+            "nonmanifoldEdgeCount": nonmanifold_edge_count,
+            "inconsistentInteriorEdgeWindingCount": inconsistent_interior_edge_winding_count,
+            "adjacentTrianglePairCount": interior_edge_count,
+            "geometricTriangleNormalDot": geometric_normal_dot.report(),
+            "parameterNormalDot": parameter_normal_dot.report()
+        }
+    }))
 }
 
 struct ParsedCurve {
@@ -1303,6 +1626,8 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
         let candidate_surface_evaluation_count_cell = std::cell::RefCell::new(0usize);
         let control_point_evaluation_count_cell =
             std::cell::RefCell::new(control_point_evaluation_count);
+        let orientation_observations =
+            std::cell::RefCell::new(Vec::<OrientationObservation>::new());
         let normal_u_step = ((surface.u_domain.1 - surface.u_domain.0).abs() * 1e-5)
             .max(f64::EPSILON * (surface.u_domain.1 - surface.u_domain.0).abs() * 64.);
         let normal_v_step = ((surface.v_domain.1 - surface.v_domain.0).abs() * 1e-5)
@@ -1389,14 +1714,27 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 ));
                 Ok((candidate_uv, source_point))
             },
-            |_uv_triangle, point_triangle| {
+            |uv_triangle, point_triangle| {
                 let uv_center = [
-                    (_uv_triangle[0][0] + _uv_triangle[1][0] + _uv_triangle[2][0]) / 3.,
-                    (_uv_triangle[0][1] + _uv_triangle[1][1] + _uv_triangle[2][1]) / 3.,
+                    (uv_triangle[0][0] + uv_triangle[1][0] + uv_triangle[2][0]) / 3.,
+                    (uv_triangle[0][1] + uv_triangle[1][1] + uv_triangle[2][1]) / 3.,
                 ];
                 let Some((u_min, u_max)) =
                     finite_difference_bounds(uv_center[0], normal_u_step, surface.u_domain, false)
                 else {
+                    record_orientation_observation(
+                        &orientation_observations,
+                        OrientationObservation {
+                            uv_centroid: uv_center,
+                            alignment: 0.,
+                            triangle_normal: unit(cross(
+                                sub(point_triangle[1], point_triangle[0]),
+                                sub(point_triangle[2], point_triangle[0]),
+                            ))
+                            .ok(),
+                            parameter_normal: None,
+                        },
+                    )?;
                     return Ok(0.);
                 };
                 let Some((v_min, v_max)) = finite_difference_bounds(
@@ -1405,6 +1743,19 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                     surface.v_domain,
                     surface.v_period.is_some(),
                 ) else {
+                    record_orientation_observation(
+                        &orientation_observations,
+                        OrientationObservation {
+                            uv_centroid: uv_center,
+                            alignment: 0.,
+                            triangle_normal: unit(cross(
+                                sub(point_triangle[1], point_triangle[0]),
+                                sub(point_triangle[2], point_triangle[0]),
+                            ))
+                            .ok(),
+                            parameter_normal: None,
+                        },
+                    )?;
                     return Ok(0.);
                 };
                 let point_u_min = eval_surface(
@@ -1433,14 +1784,39 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 )?;
                 let tangent_u = scale(sub(point_u_max, point_u_min), 1. / (u_max - u_min));
                 let tangent_v = scale(sub(point_v_max, point_v_min), 1. / (v_max - v_min));
-                Ok(oriented_triangle_normal_alignment(
+                let alignment = oriented_triangle_normal_alignment(
                     point_triangle,
                     tangent_u,
                     tangent_v,
                     face_sense,
+                );
+                let face_sense_sign = if face_sense { 1. } else { -1. };
+                let parameter_normal =
+                    unit(scale(cross(tangent_u, tangent_v), face_sense_sign)).ok();
+                let triangle_normal = unit(cross(
+                    sub(point_triangle[1], point_triangle[0]),
+                    sub(point_triangle[2], point_triangle[0]),
                 ))
+                .ok();
+                record_orientation_observation(
+                    &orientation_observations,
+                    OrientationObservation {
+                        uv_centroid: uv_center,
+                        alignment,
+                        triangle_normal,
+                        parameter_normal,
+                    },
+                )?;
+                Ok(alignment)
             },
         )?;
+        let orientation_observations = orientation_observations.into_inner();
+        let final_level_observation_start = orientation_observations
+            .len()
+            .checked_sub(refined.orientation_check_count)
+            .ok_or("trim_candidate_orientation_observation_count_mismatch")?;
+        let final_level_orientation_observations =
+            &orientation_observations[final_level_observation_start..];
         candidate_surface_evaluation_count = candidate_surface_evaluation_count_cell.into_inner();
         control_point_evaluation_count = control_point_evaluation_count_cell.into_inner();
         let support_surface_points = refined
@@ -1461,6 +1837,13 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
         {
             return Err("trim_candidate_boundary_provenance_count_mismatch".into());
         }
+        let orientation_continuity = orientation_continuity_report(
+            &refined.vertices,
+            &refined.triangles,
+            final_level_orientation_observations,
+            surface.u_domain,
+            orientation_observations.len(),
+        )?;
         let candidate_boundary_samples = boundary_samples
             .iter()
             .enumerate()
@@ -1518,6 +1901,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "orientationCheckCount": refined.orientation_check_count,
             "minimumTriangleNormalAlignment": refined.minimum_normal_alignment,
             "nonpositiveTriangleNormalCount": refined.nonpositive_normal_count,
+            "orientationContinuity": orientation_continuity,
             "refinementConverged": refined.converged,
             "refinementFailureReason": refined.failure_reason,
             "surfaceEvaluationCount": candidate_surface_evaluation_count,
@@ -1637,6 +2021,186 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn orientation_continuity_reports_uv_bins_and_shared_edge_normals() {
+        let vertices = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
+        let triangles = [[0, 1, 2], [0, 2, 3]];
+        let observations = [
+            OrientationObservation {
+                uv_centroid: [2. / 3., 1. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+            OrientationObservation {
+                uv_centroid: [1. / 3., 2. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+        ];
+
+        let report = orientation_continuity_report(
+            &vertices,
+            &triangles,
+            &observations,
+            (0., 1.),
+            observations.len(),
+        )
+        .unwrap();
+
+        assert_eq!(report["diagnosticOnly"], true);
+        assert_eq!(report["admissionAffecting"], false);
+        assert_eq!(report["uvWindingSigns"]["positive"], 2);
+        assert_eq!(report["uvWindingSigns"]["negative"], 0);
+        assert_eq!(report["edgeAdjacency"]["uniqueEdgeCount"], 5);
+        assert_eq!(report["edgeAdjacency"]["boundaryEdgeCount"], 4);
+        assert_eq!(report["edgeAdjacency"]["interiorEdgeCount"], 1);
+        assert_eq!(report["edgeAdjacency"]["nonmanifoldEdgeCount"], 0);
+        assert_eq!(
+            report["edgeAdjacency"]["geometricTriangleNormalDot"]["minimumDot"],
+            1.
+        );
+        assert_eq!(
+            report["edgeAdjacency"]["parameterNormalDot"]["comparedPairCount"],
+            1
+        );
+        assert_eq!(report["parameterNormalAlignmentByU8"][2]["uBin"], 2);
+        assert_eq!(
+            report["parameterNormalAlignmentByU8"][2]["parameterNormalAlignment"]["count"],
+            1
+        );
+        assert_eq!(report["parameterNormalAlignmentByU8"][5]["uBin"], 5);
+        assert_eq!(
+            report["parameterNormalAlignmentByU8"][5]["parameterNormalAlignment"]["positiveCount"],
+            1
+        );
+    }
+
+    #[test]
+    fn orientation_continuity_reports_undefined_normal_fallbacks() {
+        let vertices = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
+        let triangles = [[0, 1, 2], [0, 2, 3]];
+        let observations = [
+            OrientationObservation {
+                uv_centroid: [2. / 3., 1. / 3.],
+                alignment: 0.,
+                triangle_normal: None,
+                parameter_normal: None,
+            },
+            OrientationObservation {
+                uv_centroid: [1. / 3., 2. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+        ];
+
+        let report = orientation_continuity_report(
+            &vertices,
+            &triangles,
+            &observations,
+            (0., 1.),
+            observations.len(),
+        )
+        .unwrap();
+
+        let undefined_alignment =
+            &report["parameterNormalAlignmentByU8"][5]["parameterNormalAlignment"];
+        assert_eq!(undefined_alignment["count"], 1);
+        assert_eq!(undefined_alignment["nonpositiveCount"], 1);
+        assert_eq!(undefined_alignment["undefinedParameterNormalCount"], 1);
+
+        let adjacency = &report["edgeAdjacency"];
+        assert_eq!(adjacency["adjacentTrianglePairCount"], 1);
+        assert_eq!(
+            adjacency["geometricTriangleNormalDot"]["comparedPairCount"],
+            0
+        );
+        assert_eq!(
+            adjacency["geometricTriangleNormalDot"]["undefinedPairCount"],
+            1
+        );
+        assert_eq!(adjacency["parameterNormalDot"]["comparedPairCount"], 0);
+        assert_eq!(adjacency["parameterNormalDot"]["undefinedPairCount"], 1);
+        assert_eq!(
+            report["adjacentNormalContinuityByU8"][4]["adjacentTrianglePairCount"],
+            1
+        );
+    }
+
+    #[test]
+    fn orientation_continuity_rejects_unbounded_or_mismatched_observations() {
+        let vertices = [[0., 0.], [1., 0.], [0., 1.]];
+        let triangles = [[0, 1, 2]];
+        let observations = [OrientationObservation {
+            uv_centroid: [1. / 3., 1. / 3.],
+            alignment: 1.,
+            triangle_normal: Some([0., 0., 1.]),
+            parameter_normal: Some([0., 0., 1.]),
+        }];
+
+        assert_eq!(
+            orientation_continuity_report(
+                &vertices,
+                &triangles,
+                &observations,
+                (0., 1.),
+                MAX_ORIENTATION_OBSERVATIONS + 1,
+            )
+            .unwrap_err(),
+            "trim_candidate_orientation_continuity_input_invalid"
+        );
+        assert_eq!(
+            orientation_continuity_report(&vertices, &triangles, &[], (0., 1.), 1).unwrap_err(),
+            "trim_candidate_orientation_continuity_input_invalid"
+        );
+    }
+
+    #[test]
+    fn orientation_continuity_does_not_invent_pairs_for_nonmanifold_edges() {
+        let vertices = [[0., 0.], [1., 0.], [0., 1.], [0., -1.], [0.5, 1.]];
+        let triangles = [[0, 1, 2], [1, 0, 3], [0, 1, 4]];
+        let observations = [
+            OrientationObservation {
+                uv_centroid: [1. / 3., 1. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+            OrientationObservation {
+                uv_centroid: [1. / 3., -1. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+            OrientationObservation {
+                uv_centroid: [0.5, 1. / 3.],
+                alignment: 1.,
+                triangle_normal: Some([0., 0., 1.]),
+                parameter_normal: Some([0., 0., 1.]),
+            },
+        ];
+
+        let report = orientation_continuity_report(
+            &vertices,
+            &triangles,
+            &observations,
+            (-1., 1.),
+            observations.len(),
+        )
+        .unwrap();
+
+        assert_eq!(report["edgeAdjacency"]["boundaryEdgeCount"], 6);
+        assert_eq!(report["edgeAdjacency"]["interiorEdgeCount"], 0);
+        assert_eq!(report["edgeAdjacency"]["nonmanifoldEdgeCount"], 1);
+        assert_eq!(report["edgeAdjacency"]["adjacentTrianglePairCount"], 0);
+        assert_eq!(
+            report["edgeAdjacency"]["geometricTriangleNormalDot"]["comparedPairCount"],
+            0
+        );
+    }
 
     #[test]
     fn oriented_triangle_normal_uses_face_sense_without_double_counting_uv_winding() {

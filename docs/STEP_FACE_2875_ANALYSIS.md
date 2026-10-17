@@ -276,22 +276,74 @@ FreeCAD evaluated the Rust candidate against its imported B-rep; it did not
 generate an independent triangulation. Geometry remains unqualified, admission
 remains false, and the report contains no exports.
 
-## Current full-source verification checkpoint (2026-10-17)
+## Previous full-source verification checkpoint (2026-10-17, final3)
 
 After the bounded FreeCAD audit and the reversed-winding regression were added,
-the current Windows root suite passed 48/48 gates. It reused the trusted F:
-Cargo target cache and is not a clean-cache or independent-machine test. The
-stable copy of its receipt is
+the Windows root suite passed 48/48 gates at that earlier source revision. It
+reused the trusted F: Cargo target cache and was not a clean-cache or
+independent-machine test. The stable copy of its receipt is
 `F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-release-final3-20261017\\verification.json`;
-PR #45 records the receipt and binary hashes. This run checks diagnostic and
-refusal behavior, not geometric correctness: model-16 remains unqualified and
-no STEP export is produced.
+PR #45 recorded the receipt and binary hashes. That run checked diagnostic and
+refusal behavior, not geometric correctness: model-16 remained unqualified and
+no STEP export was produced.
 
-Next, inspect low-U candidate connectivity and local parameterization with
-bounded per-triangle UV derivatives and edge-neighbour continuity. Then compare
-against an independently generated FreeCAD/OCCT triangulation with recorded
-linear-deflection and angular controls. Do not alter face sense or reverse
-triangles unless a separately evidenced orientation rule justifies it.
+## Orientation-continuity diagnostic checkpoint (2026-10-17)
+
+The bounded candidate report now includes `orientationContinuity` diagnostics:
+the final refinement level's UV winding signs, parameter-normal alignment in
+eight U bands, edge incidence, and geometric-triangle versus parameter-normal
+dot products across adjacent triangle pairs. Adjacent pairs are assigned to a U
+band by the midpoint of their shared UV edge. The observation cache is capped at
+100,000 entries and the candidate at 50,000 triangles. These observations are
+diagnostic only; they do not change, reverse, admit, or export the mesh.
+
+The focused Windows model-16 E2E passed against the digest-pinned source
+`target/dataset-intake/esp8266-pr6-5283bc0-source-candidate/.../16.step`
+(SHA-256
+`7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`). Its
+receipt is stored outside Git at
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-continuity-e2e-20261017f\\receipt.json`
+(SHA-256 `ddf056c33f8d7c07c464339d96e9b0a68890be0f5696bccefe14348f8c9bca4a`);
+the diagnostic JSON SHA-256 is
+`6583d6d1b4b48a3ea7d9e1181beeb62d652b2894c7bf3c24b6e1428d0b1f387b`. It records
+24,064 final triangles, all with positive UV winding, and the eight-band
+triangle/alignment counts match the pinned FreeCAD report at
+`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-freecad-20261017c\\freecad-candidate-comparison.json`
+(SHA-256 `3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc`).
+This cross-check compares aggregate counts for the same Rust candidate; FreeCAD
+did not provide an independent triangulation. The focused Python E2E compares
+the Rust output against pinned aggregate constants attributed to that report
+SHA; it does not open or hash the external report file.
+
+| U band | Candidate triangles | Nonpositive parameter-normal alignment | Adjacent edge pairs | Nonpositive geometric-normal dot |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 8,981 | 3,130 | 13,207 | 9,371 |
+| 1 | 1,277 | 47 | 1,909 | 105 |
+| 2 | 1,680 | 81 | 2,281 | 209 |
+| 3 | 1,829 | 104 | 2,653 | 317 |
+| 4 | 2,080 | 127 | 3,615 | 588 |
+| 5 | 2,701 | 219 | 3,521 | 506 |
+| 6 | 2,635 | 148 | 3,893 | 602 |
+| 7 | 2,881 | 139 | 4,249 | 698 |
+| **Total** | **24,064** | **3,995** | **35,328** | **12,396** |
+
+The candidate has 1,536 boundary edges, 35,328 two-triangle edges, no
+nonmanifold edges, and no shared-edge winding inconsistencies. Yet 12,396 of
+35,328 adjacent 3D triangle-normal dots are nonpositive; in U band 0, this is
+9,371 of 13,207. The corresponding finite-difference parameter-normal dots are
+all positive, with a global minimum of `0.9957814186927694`. This demonstrates
+a mismatch between the sampled surface-normal field and normals induced by the
+candidate 3D triangles; it does not by itself establish the cause. The candidate
+still has 3,995 nonpositive centroid alignments and remains unqualified,
+unadmitted, and unexported.
+
+The next diagnostic should retain a small, bounded set of worst adjacent pairs
+with triangle and shared-edge indices plus source-boundary versus refined-vertex
+provenance. Use those records to compare local coordinates against the FreeCAD
+face, then test any proposed correction against an independently generated
+FreeCAD/OCCT triangulation with recorded linear-deflection and angular controls.
+Do not alter face sense or reverse triangles unless a separately evidenced
+orientation rule justifies it.
 
 ## Regression and remaining gate
 
@@ -299,13 +351,16 @@ triangles unless a separately evidenced orientation rule justifies it.
 source hash and verifies topology, residuals, pre-allocation curve-storage
 budget, the expected level-4 candidate, chord and centroid-normal results,
 refusal status, and no-export behavior. The Rust tests also cover both face
-senses, both triangle windings, degenerate normals, nonfinite alignment and a
-wrongly oriented planar patch. The Rust polygon predicate uses separate area
-and coordinate tolerances and has a scale-invariance regression. When the
+senses, both triangle windings, degenerate normals, nonfinite alignment,
+undefined-normal diagnostic accounting, and a wrongly oriented planar patch.
+The E2E pins all adjacent normal comparisons as defined and requires every
+parameter-normal dot to remain positive.
+The Rust polygon predicate uses separate area and coordinate tolerances and has
+a scale-invariance regression. When the
 ESP8266 source set is passed to `scripts/verify-local.ps1`, this E2E check runs
 automatically.
 
-The current source-bound Rust refusal receipt is
+An earlier source-bound Rust refusal receipt is
 `F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-e2e-final-20261017\\receipt.json`
 (SHA-256 `a24516ecea940451a70e2ae70ead89c3b6fe0e77b5880febe7da06d8dbae69c4`);
 its diagnostic SHA-256 is

@@ -11,8 +11,29 @@ SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138
 SOURCE_REPRESENTATION_ID = 5957
 SOURCE_CONTEXT_ID = 206
 DECLARED_SOURCE_UNCERTAINTY = 1e-5
+FREECAD_REFERENCE_REPORT_SHA256 = "3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc"
 EXPECTED_ORIENTED_EDGES = [2809, 470, 7109, 4933]
 MAX_EDGE_CURVE_CONTROL_POINT_STORAGE_BUDGET = 65_536
+EXPECTED_FREECAD_U_BIN_COUNTS = [
+    (8981, 3130),
+    (1277, 47),
+    (1680, 81),
+    (1829, 104),
+    (2080, 127),
+    (2701, 219),
+    (2635, 148),
+    (2881, 139),
+]
+EXPECTED_ADJACENT_EDGE_U_BIN_COUNTS = [
+    (13207, 9371),
+    (1909, 105),
+    (2281, 209),
+    (2653, 317),
+    (3615, 588),
+    (3521, 506),
+    (3893, 602),
+    (4249, 698),
+]
 EXPECTED_EDGE_SENSES = [
     (2809, True, True, True),
     (470, True, True, True),
@@ -44,6 +65,185 @@ def uncertainty_residual_summary(rows: list[dict], limit: float, field: str) -> 
         "maximumResidualSourceUnits": max(residuals),
         "declaredSourceUncertaintySourceUnits": limit,
         "usedAsAdmissionTolerance": False,
+    }
+
+
+def validate_orientation_continuity(trim_candidate: dict) -> dict:
+    continuity = trim_candidate.get("orientationContinuity")
+    if (
+        not isinstance(continuity, dict)
+        or continuity.get("schema")
+        != "tokito.step-trim-candidate-orientation-continuity.v1"
+        or continuity.get("diagnosticOnly") is not True
+        or continuity.get("admissionAffecting") is not False
+        or continuity.get("sampleScope") != "final_refinement_level_only"
+        or continuity.get("finalTriangleCount") != 24_064
+        or continuity.get("observationCacheLimit") != 100_000
+        or continuity.get("cachedObservationCountAcrossRefinementLevels", 0)
+        > continuity.get("observationCacheLimit", -1)
+    ):
+        raise ValueError("orientation continuity diagnostic scope or bound changed")
+    u_domain = continuity.get("uDomain")
+    if (
+        not isinstance(u_domain, list)
+        or len(u_domain) != 2
+        or any(not is_json_number(value) or not math.isfinite(float(value)) for value in u_domain)
+        or abs(float(u_domain[0])) > 1e-14
+        or abs(float(u_domain[1]) - 1.404960923061) > 1e-12
+    ):
+        raise ValueError("orientation continuity U domain changed")
+    winding = continuity.get("uvWindingSigns", {})
+    if winding != {"positive": 24_064, "negative": 0, "zero": 0}:
+        raise ValueError("candidate UV winding-sign distribution changed")
+
+    bins = continuity.get("parameterNormalAlignmentByU8")
+    if not isinstance(bins, list) or len(bins) != 8:
+        raise ValueError("orientation continuity must report eight canonical U bins")
+    observed_u_bins = []
+    for expected_index, row in enumerate(bins):
+        if not isinstance(row, dict) or row.get("uBin") != expected_index:
+            raise ValueError("orientation continuity U bins are not ordered")
+        alignment = row.get("parameterNormalAlignment")
+        if not isinstance(alignment, dict):
+            raise ValueError("orientation continuity U-bin alignment summary is missing")
+        count = alignment.get("count")
+        nonpositive_count = alignment.get("nonpositiveCount")
+        positive_count = alignment.get("positiveCount")
+        if (
+            not isinstance(count, int)
+            or not isinstance(nonpositive_count, int)
+            or not isinstance(positive_count, int)
+            or count != positive_count + nonpositive_count
+            or not is_json_number(alignment.get("minimumAlignment"))
+            or not is_json_number(alignment.get("maximumAlignment"))
+            or not is_json_number(alignment.get("meanAlignment"))
+        ):
+            raise ValueError("orientation continuity U-bin alignment statistics are malformed")
+        observed_u_bins.append((count, nonpositive_count))
+    if observed_u_bins != EXPECTED_FREECAD_U_BIN_COUNTS:
+        raise ValueError("Rust U-bin alignment counts differ from the pinned FreeCAD reference")
+
+    adjacency = continuity.get("edgeAdjacency", {})
+    if (
+        adjacency.get("uniqueEdgeCount") != 36_864
+        or adjacency.get("boundaryEdgeCount") != 1_536
+        or adjacency.get("interiorEdgeCount") != 35_328
+        or adjacency.get("nonmanifoldEdgeCount") != 0
+        or adjacency.get("inconsistentInteriorEdgeWindingCount") != 0
+        or adjacency.get("adjacentTrianglePairCount") != 35_328
+    ):
+        raise ValueError("orientation continuity edge adjacency differs from the pinned mesh")
+    normal_dot_summaries = {
+        "geometricTriangleNormalDot": adjacency.get("geometricTriangleNormalDot", {}),
+        "parameterNormalDot": adjacency.get("parameterNormalDot", {}),
+    }
+    for name, summary in normal_dot_summaries.items():
+        compared = summary.get("comparedPairCount")
+        undefined = summary.get("undefinedPairCount")
+        if (
+            not isinstance(compared, int)
+            or not isinstance(undefined, int)
+            or compared + undefined != 35_328
+            or undefined != 0
+            or not isinstance(summary.get("nonpositiveDotPairCount"), int)
+            or not is_json_number(summary.get("meanDot"))
+            or (
+                name == "parameterNormalDot"
+                and summary["nonpositiveDotPairCount"] != 0
+            )
+        ):
+            raise ValueError(f"invalid adjacent-normal dot summary: {name}")
+    adjacent_bins = continuity.get("adjacentNormalContinuityByU8")
+    if not isinstance(adjacent_bins, list) or len(adjacent_bins) != 8:
+        raise ValueError("adjacent normal continuity must report eight U bins")
+    adjacent_bin_summary = []
+    for expected_index, row in enumerate(adjacent_bins):
+        if not isinstance(row, dict) or row.get("uBin") != expected_index:
+            raise ValueError("adjacent-normal continuity U bins are not ordered")
+        pair_count = row.get("adjacentTrianglePairCount")
+        geometric = row.get("geometricTriangleNormalDot")
+        parameter = row.get("parameterNormalDot")
+        if (
+            not isinstance(pair_count, int)
+            or not isinstance(geometric, dict)
+            or not isinstance(parameter, dict)
+            or geometric.get("comparedPairCount", 0) + geometric.get("undefinedPairCount", 0)
+            != pair_count
+            or parameter.get("comparedPairCount", 0) + parameter.get("undefinedPairCount", 0)
+            != pair_count
+            or geometric.get("undefinedPairCount") != 0
+            or parameter.get("undefinedPairCount") != 0
+            or not isinstance(geometric.get("nonpositiveDotPairCount"), int)
+            or not isinstance(parameter.get("nonpositiveDotPairCount"), int)
+            or parameter.get("nonpositiveDotPairCount") != 0
+        ):
+            raise ValueError("adjacent-normal continuity U-bin statistics are malformed")
+        adjacent_bin_summary.append(
+            {
+                "uBin": expected_index,
+                "adjacentTrianglePairCount": pair_count,
+                "geometricTriangleNormalDot": geometric,
+                "parameterNormalDot": parameter,
+            }
+        )
+    observed_adjacent_edge_u_bins = [
+        (
+            row["adjacentTrianglePairCount"],
+            row["geometricTriangleNormalDot"]["nonpositiveDotPairCount"],
+        )
+        for row in adjacent_bin_summary
+    ]
+    if observed_adjacent_edge_u_bins != EXPECTED_ADJACENT_EDGE_U_BIN_COUNTS:
+        raise ValueError("pinned candidate adjacent-geometric-normal U-bin diagnostic changed")
+    if (
+        sum(row["adjacentTrianglePairCount"] for row in adjacent_bin_summary) != 35_328
+        or sum(
+            row["geometricTriangleNormalDot"]["nonpositiveDotPairCount"]
+            for row in adjacent_bin_summary
+        )
+        != normal_dot_summaries["geometricTriangleNormalDot"]["nonpositiveDotPairCount"]
+        or sum(
+            row["parameterNormalDot"]["nonpositiveDotPairCount"]
+            for row in adjacent_bin_summary
+        )
+        != normal_dot_summaries["parameterNormalDot"]["nonpositiveDotPairCount"]
+    ):
+        raise ValueError("U-bin adjacent-normal statistics do not sum to the global totals")
+
+    return {
+        "schema": continuity["schema"],
+        "diagnosticOnly": continuity["diagnosticOnly"],
+        "admissionAffecting": continuity["admissionAffecting"],
+        "finalTriangleCount": continuity["finalTriangleCount"],
+        "cachedObservationCountAcrossRefinementLevels": continuity[
+            "cachedObservationCountAcrossRefinementLevels"
+        ],
+        "observationCacheLimit": continuity["observationCacheLimit"],
+        "uvWindingSigns": winding,
+        "uBinTriangleAndNonpositiveCounts": [
+            {"uBin": index, "count": count, "nonpositiveCount": nonpositive}
+            for index, (count, nonpositive) in enumerate(observed_u_bins)
+        ],
+        "edgeAdjacency": {
+            key: adjacency[key]
+            for key in (
+                "uniqueEdgeCount",
+                "boundaryEdgeCount",
+                "interiorEdgeCount",
+                "nonmanifoldEdgeCount",
+                "inconsistentInteriorEdgeWindingCount",
+                "adjacentTrianglePairCount",
+            )
+        },
+        "adjacentNormalDotSummaries": normal_dot_summaries,
+        "adjacentNormalContinuityByU8": adjacent_bin_summary,
+        "pinnedFreecadReference": {
+            "reportSha256": FREECAD_REFERENCE_REPORT_SHA256,
+            "matchedPinnedAggregateConstants": True,
+            "referenceFileLoadedByThisTest": False,
+            "comparedPerTriangleAgainstIndependentTriangulation": False,
+            "scope": "E2E compares Rust aggregate counts with pinned constants attributed to this report SHA; it does not open or hash the report file, and FreeCAD evaluated the same Rust candidate",
+        },
     }
 
 
@@ -116,6 +316,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             )
             for row in report.get("edges", [])
         ]
+        orientation_continuity_summary = validate_orientation_continuity(trim_candidate)
         receipt["summary"] = {
             "faceId": report.get("faceId"),
             "surfaceId": report.get("surfaceId"),
@@ -160,6 +361,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
             "nonpositiveTriangleNormalCount": trim_candidate.get(
                 "nonpositiveTriangleNormalCount"
             ),
+            "orientationContinuity": orientation_continuity_summary,
             "trimCandidateRefinementConverged": trim_candidate.get("refinementConverged"),
             "trimCandidateRefinementFailureReason": trim_candidate.get(
                 "refinementFailureReason"
