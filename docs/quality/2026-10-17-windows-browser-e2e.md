@@ -10,11 +10,12 @@ refusal. It does **not** qualify physical geometry, material accuracy, AR
 registration, electrical behavior, production release readiness, or complete
 component coverage.
 
-The final headless run passed on all six boards. A visible Windows Edge run
-passed on ESP32. An earlier visible six-board attempt passed ESP32 and then
-failed while reloading ESP32-natural because the page/context/browser closed;
-that failure is retained as failed evidence. The single-board visible run is a
-separate pass and does not erase the failed multi-board attempt.
+The final headless and visible Windows Edge runs passed on all six boards. An
+earlier visible six-board attempt passed ESP32 and then failed while reloading
+ESP32-natural because the page/context/browser closed. That failure remains in
+the evidence. The GPU-limit test now starts in a fresh browser context instead
+of reloading a live WebGL page; a later full headed run passed. This avoids the
+observed reload path but does not establish the original root cause.
 
 ## Environment and inputs
 
@@ -26,7 +27,7 @@ separate pass and does not erase the failed multi-board attempt.
 - CLI version: `tokito-cli 0.1.0`
 - Browser: Microsoft Edge `155.0.4283.45`
 - Playwright: installed module at `C:\Users\PC\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\node_modules\playwright`; version `1.62.1`
-- Browser test source SHA-256: `dac0a54acb6270e817ad47bcaee9e9df53f6808b6c9509b58d310f8de0833919`
+- Browser test source SHA-256: `6cd371a577a519e46eb46ae0e44ae392e6e48c33b455fac89ee4f7fddf4c2acc`
 - Browser runner SHA-256: `40eb67a74583dd33587349454438e574e4d996a336659ace459e9d87587b9970`
 
 The CLI produced local `twin prototype` assets from the six checked-in fixture
@@ -38,9 +39,9 @@ explicitly accepted where the fixture reports missing models.
 ## Passing results
 
 Headless six-board receipt:
-`output/playwright/pr45-gui-20261017/headless-final/receipt.json`
+`output/playwright/pr45-gui-20261017/headless-fresh-context/receipt.json`
 
-Receipt SHA-256: `2af600720489d9d5ae2982c5ec8110dcdabd862bbe2384b2b1759dfa3f97ced0`.
+Receipt SHA-256: `023d24914a325707e3a9a14299a6945c63ed3775e33cab2a3bf61ac6ce3b8106`.
 
 | Board fixture | Components | Rendered triangles | Missing model exercised | 4K image SHA-256 |
 | --- | ---: | ---: | --- | --- |
@@ -49,7 +50,7 @@ Receipt SHA-256: `2af600720489d9d5ae2982c5ec8110dcdabd862bbe2384b2b1759dfa3f97ce
 | ESP8266 | 34 | 405,594 | No missing-model entry | `788f7107bd6a3d14efe0f235719fc3f8f6f076ea8f87f3b5b04e25ad21fa6edf` |
 | NXP reference | 391 | 108,920 | BH1 | `73fdcf9688f2e146392dad70c181248caad9a28aa4afc0f94a82f6f8aa0a2a04` |
 | NXP refined | 391 | 274,908 | BH1 | `af5832fd443b6d63997a414a510eae9f16912eb40668a1401aa4040f85d1f555` |
-| Ultimaker | 574 | 712,527 | TP527 | `913ae10c15a1084337ed30e8aa3db439592ea17d6de21e6e229582fb199e5ce5` |
+| Ultimaker | 574 | 712,527 | TP527 | `7b683195ffd2571f1fc9a1af950d40acf0df8d8f829e74dec96a2cdd96a15580` |
 
 Each run verified an actual 3840 × 2160 export and the UI reports the selected
 reference exactly. ESP8266 has no missing model in its fixture, so the UI
@@ -70,8 +71,13 @@ Playwright module and a new empty output directory:
 
 ```powershell
 node tests/run_presentation_browser.cjs <installed-playwright-module> output/playwright/pr45-gui-20261017/viewers <new-output-directory>
-node tests/run_presentation_browser.cjs <installed-playwright-module> <single-board-root> <new-headed-output-directory> --headed
+node tests/run_presentation_browser.cjs <installed-playwright-module> output/playwright/pr45-gui-20261017/viewers <new-headed-output-directory> --headed
 ```
+
+The final all-board visible Edge receipt passed all six boards:
+`output/playwright/pr45-gui-20261017/headed-fresh-context/receipt.json`
+
+Receipt SHA-256: `d5ef1ffc5838ac3df75cef3d80e1142c620e7e1f8ffdc87629b39aadc18317c6`.
 
 ## Failed attempt retained
 
@@ -83,8 +89,8 @@ Receipt SHA-256: `1bcb383d278a043907e64410065519bbf6036b29774a1dc78a970049a30d72
 The visible six-board attempt passed ESP32, then failed on ESP32-natural with
 `page.reload: Target page, context or browser has been closed` while waiting for
 navigation to the local `file:` viewer. No root cause was established. The
-later six-board headless run and isolated visible ESP32 run passed. A visible
-all-board run remains unverified and should be repeated on a stable GUI session.
+updated six-board headless and visible runs both passed after the GPU-limit
+probe switched to a fresh context, avoiding that reload path.
 
 ## Local CLI verifier
 

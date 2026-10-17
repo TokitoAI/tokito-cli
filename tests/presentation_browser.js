@@ -59,16 +59,29 @@ async (page) => {
   assert(await page.evaluate(() => tokitoInspection.selected()) === selected.reference,'offline selection failed');
   const statistics = await page.evaluate(() => ({components:tokitoInspection.componentCount,triangles:tokitoInspection.triangleCount,draws:tokitoInspection.drawCount,error:document.querySelector('#error').textContent}));
   assert(!statistics.error && statistics.components === source.components.length,'renderer error or lost identities');
-  await page.context().setOffline(false);
-  // Explicitly simulated GPU-cap refusal, not a claim about another device.
-  await page.addInitScript(() => {
+
+  // Exercise the GPU cap in a fresh context rather than reloading the current
+  // WebGL page. The earlier headed multi-board failure occurred at page.reload;
+  // this isolates the probe and installs the simulated limit before startup.
+  const viewerUrl = page.url();
+  const browser = page.context().browser();
+  assert(browser, 'browser handle unavailable for graphics-limit probe');
+  await page.context().close();
+  const limitedContext = await browser.newContext();
+  await limitedContext.addInitScript(() => {
     const original=WebGL2RenderingContext.prototype.getParameter;
     WebGL2RenderingContext.prototype.getParameter=function(parameter){return parameter===this.MAX_VIEWPORT_DIMS?new Int32Array([1024,1024]):original.call(this,parameter);};
   });
-  await page.reload();
-  await page.waitForFunction(() => document.querySelector('#view').dataset.rendered === 'true');
-  await page.getByRole('button',{name:'Save 4K PNG'}).click();
-  assert((await page.locator('#capture-status').innerText()).includes('exceeds this graphics device limit'),'GPU limit refusal absent');
-  assert(await page.locator('#view').getAttribute('data-rendered')==='true','unsupported capture broke interactive view');
+  const limitedPage = await limitedContext.newPage();
+  limitedPage.setDefaultTimeout(120000);
+  const limitErrors=[];
+  limitedPage.on('pageerror',e=>limitErrors.push(e.message));
+  await limitedPage.goto(viewerUrl,{waitUntil:'load',timeout:120000});
+  await limitedPage.waitForFunction(() => document.querySelector('#view').dataset.rendered === 'true');
+  await limitedPage.getByRole('button',{name:'Save 4K PNG'}).click();
+  assert((await limitedPage.locator('#capture-status').innerText()).includes('exceeds this graphics device limit'),'GPU limit refusal absent');
+  assert(await limitedPage.locator('#view').getAttribute('data-rendered')==='true','unsupported capture broke interactive view');
+  assert(!limitErrors.length,'graphics-limit probe raised browser errors: '+limitErrors.join('; '));
+  await limitedContext.close();
   return {passed:true,board,statistics,png,selected:selected.reference,missingTested:missing?.reference||null,checks:['reference default','selection colour invariance','actual 4K PNG','download button','capture state restoration','material mode roundtrip','exact identity',...(missing?['missing-body disclosure']:[]),'fresh offline rendering','simulated GPU-limit refusal'],geometryQualificationChanged:false};
 }
