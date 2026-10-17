@@ -2,6 +2,7 @@
 // Run on a newly generated real-board prototype; save downloads in its QA cwd.
 async (page) => {
   const assert = (value, message) => { if (!value) throw Error(message); };
+  const settlePaint = async () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await page.waitForFunction(() => document.querySelector('#view').dataset.rendered === 'true');
   await page.setViewportSize({width:1600,height:1000});
   const source = await page.evaluate(() => JSON.parse(document.querySelector('#index').textContent));
@@ -11,7 +12,14 @@ async (page) => {
   assert(await page.evaluate(() => tokitoInspection.presentationProfileId) === 'tokito.ultimaker-studio.v1', 'profile identity');
   assert(await page.locator('#lighting').inputValue() === 'ultimaker-reference', 'default reference lighting');
   const selected = available.find(c => /^U\d+$/.test(c.reference)) || available[0];
-  await page.evaluate(ref => tokitoInspection.select(ref), selected.reference);
+  await page.locator('#search').fill(selected.reference);
+  const selectedButton = page.getByRole('button', {name: new RegExp('^'+selected.reference+' ·')});
+  assert(await selectedButton.count() === 1, 'searched component missing from list');
+  await selectedButton.click();
+  assert(await page.evaluate(() => tokitoInspection.selected()) === selected.reference, 'list click did not select exact identity');
+  const selectionPixels = await page.locator('#selection').evaluate(c => {const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i])n++;return n;});
+  assert(selectionPixels > 0, 'selected component highlight not visible');
+  await page.locator('#search').fill('');
   assert(initial === await page.evaluate(() => tokitoInspection.snapshotImage()), 'selection changed rendered colours');
   const png = await page.evaluate(async () => {
     const data = tokitoInspection.snapshot4k();
@@ -34,18 +42,20 @@ async (page) => {
   await download.saveAs('presentation-'+board+'-4k.png');
   assert((await page.locator('#capture-status').innerText()).includes('3840'), 'download result invisible');
   await page.locator('#lighting').selectOption('material-studio');
+  await settlePaint();
   assert(initial !== await page.evaluate(() => tokitoInspection.snapshotImage()), 'material studio did not change rendering');
   await page.locator('#lighting').selectOption('ultimaker-reference');
+  await settlePaint();
   assert(initial === await page.evaluate(() => tokitoInspection.snapshotImage()), 'reference colours did not restore');
   const missing = source.components.find(c => !c.modelAvailable);
-  if(missing){await page.evaluate(ref => tokitoInspection.select(ref),missing.reference);assert((await page.locator('#status').innerText()).includes('no model available'),'missing body not explicit');}
+  if(missing){const missingButton=page.getByRole('button',{name:new RegExp('^'+missing.reference+' ·')});assert(await missingButton.count()===1,'missing component not listed');await missingButton.click();assert(await page.evaluate(()=>tokitoInspection.selected())===missing.reference,'missing component identity not selected');assert((await page.locator('#status').innerText()).includes('no model available'),'missing body not explicit');await selectedButton.click();}
   await page.locator('#reset').click();
   assert(initial === await page.evaluate(() => tokitoInspection.snapshotImage()), 'reset changed default geometry/camera');
   const html = await page.content();
   await page.context().setOffline(true);
   await page.setContent(html);
   await page.waitForFunction(() => document.querySelector('#view').dataset.rendered === 'true');
-  await page.evaluate(ref => tokitoInspection.select(ref),selected.reference);
+  await page.getByRole('button',{name:new RegExp('^'+selected.reference+' ·')}).click();
   assert(await page.evaluate(() => tokitoInspection.selected()) === selected.reference,'offline selection failed');
   const statistics = await page.evaluate(() => ({components:tokitoInspection.componentCount,triangles:tokitoInspection.triangleCount,draws:tokitoInspection.drawCount,error:document.querySelector('#error').textContent}));
   assert(!statistics.error && statistics.components === source.components.length,'renderer error or lost identities');

@@ -1,12 +1,13 @@
 // Local QA only; uses an explicitly supplied installed Playwright module.
-// node tests/run_presentation_browser.cjs <module> <prototype-root> <new-output-dir>
+// node tests/run_presentation_browser.cjs <module> <prototype-root> <new-output-dir> [--headed]
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {pathToFileURL} = require('node:url');
 
 (async () => {
-  if(process.argv.length !== 5) throw Error('Supply installed Playwright module, prototype root and new output directory');
+  if(process.argv.length < 5 || process.argv.length > 6 || (process.argv[5] && process.argv[5] !== '--headed')) throw Error('Supply installed Playwright module, prototype root, new output directory and optional --headed');
+  const headed=process.argv[5]==='--headed';
   const {chromium} = require(path.resolve(process.argv[2]));
   const sourceRoot = path.resolve(process.argv[3]);
   const outputRoot = path.resolve(process.argv[4]);
@@ -17,11 +18,11 @@ const {pathToFileURL} = require('node:url');
   const boards = fs.readdirSync(sourceRoot,{withFileTypes:true}).filter(d=>d.isDirectory()&&fs.existsSync(path.join(sourceRoot,d.name,'index.html'))).map(d=>d.name).sort();
   if(!boards.length) throw Error('No prototype viewers');
   process.chdir(outputRoot);
-  const receipt={schema:'tokito.presentation-browser-qa.v1',passed:false,testSha256:sha(testFile),boards:[],geometryQualified:false};
+  const receipt={schema:'tokito.presentation-browser-qa.v1',passed:false,testSha256:sha(testFile),runnerSha256:sha(__filename),browserMode:headed?'headed':'headless',boards:[],geometryQualified:false};
   for(const board of boards){
     let browser;
     try{
-      browser=await chromium.launch({channel:'msedge',headless:true,args:['--disable-gpu-shader-disk-cache','--disk-cache-dir='+path.join(outputRoot,'edge-cache')]});
+      browser=await chromium.launch({channel:'msedge',headless:!headed,args:['--disable-gpu-shader-disk-cache','--disk-cache-dir='+path.join(outputRoot,'edge-cache')]});
       const context=await browser.newContext({acceptDownloads:true});
       const page=await context.newPage();page.setDefaultTimeout(120000);
       const errors=[];page.on('pageerror',e=>errors.push(e.message));

@@ -88,8 +88,14 @@ an unrelated `target/debug` cache is not their binary identity.
 Local QA can use an explicitly supplied installed Playwright module:
 
 ```powershell
-node tests/run_presentation_browser.cjs <installed-playwright-module> <prototype-root> <new-QA-directory>
+node tests/run_presentation_browser.cjs <installed-playwright-module> <prototype-root> <new-QA-directory> [--headed]
 ```
+
+Pass `--headed` to exercise the same assertions in visible Windows Edge. The
+receipt records `browserMode` and the runner source hash. The test searches for
+a component, selects it from the UI list, verifies the visible outline and
+exact identity, and checks missing-model disclosure and offline selection.
+Headless remains the default for repeatable local CI-style runs.
 
 The runner launches a real local Edge browser sequentially per board; it does
 not install browser dependencies or execute hosted Actions. In this run the
