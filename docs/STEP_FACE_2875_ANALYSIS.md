@@ -392,6 +392,58 @@ normals, bounded surface deviation and valid closure. Passing this one face test
 would still not establish STEP/library parity or qualify other board models.
 Production admission remains disabled.
 
+## Split-constraint Spade experiment (2026-10-17)
+
+An isolated Spade 2.15.1 constrained-Delaunay experiment allowed refinement to
+split the sampled UV trim constraints. On the same digest-pinned face-2875 input,
+the V5 candidate reduced the V4 result from 53 nonpositive triangle-normal
+alignments to 0/30,636, with a minimum FreeCAD normal alignment of `0.72919`.
+Its mesh/B-rep area ratio was `1.003080`, sampled chord error was
+`0.00012284 mm`, and the original 96 distinct UV boundary samples were retained
+and covered by 530 split edges. FreeCAD found no nonmanifold edges and Euler
+characteristic 1.
+
+This is a bounded experimental improvement, not a geometry repair. The FreeCAD
+comparison still found 128/530 boundary-edge midpoints just outside strict trim
+membership (maximum distance `1.0753e-6 mm`), maximum 3D triangle aspect ratio
+`465.86`, and minimum 3D angle `0.2208°`. The raw FreeCAD reference for the same
+face contains 4,368 triangles, has area ratio `0.999435`, maximum aspect ratio
+`16.77`, and minimum 3D angle `3.59°`. The two meshes are not triangle-for-
+triangle equivalents, but the quality gap shows that the Spade candidate is not
+ready for the production exporter.
+
+The result supports only a narrow hypothesis: on this fixture, allowing split
+constraint edges is associated with the reduction in reversed facets compared
+with V4, which kept those edges fixed. It does not prove a general root cause.
+The experiment does not reevaluate the STEP edge curves at inserted boundary
+points, establish a full surface-deviation bound, qualify a closed shell/solid,
+or produce STEP/GLB output.
+
+The Rust reproduction lives in the separate `tokito-step-evaluation` experiment
+package as `src/bin/model16_spade_candidate.rs`, with Spade pinned exactly to
+`2.15.1`. It accepts only the pinned model-16 face diagnostic, enforces input,
+vertex, triangle and output budgets, refuses to overwrite its output, records
+source/diagnostic/generator hashes, and always writes `geometryQualified: false`,
+`admitted: false` and an empty export list. It is not linked into the Tokito CLI
+production exporter. The dataset-backed local E2E invokes it when the ESP8266
+source set is supplied. That E2E proves bounded reproducibility and mesh topology;
+the independent FreeCAD geometry comparison remains a separate required gate.
+
+Independent artifacts from the initial V5 experiment are under
+`F:\\kannan\\projects\\tokito-cli-verification\\spade-model16-split-constraints-experiment-20261017`:
+
+- Candidate JSON SHA-256: `8323ddbf4be1fe3139df0d3c7c23d05f4e65d18535270bcc1faa031003b84f42`.
+- FreeCAD comparison JSON SHA-256: `5cf0ef13e9a8fb1048082e34354e7b94a4b438065e0ead7dfedbd16ad8ecfb58`.
+- The comparison used FreeCAD 1.1.4 / OCCT 7.8.1 and source SHA-256
+  `7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`.
+
+Next, map each inserted split point back onto its oriented STEP trim edge and
+evaluate the source curve there. Then improve 3D element quality with an
+independent metric-aware experiment and define explicit angle/aspect limits.
+Retest trim membership and deviation adaptively over faces and edges, then
+compare shell closure and solid topology. Keep exporter admission blocked until
+those checks pass on this face and representative nonplanar faces.
+
 Primary references: [Open CASCADE topology training](https://dev.opencascade.org/sites/default/files/pdf/Topology.pdf)
 for surface-normal direction and face orientation; [Open CASCADE 7.4 release
 notes](https://dev.opencascade.org/sites/default/files/documents/release_notes_7.4.0.pdf)
@@ -401,3 +453,56 @@ for the separate `Deflection` and `Angle` meshing parameters and its note that
 deflection control changed. This supports the next independent comparison
 design: record both linear and angular settings and compare the resulting mesh;
 it does not establish that Tokito should reproduce OCCT triangle-for-triangle.
+
+## Source-bound Spade candidate replay (2026-10-17)
+
+The PR experiment now includes a standalone Rust candidate generator in
+`experiments/step-evaluation/src/bin/model16_spade_candidate.rs`. It reads and
+hashes the actual bounded STEP input, requires the digest-pinned face diagnostic,
+and records the exact generator source hash and Spade 2.15.1 parameters. It
+refuses existing output paths and is separate from the production CLI exporter.
+The dataset-backed E2E independently reconstructs UV topology and metrics from
+the emitted candidate instead of trusting the candidate's stored topology
+summary.
+
+For the pinned source face #2875, the candidate contains 15,584 vertices,
+46,219 edges and 30,636 UV triangles. The E2E confirms preservation of all 96
+original trim samples, coverage by 530 split boundary edges, no nonmanifold
+edges or inconsistent interior winding, and Euler characteristic 1. It checks
+all candidate vertices, boundary-edge midpoints and triangle centroids against
+the trim polygon; computed UV area is `0.986957584731915`, matching the trim-loop
+area `0.9869575847319102`. The minimum UV triangle angle is `20.00619°` and the
+maximum UV triangle area is below the configured `5e-5` limit. These are bounded
+UV-patch checks, not proof of a valid 3D face or solid.
+
+FreeCAD 1.1.4 / OCCT 7.8.1 independently evaluated the same candidate against
+its imported B-rep face 231. It found zero reversed or degenerate triangles,
+minimum normal alignment `0.72919`, mesh/B-rep area ratio `1.003080`, and
+sampled chord error `0.00012284 mm` against the configured `0.005 mm`. It also
+found 128/530 boundary-edge midpoints outside strict trim membership (maximum
+distance `1.0753e-6 mm`), maximum 3D aspect ratio `465.86`, and minimum 3D angle
+`0.22079°`. FreeCAD evaluated the Rust mesh; it did not generate an independent
+triangulation. The inserted split boundary points are not reevaluated on the
+source STEP edge curves, and the sampled chord metric is not a complete surface
+deviation bound.
+
+This replay demonstrates a reproducible, source-bound experiment, not a
+geometry repair. The candidate and FreeCAD report both remain research-only:
+`geometryQualified` and `admitted` are false, and `exportsProduced` is empty.
+The raw candidate JSON SHA-256 is
+`7160344b3d04102a6ab39b06dfda6fefbf7c4d73f47ccb88a6ad500f99c2f22f`; the
+independent FreeCAD report SHA-256 is
+`5b70bce15c3761244869eca5b3815d9d1d6bd09175570e9e04c2be2aa267e658`. Both
+reports bind source SHA-256
+`7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f` and
+diagnostic SHA-256
+`6583d6d1b4b48a3ea7d9e1181beeb62d652b2894c7bf3c24b6e1428d0b1f387b`. The
+The current dataset-backed E2E receipt SHA-256 is
+`805330283071330ef8b126ba63db2c63649c9a8d154f713a0c69424caa834731`.
+
+The next gate is to evaluate every inserted boundary point on its source STEP
+curve, add adaptive normal and surface-deviation checks, and compare against an
+independently generated triangulation with recorded settings. Validate complete
+shell and solid topology before considering production exporter integration.
+Until then, do not describe this candidate as a repaired STEP face or complete
+component model.

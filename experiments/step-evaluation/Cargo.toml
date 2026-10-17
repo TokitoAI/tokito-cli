@@ -2,6 +2,7 @@
 name = "tokito-step-evaluation"
 version = "0.0.0"
 edition = "2021"
+rust-version = "1.87"
 publish = false
 
 [workspace]
@@ -11,3 +12,4 @@ oxideav-step = { version = "=0.0.1", default-features = false }
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"
 oxideav-ifc = { version = "=0.0.3", default-features = false }
+spade = "=2.15.1"

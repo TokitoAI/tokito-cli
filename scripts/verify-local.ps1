@@ -255,7 +255,7 @@ try {
         @{ name = 'surface-distance-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked') },
         @{ name = 'surface-distance-build'; command = $cargoCommand.Source; arguments = @('rustc', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--example', 'surface_distance', '--offline', '--locked', '--', '-C', 'opt-level=2') },
         @{ name = 'step-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
-        @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'step-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--bins', '--offline', '--locked') },
         @{ name = 'altium-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'altium-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
@@ -321,12 +321,13 @@ try {
         $occurrenceOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-occurrence-world-e2e'
         $altiumOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-altium-e2e'
         $stepBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-step-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
+        $stepCandidateBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/model16_spade_candidate' + $(if ($IsWindows) { '.exe' } else { '' }))
         $altiumBinary=Join-Path $env:CARGO_TARGET_DIR ('debug/tokito-altium-evaluation' + $(if ($IsWindows) { '.exe' } else { '' }))
         $model16Source=Join-Path $Esp8266SourceRoot 'structured-source/embedded-models/16.step'
         Assert-NoLinkedPath $model16Source
         if (-not (Test-Path -LiteralPath $model16Source -PathType Leaf)) { throw "Missing pinned ESP8266 model-16 source: $model16Source" }
         $model16TrimOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-model16-source-face-trim-e2e'
-        $checks += @{ name='esp8266-model16-source-face-trim-e2e'; command=$pythonCommand.Source; arguments=@('experiments/step-evaluation/tests/model16_source_face_trim_e2e.py','--binary',$stepBinary,'--source',$model16Source,'--output',$model16TrimOutput); receiptPath=(Join-Path $model16TrimOutput 'receipt.json') }
+        $checks += @{ name='esp8266-model16-source-face-trim-e2e'; command=$pythonCommand.Source; arguments=@('experiments/step-evaluation/tests/model16_source_face_trim_e2e.py','--binary',$stepBinary,'--source',$model16Source,'--output',$model16TrimOutput,'--candidate-generator',$stepCandidateBinary); receiptPath=(Join-Path $model16TrimOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-units-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_units_e2e.py','--binary',$stepBinary,'--models',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--source-receipt',$Esp8266UnitReceipt,'--output',$stepOutput); receiptPath=(Join-Path $stepOutput 'receipt.json') }
         $checks += @{ name='esp8266-step-occurrence-world-e2e'; command=$pythonCommand.Source; arguments=@('tests/step_occurrence_world_e2e.py','--binary',$stepBinary,'--models-root',(Join-Path $Esp8266SourceRoot 'structured-source/embedded-models'),'--reference',$Esp8266FreecadReference,'--source-receipt',(Join-Path $stepOutput 'receipt.json'),'--output',$occurrenceOutput); receiptPath=(Join-Path $occurrenceOutput 'receipt.json') }
         $candidateMeshOutput=Join-Path $env:CARGO_TARGET_DIR 'esp8266-step-candidate-mesh-e2e'

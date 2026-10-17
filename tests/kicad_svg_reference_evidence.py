@@ -18,8 +18,17 @@ def sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def windows_capture_bytes(raw: bytes) -> bytes:
+    """Reconstruct the original Windows CRLF byte stream from Git checkouts."""
+    lf = raw.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return lf.replace(b"\n", b"\r\n")
+
+
 def inspect_svg(path: Path) -> dict:
-    raw = path.read_bytes()
+    # The pinned native captures were produced on Windows. Git stores the
+    # checked-in SVGs with LF, so hash the reconstructed capture bytes rather
+    # than allowing checkout line endings to invalidate the evidence digest.
+    raw = windows_capture_bytes(path.read_bytes())
     normalized, count = TITLE.subn(b"<title>__normalized__</title>", raw, count=1)
     assert count == 1, f"expected one SVG title node: {path}"
     root = ET.fromstring(raw)
@@ -45,7 +54,9 @@ def main() -> None:
     assert manifest_105["schema"] == manifest_107["schema"]
     captures = manifest_107["executable_captures"]
     version_bytes = (REF_107 / captures["version_path"]).read_bytes()
-    help_bytes = (REF_107 / captures["svg_help_path"]).read_bytes()
+    help_bytes = windows_capture_bytes(
+        (REF_107 / captures["svg_help_path"]).read_bytes()
+    )
     assert sha256(version_bytes) == captures["version_sha256"]
     assert version_bytes.strip() == b"10.0.7"
     assert sha256(help_bytes) == captures["svg_help_sha256"]
