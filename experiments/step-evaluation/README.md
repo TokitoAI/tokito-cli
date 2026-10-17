@@ -20,7 +20,8 @@ diagnostics:
 
 ```powershell
 cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- `
-  --diagnose-source-face 2875 path\to\embedded-models\16.step
+  --diagnose-source-face 2875 `
+  --source-representation 5957 path\to\embedded-models\16.step
 
 python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
   --binary path\to\tokito-step-evaluation.exe `
@@ -30,6 +31,11 @@ python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
 
 This diagnostic always exits **2**, produces no export, and leaves admission
 false. Its shared-kernel inverse scan has a separate aggregate work budget.
+When an explicit shape representation is supplied, the probe verifies that
+the representation contains the selected face and reports the context's
+declared length uncertainty after unit conversion. This is provenance and
+diagnostic metadata only; it does not relax numerical projection status or
+serve as an acceptance tolerance.
 The optional triangulation is a research candidate only: independent FreeCAD
 checks still find nonpositive normal alignment and unresolved area convergence.
 Its diagnostic-pass receipt confirms evidence collection, not geometry quality.

@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import tempfile
 from glb_e2e import invoke, parse_glb, accessor_floats
+from e2e_temp import e2e_temp_root
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests/fixtures/assembly-e2e/single-resistor.kicad_pcb"
@@ -13,7 +14,7 @@ TRIANGLE = b"#VRML V2.0 utf8\nShape { geometry IndexedFaceSet { coord Coordinate
 
 
 def run(binary):
-    with tempfile.TemporaryDirectory(prefix="assignment-e2e-", dir=ROOT / "target") as directory:
+    with tempfile.TemporaryDirectory(prefix="assignment-e2e-", dir=e2e_temp_root(ROOT / "target")) as directory:
         root = Path(directory)
         board = root / "board.kicad_pcb"
         text = FIXTURE.read_text(encoding="utf-8").rstrip()

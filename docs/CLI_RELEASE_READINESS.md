@@ -1,4 +1,4 @@
-# CLI release readiness — 2026-10-16
+# CLI release readiness — 2026-10-17
 
 Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
@@ -23,17 +23,19 @@ candidate models are not manufacturer-qualified engineering truth.
 
 ## Gates
 
-The expanded local profile has 46 gates, including the independent Rust
-sample-distance validator, footprint/library and dataset journeys, pinned KiCad
+The expanded local profile has 48 gates, including temp-path confinement tests,
+the final output-tree audit, the independent Rust sample-distance validator,
+footprint/library and dataset journeys, pinned KiCad
 10.0.7 comparisons, the required SVG reference-evidence validator, and the STEP,
 Altium and twin-refinement experiment crates. Current-source Windows verification
-passed 46/46 gates on 2026-10-17 with Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5.
+passed 48/48 gates on 2026-10-17 with Cargo 1.94.1, Rust 1.94.1 and Python 3.11.5.
 The production CLI was compiled
 with the optimized release profile and its subprocess E2Es passed. A trusted
 Cargo target cache was reused; this was not a clean-cache or independent-machine
 verification. The test-only fault-injection binary uses the debug profile to
-avoid exhausting memory on this 8 GB Windows machine. The exact local receipt
-and delivered binary digest are recorded in PR #45.
+avoid exhausting memory on this 8 GB Windows machine. The verifier reused the
+trusted F: Cargo cache and its receipt is bound in the external evidence record
+at `F:\\kannan\\projects\\tokito-cli-verification\\model16-source-uncertainty-final2-20261017\\evidence-receipt.json`.
 
 The opt-in planar repair has a passing pinned model-14 reference comparison,
 documented in [STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not
@@ -50,13 +52,13 @@ not qualify geometry or add production STEP support.
 
 The current delivery receipt, model-14 reference receipt and model-16 face
 diagnostic receipt are recorded in PR #45. Independent clean-machine
-installation remains unverified. The 46-gate run includes an offline validator
+installation remains unverified. The 48-gate run includes an offline validator
 for the pinned KiCad 10.0.7 SVG reference evidence; it verifies recorded source
 and output hashes and bounded comparisons, but does not rerun KiCad.
 
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Current-source local Windows run passed 46/46 gates; the receipt and binary hash are recorded in PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
+| Existing CLI foundation | Current-source local Windows run passed 48/48 gates; the receipt and binary hash are bound in the external evidence record and PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
 | Source review | Independent read-only review found no remaining code blocker; its cross-frame documentation finding was corrected and covered by scoped evidence | Review subsequent implementation changes |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
@@ -69,7 +71,7 @@ and output hashes and bounded comparisons, but does not rerun KiCad.
 
 ## Release recommendation
 
-The current branch has passed its local 46-gate suite, but is not ready for a
+The current branch has passed its local 48-gate suite, but is not ready for a
 production release: clean-machine installation, KiCad/footprint-library parity,
 qualified STEP geometry, and component-model completeness remain open. A
 clearly scoped Windows preview / release candidate could be considered only
@@ -130,7 +132,7 @@ this narrative update. Every gate executed; trusted Cargo cache reuse does not
 mean a clean dependency build. The run covers normal commands and feature-gated
 subprocess failures during all three twin exports, plus 175 root tests and the
 existing board/export/footprint/library/package journeys. This checkpoint was
-superseded by the documentation-inclusive 46/46 current-source verification
+superseded by the documentation-inclusive 48/48 current-source verification
 described in the Gates section above and recorded with PR #45.
 
 PE import-table inspection of the tested executable found VCRUNTIME140.dll and

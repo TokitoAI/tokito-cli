@@ -44,6 +44,8 @@ $rustcPath = if ($env:RUSTC) { $env:RUSTC } else { Join-Path (Split-Path -Parent
 $rustcCommand = Get-Command $rustcPath -ErrorAction Stop
 $previousTarget = $env:CARGO_TARGET_DIR
 $previousRustc = $env:RUSTC
+$previousE2eTempRoot = $env:TOKITO_E2E_TEMP_ROOT
+$previousCargoBuildJobs = $env:CARGO_BUILD_JOBS
 
 function Assert-LocalOutputPath([string]$Path) {
     $fullPath = [System.IO.Path]::GetFullPath($Path)
@@ -74,6 +76,31 @@ function Assert-NoLinkedPath([string]$Path) {
         if (-not $parentPath -or [string]::Equals($parentPath, $currentPath, [StringComparison]::OrdinalIgnoreCase)) { break }
         $currentPath = $parentPath
     }
+}
+
+function Assert-NoLinkedTree([string]$Path) {
+    Assert-NoLinkedPath $Path
+    if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+        throw "Verification output directory is missing: $Path"
+    }
+    foreach ($item in (Get-ChildItem -LiteralPath $Path -Recurse -Force -ErrorAction Stop)) {
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
+            throw "Linked verification output is not allowed: $($item.FullName)"
+        }
+    }
+}
+
+function Initialize-VerifiedOutputDirectory([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($TargetBase)) {
+        Assert-LocalOutputPath $Path
+    } else {
+        Assert-NoLinkedPath $Path
+    }
+    if (Test-Path -LiteralPath $Path -PathType Leaf) {
+        throw "Verification output path is not a directory: $Path"
+    }
+    New-Item -ItemType Directory -Path $Path -Force -ErrorAction Stop | Out-Null
+    Assert-NoLinkedTree $Path
 }
 
 function Get-InputFingerprints {
@@ -110,8 +137,13 @@ function Get-InputFingerprints {
 Push-Location -LiteralPath $projectRoot
 try {
     $env:RUSTC = $rustcCommand.Source
+    # Keep the Windows linker workload bounded on memory-constrained hosts.
+    # A caller may explicitly request more parallelism through the environment.
+    if ([string]::IsNullOrWhiteSpace($env:CARGO_BUILD_JOBS)) {
+        $env:CARGO_BUILD_JOBS = '1'
+    }
     # Fresh outputs avoid replacing Windows test executables that may be locked.
-    # Each run remains isolated inside this checkout; previous evidence is retained.
+    # Each run remains isolated under the selected base; prior evidence is retained.
     $verificationRun = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N')
     if ([string]::IsNullOrWhiteSpace($TargetBase)) {
         $targetParent = Join-Path $projectRoot 'target/local-verification'
@@ -162,6 +194,10 @@ try {
             }
         }
     }
+    $env:TOKITO_E2E_TEMP_ROOT = Join-Path $targetParent 'e2e-scratch'
+    $modelResolutionOutputPath = Join-Path $targetParent 'model-resolution-e2e'
+    $compatibilityOutputPath = Join-Path $targetParent 'compat-v0'
+    $realCliOutputPath = Join-Path $targetParent 'real-cli-e2e'
     $binaryName = if ($IsWindows) { 'tokito-cli.exe' } else { 'tokito-cli' }
     $binaryPath = Join-Path $env:CARGO_TARGET_DIR "release/$binaryName"
     $bundleHookTarget = Join-Path $env:CARGO_TARGET_DIR 'bundle-test-hooks'
@@ -170,10 +206,20 @@ try {
     # bounded; the production binary above still uses the release profile.
     $bundleHookBinary = Join-Path $bundleHookTarget "debug/$binaryName"
     $geometryOutputPath = Join-Path $env:CARGO_TARGET_DIR "geometry-e2e/$verificationRun"
+    foreach ($outputPath in @(
+        $env:TOKITO_E2E_TEMP_ROOT,
+        $modelResolutionOutputPath,
+        $compatibilityOutputPath,
+        $realCliOutputPath,
+        $geometryOutputPath
+    )) {
+        Initialize-VerifiedOutputDirectory $outputPath
+    }
     $inputs = Get-InputFingerprints
     $checks = @(
         @{ name = 'format'; command = $cargoCommand.Source; arguments = @('fmt', '--all', '--check') },
         @{ name = 'embedded-dataset-verifier-tests'; command = $pythonCommand.Source; arguments = @('tests/test_embedded_dataset_e2e.py') },
+        @{ name = 'temp-path-safety-tests'; command = $pythonCommand.Source; arguments = @('tests/test_e2e_temp.py') },
         @{ name = 'tests'; command = $cargoCommand.Source; arguments = @('test', '--offline', '--locked') },
         @{ name = 'clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
         @{ name = 'release'; command = $cargoCommand.Source; arguments = @('build', '--release', '--offline', '--locked') },
@@ -183,8 +229,8 @@ try {
         @{ name = 'kicad-10.0.7-svg-reference-evidence'; command = $pythonCommand.Source; arguments = @('tests/kicad_svg_reference_evidence.py') },
         @{ name = 'geometry-e2e'; command = $pythonCommand.Source; arguments = @('tests/geometry_e2e.py', '--binary', $binaryPath, '--output-dir', $geometryOutputPath) },
         @{ name = 'glb-e2e'; command = $pythonCommand.Source; arguments = @('tests/glb_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath) },
+        @{ name = 'model-resolution-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_resolution_e2e.py', '--binary', $binaryPath, '--temp-root', $modelResolutionOutputPath) },
+        @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath, '--output-root', $compatibilityOutputPath) },
         @{ name = 'bom-e2e'; command = $pythonCommand.Source; arguments = @('tests/bom_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
@@ -201,7 +247,7 @@ try {
         @{ name = 'twin-e2e'; command = $pythonCommand.Source; arguments = @('tests/twin_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-source-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_e2e.py', '--binary', $binaryPath) },
         @{ name = 'dataset-git-e2e'; command = $pythonCommand.Source; arguments = @('tests/dataset_git_e2e.py', '--binary', $binaryPath) },
-        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath) },
+        @{ name = 'real-cli-e2e'; command = (Join-Path $PSHOME 'pwsh.exe'); arguments = @('-NoProfile', '-File', 'scripts/real-cli-e2e.ps1', '-BinaryPath', $binaryPath, '-OutputRoot', $realCliOutputPath) },
         @{ name = 'step-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'step-reference-tests'; command = $pythonCommand.Source; arguments = @('experiments/step-evaluation/tests/test_solid_reference.py') },
         @{ name = 'step-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/step-evaluation/Cargo.toml', '--offline', '--locked') },
@@ -213,7 +259,8 @@ try {
         @{ name = 'altium-probe-format'; command = $cargoCommand.Source; arguments = @('fmt', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--all', '--check') },
         @{ name = 'altium-probe-tests'; command = $cargoCommand.Source; arguments = @('test', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
         @{ name = 'altium-probe-clippy'; command = $cargoCommand.Source; arguments = @('clippy', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked', '--all-targets', '--', '-D', 'warnings') },
-        @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') }
+        @{ name = 'altium-probe-build'; command = $cargoCommand.Source; arguments = @('build', '--manifest-path', 'experiments/altium-evaluation/Cargo.toml', '--offline', '--locked') },
+        @{ name = 'output-path-audit'; command = $pythonCommand.Source; arguments = @('tests/output_paths_audit.py', '--base', $targetParent, '--path', $env:TOKITO_E2E_TEMP_ROOT, '--path', $modelResolutionOutputPath, '--path', $compatibilityOutputPath, '--path', $realCliOutputPath, '--path', $geometryOutputPath) }
     )
     $embeddedDatasetInputs = @($EmbeddedDatasetBoard, $EmbeddedDatasetBoardSha256, $EmbeddedDatasetExpectedModelCount, $EmbeddedDatasetExpectedCapturedBytes, $EmbeddedDatasetExpectedFormat)
     $embeddedDatasetInputCount = @($embeddedDatasetInputs | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count
@@ -464,6 +511,16 @@ try {
         }
         $results += $checkResult
     }
+    $outputSafetyRoots = @(
+        $env:TOKITO_E2E_TEMP_ROOT,
+        $modelResolutionOutputPath,
+        $compatibilityOutputPath,
+        $realCliOutputPath,
+        $geometryOutputPath
+    )
+    foreach ($outputSafetyRoot in $outputSafetyRoots) {
+        Assert-NoLinkedTree $outputSafetyRoot
+    }
     if (($inputs | ConvertTo-Json -Compress) -ne ((Get-InputFingerprints) | ConvertTo-Json -Compress)) {
         throw 'Source/test inputs changed during verification; rerun before delivery.'
     }
@@ -516,9 +573,17 @@ try {
         pythonVersion = "$pythonVersion"
         buildConfiguration = @{
             cachePolicy = if ([string]::IsNullOrWhiteSpace($ReuseBuildTarget)) { 'isolated-new-target' } else { 'reuse-existing-target' }
+            cargoBuildJobs = $env:CARGO_BUILD_JOBS
             devDebug = $env:CARGO_PROFILE_DEV_DEBUG
             testDebug = $env:CARGO_PROFILE_TEST_DEBUG
             incremental = $env:CARGO_INCREMENTAL
+        }
+        outputPathSafety = @{
+            base = [System.IO.Path]::GetFullPath($targetParent)
+            preflightPassed = $true
+            postflightPassed = $true
+            checkedRoots = $outputSafetyRoots
+            policy = 'Reject reparse points in output-root ancestors and descendants; require canonical output roots beneath the selected verification base.'
         }
         checks = $results
         inputsSha256 = $inputs
@@ -531,5 +596,7 @@ try {
 finally {
     $env:RUSTC = $previousRustc
     $env:CARGO_TARGET_DIR = $previousTarget
+    $env:TOKITO_E2E_TEMP_ROOT = $previousE2eTempRoot
+    $env:CARGO_BUILD_JOBS = $previousCargoBuildJobs
     Pop-Location
 }

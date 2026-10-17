@@ -1,4 +1,6 @@
 //! Synthetic byte assets exercise lookup/security only, never mesh correctness.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
@@ -19,8 +21,7 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/model-resolver-tests");
-        fs::create_dir_all(&parent).unwrap();
+        let parent = test_scratch::directory("model-resolver-tests");
         let root = parent.join(format!(
             "{}-{}",
             std::process::id(),

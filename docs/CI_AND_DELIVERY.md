@@ -19,13 +19,26 @@ Default isolated runs use `target/local-verification/<run-id>` and deliver to `t
   -DeliveryBase 'D:\kannan\projects\tokito ecosystem\work\cli-delivery'
 ```
 
-Paths above are local examples, not required runtime locations. The runner requires absolute alternate parents and rejects reparse points. Each run gets a new directory and preserves prior receipts and binaries. [The migration path map](LOCAL_OUTPUT_LOCATIONS.md) resolves historical F and external-D receipts; do not rewrite historical execution telemetry.
+Paths above are local examples, not required runtime locations. The baseline verifier requires absolute alternate parents and rejects reparse points in output-root ancestors and existing descendants. Each run gets a new directory and preserves prior receipts and binaries. [The migration path map](LOCAL_OUTPUT_LOCATIONS.md) resolves historical F and external-D receipts; do not rewrite historical execution telemetry.
+
+When `-TargetBase` is outside the checkout, the baseline profile routes Python
+and Rust integration-test scratch data to `<TargetBase>/e2e-scratch`, compatibility
+fixtures to `<TargetBase>/compat-v0`, and the real subprocess acceptance output
+to `<TargetBase>/real-cli-e2e`. It checks these five baseline output roots before
+writing, recursively audits their children before and after the run, and requires
+their canonical paths to stay beneath the selected base. Optional dataset
+profiles create additional outputs and are not covered by this five-root postflight
+tree audit; do not infer that the baseline receipt validates an optional profile.
+Python and Rust scratch helpers reject linked path components and enforce
+child-root containment.
+`TOKITO_E2E_TEMP_ROOT` is scoped to the verifier process and restored afterward,
+so a low-space checkout drive does not receive generated test files.
 
 ## Current checks and evidence
 
-The current baseline profile contains **45 checks**: format; embedded-dataset verifier tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS and footprint-type filtering, CLI experience, command-completion journeys, twin ordinary-error rollback, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP reference ownership/receipt tests and experiment format/tests/torus regression/Clippy/build; native sample-distance tests and optimized build; Altium experiment format/tests/Clippy/build; and twin-refinement format/tests/Clippy/build. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
+The current baseline profile contains **48 checks**: format; embedded-dataset and temp-path-safety tests; locked offline tests; warnings-denied Clippy; release build; subprocess CLI, KiCad 10.0.7 POS and footprint-type filtering, CLI experience, command-completion journeys, twin ordinary-error rollback, geometry, GLB, model-resolution, v0.1 compatibility, BOM, assignment, component-envelope, project-intake, project-bundle, project-bundle test-hook build/cleanup, footprint-family/specification/inspection, twin, dataset-source/Git, and real-CLI acceptance; STEP reference ownership/receipt tests and experiment format/tests/torus regression/Clippy/build; native sample-distance tests and optimized build; Altium experiment format/tests/Clippy/build; twin-refinement format/tests/Clippy/build; and final output-path audit. Count actual `checks` in each receipt when selecting optional inputs. Older receipts describe their original source snapshots and profiles.
 
-The main E2E runs real subprocesses on four pinned open-source PCB fixtures. It checks SVG/package/placement output, no-overwrite and refusal behavior, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons and the bounded SVG DNP Fab-filter comparison. GLB tests check container structure, bounds, area, winding, closed edges, explicit partial consent and exact renderable component selectors. These fixtures are parser/export evidence, not proof that every dataset board is qualified.
+The main E2E runs real subprocesses on four pinned open-source PCB fixtures. It checks SVG/package/placement output, no-overwrite and refusal behavior, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons and the bounded SVG DNP Fab-filter comparison. GLB tests check container structure, bounds, area, winding, closed edges, explicit partial consent and exact renderable component selectors. The real CLI journey creates its actual acceptance outputs under the selected target parent and records an independent receipt. These fixtures are parser/export evidence, not proof that every dataset board is qualified.
 
 The runner fingerprints source, tests, reference files, docs and scripts before and after verification. Generated Python bytecode, compiler target trees and KiCad `.kicad_prl` per-user editor preferences are excluded; the latter are machine-local UI state, not board-source fixtures. It copies only the tested executable, checks that copy's size/hash, and emits `verification.json` only when every selected check passes and the input fingerprints remain unchanged. A failed or skipped required test blocks delivery. The receipt records toolchain/platform, individual results, source hashes, binary hash/size and explicit limitations.
 
@@ -54,8 +67,10 @@ Only use a trusted cache created by your own verification runs.
 
 On a storage-constrained Windows machine, set `TEMP` and `TMP` in the invoking
 process to an existing writable directory on the authorized build drive before
-running the script. Child Python/Rust tests inherit those paths. This does not
-change system environment settings, skip checks or clean unrelated files.
+running the script. Child Python/Rust tests inherit those paths. The verifier
+defaults Cargo to one build job on memory-constrained hosts; set
+`CARGO_BUILD_JOBS` explicitly to override it. This does not change system
+environment settings, skip checks or clean unrelated files.
 The 2026-10-16 base run passed all 40 gates with this setup; C: disk exhaustion
 in the preceding run was an infrastructure failure, not a passing result.
 
@@ -71,7 +86,7 @@ Required paired inputs must exist and match the selected profile. Dataset E2E pr
 
 ## Limits and repository delivery
 
-The current base profile has 46 gates, including original Rust
+The current base profile has 48 gates, including original Rust
 `surface_distance` example tests and its optimized (`-C opt-level=2`) build.
 It also requires the offline pinned KiCad 10.0.7 SVG evidence validator.
 This is development-only independent validation tooling, not a product native

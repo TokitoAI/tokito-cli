@@ -185,6 +185,12 @@ pub(crate) fn selected_context(step: &StepFile, id: u64) -> Result<Json, String>
     Audit { step, work: 0 }.context(id)
 }
 
+/// Resolve one explicitly referenced length-unit entity without inferring an
+/// active representation or applying the result to geometry admission.
+pub(crate) fn length_unit_metres_per_unit(step: &StepFile, id: u64) -> Result<f64, String> {
+    Audit { step, work: 0 }.length(id, 0, &mut BTreeSet::new(), &mut Vec::new())
+}
+
 pub(crate) fn shape(inst: &ParsedInstance) -> Result<(), String> {
     if inst.parts.is_empty() {
         if attribute_order(&inst.keyword).is_none_or(|order| order.len() != inst.args.len()) {

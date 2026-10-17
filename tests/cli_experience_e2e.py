@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+from e2e_temp import e2e_temp_root
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,7 +56,7 @@ def main():
     assert report['scope'] == 'runtime_information_only' and report['status'] == 'passed'
     assert not report['geometryQualified'] and not report['appAdmissionAuthorized']
 
-    with tempfile.TemporaryDirectory(prefix='cli-experience-', dir=ROOT/'target') as temporary:
+    with tempfile.TemporaryDirectory(prefix='cli-experience-', dir=e2e_temp_root(ROOT/'target')) as temporary:
         root = Path(temporary)
         project = root/'project'; project.mkdir()
         source = (ROOT/'tests/fixtures/assembly-e2e/single-resistor.kicad_pcb').read_bytes()

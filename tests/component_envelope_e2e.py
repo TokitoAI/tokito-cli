@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+from e2e_temp import e2e_temp_root
 
 from glb_e2e import accessor_floats, invoke, parse_glb
 
@@ -13,7 +14,7 @@ FIXTURE = ROOT / "tests/fixtures/assembly-e2e/single-resistor.kicad_pcb"
 
 
 def run(binary: Path) -> None:
-    with tempfile.TemporaryDirectory(prefix="component-envelope-e2e-", dir=ROOT / "target") as temp:
+    with tempfile.TemporaryDirectory(prefix="component-envelope-e2e-", dir=e2e_temp_root(ROOT / "target")) as temp:
         root = Path(temp)
         board = root / "board.kicad_pcb"
         board.write_bytes(FIXTURE.read_bytes())

@@ -1,5 +1,7 @@
 //! Public physical-geometry regressions. Synthetic shapes are mathematical test
 //! inputs and do not establish manufactured board or reference-oracle acceptance.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -7,8 +9,7 @@ use tokito_cli::topology::{ContourRole, JOIN_TOLERANCE_MM, OutlineDiagnosticCode
 use tokito_cli::{PhysicalBoardDocument, SvgSide};
 
 fn board_with_outline(outline: &str) -> PhysicalBoardDocument {
-    let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/topology-tests");
-    fs::create_dir_all(&parent).unwrap();
+    let parent = test_scratch::directory("topology-tests");
     let parent = parent.canonicalize().unwrap();
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)

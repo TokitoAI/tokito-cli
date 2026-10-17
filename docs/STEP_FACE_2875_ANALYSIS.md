@@ -116,10 +116,11 @@ and cross-face consistency remain unverified. The candidate remains
 an experimental, single-face change; it does not add production STEP support.
 
 The bounded UV inverse is not fully converged: 27/100 source-boundary samples
-and 392/1,440 source-edge midpoint probes are marked non-converged even though
-their residuals meet the diagnostic's `1e-5` bound. The exact mesh boundary
-coordinates come from STEP vertices/curves, so the containment result does not
-prove that these UV projections are accurate enough for production.
+and 392/1,440 source-edge midpoint probes are marked non-converged. Their
+residuals are separately compared with the explicitly selected representation's
+declared source uncertainty below. The exact mesh boundary coordinates come
+from STEP vertices/curves, so the containment result does not prove that these
+UV projections are accurate enough for production.
 
 An independent combinatorial audit of the candidate mesh found 3,393 vertices,
 9,408 unique edges and 6,016 triangles; all 768 boundary edges have incidence
@@ -131,16 +132,41 @@ does not clear its failed normal, UV-inverse, area, or cross-face gates.
 
 The non-overwriting evidence receipt for this tightened E2E and full local
 verification is
-`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-edge-topology-final2-20261017\\evidence-receipt.json`.
-It binds the fresh full Windows verifier receipt (46/46 checks passed; CLI
-SHA-256 recorded in the combined receipt),
-the source-face E2E, the independent FreeCAD report, macro, source, and input
-reports. The E2E's exact output path and receipt hash are captured in the
-combined evidence receipt. The current FreeCAD report SHA-256 is
+`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-uncertainty-final2-20261017\\evidence-receipt.json`.
+It binds the full Windows verifier receipt, the source-face E2E, the independent
+FreeCAD report, macro, source, and input reports. The E2E's exact output path and
+receipt hash are captured in the combined evidence receipt. The verifier profile
+contains 48 gates, including pre/postflight output-path confinement checks. The
+current FreeCAD report SHA-256 is
 `038764afbd2cb56f96dbddbe208c7322f6c62618638a01466622c8505f2c8a0e`. The fresh
 model-16 diagnostic E2E was run separately against the current step-evaluation
 binary; its output is under
-`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-edge-topology-e2e-20261017c\\`.
+`F:\\kannan\\projects\\tokito-cli-verification\\model16-source-uncertainty-e2e-20261017d\\`.
+
+## Declared source uncertainty checkpoint (2026-10-17)
+
+The E2E now pins the face-owning physical representation rather than assuming
+that an uncertainty declaration found elsewhere in the STEP file applies to
+this face. Representation `#5957` contains manifold-solid item `#6218`, whose
+shell contains face `#2875`; its geometric context is `#206`. That context
+assigns uncertainty measure `#7888` in millimetre unit `#5056`, yielding a
+declared length uncertainty of `1e-5 mm` in the context units.
+
+All 100 source-boundary and 1,440 source-edge midpoint projection residuals
+fall within this declared value. Their maximum is `1.08084e-6 mm`. The
+diagnostic keeps the stricter numerical solver status separate: 27/100
+boundary projections and 392/1,440 midpoint projections remain marked
+non-converged by the numerical criterion. The declared uncertainty is reported
+as source metadata only; the E2E does not use it as an admission tolerance or
+clear failed normal, area, trim-projection, or complete-solid gates.
+
+The source-context lookup currently requires exactly one assigned uncertainty
+entry, validates its length unit independently from the context unit, and
+refuses missing, ambiguous, malformed, or non-length uncertainty declarations.
+CLI syntax for an
+explicitly selected face-owning representation is documented in the
+step-evaluation README. The diagnostic still exits with refusal, admits no
+geometry, and produces no export.
 
 ## Rust trim candidate and independent quality checks
 

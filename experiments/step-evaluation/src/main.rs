@@ -8,6 +8,7 @@ mod negative_torus;
 mod occurrence_world;
 mod planar_face;
 mod planar_repair;
+mod source_uncertainty;
 mod spline_face_diagnostic;
 mod triangle_diagnostics;
 mod trim_polygon_candidate;
@@ -364,7 +365,11 @@ fn probe_units(path: &Path) -> Result<Value, String> {
     }))
 }
 
-fn probe_spline_face(path: &Path, face_id: u64) -> Result<Value, String> {
+fn probe_spline_face(
+    path: &Path,
+    face_id: u64,
+    source_representation: Option<u64>,
+) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     let limits = oxideav_ifc::StepLimits {
         max_input_len: MAX_BYTES,
@@ -375,6 +380,15 @@ fn probe_spline_face(path: &Path, face_id: u64) -> Result<Value, String> {
     let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
         .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
     let mut report = spline_face_diagnostic::inspect(&parsed, face_id)?;
+    if let Some(representation) = source_representation {
+        let selected = face_representation::inspect(&parsed, representation, face_id)?;
+        let context_id = selected["selectedRepresentationLengthUnits"]["contextId"]
+            .as_u64()
+            .ok_or("selected_representation_context_id_missing")?;
+        report["selectedSourceRepresentation"] = selected;
+        report["declaredSourceGeometricUncertainty"] =
+            source_uncertainty::inspect_context(&parsed, context_id)?;
+    }
     report["sourceSha256"] = json!(format!("{:x}", Sha256::digest(&bytes)));
     report["sourceBytes"] = json!(bytes.len());
     report["admitted"] = json!(false);
@@ -389,18 +403,33 @@ fn main() {
         .is_some_and(|arg| arg == "--diagnose-source-face")
     {
         let result = (|| -> Result<Value, String> {
-            if raw.len() != 3 {
-                return Err(
-                    "usage: tokito-step-evaluation --diagnose-source-face POSITIVE_ID STEP_PATH"
-                        .into(),
-                );
+            if !matches!(raw.len(), 3 | 5)
+                || (raw.len() == 5 && raw[2] != "--source-representation")
+            {
+                return Err("usage: tokito-step-evaluation --diagnose-source-face POSITIVE_ID [--source-representation POSITIVE_ID] STEP_PATH".into());
             }
             let face = raw[1]
                 .to_str()
                 .and_then(|s| s.parse::<u64>().ok())
                 .filter(|n| *n > 0)
                 .ok_or("invalid_diagnostic_face_id")?;
-            probe_spline_face(Path::new(&raw[2]), face)
+            let source_representation = if raw.len() == 5 {
+                Some(
+                    raw[3]
+                        .to_str()
+                        .and_then(|s| s.parse::<u64>().ok())
+                        .filter(|n| *n > 0)
+                        .ok_or("invalid_source_representation")?,
+                )
+            } else {
+                None
+            };
+            let path = if source_representation.is_some() {
+                &raw[4]
+            } else {
+                &raw[2]
+            };
+            probe_spline_face(Path::new(path), face, source_representation)
         })();
         println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));
         std::process::exit(2);

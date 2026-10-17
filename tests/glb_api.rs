@@ -1,4 +1,6 @@
 //! Public Rust API coverage for the first, explicitly partial GLB export slice.
+#[path = "support/test_scratch.rs"]
+mod test_scratch;
 use std::path::PathBuf;
 use tokito_cli::{GlbExportOptions, load_kicad_board};
 
@@ -70,8 +72,7 @@ impl AssemblyFixture {
         use std::time::{SystemTime, UNIX_EPOCH};
         static NEXT_FIXTURE_ID: AtomicU64 = AtomicU64::new(0);
 
-        let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/glb-api-tests");
-        std::fs::create_dir_all(&parent).unwrap();
+        let parent = test_scratch::directory("glb-api-tests");
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()

@@ -8,6 +8,9 @@ from bounded_fingerprint import fingerprint
 from surface_reference_e2e import capture_bounded
 
 SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+SOURCE_REPRESENTATION_ID = 5957
+SOURCE_CONTEXT_ID = 206
+DECLARED_SOURCE_UNCERTAINTY = 1e-5
 EXPECTED_ORIENTED_EDGES = [2809, 470, 7109, 4933]
 MAX_EDGE_CURVE_CONTROL_POINT_STORAGE_BUDGET = 65_536
 EXPECTED_EDGE_SENSES = [
@@ -16,6 +19,32 @@ EXPECTED_EDGE_SENSES = [
     (7109, True, True, True),
     (4933, False, True, False),
 ]
+
+
+def is_json_number(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def uncertainty_residual_summary(rows: list[dict], limit: float, field: str) -> dict:
+    if not isinstance(rows, list) or not rows:
+        raise ValueError(f"missing projection samples for {field}")
+    residuals = []
+    for row in rows:
+        value = row.get(field)
+        if (
+            not is_json_number(value)
+            or not math.isfinite(float(value))
+            or value < 0
+        ):
+            raise ValueError(f"invalid projection residual for {field}")
+        residuals.append(float(value))
+    return {
+        "sampleCount": len(residuals),
+        "withinDeclaredSourceUncertainty": sum(value <= limit for value in residuals),
+        "maximumResidualSourceUnits": max(residuals),
+        "declaredSourceUncertaintySourceUnits": limit,
+        "usedAsAdmissionTolerance": False,
+    }
 
 
 def run(binary: Path, source: Path, output: Path) -> dict:
@@ -45,7 +74,14 @@ def run(binary: Path, source: Path, output: Path) -> dict:
         if before[str(source)] != SOURCE_SHA256:
             raise ValueError("pinned model-16 source digest mismatch")
         code, stdout, stderr = capture_bounded(
-            [str(binary), "--diagnose-source-face", "2875", str(source)],
+            [
+                str(binary),
+                "--diagnose-source-face",
+                "2875",
+                "--source-representation",
+                str(SOURCE_REPRESENTATION_ID),
+                str(source),
+            ],
             timeout_seconds=300,
             stdout_limit=8 * 1024 * 1024,
             stderr_limit=512 * 1024,
@@ -58,6 +94,18 @@ def run(binary: Path, source: Path, output: Path) -> dict:
         projection = report.get("trimProjection", {})
         evaluation = report.get("evaluation", {})
         trim_candidate = report.get("trimCandidate", {})
+        selected_representation = report.get("selectedSourceRepresentation", {})
+        declared_uncertainty = report.get("declaredSourceGeometricUncertainty", {})
+        boundary_uncertainty = uncertainty_residual_summary(
+            trim_candidate.get("boundarySamples", []),
+            DECLARED_SOURCE_UNCERTAINTY,
+            "projectionResidualSourceUnits",
+        )
+        midpoint_uncertainty = uncertainty_residual_summary(
+            trim_candidate.get("boundaryRefinementProbes", []),
+            DECLARED_SOURCE_UNCERTAINTY,
+            "projectionResidualSourceUnits",
+        )
         edges = report.get("sourceOrientedEdgeIds", [])
         edge_senses = [
             (
@@ -133,11 +181,47 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                     for probe in trim_candidate.get("boundaryRefinementProbes", [])
                 ),
             },
+            "declaredSourceUncertainty": {
+                "representationId": selected_representation.get("representationId"),
+                "contextId": declared_uncertainty.get("representationContextId"),
+                "valueInContextUnits": declared_uncertainty.get("valueInContextUnits"),
+                "uncertaintyUnitMetresPerUnit": declared_uncertainty.get(
+                    "uncertaintyUnitMetresPerUnit"
+                ),
+                "usedAsAdmissionTolerance": declared_uncertainty.get(
+                    "usedAsAdmissionTolerance"
+                ),
+                "boundaryProjectionResiduals": boundary_uncertainty,
+                "midpointProjectionResiduals": midpoint_uncertainty,
+            },
         }
         if report.get("sourceSha256") != SOURCE_SHA256:
             raise ValueError("CLI source digest mismatch")
         if report.get("admitted") is not False or report.get("exportsProduced") != []:
             raise ValueError("diagnostic unexpectedly admitted geometry or produced exports")
+        if (
+            selected_representation.get("representationId") != SOURCE_REPRESENTATION_ID
+            or selected_representation.get("representationItemId") != 6218
+            or selected_representation.get("selectedRepresentationContainsFace") is not True
+            or selected_representation.get("selectedRepresentationLengthUnits", {}).get(
+                "contextId"
+            )
+            != SOURCE_CONTEXT_ID
+            or declared_uncertainty.get("schema")
+            != "tokito.step-source-geometric-uncertainty.v1"
+            or declared_uncertainty.get("uncertaintyMeasureId") != 7888
+            or declared_uncertainty.get("unitId") != 5056
+            or declared_uncertainty.get("valueInContextUnits")
+            != DECLARED_SOURCE_UNCERTAINTY
+            or declared_uncertainty.get("usedAsAdmissionTolerance") is not False
+            or boundary_uncertainty["withinDeclaredSourceUncertainty"]
+            != boundary_uncertainty["sampleCount"]
+            or midpoint_uncertainty["withinDeclaredSourceUncertainty"]
+            != midpoint_uncertainty["sampleCount"]
+        ):
+            raise ValueError(
+                "selected source representation uncertainty or projection evidence changed"
+            )
         if (
             report.get("faceId") != 2875
             or report.get("surfaceId") != 10410
@@ -324,7 +408,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                 projection_converged = probe.get("projectionConverged")
                 if (
                     probe.get("orientedEdgeId") not in EXPECTED_ORIENTED_EDGES
-                    or not isinstance(probe.get("curveParameter"), (int, float))
+            or not is_json_number(probe.get("curveParameter"))
                     or not math.isfinite(float(probe["curveParameter"]))
                     or not isinstance(probe_uv, list)
                     or len(probe_uv) != 2
@@ -337,11 +421,11 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                     or not isinstance(vertex_index, int)
                     or vertex_index < 0
                     or not isinstance(probe.get("retainedInCandidate"), bool)
-                    or not isinstance(residual, (int, float))
+                    or not is_json_number(residual)
                     or not math.isfinite(float(residual))
                     or residual < 0
                     or residual > 1e-5
-                    or not isinstance(projection_residual, (int, float))
+                    or not is_json_number(projection_residual)
                     or not math.isfinite(float(projection_residual))
                     or projection_residual < 0
                     or projection_residual > 1e-5
@@ -351,7 +435,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                         and projection_residual > exact_projection_tolerance + 1e-14
                     )
                     or any(
-                        not math.isfinite(float(value))
+                        not is_json_number(value) or not math.isfinite(float(value))
                         for value in [*probe_uv, *source_point, *surface_point, *mesh_point]
                     )
                 ):
@@ -405,10 +489,10 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                     or len(candidate_uv) != 2
                     or not isinstance(vertex_index, int)
                     or not 0 <= vertex_index < len(vertices)
-                    or not isinstance(residual, (int, float))
+                    or not is_json_number(residual)
                     or not math.isfinite(residual)
                     or residual < 0
-                    or not isinstance(projection_residual, (int, float))
+                    or not is_json_number(projection_residual)
                     or not math.isfinite(projection_residual)
                     or projection_residual < 0
                     or projection_residual > 1e-5
@@ -418,7 +502,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                         and projection_residual > exact_projection_tolerance + 1e-14
                     )
                     or any(
-                        not math.isfinite(float(value))
+                        not is_json_number(value) or not math.isfinite(float(value))
                         for value in [*source_point, *candidate_uv]
                     )
                 ):
@@ -440,7 +524,7 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                     )
                     or not isinstance(mesh_point, list)
                     or len(mesh_point) != 3
-                    or not isinstance(mesh_residual, (int, float))
+                    or not is_json_number(mesh_residual)
                     or not math.isfinite(float(mesh_residual))
                     or mesh_residual < 0
                     or mesh_residual > 1e-5
@@ -465,13 +549,13 @@ def run(binary: Path, source: Path, output: Path) -> dict:
                 len(edge_ids) != len(EXPECTED_ORIENTED_EDGES)
                 or not isinstance(closure, list)
                 or len(closure) != 2
-                or any(not isinstance(value, (int, float)) or not math.isfinite(value) for value in closure)
+                or any(not is_json_number(value) or not math.isfinite(value) for value in closure)
                 or math.hypot(float(closure[0]), float(closure[1])) > 1e-6
                 or boundary_trace.get("ambiguousHalfPeriodStepCount") != 0
                 or not isinstance(boundary_trace.get("uPeriodicBranchShiftCount"), int)
                 or not isinstance(boundary_trace.get("vPeriodicBranchShiftCount"), int)
-                or not isinstance(boundary_trace.get("maximumUnwrappedUStep"), (int, float))
-                or not isinstance(boundary_trace.get("maximumUnwrappedVStep"), (int, float))
+                or not is_json_number(boundary_trace.get("maximumUnwrappedUStep"))
+                or not is_json_number(boundary_trace.get("maximumUnwrappedVStep"))
             ):
                 raise ValueError("candidate periodic branch trace is invalid or does not close")
         if any(fingerprint(path, limit) != before[str(path)] for path, limit in tracked):

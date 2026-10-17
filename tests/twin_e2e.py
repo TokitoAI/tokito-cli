@@ -7,6 +7,7 @@ import struct
 import tempfile
 
 from glb_e2e import invoke, parse_glb
+from e2e_temp import e2e_temp_root
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -20,7 +21,7 @@ def encode(doc, payload):
 
 
 def run(binary):
-    with tempfile.TemporaryDirectory(prefix="twin-e2e-", dir=ROOT / "target") as temp:
+    with tempfile.TemporaryDirectory(prefix="twin-e2e-", dir=e2e_temp_root(ROOT / "target")) as temp:
         root = Path(temp)
         source = root / "native.glb"
         invoke(binary, "export", "glb", ROOT / "tests/fixtures/assembly-e2e/single-resistor.kicad_pcb",
