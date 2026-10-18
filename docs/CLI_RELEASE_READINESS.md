@@ -6,23 +6,24 @@ test suite alone.
 
 ## Latest code and verification checkpoint
 
-PR #45 now includes mixed per-pad SMD/plated-THT/NPTH footprint generation as a
-bounded, unqualified geometry candidate. Local KiCad 10.0.5 `fp export svg`
-accepts and plots the synthetic fixture; this does not qualify footprint
-semantics or a manufacturer land pattern. An independent source review found
-no generator defect and prompted corrections to the evidence hash and NPTH-only
-classification wording. The exact tool/spec/output hashes are in
-[the KiCad readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
+PR #45 contains mixed per-pad SMD/plated-THT/NPTH footprint generation as a
+bounded, unqualified geometry candidate. The current branch adds a bounded POS
+ASCII subset beside CSV, with nine pinned KiCad 10.0.5 cases: eight exact
+matches and one Pico comparison that preserves all named rows and compares
+unreferenced values as an unordered set. The harness verifies exact tool
+versions and hashes, and limits normalization to the two documented headers
+and CRLF line endings. ASCII output has per-field and total-size caps plus
+control/bidi-format rejection. Local KiCad 10.0.5 loading/plotting of the
+synthetic mixed-pad footprint does not qualify its semantics or manufacturer
+land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
-The current full Windows verification passed 48/48 gates on Windows
-10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5, reusing the existing
-isolated D: Cargo target. Receipt:
-`target/delivery/local/20261018T083556Z-572cbd7db5da408abc36aa2aed27e459/verification.json`
-(SHA-256 `1e9e04d18311551826bdad1a88616f89c0a9332bcda7bc23bf1de85bc8ffd10e`).
-The release CLI is 5,380,608 bytes, SHA-256
-`13271b586dee1d41c2c8a6eaaaef5eacd938546317425e38ac80efa9b6b50ef7`.
-No GitHub Actions ran; PR #45 remains open pending hosted checks and an
-independent PR review.
+The most recent full Windows verifier run passed **48/48 gates** after the POS
+ASCII implementation. Its authoritative result is the newest per-run receipt
+at `target/delivery/local/<run-id>/verification.json`; the receipt binds the
+source hashes, executed gates, toolchain and outcome. The run reused the isolated
+D: Cargo target, so it is not a clean-cache, independent-machine, installation
+or cross-platform test. No GitHub Actions ran; PR #45 remains open with no hosted
+checks or independent PR approval.
 
 This verifies the currently implemented local command suite; it does not close
 production gates below. Tokito CLI V1 remains not production-ready.
@@ -51,11 +52,12 @@ the final output-tree audit, the independent Rust sample-distance validator,
 footprint/library and dataset journeys, pinned KiCad 10.0.7 comparisons, the
 required SVG reference-evidence validator, and the STEP, Altium and twin-refinement
 experiment crates. The current-source Windows root verification passed 48/48
-gates on the existing isolated D: Cargo target. It used Cargo and Rust 1.94.1,
-Python 3.11.5, and a trusted existing Cargo target cache; it is not a clean-cache
-or independent-machine run. The exact receipt and binary hashes are recorded in
-the latest checkpoint above. These local checks do not establish installation
-or production qualification.
+gates after the POS ASCII changes. Each full run writes the authoritative
+current-source result and hashes to
+`target/delivery/local/<run-id>/verification.json`. The receipt records its
+toolchain, executed gates and outcome. Reusing the isolated D: Cargo target is
+not a clean-cache or independent-machine run. Local checks do not establish
+installation or production qualification.
 
 The opt-in planar repair has a passing pinned model-14 reference comparison,
 documented in [STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not
@@ -92,7 +94,7 @@ and output hashes and bounded comparisons, but does not rerun KiCad.
 
 | Gate | Evidence / status | Next action |
 | --- | --- | --- |
-| Existing CLI foundation | Current-source local Windows run passed 48/48 gates after the bounded FreeCAD audit update; the receipt and binary hash are bound in the external evidence record and PR #45. The run reuses a trusted target cache, not a clean cache. | Retain the evidence with the PR revision; rerun after further implementation changes |
+| Existing CLI foundation | The latest full Windows verifier passed 48/48 gates after the POS ASCII changes; the matching per-run receipt is authoritative. | Retain the exact receipt with the PR revision; rerun after any tracked change |
 | New reference integrity tooling | Eight unit tests and actual 76-solid reference capture pass; two reader qualification cases fail | Keep production STEP disabled; repair reader separately |
 | Source review | Independent read-only review caught and verified a face-sense/UV-winding sign correction; it notes centroid sampling is diagnostic rather than a continuous orientation proof | Keep admission closed; investigate adaptive/continuity-aware refinement |
 | Windows clean-machine installation | Not verified | Test packaged executable, help/doctor and real import/export on an independent Windows environment |
@@ -105,8 +107,7 @@ and output hashes and bounded comparisons, but does not rerun KiCad.
 
 ## Release recommendation
 
-The current branch has passed its local 48-gate suite, but is not ready for a
-production release: clean-machine installation, KiCad/footprint-library parity,
+Tokito CLI V1 is not ready for a production release: clean-machine installation, KiCad/footprint-library parity,
 qualified STEP geometry, and component-model completeness remain open. A
 clearly scoped Windows preview / release candidate could be considered only
 after independent installation and known limitations are published. Do not
@@ -168,8 +169,8 @@ this narrative update. Every gate executed; trusted Cargo cache reuse does not
 mean a clean dependency build. The run covers normal commands and feature-gated
 subprocess failures during all three twin exports, plus 175 root tests and the
 existing board/export/footprint/library/package journeys. This checkpoint was
-superseded by the documentation-inclusive 48/48 current-source verification
-described in the Gates section above and recorded with PR #45.
+superseded by the documentation-inclusive 48/48 verification on the earlier
+source revision and recorded with PR #45.
 
 PE import-table inspection of the tested executable found VCRUNTIME140.dll and
 Windows UCRT imports. Receipt: `target/windows-loader-imports-20261016.json`.

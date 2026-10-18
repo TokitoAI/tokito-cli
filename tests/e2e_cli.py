@@ -303,9 +303,12 @@ def main():
     assert "--version|-V" in root_help and "-h and --help" in root_help
     assert "Existing physical-board operations." in pcb_help
     pos_help = invoke(binary, "pcb", "export", "pos", "--help").stdout
-    assert "manufacturing-position CSV" in pos_help
+    assert "--format csv|ascii" in pos_help
+    assert "CSV or ASCII" in pos_help
+    assert "Gerber and variants remain unsupported" in pos_help
     assert "--use-drill-file-origin" in pos_help
-    assert "KiCad 10.0.5 and 10.0.7 comparisons" in pos_help
+    assert "CSV is compared with pinned KiCad 10.0.5 and 10.0.7 cases" in pos_help
+    assert "ASCII is compared with pinned KiCad 10.0.5 cases" in pos_help
     svg_help = invoke(binary, "help", "export", "svg").stdout
     assert "--hide-DNP-footprints-on-fab-layers" in svg_help
     with tempfile.TemporaryDirectory(prefix="tokito-cli-e2e-") as output:
@@ -398,11 +401,41 @@ def main():
         assert "unsupported copper side" in malformed_result.stderr and not malformed_pos.exists()
         missing_format_output = output / "missing-format.csv"
         missing_format = invoke(binary, "export", "pos", uno, "--output", missing_format_output, succeeds=False)
-        assert "--format csv is required" in missing_format.stderr and not missing_format_output.exists()
+        assert "--format csv or ascii is required" in missing_format.stderr and not missing_format_output.exists()
+        uno_ascii = output / "uno-mm-both.pos"
+        ascii_result = invoke(
+            binary, "pcb", "export", "pos", uno, "--format", "ascii", "--units", "mm",
+            "--side", "both", "--output", uno_ascii,
+        )
+        ascii_text = uno_ascii.read_text(encoding="utf-8")
+        assert "Wrote 54 ascii position rows" in ascii_result.stdout
+        assert "### Printed by Tokito CLI version " in ascii_text
+        assert "## Unit = mm, Angle = deg." in ascii_text
+        assert ascii_text.endswith("## End\n")
+        wrong_ascii_extension = output / "uno-ascii.csv"
+        wrong_extension_result = invoke(
+            binary, "export", "pos", uno, "--format", "ascii", "--output", wrong_ascii_extension,
+            succeeds=False,
+        )
+        assert ".pos extension" in wrong_extension_result.stderr and not wrong_ascii_extension.exists()
+        unknown_format_result = invoke(
+            binary, "export", "pos", uno, "--format", "gerber", "--output", output / "unsupported.pos",
+            succeeds=False,
+        )
+        assert "supports CSV and ASCII only" in unknown_format_result.stderr
+        gerber_flag_result = invoke(
+            binary, "export", "pos", uno, "--format", "ascii", "--output", output / "gerber-flag.pos",
+            "--gerber-board-edge", succeeds=False,
+        )
+        assert "--gerber-board-edge applies only to Gerber output" in gerber_flag_result.stderr
         no_overwrite = output / "pos-no-overwrite.csv"
         no_overwrite.write_bytes(b"keep this file")
         invoke(binary, "export", "pos", uno, "--format", "csv", "--output", no_overwrite, succeeds=False)
         assert no_overwrite.read_bytes() == b"keep this file"
+        no_overwrite_ascii = output / "pos-no-overwrite.pos"
+        no_overwrite_ascii.write_bytes(b"keep this ASCII file")
+        invoke(binary, "export", "pos", uno, "--format", "ascii", "--output", no_overwrite_ascii, succeeds=False)
+        assert no_overwrite_ascii.read_bytes() == b"keep this ASCII file"
         no_overwrite_drill = output / "pos-no-overwrite-drill.csv"
         no_overwrite_drill.write_bytes(b"keep this drill-origin output")
         invoke(

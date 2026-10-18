@@ -1,0 +1,63 @@
+### Footprint positions - created on 2026-10-18T14:13:19 ###
+### Printed by KiCad version 10.0.5
+## Unit = mm, Angle = deg.
+## Side : All
+# Ref     Val                              Package                          PosX       PosY       Rot  Side
+TP1       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             104.8750   -23.7250  180.0000  bottom
+TP2       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             103.8750   -20.4250  180.0000  bottom
+TP3       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             105.8750   -20.4250  180.0000  bottom
+TP4       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             107.3750   -27.2250  180.0000  bottom
+TP5       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             107.3750   -29.7250  180.0000  bottom
+TP6       TP_SMT_SQUARERC_1P5MM_TP_SMT_1P  TP_SMT_1P5X1P5MM             107.3750   -32.2250  180.0000  bottom
+                                                                       -110.5750   -21.2250    0.0000  top
+                                                                       -110.5750   -68.2250    0.0000  top
+                                                                        -98.8750   -64.2250    0.0000  top
+                                                                        -99.1750   -21.2250    0.0000  top
+                                                                        -99.1750   -68.2250    0.0000  top
+                                                                       -110.6750   -26.8250    0.0000  top
+C1        CAP_MLCC_CAPC2012_47U_RP-019A1P  CAPC2012                    -101.9750   -27.6250  180.0000  top
+C2        CAP_MLCC_CAPC2012_47U_RP-019A1P  CAPC2012                    -101.9750   -32.6250  180.0000  top
+C3        CAP_MLCC_M0603_PICO_1N_RP-019A1  M0603_PICO                   -98.8750   -35.3250   90.0000  top
+C4        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -109.3750   -42.5250  180.0000  top
+C5        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -109.3750   -46.2250  180.0000  top
+C6        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -100.2750   -46.6250  -45.0000  top
+C7        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -100.3750   -42.3250    0.0000  top
+C8        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -104.8750   -50.2250  -90.0000  top
+C9        CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -104.1750   -50.2250  -90.0000  top
+C10       CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -104.8750   -40.1250   90.0000  top
+C11       CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -105.5750   -40.1250   90.0000  top
+C12       CAP_MLCC_CAPC1005_2U2_RP-019A1P  CAPC1005                    -102.6750   -40.1250   90.0000  top
+C13       CAP_MLCC_CAPC1005_2U2_RP-019A1P  CAPC1005                    -100.2750   -40.1250   90.0000  top
+C14       CAP_MLCC_CAPC1005_2U2_RP-019A1P  CAPC1005                    -101.7750   -40.1250   90.0000  top
+C15       CAP_MLCC_M0603_PICO_100N_RP-019  M0603_PICO                  -109.4250   -35.8750   90.0000  top
+C16       CAP_MLCC_M0603_PICO_15P_RP-019A  M0603_PICO                  -109.4750   -54.2750   90.0000  top
+C17       CAP_MLCC_M0603_PICO_15P_RP-019A  M0603_PICO                  -104.8750   -53.2750  -90.0000  top
+C18       CAP_MLCC_CAPC1005_2U2_RP-019A1P  CAPC1005                    -109.5750   -41.6750  180.0000  top
+D1        DIODE_SCHOTTKY_SOD123FL_MBR120V  SOD123FL                     -98.8750   -25.8250   90.0000  top
+D2        LED_2PIN_AVAGO_QSM_GREEN_RP-019  AVAGO_QSM                   -110.5750   -24.0250    0.0000  top
+J0        CON_PICO_40W_CON_PICO_40W_CON_P  CON_PICO_40W                -104.8750   -44.7250    0.0000  top
+J1        CON_UUSB_B_FCI_10103594-0001LF_  FCI_10103594-0001LF         -104.8750   -22.1250  180.0000  top
+J2        CON_PICO_3W_CON_PICO_3W_CON_PIC  CON_PICO_3W                 -105.2050   -69.2250    0.0000  top
+L1        INDUCTOR_BOURNS_SRN2512_2U2_RP-  BOURNS_SRN2512               -98.8750   -30.1250  -90.0000  top
+Q1        MOSFET_N_SOT50P160X90-3N_DMG101  SOT50P160X90-3N              -98.4750   -37.5250   90.0000  top
+R1        RES_CHIP_RESC1005_10K_RP-019A1P  RESC1005                     -98.7750   -45.6250    0.0000  top
+R2        RES_CHIP_RESC1005_100K_RP-019A1  RESC1005                    -101.3750   -26.1250  180.0000  top
+R3        RES_CHIP_RESC1005_470R_RP-019A1  RESC1005                    -107.5750   -26.9250    0.0000  top
+R4        RES_CHIP_RESC1005_NO-FIT_        RESC1005                    -110.3750   -39.3250   90.0000  top
+R5        RES_CHIP_RESC1005_200K_RP-019A1  RESC1005                     -97.9750   -35.1250  -90.0000  top
+R6        RES_CHIP_RESC1005_100K_RP-019A1  RESC1005                     -98.4750   -40.1250  -90.0000  top
+R7        RES_CHIP_RESC1608_200R_RP-01A5Y  RESC1608                    -100.4750   -35.6250  -90.0000  top
+R8        RES_CHIP_RESC1005_100K_RP-019A1  RESC1005                    -107.5750   -25.9250  180.0000  top
+R9        RES_CHIP_RESC1005_1R_RP-019A1P-  RESC1005                     -99.3750   -40.1250  -90.0000  top
+R10       RES_CHIP_RESC1005_5K6_RP-019A1P  RESC1005                     -98.7750   -44.7250  180.0000  top
+R11       RES_CHIP_RESC1005_1K_RP-019A1P-  RESC1005                    -110.3750   -37.3250  -90.0000  top
+R12       RES_CHIP_M0603_PICO_27R_RP-019A  M0603_PICO                  -104.1750   -40.1250  -90.0000  top
+R13       RES_CHIP_M0603_PICO_27R_RP-019A  M0603_PICO                  -103.4750   -40.1250  -90.0000  top
+R14       RES_CHIP_RESC1005_1K_RP-019A1P-  RESC1005                    -106.0250   -51.8250    0.0000  top
+R15       RES_CHIP_RESC1005_NO-FIT_        RESC1005                    -106.6750   -50.9250    0.0000  top
+SW1       SW_PB_4PIN_TONEPARTS_TP-1221U-K  TONEPARTS_TP-1221U-K9K5325  -108.3750   -31.2250   90.0000  top
+U1        RPI_RP2040_RPI_RP2040_RP2040     RPI_RP2040                  -104.8750   -45.2250    0.0000  top
+U2        RICHTEK_RT6150_RICHTEK_RT6150B_  RICHTEK_RT6150B             -101.9750   -30.1250  180.0000  top
+U3        WINBOND_W25X_QSPI_FLASH_USON_US  USON_2X3MM                  -108.6750   -38.3250   90.0000  top
+X1        CRYSTAL_4P_XTAL320X250X100_12MH  XTAL320X250X100             -107.1750   -53.7750    0.0000  top
+## End

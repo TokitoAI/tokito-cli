@@ -1,11 +1,11 @@
 # Versioned repository file map
 
-Snapshot updated on 15 October 2026 for embedded model intake/export, KiCad 10.0.7 POS references, and the source asset E2E. This lists
+Snapshot updated on 18 October 2026 for embedded model intake/export, KiCad POS CSV/ASCII references, and the source asset E2E. This lists
 source, documentation, scripts, fixtures and frozen models; ignored build caches,
 local datasets, binaries and `.git/` are excluded. The README explains module
 responsibilities and architecture. Regenerate when versioned paths change.
 
-368 project files are visible to `rg --files` in this checkout, including current local changes.
+457 project files are visible to `rg --files` in this checkout, including current local changes.
 
 ```text
 tokito_cli/
@@ -236,7 +236,8 @@ tokito_cli/
 ├── tests/
 │   ├── reference/
 │   │   ├── kicad-cli-10.0.5/
-│   │   │   └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
+│   │   │   ├── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
+│   │   │   └── pos-ascii/ (version-pinned ASCII output fixtures and SHA-256 manifest)
 │   │   └── kicad-cli-10.0.7/
 │   │   │   └── pos/ (version-pinned CSV output fixtures and SHA-256 manifest)
 │   ├── fixtures/

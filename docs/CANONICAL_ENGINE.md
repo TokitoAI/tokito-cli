@@ -3,8 +3,8 @@
 The crate now exposes `tokito_cli` as a Rust library alongside the unchanged
 `tokito-cli` binary. `src/main.rs` handles process arguments and exit status;
 `src/cli.rs` handles command dispatch; `src/lib.rs` owns import, inspection,
-placement, position CSV, package and SVG operations. `src/document.rs` contains the typed
-source-semantic physical inventory. This is an experimental Rust API, not a
+placement, position CSV/ASCII, package and SVG operations. `src/document.rs`
+contains the typed source-semantic physical inventory. This is an experimental Rust API, not a
 new serialized board format or complete CAD geometry engine.
 
 ## Public operations
@@ -26,13 +26,16 @@ new serialized board format or complete CAD geometry engine.
 - `source_syntax()` retains the original parsed source, including uninterpreted
   fields; `source_node(locator)` resolves a canonical record's source path.
 - `inspection_json()`, `placements_csv()`,
-  `export_pos_csv(PositionExportOptions)`, `svg(SvgSide, layers)` and
+  `export_pos_csv(PositionExportOptions)`,
+  `export_pos_ascii(PositionExportOptions)`, `svg(SvgSide, layers)` and
   `build_package(path)` expose operations without process invocation.
 
 `placements_csv()` remains a raw identity inventory in the saved board frame.
-`export_pos_csv()` is a distinct, typed manufacturing-position projection;
-it applies the KiCad Y-up POS convention, explicit units/side filters and the
-verified option subset documented in [PCB position export](PCB_POSITION_EXPORT.md).
+`export_pos_csv()` and `export_pos_ascii()` are typed
+manufacturing-position projections sharing one canonical row-selection and
+coordinate pipeline. They apply the KiCad Y-up POS convention, explicit
+units/side filters and the verified option subset documented in
+[PCB position export](PCB_POSITION_EXPORT.md).
 The public API does not invoke KiCad and rejects unknown pad classification
 when a requested through-hole filter cannot be applied safely.
 

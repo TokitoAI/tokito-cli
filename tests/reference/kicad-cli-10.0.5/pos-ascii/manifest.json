@@ -1,0 +1,104 @@
+{
+  "schema": "tokito.kicad-cli-pos-ascii-reference.v1",
+  "reference": {
+    "product": "KiCad CLI",
+    "version": "10.0.5",
+    "capturedOn": "2026-10-18",
+    "executableSha256": "393525236969434e24bc710334efe244fb285ef6596a1aea8e74353ef4db5477",
+    "manual": "https://docs.kicad.org/10.0/en/cli/cli.html#pcb-export-pos",
+    "source": "https://gitlab.com/kicad/code/kicad/-/raw/10.0.7/pcbnew/exporters/place_file_exporter.cpp",
+    "outputNormalization": [
+      "line endings",
+      "generated timestamp header",
+      "tool version header"
+    ],
+    "notes": [
+      "Native captures were produced by the installed KiCad CLI 10.0.5 on Windows from pinned fixtures.",
+      "Tokito output is compared after normalizing only line endings and the two expected timestamp/version header differences.",
+      "This capture set does not establish KiCad 10.0.7 ASCII runtime parity or full POS option parity."
+    ]
+  },
+  "sources": [
+    {
+      "path": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+      "sha256": "1b078b77026f4e8fd5de7cc6c7b6fff3daf454014e5e0873b7a6d0cdd77958f9"
+    },
+    {
+      "path": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "sha256": "d0edaed749ac81ccc2387c78fc78f2f1e035b798f3e6f3705490d270e2f90535"
+    },
+    {
+      "path": "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+      "sha256": "4ab99cd7db06be8e91e119a950a9ecc1f69bfd0d9a2ed975c5e57a0e319c8a83"
+    },
+    {
+      "path": "tests/fixtures/open-source/raspberry-pi-pico-community/RPI-PICO-R3a-PUBLIC - Official.kicad_pcb",
+      "sha256": "b424466206b45f47a381de0cc69257e9fd38cdf0364d552451199cd845b12aeb"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "uno-mm-both.pos",
+      "sourcePath": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+      "options": "--format ascii --units mm --side both",
+      "rows": 54,
+      "sha256": "5e573418987dba9829a4566404587392bff501e60550ed6faa4a27a33dcb0aae"
+    },
+    {
+      "path": "uno-in-both.pos",
+      "sourcePath": "tests/fixtures/open-source/arduino-uno-r3-community/Arduino UNO.kicad_pcb",
+      "options": "--format ascii --units in --side both",
+      "rows": 54,
+      "sha256": "50d0080d31a58ee47dc2b5c60b6afdfd10d1b6af8376df25e0f5453519de9cbb"
+    },
+    {
+      "path": "nxp-mm-front.pos",
+      "sourcePath": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "options": "--format ascii --units mm --side front",
+      "rows": 51,
+      "sha256": "91aebf2433d26b1a77a82c6a77847a35f9d6457dcc64b45b4003d802c2bfd804"
+    },
+    {
+      "path": "nxp-mm-back.pos",
+      "sourcePath": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "options": "--format ascii --units mm --side back",
+      "rows": 16,
+      "sha256": "6c4abdeebdd91d7373b4a18cfe7a273e283b75e0aa7f7fbeda2ad6854044de83"
+    },
+    {
+      "path": "nxp-mm-bottom-negate.pos",
+      "sourcePath": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "options": "--format ascii --units mm --side both --bottom-negate-x",
+      "rows": 67,
+      "sha256": "21cba85d4c9d458adb68f48bb7dd01dc2b9c28dce7aa6fdb0c2ac6a838809964"
+    },
+    {
+      "path": "nxp-mm-exclude-dnp.pos",
+      "sourcePath": "tests/fixtures/open-source/nxp-mcxa-esc/MR-ESC-MCXA-AM32.kicad_pcb",
+      "options": "--format ascii --units mm --side both --exclude-dnp",
+      "rows": 65,
+      "sha256": "c057ef005be8f48613ec7506b1fe14d409f35a224879b00a9e50dbd70ffcd24d"
+    },
+    {
+      "path": "spark-mm-drill-origin.pos",
+      "sourcePath": "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+      "options": "--format ascii --units mm --side both --use-drill-file-origin",
+      "rows": 17,
+      "sha256": "d7536938bc6abd63a6003cbdaecd300bd245676133312aa1fc2dd841399ce0b9"
+    },
+    {
+      "path": "spark-mm-exclude-fp-th.pos",
+      "sourcePath": "tests/fixtures/open-source/sparkfun-default-kicad/SparkFun_Basic_Board_Example.kicad_pcb",
+      "options": "--format ascii --units mm --side both --exclude-fp-th",
+      "rows": 13,
+      "sha256": "be17e894caacba0769796a0bda47abe4b179526c0ff16ac0d0fb0bf0079af79d"
+    },
+    {
+      "path": "pico-mm-drill-origin-bottom-negate.pos",
+      "sourcePath": "tests/fixtures/open-source/raspberry-pi-pico-community/RPI-PICO-R3a-PUBLIC - Official.kicad_pcb",
+      "options": "--format ascii --units mm --side both --use-drill-file-origin --bottom-negate-x",
+      "rows": 57,
+      "sha256": "821a0e40ad1e1ab91fe547762e6e7c14db1269658f2eb0e88fa9890c43b6a7a8"
+    }
+  ]
+}

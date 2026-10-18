@@ -103,6 +103,7 @@ New-Item -ItemType Directory -Path $out | Out-Null
 & $cli export svg $pcb --side bottom --output "$out/bottom.svg"
 & $cli export placements $pcb --output "$out/source-placements.csv"
 & $cli pcb export pos $pcb --format csv --units mm --side both --output "$out/manufacturing-pos.csv"
+& $cli pcb export pos $pcb --format ascii --units mm --side both --output "$out/manufacturing-pos.pos"
 & $cli package build $pcb --output "$out/source-package"
 & $cli package verify "$out/source-package" --json
 & $cli project inspect $project --json
@@ -136,6 +137,23 @@ Ref,Val,Package,PosX,PosY,Rot,Side
 "FID3","Fiducial_0.5mm","Fiducial_0.5mm_Mask1mm",121.920000,-74.930000,180.000000,bottom
 "C2","10uF","C_0603_1608Metric",136.525000,-106.680000,-90.000000,top
 ```
+
+The ASCII exporter can write the same 17 SparkFun placements to a new position
+file. Its live output began:
+
+    ### Footprint positions - created on 2026-10-18T08:50:47 ###
+    ### Printed by Tokito CLI version 0.1.0
+    ## Unit = mm, Angle = deg.
+    ## Side : All
+    # Ref     Val               Package                              PosX       PosY       Rot  Side
+    FID2      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm           165.1000  -118.1100  180.0000  bottom
+    FID3      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm           121.9200   -74.9300  180.0000  bottom
+    C2        10uF              C_0603_1608Metric                136.5250  -106.6800  -90.0000  top
+
+ASCII output caps each identity field at 1,024 UTF-8 bytes and the complete
+file at 32 MiB. It rejects control, line-separator and bidi-format characters.
+Wide/combining Unicode display-column behavior has not been qualified; use CSV
+when that alignment matters.
 
 The partial project bundle contains source identity, diagnostics, top/bottom
 views, placement/selector inventories and a GLB coverage report. Integrity

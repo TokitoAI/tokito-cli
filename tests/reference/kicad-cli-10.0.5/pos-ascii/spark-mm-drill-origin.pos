@@ -1,0 +1,23 @@
+### Footprint positions - created on 2026-10-18T14:13:19 ###
+### Printed by KiCad version 10.0.5
+## Unit = mm, Angle = deg.
+## Side : All
+# Ref     Val               Package                              PosX       PosY       Rot  Side
+FID2      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm            49.5300     6.3500  180.0000  bottom
+FID3      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm             6.3500    49.5300  180.0000  bottom
+C2        10uF              C_0603_1608Metric                 20.9550    17.7800  -90.0000  top
+C3        1.0uF             C_0603_1608Metric                 22.8600    17.7800  -90.0000  top
+C4        1.0uF             C_0402_1005Metric                 29.2100    17.7800  -90.0000  top
+C5        10uF              C_0603_1608Metric                 31.1150    17.7800  -90.0000  top
+FID1      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm             6.3500    49.5300    0.0000  top
+FID4      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm            49.5300     6.3500    0.0000  top
+G3        OSHW_Logo         Creative_Commons_License          99.6950   -44.4500    0.0000  top
+J1        Qwiic_RA          JST_1x04_P1.0mm_Horizontal_SMD    25.4000     5.1640    0.0000  top
+ST1       Stand_off         Standoff                           2.5400    48.2600    0.0000  top
+ST2       Stand_off         Standoff                           2.5400     2.5400    0.0000  top
+ST3       Stand_off         Standoff                          48.2600    48.2600    0.0000  top
+ST4       Stand_off         Standoff                          48.2600     2.5400    0.0000  top
+TP1       TestPoint_0.75mm  TestPoint-0.75mm                  22.8600    15.2400    0.0000  top
+TP2       TestPoint_0.75mm  TestPoint-0.75mm                  22.8600    20.9550    0.0000  top
+U2        RT9080-3.3        SOT23-5                           26.0350    17.7800    0.0000  top
+## End

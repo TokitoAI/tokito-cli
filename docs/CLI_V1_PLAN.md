@@ -1,6 +1,6 @@
 # Tokito CLI v1 requirements and release ledger
 
-Updated 2026-10-16. CLI only: AR and YOLO are outside this release.
+Updated 2026-10-18. CLI only: AR and YOLO are outside this release.
 Version 1 is a target, not the current package version or a completion claim.
 The implementation remains original Rust with pure Rust dependencies. KiCad
 10.0.7 behavior, Library Tools, footprint and model libraries are references;
@@ -13,7 +13,7 @@ full command, generator and library parity is not complete.
 | V1-01 | Every implemented command has successful and refusal subprocess coverage | Audit found 39 operational leaves plus help/flags/aliases. Three optional-only paths receive a mandatory base test; alias/error review continues |
 | V1-02 | Consistent CLI parsing, version identity and actionable errors | Fix trailing root options, duplicate SVG options, invalid-Unicode argv and hard-coded producer/executable versions |
 | V1-03 | Dependable no-overwrite output with recoverable failures | Twin outputs now pre-serialize, write manifest last and conservatively roll back unchanged authored files on ordinary errors. Unit fault tests added; process-kill atomicity not claimed |
-| V1-04 | Complete pinned KiCad command/export/error compatibility | Partial; issue #13 and the compatibility matrix retain unimplemented families/options |
+| V1-04 | Complete pinned KiCad command/export/error compatibility | Partial; POS CSV is compared against 10.0.5/10.0.7, and POS ASCII against nine KiCad 10.0.5 cases; issue #13 and the compatibility matrix retain unimplemented families/options |
 | V1-05 | Footprint/Library Tools coverage and engineering standards | Partial; explicit SMD/TH/NPTH candidates and library inventory/hash locks exist. Family coverage, IPC calculations, KLC and manufacturer-qualified land patterns remain open (#24) |
 | V1-06 | Accurate 3D bodies, terminals, contours, cuts and materials | Bounded VRML works; STEP reference ownership verified for 76 solids. Original Rust experimental repair reuses 148 vertices and replaces one face's 146 triangles; model-14's 41-shape closure/winding/volume and independent 600,000-sample comparison pass (maximum 0.0014101133940020597 mm). On ESP8266 model-16, a bounded 12,801-vertex/24,064-triangle candidate passes sampled chord error but 3,995 triangle-centroid normals fail the oriented-face gate; FreeCAD independently confirms the failure. The candidate is refused and not exported. Global frame/ownership qualification, spline repair, original all-asset gaps and production adapter admission remain open (#19); see STEP_PLANAR_REPAIR.md and STEP_FACE_2875_ANALYSIS.md |
 | V1-07 | Units, alignment, mounting plane, rotations and bottom transforms | Existing source/pose regressions; independent per-board dimensions and all-component geometry qualification still required |

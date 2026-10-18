@@ -151,7 +151,7 @@ shape is not a declaration of complete KiCad command compatibility.
 | `project build/verify` | Source-pinned offline bundle with placements, outline, top/bottom SVG, GLB coverage, component UUID/selector map and integrity verification; not yet App-importable |
 | `validate outline` | Bounded contour/cutout topology report and refusal diagnostics |
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
-| `pcb export pos` | KiCad-reference CSV subset: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; non-CSV formats are refused |
+| `pcb export pos` | KiCad-reference CSV and ASCII subsets: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; Gerber and variants remain unsupported |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
 | `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection; copied STEP/glTF bytes are not decoded geometry or selector qualification |
 | `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE` and checked planar polygon `IndexedFaceSet`), reference wildcards, native DNP exclusion, and [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md) with explicit coverage, or candidate assignments |
@@ -196,6 +196,7 @@ paths:
 ./target/release/tokito-cli.exe validate outline board.kicad_pcb --json
 ./target/release/tokito-cli.exe export placements board.kicad_pcb --output placements.csv
 ./target/release/tokito-cli.exe pcb export pos board.kicad_pcb --format csv --units mm --side both --output manufacturing-positions.csv
+./target/release/tokito-cli.exe pcb export pos board.kicad_pcb --format ascii --units mm --side both --output manufacturing-positions.pos
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side top --output top.svg
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --layers F.Fab --hide-DNP-footprints-on-fab-layers --output fab-populated.svg
 ./target/release/tokito-cli.exe export svg board.kicad_pcb --side bottom --output bottom.svg
@@ -238,10 +239,15 @@ reference does not produce a STEP artifact. Unresolved models are reported
 rather than replaced by silent cuboids.
 
 `export placements` is the original-source coordinate inventory. `pcb export
-pos` is a separate manufacturing CSV projection whose selected options and
-transforms, including auxiliary-origin translation, have been compared with
-KiCad 10.0.5 reference outputs. See the
-[POS export contract](docs/PCB_POSITION_EXPORT.md) and [reference manifest](tests/reference/kicad-cli-10.0.5/pos/manifest.json).
+pos` is a separate manufacturing projection with CSV and ASCII formats. The
+CSV subset has pinned KiCad 10.0.5 and 10.0.7 comparisons; ASCII has pinned
+KiCad 10.0.5 comparisons. See the [POS export contract](docs/PCB_POSITION_EXPORT.md),
+[CSV evidence](tests/reference/kicad-cli-10.0.5/pos/manifest.json) and
+[ASCII evidence](tests/reference/kicad-cli-10.0.5/pos-ascii/manifest.json).
+ASCII output is bounded to 1,024 UTF-8 bytes per identity field and 32 MiB
+total; control, line-separator and bidi-format characters are refused. See the
+contract for the narrow Unicode/display-width limitation and unsupported
+variants/Gerber options.
 
 ## Command flow and actual output
 
@@ -278,10 +284,22 @@ Ref,Val,Package,PosX,PosY,Rot,Side
 "C2","10uF","C_0603_1608Metric",136.525000,-106.680000,-90.000000,top
 ```
 
+The ASCII command emits the same selected placements in a KiCad-style table
+with four fractional digits. A live SparkFun fixture run wrote 17 rows:
+
+    ### Footprint positions - created on 2026-10-18T08:50:47 ###
+    ### Printed by Tokito CLI version 0.1.0
+    ## Unit = mm, Angle = deg.
+    ## Side : All
+    # Ref     Val               Package                              PosX       PosY       Rot  Side
+    FID2      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm           165.1000  -118.1100  180.0000  bottom
+    FID3      Fiducial_0.5mm    Fiducial_0.5mm_Mask1mm           121.9200   -74.9300  180.0000  bottom
+    C2        10uF              C_0603_1608Metric                136.5250  -106.6800  -90.0000  top
+
 | Operation | Output |
 | --- | --- |
 | `inspect`, `doctor`, `validate outline` | Human report or supported `--json` report |
-| `export svg`, `export placements`, `pcb export pos` | Partial `.svg`, source-inventory `.csv`, manufacturing-position `.csv` |
+| `export svg`, `export placements`, `pcb export pos` | Partial `.svg`, source-inventory `.csv`, manufacturing-position `.csv` or `.pos` |
 | `export glb` | `.glb`; optional JSON coverage on stdout |
 | `project build` | New source-bound directory with views, placement/selector records, GLB, diagnostics and manifest |
 | `component footprint generate` | New `.kicad_mod` and explicit candidate report, including mixed pad types |
@@ -349,8 +367,9 @@ flowchart LR
 the public engine boundary. `load_kicad_board`, `load_board_input` and
 `PhysicalBoardDocument` provide import, typed engineering inventory, supported
 geometry, outline validation, source-frame placement inventory and typed
-manufacturing-position CSV without launching a subprocess. The two CSV
-operations are separate by design; neither changes the v0.1 package schema.
+manufacturing-position CSV/ASCII exports without launching a subprocess. The
+raw inventory and manufacturing exports are separate by design; neither
+changes the v0.1 package schema.
 [Canonical API](docs/CANONICAL_ENGINE.md) documents semantics and compatibility.
 
 ### Component selection and AR separation

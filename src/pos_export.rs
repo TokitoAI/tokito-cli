@@ -1,15 +1,18 @@
-//! Narrow, independently compared CSV position export.
+//! Narrow, independently compared placement-position exports.
 //!
 //! This is a manufacturing-position projection, separate from the frozen raw
-//! placement inventory. It supports a bounded CSV subset with absolute or
-//! KiCad 10.0.5-observed auxiliary drill-file origin semantics.
+//! placement inventory. It supports bounded CSV and ASCII formats with
+//! absolute or KiCad-observed auxiliary drill-file origin semantics.
 
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Write as _;
 
 use crate::{EngineError, PhysicalBoardDocument};
 
 const MM_PER_INCH: f64 = 25.4;
+const MAX_POS_ASCII_FIELD_BYTES: usize = 1024;
+const MAX_POS_ASCII_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PositionSide {
@@ -99,6 +102,37 @@ pub struct PositionExport {
     pub row_count: usize,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct PositionAsciiExport {
+    pub ascii: String,
+    pub source_sha256: String,
+    pub units: PositionUnits,
+    pub side: PositionSide,
+    pub origin: PositionExportOrigin,
+    pub row_count: usize,
+}
+
+#[derive(Debug)]
+struct PositionRow {
+    side_order: u8,
+    reference: String,
+    value: String,
+    package: String,
+    x: f64,
+    y: f64,
+    rotation: f64,
+    side: &'static str,
+}
+
+#[derive(Debug)]
+struct PositionRows {
+    rows: Vec<PositionRow>,
+    source_sha256: String,
+    units: PositionUnits,
+    side: PositionSide,
+    origin: PositionExportOrigin,
+}
+
 #[derive(Default)]
 struct FootprintClass {
     smd: bool,
@@ -115,6 +149,55 @@ impl PhysicalBoardDocument {
         &self,
         options: PositionExportOptions,
     ) -> Result<PositionExport, EngineError> {
+        let projection = self.project_position_rows(options)?;
+        let row_count = projection.rows.len();
+        let mut csv = String::from("Ref,Val,Package,PosX,PosY,Rot,Side\n");
+        for row in &projection.rows {
+            csv.push_str(&format!(
+                "{},{},{},{:.6},{:.6},{:.6},{}",
+                csv_field(&row.reference),
+                csv_field(&row.value),
+                csv_field(&row.package),
+                row.x,
+                row.y,
+                row.rotation,
+                row.side
+            ));
+            csv.push('\n');
+        }
+        Ok(PositionExport {
+            csv,
+            source_sha256: projection.source_sha256,
+            units: projection.units,
+            side: projection.side,
+            origin: projection.origin,
+            row_count,
+        })
+    }
+
+    /// Export a KiCad-style whitespace position layout from the same
+    /// canonical identities, filters, origin and coordinate transform as CSV.
+    pub fn export_pos_ascii(
+        &self,
+        options: PositionExportOptions,
+    ) -> Result<PositionAsciiExport, EngineError> {
+        let projection = self.project_position_rows(options)?;
+        let row_count = projection.rows.len();
+        let ascii = serialize_pos_ascii(&projection.rows, options.units, options.side)?;
+        Ok(PositionAsciiExport {
+            ascii,
+            source_sha256: projection.source_sha256,
+            units: projection.units,
+            side: projection.side,
+            origin: projection.origin,
+            row_count,
+        })
+    }
+
+    fn project_position_rows(
+        &self,
+        options: PositionExportOptions,
+    ) -> Result<PositionRows, EngineError> {
         // Keep the legacy absolute-origin path byte-for-byte stable. Only
         // inspect the source auxiliary origin when explicitly requested.
         let origin = if options.use_drill_file_origin {
@@ -147,7 +230,7 @@ impl PhysicalBoardDocument {
             }
         }
 
-        let mut rows = Vec::<(u8, String, String)>::new();
+        let mut rows = Vec::<PositionRow>::new();
         let mut references = BTreeSet::new();
         let mut component_ordinals = BTreeMap::new();
         for component in &self.engineering.components {
@@ -256,48 +339,227 @@ impl PhysicalBoardDocument {
                 .library_id
                 .rsplit_once(':')
                 .map_or(footprint.library_id.as_str(), |(_, package)| package);
-            let row = format!(
-                "{},{},{},{:.6},{:.6},{:.6},{}",
-                csv_field(&footprint.reference),
-                csv_field(&footprint.value),
-                csv_field(package),
+            let side = if footprint.side == "front" {
+                "top"
+            } else {
+                "bottom"
+            };
+            rows.push(PositionRow {
+                side_order: if footprint.side == "back" { 0 } else { 1 },
+                reference: footprint.reference.clone(),
+                value: footprint.value.clone(),
+                package: package.to_owned(),
                 x,
                 y,
-                rotation_deg,
-                if footprint.side == "front" {
-                    "top"
-                } else {
-                    "bottom"
-                }
-            );
-            rows.push((
-                if footprint.side == "back" { 0 } else { 1 },
-                footprint.reference.clone(),
-                row,
-            ));
+                rotation: rotation_deg,
+                side,
+            });
         }
 
         rows.sort_by(|left, right| {
-            left.0
-                .cmp(&right.0)
-                .then_with(|| natural_reference_cmp(&left.1, &right.1))
+            left.side_order
+                .cmp(&right.side_order)
+                .then_with(|| natural_reference_cmp(&left.reference, &right.reference))
         });
-        let row_count = rows.len();
-        let mut csv = String::from("Ref,Val,Package,PosX,PosY,Rot,Side\n");
-        for (_, _, row) in rows {
-            csv.push_str(&row);
-            csv.push('\n');
-        }
-
-        Ok(PositionExport {
-            csv,
+        Ok(PositionRows {
+            rows,
             source_sha256: self.source_sha256.clone(),
             units: options.units,
             side: options.side,
             origin,
-            row_count,
         })
     }
+}
+
+fn serialize_pos_ascii(
+    rows: &[PositionRow],
+    units: PositionUnits,
+    side: PositionSide,
+) -> Result<String, EngineError> {
+    let (ref_width, value_width, package_width) = rows.iter().try_fold(
+        (8_usize, 8_usize, 16_usize),
+        |(ref_width, value_width, package_width), row| {
+            Ok::<_, EngineError>((
+                ref_width.max(ascii_field_width("reference", &row.reference)?),
+                value_width.max(ascii_field_width("value", &row.value)?),
+                package_width.max(ascii_field_width("package", &row.package)?),
+            ))
+        },
+    )?;
+
+    let timestamp = current_utc_timestamp()?;
+    let unit_label = match units {
+        PositionUnits::Millimetres => "mm",
+        PositionUnits::Inches => "inches",
+    };
+    let side_label = match side {
+        PositionSide::Front => "top",
+        PositionSide::Back => "bottom",
+        PositionSide::Both => "All",
+    };
+    let header = format!(
+        "### Footprint positions - created on {timestamp} ###\n### Printed by Tokito CLI version {}\n## Unit = {unit_label}, Angle = deg.\n## Side : {side_label}\n",
+        env!("CARGO_PKG_VERSION")
+    );
+    let table_header = format!(
+        "{:<ref_width$}  {:<value_width$}  {:<package_width$}  {:>9}  {:>9}  {:>8}  Side\n",
+        "# Ref", "Val", "Package", "PosX", "PosY", "Rot"
+    );
+
+    let mut output_bytes = header
+        .len()
+        .checked_add(table_header.len())
+        .and_then(|length| length.checked_add("## End\n".len()))
+        .ok_or_else(|| EngineError::new("POS ASCII output size calculation overflowed"))?;
+    for row in rows {
+        let row_bytes = [
+            padded_ascii_field_bytes(&row.reference, ref_width),
+            2,
+            padded_ascii_field_bytes(&row.value, value_width),
+            2,
+            padded_ascii_field_bytes(&row.package, package_width),
+            2,
+            format!("{:>9.4}", row.x).len(),
+            2,
+            format!("{:>9.4}", row.y).len(),
+            2,
+            format!("{:>8.4}", row.rotation).len(),
+            2,
+            row.side.len(),
+            1,
+        ]
+        .into_iter()
+        .try_fold(0_usize, checked_ascii_size_add)?;
+        output_bytes = checked_ascii_size_add(output_bytes, row_bytes)?;
+        check_ascii_output_size(output_bytes)?;
+    }
+    check_ascii_output_size(output_bytes)?;
+
+    let mut output = String::new();
+    output.try_reserve_exact(output_bytes).map_err(|_| {
+        EngineError::new("POS ASCII output could not reserve its checked buffer size")
+    })?;
+    output.push_str(&header);
+    output.push_str(&table_header);
+    for row in rows {
+        push_ascii_field(&mut output, &row.reference, ref_width);
+        output.push_str("  ");
+        push_ascii_field(&mut output, &row.value, value_width);
+        output.push_str("  ");
+        push_ascii_field(&mut output, &row.package, package_width);
+        output.push_str("  ");
+        writeln!(
+            &mut output,
+            "{:>9.4}  {:>9.4}  {:>8.4}  {}",
+            row.x, row.y, row.rotation, row.side
+        )
+        .map_err(|_| EngineError::new("could not serialize POS ASCII numeric fields"))?;
+    }
+    output.push_str("## End\n");
+    debug_assert_eq!(output.len(), output_bytes);
+    Ok(output)
+}
+
+fn ascii_field_width(label: &str, value: &str) -> Result<usize, EngineError> {
+    if value.len() > MAX_POS_ASCII_FIELD_BYTES {
+        return Err(EngineError::new(format!(
+            "POS ASCII export refused {label} field longer than the {MAX_POS_ASCII_FIELD_BYTES}-byte safety limit"
+        )));
+    }
+    if value.chars().any(is_unsafe_ascii_format_character) {
+        return Err(EngineError::new(format!(
+            "POS ASCII export refused control, line-separator, or bidi-format characters in the {label} field; use CSV for this text"
+        )));
+    }
+    Ok(value.chars().count())
+}
+
+fn is_unsafe_ascii_format_character(character: char) -> bool {
+    let codepoint = u32::from(character);
+    character.is_control()
+        || matches!(
+            codepoint,
+            0x00AD
+                | 0x034F
+                | 0x061C
+                | 0x200B..=0x200F
+                | 0x2028..=0x202E
+                | 0x2060..=0x206F
+                | 0xFEFF
+                | 0xFFF9..=0xFFFB
+                | 0xE0001
+                | 0xE0020..=0xE007F
+        )
+}
+
+fn checked_ascii_size_add(total: usize, next: usize) -> Result<usize, EngineError> {
+    total
+        .checked_add(next)
+        .ok_or_else(|| EngineError::new("POS ASCII output size calculation overflowed"))
+}
+
+fn check_ascii_output_size(bytes: usize) -> Result<(), EngineError> {
+    if bytes > MAX_POS_ASCII_OUTPUT_BYTES {
+        return Err(EngineError::new(format!(
+            "POS ASCII output exceeds the {MAX_POS_ASCII_OUTPUT_BYTES}-byte safety limit"
+        )));
+    }
+    Ok(())
+}
+
+fn push_ascii_field(output: &mut String, value: &str, width: usize) {
+    for character in value.chars() {
+        output.push(if character == ' ' { '_' } else { character });
+    }
+    for _ in value.chars().count()..width {
+        output.push(' ');
+    }
+}
+
+fn padded_ascii_field_bytes(value: &str, width: usize) -> usize {
+    value.len() + width.saturating_sub(value.chars().count())
+}
+
+fn current_utc_timestamp() -> Result<String, EngineError> {
+    let seconds = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| EngineError::new("system clock is before the Unix epoch"))?
+        .as_secs();
+    let days = i64::try_from(seconds / 86_400)
+        .map_err(|_| EngineError::new("system clock is outside the supported UTC date range"))?;
+    let day_seconds = seconds % 86_400;
+    let (year, month, day) = civil_date_from_days(days);
+    let hour = day_seconds / 3_600;
+    let minute = (day_seconds % 3_600) / 60;
+    let second = day_seconds % 60;
+    Ok(format!(
+        "{year:04}-{month:02}-{day:02}T{hour:02}:{minute:02}:{second:02}"
+    ))
+}
+
+fn civil_date_from_days(unix_days: i64) -> (i64, i64, i64) {
+    let shifted_days = unix_days + 719_468;
+    let era = if shifted_days >= 0 {
+        shifted_days
+    } else {
+        shifted_days - 146_096
+    } / 146_097;
+    let day_of_era = shifted_days - era * 146_097;
+    let year_of_era =
+        (day_of_era - day_of_era / 1_460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let mut year = year_of_era + era * 400;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let month_prime = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * month_prime + 2) / 5 + 1;
+    let month = if month_prime < 10 {
+        month_prime + 3
+    } else {
+        month_prime - 9
+    };
+    if month <= 2 {
+        year += 1;
+    }
+    (year, month, day)
 }
 
 fn translated_position(
@@ -496,6 +758,81 @@ mod tests {
             use_drill_file_origin: true,
             ..PositionExportOptions::default()
         }
+    }
+
+    fn ascii_test_row(reference: &str, value: &str, package: &str) -> PositionRow {
+        PositionRow {
+            side_order: 1,
+            reference: reference.to_owned(),
+            value: value.to_owned(),
+            package: package.to_owned(),
+            x: 5.0,
+            y: -5.0,
+            rotation: 90.0,
+            side: "top",
+        }
+    }
+
+    #[test]
+    fn ascii_timestamp_calendar_conversion_handles_epoch_leap_and_pre_epoch_days() {
+        assert_eq!(civil_date_from_days(0), (1970, 1, 1));
+        assert_eq!(civil_date_from_days(-1), (1969, 12, 31));
+        assert_eq!(civil_date_from_days(10_957), (2000, 1, 1));
+        assert_eq!(civil_date_from_days(11_016), (2000, 2, 29));
+    }
+
+    #[test]
+    fn ascii_export_uses_kicad_style_columns_and_rejects_unrepresentable_fields() {
+        let output = serialize_pos_ascii(
+            &[ascii_test_row("R 1", "1 kOhm", "R 0603")],
+            PositionUnits::Millimetres,
+            PositionSide::Both,
+        )
+        .unwrap();
+        assert!(output.starts_with("### Footprint positions - created on 20"));
+        assert!(output.contains("### Printed by Tokito CLI version "));
+        assert!(output.contains("## Unit = mm, Angle = deg.\n## Side : All\n"));
+        let lines = output.lines().collect::<Vec<_>>();
+        assert!(lines[4].starts_with("# Ref"));
+        assert!(lines[4].contains("Package"));
+        assert!(lines[4].ends_with("Side"));
+        assert_eq!(
+            lines[5].split_whitespace().collect::<Vec<_>>(),
+            [
+                "R_1", "1_kOhm", "R_0603", "5.0000", "-5.0000", "90.0000", "top"
+            ]
+        );
+        assert!(output.ends_with("## End\n"));
+
+        let invalid = ascii_test_row("R1", "value\ninjected", "R_0603");
+        let error = serialize_pos_ascii(&[invalid], PositionUnits::Millimetres, PositionSide::Both)
+            .unwrap_err();
+        assert!(error.to_string().contains("control"));
+
+        let bidi = ascii_test_row("R1", "value\u{202e}spoof", "R_0603");
+        let error = serialize_pos_ascii(&[bidi], PositionUnits::Millimetres, PositionSide::Both)
+            .unwrap_err();
+        assert!(error.to_string().contains("bidi-format"));
+
+        let unicode = ascii_test_row("R1", "1kΩ@100MHz", "R_0603");
+        let output =
+            serialize_pos_ascii(&[unicode], PositionUnits::Millimetres, PositionSide::Both)
+                .unwrap();
+        assert!(output.contains("1kΩ@100MHz"));
+
+        let overlong = ascii_test_row("R1", &"x".repeat(MAX_POS_ASCII_FIELD_BYTES + 1), "R_0603");
+        let error =
+            serialize_pos_ascii(&[overlong], PositionUnits::Millimetres, PositionSide::Both)
+                .unwrap_err();
+        assert!(error.to_string().contains("field longer than"));
+    }
+
+    #[test]
+    fn ascii_export_rejects_output_budget_exhaustion_and_size_overflow() {
+        assert!(check_ascii_output_size(MAX_POS_ASCII_OUTPUT_BYTES).is_ok());
+        let error = check_ascii_output_size(MAX_POS_ASCII_OUTPUT_BYTES + 1).unwrap_err();
+        assert!(error.to_string().contains("safety limit"));
+        assert!(checked_ascii_size_add(usize::MAX, 1).is_err());
     }
 
     #[test]

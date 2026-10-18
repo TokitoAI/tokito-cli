@@ -1,11 +1,15 @@
-# PCB manufacturing-position CSV
+# PCB manufacturing-position export
 
-`pcb export pos` is a narrow, pure-Rust manufacturing-position exporter. It is
-separate from `export placements`: the older operation remains a byte-stable
-inventory in the saved KiCad board frame, while POS converts that inventory to
-the CSV conventions verified against a KiCad reference executable. The tested
-CSV subset supports both absolute board origin and a declared auxiliary
-drill-file origin.
+`pcb export pos` is a pure-Rust manufacturing-position projection, separate
+from `export placements`. The latter remains the raw identity inventory in the
+saved KiCad board frame; POS transforms coordinates and applies placement
+selection rules for a downstream manufacturing workflow.
+
+Tokito currently supports bounded CSV and KiCad-style ASCII subsets. They share
+one canonical projection for UUID-bound footprint identity, side/DNP/SMD/THT
+selection, origin translation, unit conversion, bottom-side X mirroring and
+sorting. The CLI does not start KiCad and requires an explicit format and a new
+output path.
 
 ## Data path
 
@@ -14,15 +18,19 @@ flowchart LR
     PCB[KiCad PCB or verified Tokito v0.1 package] --> Import[Bounded Rust import]
     Import --> Canonical[PhysicalBoardDocument]
     Canonical --> Request[Typed PositionExportOptions]
-    Request --> Project[Side / DNP / SMD / through-hole selection]
-    Project --> Transform[Origin, units, board Y to POS Y, optional bottom X mirror]
-    Transform --> CSV[Stable CSV rows]
-    CSV --> Writer[Explicit new output path; overwrite refused]
+    Request --> Project[Identity, side, DNP, SMD and THT selection]
+    Project --> Transform[Origin, units, Y-up conversion, optional bottom-X mirror]
+    Transform --> Choose{Explicit output format}
+    Choose --> CSV[Stable CSV rows]
+    Choose --> ASCII[KiCad-style whitespace table]
+    CSV --> Writer[New output file; overwrite refused]
+    ASCII --> Writer
 ```
 
-The public `PhysicalBoardDocument::export_pos_csv` method and the CLI share the
-same projection. The CLI only parses arguments, loads a PCB or supported Tokito
-package, calls that method, and writes the result. It never starts KiCad.
+The public `PhysicalBoardDocument::export_pos_csv` and
+`PhysicalBoardDocument::export_pos_ascii` APIs share the same projection. The
+CLI only parses arguments, loads a supported PCB or Tokito package, calls the
+appropriate serializer and writes the result.
 
 ## Usage
 
@@ -30,59 +38,87 @@ package, calls that method, and writes the result. It never starts KiCad.
 tokito-cli pcb export pos board.kicad_pcb `
   --format csv --output placements.csv --side both --units mm `
   --bottom-negate-x --exclude-fp-th --exclude-dnp
+
+tokito-cli pcb export pos board.kicad_pcb `
+  --format ascii --output placements.pos --side both --units mm `
+  --use-drill-file-origin
 ```
 
-`--format csv` and `--output <FILE.csv>` are required. Defaults match the tested
-KiCad CSV slice where applicable: both sides, inches, no bottom-X negation, and
-no extra SMD/THT/DNP filters. Footprints marked `exclude_from_pos_files` are
-omitted by default. CSV strings are quoted and embedded quotes are doubled;
-numeric fields use six fractional digits. Rows are grouped bottom side first,
-then top side, with natural reference-designator ordering within each side.
+`--format csv|ascii` and `--output <FILE.csv|FILE.pos>` are required.
+Defaults for the shared projection are both sides, inches, absolute board
+origin, no bottom-X negation and no additional SMD/THT/DNP filters. Footprints
+marked `exclude_from_pos_files` are omitted by default. Existing destination
+files are never replaced.
 
-| Option | Tokito behavior | Current evidence |
+| Option | Tokito behavior | Current reference evidence |
 |---|---|---|
-| `--side front|back|both` | Selects F.Cu, B.Cu, or both | Uno and NXP reference CSVs |
-| `--units in|mm` | Converts source millimetres; default is inches | Uno in/mm reference CSVs |
-| `--bottom-negate-x` | Negates X only for B.Cu rows | NXP back-side reference CSV |
-| `--smd-only` | Keeps footprints carrying the `smd` attribute | Uno reference CSV |
-| `--exclude-fp-th` | Omits a footprint with any `thru_hole` or `np_thru_hole` pad; refuses an unclassified pad rather than guessing | Uno plated-pad and SparkFun NPTH reference CSVs |
-| `--exclude-dnp` | Omits footprints marked DNP | Uno reference CSV |
-| `--use-drill-file-origin` | Uses the finite `setup/aux_axis_origin` in source-board millimetres: X becomes `sourceX - originX`, Y becomes `originY - sourceY`; bottom-X negation then applies to the shifted X. If absent, the origin is `(0,0)`; malformed or ambiguous declarations are refused. | SparkFun and Pico reference CSVs, including bottom-X negation; Uno verifies absent-origin fallback |
+| `--side front|back|both` | Select F.Cu, B.Cu, or both | Uno, NXP; ASCII front/back captures |
+| `--units in|mm` | Converts source millimetres; default is inches | Uno, NXP, SparkFun, Pico |
+| `--bottom-negate-x` | Negates X only for B.Cu rows, after origin translation | NXP and Pico |
+| `--smd-only` | Keeps footprints carrying the `smd` attribute | Uno CSV capture |
+| `--exclude-fp-th` | Omits any footprint with a `thru_hole` or `np_thru_hole` pad; refuses unclassified pads rather than guessing | Uno and SparkFun |
+| `--exclude-dnp` | Omits footprints marked DNP | Uno and NXP |
+| `--use-drill-file-origin` | Uses finite `setup/aux_axis_origin`: X = sourceX − originX, Y = originY − sourceY; absent origin falls back to (0,0); malformed/ambiguous origins are refused | SparkFun and Pico; Uno verifies fallback |
 
-The absolute board origin remains the default. Variants, ASCII, Gerber, and
-`--gerber-board-edge` are explicitly unsupported. Unsupported options fail
-before writing output. Existing destination files are never replaced. The
-implementation does not claim KiCad's full command syntax: KiCad defaults to
-ASCII, while Tokito requires explicit `--format csv` because only the CSV
-subset has been independently captured.
+Rows are ordered bottom side first, then top side, with natural reference order
+within each side. KiCad and Tokito may order footprints with empty references
+differently; comparison preserves the order of named references and checks
+empty-reference rows as an unordered value set.
 
-## Reference evidence
+### CSV
 
-The reviewed primary-source manual documents the KiCad 10.0 option surface and
-defaults: [KiCad 10.0 CLI manual, PCB position export](https://docs.kicad.org/10.0/en/cli/cli.html#pcb-export-pos).
-On 2026-10-11, the installed reference executable reported KiCad CLI 10.0.5.
-On 2026-10-14, the pinned reference executable reported KiCad CLI 10.0.7
-(SHA-256 `cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a`).
-The 10.0.5 and 10.0.7 outputs were captured from the same pinned Uno, NXP MCXA
-ESC, SparkFun, and Raspberry Pi Pico PCB fixtures. Uno has no auxiliary origin and confirms the
-`(0,0)` fallback; SparkFun and Pico exercise nonzero origins, and a second Pico
-capture checks bottom-X negation after origin translation.
-[The 10.0.5 manifest](../tests/reference/kicad-cli-10.0.5/pos/manifest.json)
-and [10.0.7 manifest](../tests/reference/kicad-cli-10.0.7/pos/manifest.json)
-record source and output hashes, options, versions, and row counts. The local
-compatibility E2E runs Tokito against the 10.0.7 corpus without invoking the
-reference executable. Twelve outputs match after normalizing only line endings;
-the two Pico files have the same ordered named rows and identical empty-reference
-row multisets, whose ordering is not identifiable. The existing Rust unit tests
-also compare the 10.0.5 corpus. Pico's duplicate
-empty-reference rows are compared by row value as an unordered group because
-those rows carry no reference key; all named rows retain ordered comparison.
-Subprocess E2E tests also exercise command parsing, package input,
-unsupported-option refusal, malformed-origin refusal and no-overwrite
-behavior. Tokito's product path has no KiCad runtime dependency.
+CSV begins with `Ref,Val,Package,PosX,PosY,Rot,Side`. Fields are quoted and
+embedded quotes doubled; numeric fields use six fractional digits. The current
+CSV reference corpus covers 14 option/board cases in KiCad 10.0.5 and 10.0.7.
+Twelve 10.0.7 outputs match after line-ending normalization; two Pico outputs
+match in named-row order and empty-reference row values.
 
-These comparisons establish only the listed POS CSV behavior against KiCad
-10.0.5 and 10.0.7. They do not establish complete POS error/default parity or
-complete KiCad CLI parity. Variants, other POS formats, SVG/GLB/STEP export
-semantics, DRC, schematic and footprint-library workflows remain separate open
+### ASCII
+
+ASCII uses a whitespace-aligned table, minimum reference/value/package column
+widths, spaces changed to underscores in text fields, four decimal places,
+front/back side labels and a terminating `## End`. It allows bounded printable
+Unicode text, but rejects control characters, line separators and bidi-format
+characters. Each identity field is capped at 1,024 UTF-8 bytes and the complete
+serialized file at 32 MiB; the exporter checks the output size before reserving
+or writing the buffer. Column width follows Unicode scalar count, so terminal
+cell alignment for wide or combining characters is not qualified; use CSV when
+that presentation matters. Tokito identifies its own tool/version and writes a
+UTC timestamp in the header; native KiCad uses its own build version and
+host-local timestamp. Comparisons validate both exact tool/version headers,
+then normalize only those two lines and CRLF-to-LF line endings.
+
+Nine captured KiCad 10.0.5 cases cover Uno units, NXP front/back, bottom-X,
+DNP filtering, SparkFun auxiliary origin/THT filtering, and Pico auxiliary
+origin with bottom-X. Eight match exactly after header and line-ending
+normalization. The Pico case compares every named-reference row in order and
+every empty-reference row as an unordered value set. Tokito
+does not claim KiCad 10.0.7 ASCII runtime parity.
+
+The ASCII serializer refuses control characters in reference/value/package
+fields so source text cannot inject extra output lines. CSV remains the
+recommended option when text fields contain delimiters or characters that do
+not fit the ASCII table representation.
+
+## Reference evidence and scope
+
+The official [KiCad 10.0 CLI manual](https://docs.kicad.org/10.0/en/cli/cli.html#pcb-export-pos)
+documents the POS command and its format options; that manual is based on KiCad
+10.0.7. The pinned [KiCad 10.0.7 placement exporter source](https://gitlab.com/kicad/code/kicad/-/raw/10.0.7/pcbnew/exporters/place_file_exporter.cpp)
+was used to verify table fields, sorting, formatting and transforms. Source is a
+behavior reference only; Tokito's Rust implementation is original.
+
+The [10.0.5 CSV manifest](../tests/reference/kicad-cli-10.0.5/pos/manifest.json),
+[10.0.7 CSV manifest](../tests/reference/kicad-cli-10.0.7/pos/manifest.json)
+and [10.0.5 ASCII manifest](../tests/reference/kicad-cli-10.0.5/pos-ascii/manifest.json)
+record source/output hashes, options, tool versions and case counts. The E2E
+test runs Tokito against those checked-in outputs; it does not invoke KiCad.
+The 10.0.5 ASCII captures were generated locally from the listed fixtures using
+the installed reference executable and are not evidence of 10.0.7 runtime
+behavior.
+
+KiCad POS options not implemented include variants, BOM exclusion and Gerber
+format/output, along with full default/error and edge-case parity. This is not
+complete POS parity or complete KiCad CLI parity. SVG/GLB/STEP exports, DRC,
+schematic, symbol and broad footprint-library workflows remain separate open
 work.

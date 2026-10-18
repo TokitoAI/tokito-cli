@@ -954,13 +954,13 @@ fn print_command_help(path: &[String], style: cli_presentation::Style) -> Result
             "USAGE: tokito-cli model inspect <FILE.wrl|vrml> --units millimetres|kicad-wrl [--json]\nInspects the bounded VRML97 Group/Transform/scene DEF/USE and triangle-mesh profile."
         ),
         ["export"] => println!(
-            "USAGE: tokito-cli [pcb] export <COMMAND>\nCOMMANDS:\n  svg          Partial physical-scale drawing of supported source geometry\n  glb          Board shell or bounded local VRML component assembly\n  pos          KiCad-reference manufacturing-position CSV subset\n  placements   Raw source-coordinate component inventory CSV\nEXAMPLE: tokito-cli pcb export glb --help"
+            "USAGE: tokito-cli [pcb] export <COMMAND>\nCOMMANDS:\n  svg          Partial physical-scale drawing of supported source geometry\n  glb          Board shell or bounded local VRML component assembly\n  pos          KiCad-reference manufacturing-position CSV/ASCII subset\n  placements   Raw source-coordinate component inventory CSV\nEXAMPLE: tokito-cli pcb export glb --help"
         ),
         ["export", "placements"] => println!(
             "USAGE: tokito-cli export placements <BOARD.kicad_pcb> --output <FILE.csv>\nWrites source-frame component placement and identity rows."
         ),
         ["export", "pos"] => println!(
-            "USAGE: tokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\nWrites manufacturing-position CSV with absolute board origin by default. --use-drill-file-origin subtracts setup/aux_axis_origin from X and uses originY - sourceY for POS Y; absent auxiliary origin falls back to (0, 0). Bottom X negation follows origin translation. Independent KiCad 10.0.5 and 10.0.7 comparisons cover only the pinned CSV subsets. ASCII, Gerber and variants remain unsupported. Output is never overwritten."
+            "USAGE: tokito-cli pcb export pos <BOARD|PACKAGE> --format csv|ascii --output <FILE.csv|FILE.pos> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]\nWrites manufacturing-position CSV or ASCII with absolute board origin by default. --use-drill-file-origin subtracts setup/aux_axis_origin from X and uses originY - sourceY for POS Y; absent auxiliary origin falls back to (0, 0). Bottom X negation follows origin translation. CSV is compared with pinned KiCad 10.0.5 and 10.0.7 cases; ASCII is compared with pinned KiCad 10.0.5 cases. Gerber and variants remain unsupported. Output is never overwritten."
         ),
         ["export", "svg"] => println!(
             "USAGE: tokito-cli export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--layers LAYER,...] [--hide-DNP-footprints-on-fab-layers]\nWrites a partial SVG view from supported board geometry. The DNP option hides only DNP footprint text and graphics on F.Fab/B.Fab; it does not remove pads or affect other layers."
@@ -1056,19 +1056,19 @@ fn print_pcb_help(style: cli_presentation::Style) {
          \ttokito-cli pcb validate outline <BOARD|PACKAGE> [--json]\n\
          \ttokito-cli pcb resolve models <BOARD|PACKAGE> --project-root <DIR> ...\n\
          \ttokito-cli pcb export placements <BOARD> --output <FILE.csv>\n\
-         \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] ...\n\
+        \ttokito-cli pcb export pos <BOARD|PACKAGE> --format csv|ascii --output <FILE.csv|FILE.pos> [--side front|back|both] [--units in|mm] ...\n\
          \ttokito-cli pcb bom reconcile <BOARD|PACKAGE> --bom <FILE> --format nxp-json|esp32-csv [--json]\n\
          \ttokito-cli pcb export svg <BOARD|PACKAGE> --output <FILE.svg> [--side top|bottom] [--hide-DNP-footprints-on-fab-layers]\n\
          \ttokito-cli pcb export glb <BOARD|PACKAGE> --output <FILE.glb> [--assemble-wrl ...] [--component-filter <PATTERN[,PATTERN...]>] [--allow-partial]\n\
          \n\
-         Position CSV supports absolute or auxiliary drill-file origin, side, unit, bottom-X and placement-class filters. Position ASCII/Gerber, variants, general Gerber, schematic-to-PCB, STEP, symbol-library and jobset commands are not implemented."
+        Position CSV and ASCII support absolute or auxiliary drill-file origin, side, units, bottom-X and placement-class filters. Position Gerber, variants, general Gerber, schematic-to-PCB, STEP, symbol-library and jobset commands are not implemented."
     );
 }
 
 fn export_pos_command(args: &[String]) -> Result<(), CliError> {
     use pos_export::{PositionExportOptions, PositionSide, PositionUnits};
 
-    const USAGE: &str = "usage: tokito-cli pcb export pos <BOARD|PACKAGE> --format csv --output <FILE.csv> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]";
+    const USAGE: &str = "usage: tokito-cli pcb export pos <BOARD|PACKAGE> --format csv|ascii --output <FILE.csv|FILE.pos> [--side front|back|both] [--units in|mm] [--use-drill-file-origin] [--bottom-negate-x] [--smd-only] [--exclude-fp-th] [--exclude-dnp]";
     if args.len() < 3 {
         return Err(CliError::new(USAGE));
     }
@@ -1142,7 +1142,7 @@ fn export_pos_command(args: &[String]) -> Result<(), CliError> {
             }
             "--gerber-board-edge" => {
                 return Err(CliError::new(
-                    "--gerber-board-edge applies only to Gerber output; this command supports CSV only",
+                    "--gerber-board-edge applies only to Gerber output; this command supports CSV and ASCII only",
                 ));
             }
             "--variant" if index + 1 < args.len() => {
@@ -1172,29 +1172,63 @@ fn export_pos_command(args: &[String]) -> Result<(), CliError> {
         }
     }
 
-    match format.as_deref() {
-        Some("csv") => {}
+    let format = match format.as_deref() {
+        Some("csv") => "csv",
+        Some("ascii") => "ascii",
         Some(other) => {
             return Err(CliError::new(format!(
-                "POS format {other:?} is unsupported; this implementation supports CSV only"
+                "POS format {other:?} is unsupported; this implementation supports CSV and ASCII only"
             )));
         }
-        None => return Err(CliError::new("--format csv is required for POS export")),
-    }
-    let output = output.ok_or_else(|| CliError::new("POS export requires --output <FILE.csv>"))?;
+        None => {
+            return Err(CliError::new(
+                "--format csv or ascii is required for POS export",
+            ));
+        }
+    };
+    let expected_extension = if format == "csv" { "csv" } else { "pos" };
+    let output = output.ok_or_else(|| {
+        CliError::new(format!(
+            "POS {format} export requires --output <FILE.{expected_extension}>"
+        ))
+    })?;
     if !output
         .extension()
         .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("csv"))
+        .is_some_and(|extension| extension.eq_ignore_ascii_case(expected_extension))
     {
-        return Err(CliError::new(
-            "POS CSV output path must use a .csv extension",
-        ));
+        return Err(CliError::new(format!(
+            "POS {format} output path must use a .{expected_extension} extension"
+        )));
     }
 
     let board = load_board_input(Path::new(input))?;
-    let exported = board.export_pos_csv(options)?;
-    let origin_description = match exported.origin {
+    let (contents, row_count, units, side, origin, source_sha256) = match format {
+        "csv" => {
+            let exported = board.export_pos_csv(options)?;
+            (
+                exported.csv,
+                exported.row_count,
+                exported.units,
+                exported.side,
+                exported.origin,
+                exported.source_sha256,
+            )
+        }
+        "ascii" => {
+            let exported = board.export_pos_ascii(options)?;
+            (
+                exported.ascii,
+                exported.row_count,
+                exported.units,
+                exported.side,
+                exported.origin,
+                exported.source_sha256,
+            )
+        }
+        _ => unreachable!("POS format is validated above"),
+    };
+    let origin_description = match origin {
         pos_export::PositionExportOrigin::Absolute => "absolute board origin".to_owned(),
         pos_export::PositionExportOrigin::DrillFile {
             x_mm,
@@ -1205,18 +1239,17 @@ fn export_pos_command(args: &[String]) -> Result<(), CliError> {
             declared: false, ..
         } => "drill-file origin default (0.000000, 0.000000 mm)".to_owned(),
     };
-    write_new_file(&output, exported.csv.as_bytes())?;
+    write_new_file(&output, contents.as_bytes())?;
     println!(
-        "Wrote {} position rows ({} units, {} side selection, {}; source sha256:{}) to {}",
-        exported.row_count,
-        exported.units.as_str(),
-        match exported.side {
+        "Wrote {row_count} {format} position rows ({} units, {} side selection, {}; source sha256:{}) to {}",
+        units.as_str(),
+        match side {
             PositionSide::Front => "front",
             PositionSide::Back => "back",
             PositionSide::Both => "both",
         },
         origin_description,
-        exported.source_sha256,
+        source_sha256,
         output.display()
     );
     Ok(())
