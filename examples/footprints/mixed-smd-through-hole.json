@@ -1,0 +1,49 @@
+{
+  "schema": "tokito.footprint-definition.v1",
+  "name": "Mixed_Header_Test",
+  "description": "Synthetic mixed SMD, plated through-hole, and NPTH format fixture",
+  "tags": ["mixed", "format-test"],
+  "side": "front",
+  "reference": {
+    "text": "REF**",
+    "atMm": [0, -2, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "value": {
+    "text": "Mixed_Header_Test",
+    "atMm": [0, 2, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "pads": [
+    {
+      "number": "1",
+      "padType": "smd",
+      "shape": "rect",
+      "atMm": [-2.54, 0, 0],
+      "sizeMm": [1.5, 1.5],
+      "layers": ["F.Cu", "F.Mask", "F.Paste"]
+    },
+    {
+      "number": "2",
+      "padType": "thru_hole",
+      "shape": "circle",
+      "atMm": [0, 0, 0],
+      "sizeMm": [2.5, 2.5],
+      "drillMm": 0.8,
+      "layers": ["*.Cu", "*.Mask"]
+    },
+    {
+      "number": "",
+      "padType": "np_thru_hole",
+      "shape": "circle",
+      "atMm": [2.54, 0, 0],
+      "sizeMm": [2, 2],
+      "drillMm": 2,
+      "layers": ["*.Cu", "*.Mask"]
+    }
+  ],
+  "graphics": [],
+  "sourceEvidence": []
+}

@@ -253,6 +253,58 @@ def main() -> None:
             },
         ]
 
+        mixed_spec = ROOT / "examples/footprints/mixed-smd-through-hole.json"
+        mixed_library = root / "MixedHeader.pretty"
+        mixed_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "library",
+            "create",
+            str(mixed_spec),
+            "--output",
+            str(mixed_library),
+            "--json",
+        )
+        assert mixed_result.returncode == 0, mixed_result.stderr
+        mixed_report = json.loads(mixed_result.stdout)
+        assert mixed_report["schema"] == "tokito.footprint-library-create-report.v1"
+        assert mixed_report["status"] == "explicit-mixed-pad-library-candidate"
+        assert mixed_report["registeredInFpLibTable"] is False
+        assert mixed_report["footprintGeneration"]["status"] == "explicit-mixed-pad-geometry-candidate"
+        assert mixed_report["footprintGeneration"]["padType"] == "mixed"
+        assert mixed_report["footprintGeneration"]["padCount"] == 3
+        mixed_text = (mixed_library / "Mixed_Header_Test.kicad_mod").read_text(encoding="utf-8")
+        assert "(attr through_hole)" in mixed_text
+        mixed_pads = parsed_geometry(mixed_text)["pads"]
+        assert [pad["type"] for pad in mixed_pads] == ["smd", "thru_hole", "np_thru_hole"]
+        assert [pad["number"] for pad in mixed_pads] == ["1", "2", ""]
+        assert mixed_report["footprintGeneration"]["manufacturerLandPatternQualified"] is False
+
+        # A footprint containing SMD plus only NPTH has no plated through-hole
+        # pad, so the native footprint-type inference classifies it as SMD.
+        mixed_smd_npth_payload = json.loads(mixed_spec.read_text(encoding="utf-8"))
+        mixed_smd_npth_payload["pads"] = [
+            pad for pad in mixed_smd_npth_payload["pads"] if pad["padType"] != "thru_hole"
+        ]
+        mixed_smd_npth_spec = root / "mixed-smd-npth.json"
+        mixed_smd_npth_spec.write_text(json.dumps(mixed_smd_npth_payload), encoding="utf-8")
+        mixed_smd_npth_output = root / "mixed-smd-npth.kicad_mod"
+        mixed_smd_npth_result = invoke(
+            binary,
+            "component",
+            "footprint",
+            "generate",
+            str(mixed_smd_npth_spec),
+            "--output",
+            str(mixed_smd_npth_output),
+            "--json",
+        )
+        assert mixed_smd_npth_result.returncode == 0, mixed_smd_npth_result.stderr
+        mixed_smd_npth_report = json.loads(mixed_smd_npth_result.stdout)
+        assert mixed_smd_npth_report["padType"] == "mixed"
+        assert "(attr smd)" in mixed_smd_npth_output.read_text(encoding="utf-8")
+
         for name, malformed in [
             (
                 "missing-roundrect-ratio.json",
@@ -333,6 +385,7 @@ def main() -> None:
         assert footprint_help.returncode == 0, footprint_help.stderr
         assert "plated through-hole (round or oval drill, optional offset)" in footprint_help.stdout
         assert "centered round non-plated-hole geometry" in footprint_help.stdout
+        assert "Pad technologies can be mixed per pad" in footprint_help.stdout
         assert "through-hole/custom-pad geometry generation" not in footprint_help.stdout
         root_help = invoke(binary, "--help")
         assert root_help.returncode == 0, root_help.stderr

@@ -166,8 +166,8 @@ shape is not a declaration of complete KiCad command compatibility.
 | `component model envelope` | Evidence-bound provisional rectangular envelope; not a complete generated component |
 | `component footprint r0603` | Deterministic two-pad 0603 library-geometry candidate; not a qualified manufacturer land pattern |
 | `component footprint inspect` | Bounded read-only `.kicad_mod` pad inventory: number, type, shape, position, size, roundrect ratio, layers, and present round/oval drill dimensions/offsets; reports malformed selected fields and names other uninterpreted clauses without claiming full-record validation |
-| `component footprint generate` | Explicit, bounded homogeneous SMD, plated through-hole (round or oval drill, optional offset), centered round non-plated hole, and simple filled/unfilled polygon graphics to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
-| `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated SMD, plated-hole, or non-plated round-hole footprint; it does not edit `fp-lib-table` or existing libraries |
+| `component footprint generate` | Explicit, bounded SMD, plated through-hole (round or oval drill, optional offset), centered round non-plated hole, mixed per-pad technologies, and simple filled/unfilled polygon graphics to a new `.kicad_mod`; no IPC derivation or manufacturer qualification |
+| `component footprint library create` | Creates a new, unregistered `.pretty` candidate containing one generated SMD, plated-hole, non-plated round-hole, or mixed-pad footprint; it does not edit `fp-lib-table` or existing libraries |
 | `component footprint library inspect` | Read-only, bounded inventory of immediate `.kicad_mod` file counts, names, sizes, hashes, parse statuses, direct pad counts and model-reference counts; it does not validate KiCad semantics or geometry |
 | `component footprint library audit` | Read-only observations for parse failures, duplicate internal names and filename/internal-name mismatches; includes inventory hash and ignored-entry list but does not validate KiCad semantics or geometry |
 | `component footprint library lock/verify` | Create a deterministic byte-identity lock for the immediate `.kicad_mod` files and report missing/added/changed files; this verifies content identity, not footprint semantics or geometry |
@@ -177,6 +177,7 @@ paths:
 
 ```powershell
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/r0603-reference.json --output target/R_0603_1608Metric.generated.kicad_mod --json
+./target/release/tokito-cli.exe component footprint library create examples/footprints/mixed-smd-through-hole.json --output target/MixedHeader.pretty --json
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/header-1x02-through-hole.json --output target/Header_1x02_P2.54mm.generated.kicad_mod --json
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/header-1x02-oval-offset.json --output target/Header_1x02_Slotted_P2.54mm.generated.kicad_mod --json
 ./target/release/tokito-cli.exe component footprint generate examples/footprints/mounting-hole-3mm-npth.json --output target/MountingHole_3mm.generated.kicad_mod --json
@@ -283,7 +284,7 @@ Ref,Val,Package,PosX,PosY,Rot,Side
 | `export svg`, `export placements`, `pcb export pos` | Partial `.svg`, source-inventory `.csv`, manufacturing-position `.csv` |
 | `export glb` | `.glb`; optional JSON coverage on stdout |
 | `project build` | New source-bound directory with views, placement/selector records, GLB, diagnostics and manifest |
-| `component footprint generate` | New `.kicad_mod` and explicit candidate report |
+| `component footprint generate` | New `.kicad_mod` and explicit candidate report, including mixed pad types |
 | `component footprint library create/lock` | New `.pretty` candidate directory or file-identity lock JSON |
 | `twin prototype` | Offline `index.html`, GLB, map/index, manifest and preparation report |
 | `dataset bind/lock`, `package build` | Source-binding/lock JSON or a source-and-inventory package |
@@ -316,8 +317,8 @@ references and diagnostics. A malformed, unsupported or unqualified feature
 remains explicit. No zone filling, DRC, autorouting, universal STEP export,
 complete schematic renderer or production IPC/package-family footprint library
 generator is claimed. The bounded explicit SMD, plated round/oval/offset-hole,
-and non-plated round-hole writers produce geometry candidates only. Mixed pad
-technology, custom pads, and IPC/package-family calculations are unsupported.
+non-plated round-hole, and mixed per-pad technology writers produce geometry
+candidates only. Custom pads and IPC/package-family calculations are unsupported.
 Footprint library `audit` reports parse failures, duplicate parsed internal
 names and filename/internal-name mismatches; it is a naming/structure check,
 not KiCad semantic validation, KLC validation or physical qualification.

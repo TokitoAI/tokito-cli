@@ -10,17 +10,24 @@ is blocked.
 
 ## Current PR and local verification checkpoint (2026-10-18)
 
-PR #45 is at `27ccc097ea3ffc8453535cd760ba2514b995e695`. The zero-remaining-byte
-model-output guard returns `BatchBudgetExceeded` before Zstandard frame
-initialization; its regression failed before the guard and passed after it.
-A fresh, isolated D: Windows verification passed all 48/48 local gates on
-Windows 10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5. The receipt and
-its hash are recorded in the PR #45 and issue #47 checkpoint comments. This
-replaces the earlier reused-F: verification as the latest local evidence. No
-GitHub Actions ran; the PR remains open with no review decision or hosted
-checks. V1 remains unfinished: KiCad and footprint/library parity, qualified
-general STEP geometry, component completeness, missing-model qualification,
-independent installation, and product integration are still open.
+PR #45 adds bounded mixed per-pad SMD/plated-THT/NPTH footprint generation as an
+unqualified geometry candidate. Independent review found no generator defect;
+the review's evidence-hash and NPTH-only classification comments were addressed.
+Local KiCad 10.0.5 loads and plots the synthetic footprint, with no manufacturer
+or land-pattern qualification claim. The KiCad readback receipt is
+[`mixed-pad-kicad-10.0.5.json`](evidence/mixed-pad-kicad-10.0.5.json).
+
+The current full Windows verifier passed **48/48 gates** on Windows 10.0.26200
+x64 with Rust/Cargo 1.94.1 and Python 3.11.5; it reused the existing isolated
+D: Cargo target. Receipt:
+`target/delivery/local/20261018T083556Z-572cbd7db5da408abc36aa2aed27e459/verification.json`
+(SHA-256 `1e9e04d18311551826bdad1a88616f89c0a9332bcda7bc23bf1de85bc8ffd10e`).
+The release CLI is 5,380,608 bytes, SHA-256
+`13271b586dee1d41c2c8a6eaaaef5eacd938546317425e38ac80efa9b6b50ef7`.
+No GitHub Actions ran. PR #45 remains open; independent review and hosted
+checks are absent. V1 remains unfinished: KiCad and footprint/library parity,
+qualified general STEP geometry, component completeness, missing-model
+qualification, independent installation, and product integration are still open.
 
 ## Active production-readiness plan (2026-10-17)
 
@@ -47,7 +54,7 @@ read-only. The native task goal remains active.
 | Main | Source face, selected units and plain representation links | Implemented, experimental | Original Rust repair reuses 148 existing vertices; immutable input and unchanged unrelated geometry tests pass |
 | Main | Model-14 candidate | Independent comparison passed | All 41 emitted shape occurrences closed, consistent winding, positive volume; 600,000 samples, maximum distance 0.0014101133940020597 mm below 0.02 mm; volume within declared tolerance |
 | Reviewer | Numeric, resource and evidence checks | Reviewed; no findings | Review confirmed the aggregate edge-curve storage cap runs before curve allocation, area and coordinate tolerances use separate dimensions, the translated large-offset polygon regression is stable, and the E2E independently pins the storage ceiling and requires the expected candidate. A second review found the Clippy refactors preserve curve fields and insert one midpoint per unique edge. |
-| Main | Current-source verification | 48/48 local Windows gates passed on 2026-10-18 (Windows 10.0.26200 x64; Rust/Cargo 1.94.1; Python 3.11.5) | Receipt `F:/kannan/projects/tokito-cli-verification/pr45-working-copy-20261017/target/delivery/local/20261018T052912Z-dffe24e517794522bb8240ab9de2c2d2/verification.json` (SHA-256 `a8a1e444936655ab4d7f4ecdd857aa1910bbcbda1b07dbfca3bd33e2f880f15e`); release CLI SHA-256 `87467d155eb4c782d8b2cb925cb5949f66dccd0b06a13914fc7cafc00f5c50cb` (5,385,728 bytes). Includes CLI and real-board E2E, KiCad 10.0.7 comparisons, geometry/GLB/model-resolution/footprint/dataset journeys, and experiment crates. Reused the existing F: Cargo target; this is not a clean-cache, independent-machine, or installation test. The model-16 source-face E2E receipt is tracked separately below. The tracker narrative was updated after this receipt; the Rust source, E2E script, and experiment README fingerprints match it. |
+| Main | Current-source verification | 48/48 local Windows gates passed on 2026-10-18 (Windows 10.0.26200 x64; Rust/Cargo 1.94.1; Python 3.11.5) | Receipt `target/delivery/local/20261018T083556Z-572cbd7db5da408abc36aa2aed27e459/verification.json` (SHA-256 `1e9e04d18311551826bdad1a88616f89c0a9332bcda7bc23bf1de85bc8ffd10e`); release CLI SHA-256 `13271b586dee1d41c2c8a6eaaaef5eacd938546317425e38ac80efa9b6b50ef7` (5,380,608 bytes). Includes CLI and real-board E2E, KiCad 10.0.7 comparisons, geometry/GLB/model-resolution/footprint/dataset journeys, and experiment crates. Reused the existing isolated D: Cargo target; this is not a clean-cache, independent-machine, or installation test. The model-16 source-face E2E receipt is tracked separately below. |
 | Main | General STEP geometry #19 | Incomplete | One planar fixture comparison passes; rational spline #2875, global source/frame qualification, original all-asset gaps and supported-profile expansion remain |
 | Main / independent reviewer | Spline face #2875 source-edge candidate and uncertainty provenance | Face-level containment and edge-graph checks pass for one research patch; source-surface normal gate still refuses it; geometry remains unqualified | Pinned source SHA 7234dff…6138f; representation #5957/item #6218/context #206 declares 1e-5 mm uncertainty (metadata only; not an admission tolerance). The source-surface candidate has 12,801 vertices and 24,064 triangles; chord gate passes (0.001181615 against 0.005), but 3,995 centroid normals are nonpositive, minimum -0.9999979635. FreeCAD 1.1.4 evaluates those same Rust triangles against its imported face and confirms the count; it did not create an independent triangulation. Bounded audit: 224/224 samples over the 32 worst triangles remain nonpositive; lowest-U bin 3,130/8,981 (34.85%), cause unestablished. No export/admission. See [face analysis](STEP_FACE_2875_ANALYSIS.md), latest Rust refusal receipt and FreeCAD audit there. Next: investigate low-U UV continuity/derivatives without flipping triangles, then independent OCCT triangulation at recorded linear/angular settings, area, manifoldness, self-intersection and complete-solid checks. |
 | Main / independent reviewer | Source-curve-midpoint Spade remesh of face #2875 | **Fail-closed convergence guard implemented; candidate still refused and geometry-unqualified** | Historical v8 mesh receipt `output/model16-source-curve-quality-e2e-v8-20261018/receipt.json` passed UV topology/containment checks but included one of four selected projections marked non-converged, so it is no longer acceptable current output. Updated v13 receipt `target/local-verification/20261017T201801Z-a804de7faa0c476ea49c0ed90a22ecde/esp8266-model16-source-face-trim-e2e-v13/receipt.json` (SHA-256 `96eeaa7ae408e3a5a8b2b7d656a9f0b59e41eff7e1f422ba1a98ce0a47209e04`) binds the executable to the current Rust source hash, rejects unrelated exit-2 messages in a negative self-test, and records selected failed probe #1535 (edge 470 / curve 3478, parameter 1.4035888909095733, residual 1.07888315327835e-6 source units). Top-level outcome is `expected_safety_refusal`; no Spade candidate file was produced and `geometryQualified=false`, `admitted=false`, `exportsProduced=[]`. E2E failure receipts force `passed=false`, initialize a missing summary, and report candidate-file presence. Rust regression and focused real pinned-source E2E pass; the 48-gate full verifier did not receive the optional dataset-reference arguments. The v8 mesh metrics (20,069 vertices / 37,060 triangles) are historical only. Full 3D deviation, independent OCCT triangulation, source-surface orientation, and whole-solid qualification remain open. See [experiment README](../experiments/step-evaluation/README.md#source-curve-midpoint-spade-remesh-2026-10-18). Next: investigate bounded multi-start projection recovery for only the selected split probes; accept no mesh unless all selected projections converge, source-orientation checks pass, and independent 3D/solid comparisons pass. |

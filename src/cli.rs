@@ -538,6 +538,7 @@ fn component_footprint_generate_command(args: &[String]) -> Result<(), CliError>
             "smd" => "SMD",
             "thru_hole" => "plated through-hole",
             "np_thru_hole" => "round non-plated hole",
+            "mixed" => "mixed pad-technology",
             _ => "supported",
         };
         println!(
@@ -727,6 +728,7 @@ fn component_footprint_library_command(args: &[String]) -> Result<(), CliError> 
         "smd" => "explicit-smd-library-candidate",
         "thru_hole" => "explicit-through-hole-library-candidate",
         "np_thru_hole" => "explicit-non-plated-hole-library-candidate",
+        "mixed" => "explicit-mixed-pad-library-candidate",
         _ => return Err(CliError::new("unsupported generated footprint pad type")),
     };
     let report = serde_json::json!({
@@ -898,11 +900,11 @@ fn print_command_help(path: &[String], style: cli_presentation::Style) -> Result
         ["component", "footprint"]
         | ["component", "footprint", "r0603"]
         | ["component", "footprint", "generate"] => println!(
-            "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n       tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nInspects direct pad source structure or generates bounded explicit SMD, plated through-hole (round or oval drill, optional offset), or centered round non-plated-hole geometry from a versioned JSON spec. Graphics support lines, rectangles, circles and simple filled/unfilled polygons. Mixed pad technologies, IPC-7351 calculations, 3D models, KLC checks and physical qualification are not implemented."
+            "USAGE: tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\n       tokito-cli component footprint r0603 --output <NEW.kicad_mod> [--json]\n       tokito-cli component footprint generate <SPEC.json> --output <NEW.kicad_mod> [--json]\nInspects direct pad source structure or generates bounded explicit SMD, plated through-hole (round or oval drill, optional offset), and centered round non-plated-hole geometry from a versioned JSON spec. Pad technologies can be mixed per pad. Graphics support lines, rectangles, circles and simple filled/unfilled polygons. IPC-7351 calculations, custom pads, 3D models, KLC checks and physical qualification are not implemented."
         ),
         ["component", "footprint", "library", "create"] => {
             println!(
-                "USAGE: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n       tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\nCreates an unregistered `.pretty` candidate or inventories existing library assets. Use the standalone footprint inspect command for per-pad structural fields. Library inventory does not validate geometry or semantics, and no operation edits an existing library or fp-lib-table. Generation supports explicit homogeneous SMD pads, plated through-hole round or oval drills with optional pad-local offsets, centered round non-plated holes, and bounded simple polygon graphics; mixed technologies, IPC-7351 calculations, 3D models, KLC checks and physical qualification are not implemented."
+                "USAGE: tokito-cli component footprint library create <SPEC.json> --output <NEW.pretty> [--json]\n       tokito-cli component footprint library inspect <LIBRARY.pretty> [--json]\n       tokito-cli component footprint inspect <FILE.kicad_mod> [--json]\nCreates an unregistered `.pretty` candidate or inventories existing library assets. Use the standalone footprint inspect command for per-pad structural fields. Library inventory does not validate geometry or semantics, and no operation edits an existing library or fp-lib-table. Generation supports explicitly specified SMD, plated through-hole and centered round non-plated-hole pads, including mixed pad technologies, plus bounded simple polygon graphics; IPC-7351 calculations, custom pads, 3D models, KLC checks and physical qualification are not implemented."
             )
         }
         ["component", "footprint", "library", "inspect"] => println!(

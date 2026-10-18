@@ -6,14 +6,23 @@ test suite alone.
 
 ## Latest code and verification checkpoint
 
-PR #45 is at `27ccc097ea3ffc8453535cd760ba2514b995e695`. The zero-remaining-byte
-model-output guard refuses before Zstandard frame initialization, with a
-red/green regression test. A fresh isolated Windows verifier run passed 48/48
-gates on Windows 10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5. The
-local receipt and release-binary hashes are recorded in the PR #45 and issue
-#47 checkpoint comments. The earlier reused-F: run is superseded as the latest
-verification. No GitHub Actions ran; PR #45 remains open with no review
-decision or hosted check results.
+PR #45 now includes mixed per-pad SMD/plated-THT/NPTH footprint generation as a
+bounded, unqualified geometry candidate. Local KiCad 10.0.5 `fp export svg`
+accepts and plots the synthetic fixture; this does not qualify footprint
+semantics or a manufacturer land pattern. An independent source review found
+no generator defect and prompted corrections to the evidence hash and NPTH-only
+classification wording. The exact tool/spec/output hashes are in
+[the KiCad readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
+
+The current full Windows verification passed 48/48 gates on Windows
+10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5, reusing the existing
+isolated D: Cargo target. Receipt:
+`target/delivery/local/20261018T083556Z-572cbd7db5da408abc36aa2aed27e459/verification.json`
+(SHA-256 `1e9e04d18311551826bdad1a88616f89c0a9332bcda7bc23bf1de85bc8ffd10e`).
+The release CLI is 5,380,608 bytes, SHA-256
+`13271b586dee1d41c2c8a6eaaaef5eacd938546317425e38ac80efa9b6b50ef7`.
+No GitHub Actions ran; PR #45 remains open pending hosted checks and an
+independent PR review.
 
 This verifies the currently implemented local command suite; it does not close
 production gates below. Tokito CLI V1 remains not production-ready.
@@ -42,12 +51,11 @@ the final output-tree audit, the independent Rust sample-distance validator,
 footprint/library and dataset journeys, pinned KiCad 10.0.7 comparisons, the
 required SVG reference-evidence validator, and the STEP, Altium and twin-refinement
 experiment crates. The current-source Windows root verification passed 48/48
-gates after the bounded worst-triangle FreeCAD audit was added. It used Cargo
-and Rust 1.94.1, Python 3.11.5, and a trusted existing Cargo target cache; it is
-not a clean-cache or independent-machine run. Its external receipt is
-`F:\\kannan\\projects\\tokito-cli-verification\\orientation-gate-release-final3-20261017\\verification.json`;
-the PR records its hash and the release binary hash. These local checks do not
-establish installation or production qualification.
+gates on the existing isolated D: Cargo target. It used Cargo and Rust 1.94.1,
+Python 3.11.5, and a trusted existing Cargo target cache; it is not a clean-cache
+or independent-machine run. The exact receipt and binary hashes are recorded in
+the latest checkpoint above. These local checks do not establish installation
+or production qualification.
 
 The opt-in planar repair has a passing pinned model-14 reference comparison,
 documented in [STEP_PLANAR_REPAIR.md](STEP_PLANAR_REPAIR.md); this is not

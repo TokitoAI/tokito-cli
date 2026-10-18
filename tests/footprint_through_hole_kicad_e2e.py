@@ -20,6 +20,8 @@ OVAL_SPEC = ROOT / "examples/footprints/header-1x02-oval-offset.json"
 OVAL_FOOTPRINT = "Header_1x02_Slotted_P2.54mm"
 SOT23_SPEC = ROOT / "examples/footprints/sot-23-to236ab.json"
 SOT23_FOOTPRINT = "SOT-23"
+MIXED_SPEC = ROOT / "examples/footprints/mixed-smd-through-hole.json"
+MIXED_FOOTPRINT = "Mixed_Header_Test"
 
 
 def sha256(path: Path) -> str:
@@ -465,6 +467,59 @@ def main() -> None:
         raise SystemExit("KiCad plot does not show a path-count change when SOT-23 polygons are added")
     sot23_without_polygons_svg_path_count = svg_path_count(sot23_without_polygons_svg_files[0])
 
+    mixed_library = output / "MixedHeader.pretty"
+    mixed_svg_dir = output / "mixed-svg"
+    mixed_svg_dir.mkdir()
+    mixed_result = run(
+        [
+            str(binary),
+            "component",
+            "footprint",
+            "library",
+            "create",
+            str(MIXED_SPEC),
+            "--output",
+            str(mixed_library),
+            "--json",
+        ]
+    )
+    mixed_report = json.loads(mixed_result.stdout)
+    mixed_path = mixed_library / f"{MIXED_FOOTPRINT}.kicad_mod"
+    mixed_text = mixed_path.read_text(encoding="utf-8")
+    if (
+        mixed_report.get("status") != "explicit-mixed-pad-library-candidate"
+        or mixed_report.get("registeredInFpLibTable") is not False
+        or mixed_report.get("footprintGeneration", {}).get("padType") != "mixed"
+        or mixed_report.get("footprintGeneration", {}).get("padCount") != 3
+        or "(attr through_hole)" not in mixed_text
+        or mixed_text.count('(pad "') != 3
+        or mixed_text.count(" smd rect ") != 1
+        or mixed_text.count(" thru_hole circle ") != 1
+        or mixed_text.count(" np_thru_hole circle ") != 1
+    ):
+        raise SystemExit(f"Tokito did not preserve mixed pad types: {mixed_report}")
+    run(
+        [
+            str(kicad_cli),
+            "fp",
+            "export",
+            "svg",
+            "--output",
+            str(mixed_svg_dir),
+            "--layers",
+            "F.Cu,F.Fab,F.SilkS",
+            "--footprint",
+            MIXED_FOOTPRINT,
+            str(mixed_library),
+        ]
+    )
+    mixed_svg_files = sorted(mixed_svg_dir.glob("*.svg"))
+    if len(mixed_svg_files) != 1 or mixed_svg_files[0].stat().st_size <= 0:
+        raise SystemExit(f"expected one nonempty KiCad mixed-pad SVG, found {mixed_svg_files}")
+    mixed_svg_root = ET.parse(mixed_svg_files[0]).getroot()
+    if mixed_svg_root.tag.rsplit("}", 1)[-1] != "svg":
+        raise SystemExit("KiCad mixed-pad readback output is not an SVG document")
+
     receipt = {
         "schema": "tokito.footprint-through-hole-kicad-readback.v1",
         "passed": True,
@@ -517,6 +572,16 @@ def main() -> None:
             "svgBytes": sot23_svg_files[0].stat().st_size,
             "svgPathCountWithPolygons": sot23_svg_path_count,
             "svgPathCountWithoutPolygons": sot23_without_polygons_svg_path_count,
+            "footprintSemanticsQualified": False,
+            "manufacturerLandPatternQualified": False,
+        },
+        "mixedPadTechnologyFormatAcceptance": {
+            "reportStatus": mixed_report["footprintGeneration"]["status"],
+            "specSha256": sha256(MIXED_SPEC),
+            "footprintSha256": sha256(mixed_path),
+            "svgSha256": sha256(mixed_svg_files[0]),
+            "svgBytes": mixed_svg_files[0].stat().st_size,
+            "padTypes": ["smd", "thru_hole", "np_thru_hole"],
             "footprintSemanticsQualified": False,
             "manufacturerLandPatternQualified": False,
         },

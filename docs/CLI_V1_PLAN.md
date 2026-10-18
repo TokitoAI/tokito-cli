@@ -67,10 +67,11 @@ electrical or thermal correctness is established by a polished visualization.
    bodies; add per-component dimensional/placement checks.
 4. Implement remaining agreed KiCad exports and footprint/library families with
    pinned comparisons. Keep unsupported commands explicit.
-   Concrete next library tasks: mixed-technology footprints (SMD contacts plus
-   THT/NPTH mechanical pads), dimension/tolerance-driven package-family planning
-   through the existing deterministic serializer, then native footprint/library
-   SVG export with typed geometry and pinned comparisons. Existing library
+   Mixed SMD/THT/NPTH pad generation is implemented as an explicitly
+   unqualified geometry candidate. Concrete next library tasks: dimension- and
+   tolerance-driven package-family generation through the existing deterministic
+   serializer, then native footprint/library SVG export with typed geometry and
+   pinned comparisons. Existing library
    inspect/audit/content-lock/verify operations should be reused, not duplicated.
    Structural audit and source URI/hash declarations do not establish KLC,
    manufacturer land-pattern correctness or IPC family generation.

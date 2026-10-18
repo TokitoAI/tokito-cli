@@ -196,6 +196,30 @@ impl PadType {
     }
 }
 
+fn footprint_attribute(pads: &[PadSpec]) -> &'static str {
+    // KiCad's footprint-level type is binary. Its native GetLikelyAttribute
+    // prefers through-hole when a footprint contains any plated-hole pad,
+    // even when it also contains SMD pads. NPTH-only records do not count as
+    // plated pads, so preserve the existing through-hole classification for
+    // a mechanical-only candidate while allowing SMD + NPTH to remain SMD.
+    if pads.iter().any(|pad| pad.pad_type == PadType::ThruHole) {
+        PadType::ThruHole.footprint_attribute()
+    } else if pads.iter().any(|pad| pad.pad_type == PadType::Smd) {
+        PadType::Smd.footprint_attribute()
+    } else {
+        PadType::NpThruHole.footprint_attribute()
+    }
+}
+
+fn pad_type_summary(pads: &[PadSpec]) -> (&'static str, &'static str) {
+    let first = pads[0].pad_type;
+    if pads.iter().all(|pad| pad.pad_type == first) {
+        (first.as_str(), first.candidate_status())
+    } else {
+        ("mixed", "explicit-mixed-pad-geometry-candidate")
+    }
+}
+
 fn default_pad_type() -> PadType {
     PadType::Smd
 }
@@ -269,13 +293,13 @@ pub fn generate(input: &[u8]) -> Result<FootprintGeneration, String> {
         .map_err(|error| format!("invalid footprint specification: {error}"))?;
     validate(&spec)?;
     let serialized = serialize(&spec)?;
-    let pad_type = spec.pads[0].pad_type;
+    let (pad_type, status) = pad_type_summary(&spec.pads);
     let report = GenerationReport {
         schema: "tokito.footprint-generation-report.v1",
-        status: pad_type.candidate_status(),
+        status,
         footprint_name: spec.name,
         side: spec.side.as_str(),
-        pad_type: pad_type.as_str(),
+        pad_type,
         pad_count: spec.pads.len(),
         graphic_count: spec.graphics.len(),
         source_evidence: spec.source_evidence,
@@ -288,7 +312,7 @@ pub fn generate(input: &[u8]) -> Result<FootprintGeneration, String> {
         output_sha256: crate::sha256_hex(serialized.as_bytes()),
         limitations: vec![
             "source evidence labels and digest strings are preserved, but external files are not fetched or independently verified",
-            "only explicit homogeneous surface-mount pads, round or oval plated through-hole drills (including offsets), and centered round non-plated holes are supported; mixed pad technologies and custom pads are not implemented",
+            "only explicit SMD, plated through-hole (round or oval drill, including offsets), and centered round non-plated-hole pads are supported; pad technologies may be mixed, but custom pads are not implemented",
             "graphics support lines, rectangles, circles, and simple filled or unfilled polygons with bounded, non-self-intersecting outlines",
             "IPC-7351 pad calculation, zones, groups, 3D model references, and KLC rules are not implemented",
             "manufacturer land-pattern qualification, component body generation, board placement, and physical fit are not asserted",
@@ -335,12 +359,6 @@ fn validate(spec: &FootprintSpec) -> Result<(), String> {
     validate_property(&spec.value, "value")?;
     if spec.pads.is_empty() || spec.pads.len() > MAX_PADS {
         return Err(format!("pad count must be between 1 and {MAX_PADS}"));
-    }
-    let pad_type = spec.pads[0].pad_type;
-    if spec.pads.iter().any(|pad| pad.pad_type != pad_type) {
-        return Err(
-            "mixed SMD, plated through-hole, and non-plated hole pads are not supported in one footprint".into(),
-        );
     }
     if spec.graphics.len() > MAX_GRAPHICS {
         return Err(format!("graphic count must not exceed {MAX_GRAPHICS}"));
@@ -837,8 +855,7 @@ fn serialize(spec: &FootprintSpec) -> Result<String, String> {
     writeln!(out, "  (descr {})", quote(&spec.description)).unwrap();
     let tags = spec.tags.join(" ");
     writeln!(out, "  (tags {})", quote(&tags)).unwrap();
-    let pad_type = spec.pads[0].pad_type;
-    writeln!(out, "  (attr {})", pad_type.footprint_attribute()).unwrap();
+    writeln!(out, "  (attr {})", footprint_attribute(&spec.pads)).unwrap();
     write_property(
         &mut out,
         "Reference",
@@ -1192,6 +1209,25 @@ mod tests {
         }"#.to_vec()
     }
 
+    fn mixed_pad_spec() -> Vec<u8> {
+        br#"{
+          "schema":"tokito.footprint-definition.v1",
+          "name":"Mixed_Header_Test",
+          "description":"Synthetic mixed pad geometry acceptance fixture",
+          "tags":["mixed","test"],
+          "side":"front",
+          "reference":{"text":"REF**","atMm":[0,-2,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "value":{"text":"Mixed_Header_Test","atMm":[0,2,0],"sizeMm":[1,1],"thicknessMm":0.15},
+          "pads":[
+            {"number":"1","padType":"smd","shape":"rect","atMm":[-2.54,0,0],"sizeMm":[1.5,1.5],"layers":["F.Cu","F.Mask","F.Paste"]},
+            {"number":"2","padType":"thru_hole","shape":"circle","atMm":[0,0,0],"sizeMm":[2.5,2.5],"drillMm":0.8,"layers":["*.Cu","*.Mask"]},
+            {"number":"","padType":"np_thru_hole","shape":"circle","atMm":[2.54,0,0],"sizeMm":[2,2],"drillMm":2,"layers":["*.Cu","*.Mask"]}
+          ],
+          "graphics":[],
+          "sourceEvidence":[]
+        }"#.to_vec()
+    }
+
     #[test]
     fn generates_stable_typed_smd_geometry_and_digest() {
         let input = valid_spec();
@@ -1295,17 +1331,6 @@ mod tests {
             generate(wrong_layers.as_bytes())
                 .unwrap_err()
                 .contains("through-hole layers")
-        );
-
-        let mixed = String::from_utf8(through_hole_spec()).unwrap().replacen(
-            "\"padType\":\"thru_hole\"",
-            "\"padType\":\"smd\"",
-            1,
-        );
-        assert!(
-            generate(mixed.as_bytes())
-                .unwrap_err()
-                .contains("mixed SMD, plated through-hole, and non-plated")
         );
     }
 
@@ -1489,6 +1514,39 @@ mod tests {
                 .unwrap_err()
                 .contains("require a circular pad and round drill")
         );
+    }
+
+    #[test]
+    fn generates_mixed_smd_plated_and_non_plated_pads_with_through_hole_attribute() {
+        let generated = generate(&mixed_pad_spec())
+            .expect("a footprint can contain independently typed pad geometries");
+        assert_eq!(
+            generated.report.status,
+            "explicit-mixed-pad-geometry-candidate"
+        );
+        assert_eq!(generated.report.pad_type, "mixed");
+        assert_eq!(generated.report.pad_count, 3);
+        assert!(generated.text.contains("(attr through_hole)"));
+        assert!(generated.text.contains(
+            "(pad \"1\" smd rect (at -2.54 0 0) (size 1.5 1.5) (layers \"F.Cu\" \"F.Mask\" \"F.Paste\"))"
+        ));
+        assert!(generated.text.contains(
+            "(pad \"2\" thru_hole circle (at 0 0 0) (size 2.5 2.5) (drill 0.8) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+        assert!(generated.text.contains(
+            "(pad \"\" np_thru_hole circle (at 2.54 0 0) (size 2 2) (drill 2) (layers \"*.Cu\" \"*.Mask\"))"
+        ));
+    }
+
+    #[test]
+    fn mixed_smd_and_npth_footprint_uses_smd_attribute() {
+        let mixed = String::from_utf8(mixed_pad_spec())
+            .unwrap()
+            .replace(",\n            {\"number\":\"2\",\"padType\":\"thru_hole\",\"shape\":\"circle\",\"atMm\":[0,0,0],\"sizeMm\":[2.5,2.5],\"drillMm\":0.8,\"layers\":[\"*.Cu\",\"*.Mask\"]}", "");
+        let generated = generate(mixed.as_bytes()).expect("SMD and NPTH pads are valid together");
+        assert_eq!(generated.report.pad_type, "mixed");
+        assert!(generated.text.contains("(attr smd)"));
+        assert!(!generated.text.contains("(pad \"2\" thru_hole"));
     }
 
     #[test]

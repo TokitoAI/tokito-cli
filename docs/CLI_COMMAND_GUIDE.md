@@ -196,6 +196,7 @@ required. The original is preserved; deleting faces is not proof of solid repair
 ```powershell
 & $cli component footprint r0603 --output "$out/nominal-r0603.kicad_mod" --json
 & $cli component footprint generate examples/footprints/r0603-reference.json --output "$out/spec-r0603.kicad_mod" --json
+& $cli component footprint library create examples/footprints/mixed-smd-through-hole.json --output "$out/MixedHeader.pretty" --json
 & $cli component footprint inspect "$out/spec-r0603.kicad_mod" --json
 & $cli component footprint library create examples/footprints/sot-23-to236ab.json --output "$out/Demo.pretty" --json
 & $cli component footprint library inspect "$out/Demo.pretty" --json
@@ -207,8 +208,15 @@ required. The original is preserved; deleting faces is not proof of solid repair
 The explicit 0603 example reports `status: explicit-smd-geometry-candidate`,
 `padCount: 2`, `graphicCount: 4`, `manufacturerLandPatternQualified: false` and
 `componentBodyGenerated: false`. Other supplied specs cover SOT-23, round or
-oval-offset plated header pads and a centered circular non-plated mounting hole.
-Library locks verify byte identity; audits report naming/collision observations.
+oval-offset plated header pads, a centered circular non-plated mounting hole,
+and mixed SMD/PTH/NPTH pad technology in one footprint. The mixed fixture is
+synthetic format coverage: KiCad sets the footprint attribute to `through_hole`
+when the pads include a plated through-hole pad. It is not a qualified connector
+land pattern. A local KiCad 10.0.5 format/plot readback checks that the generated
+candidate can be plotted; its receipt is in
+[`docs/evidence/mixed-pad-kicad-10.0.5.json`](evidence/mixed-pad-kicad-10.0.5.json).
+The shipping CLI does not invoke KiCad. Library locks verify byte identity;
+audits report naming/collision observations.
 Neither is a KLC or manufacturing certificate, and no `fp-lib-table` is changed.
 
 ## Selectable twin and viewer commands
