@@ -57,6 +57,19 @@ at a mesh budget. Existing selected-projection refusal still passes unchanged.
 [math/limits/next tasks](GEOMETRY_RECOVERY_PLAN.md) distinguish this progress
 from a repaired source face, qualified complete solid or production STEP export.
 
+## Metric-preconditioned initialization checkpoint (2026-10-19)
+
+Implemented a separate bounded single-anchor Jacobian-metric initial CDT while
+retaining original UV coordinates and fixed boundary segments. Current-source
+baseline and metric journeys each passed six source/oracle/refusal checks;
+the legacy refusal also passed. Metric final sampled interior error is
+`0.000286452 mm`, with ten nonpositive normals (baseline 2,312). Both remain
+mesh-budget incomplete; fixed boundary error exceeds the requested tolerance,
+and midpoint refinement can introduce new orientation failures. Next is
+quality-aware interior retriangulation, not a larger global budget.
+[Evidence](evidence/metric-refinement-20261019.json) keeps qualification false;
+whole-solid, source-boundary and production STEP gates remain open.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

@@ -1364,6 +1364,7 @@ pub(crate) fn inspect_physical_refinement(
     step: &StepFile,
     face_id: u64,
     tolerance: f64,
+    metric_preconditioning: bool,
 ) -> Result<Json, String> {
     let mut report = inspect(step, face_id)?;
     let surface_id = report["surfaceId"]
@@ -1439,10 +1440,39 @@ pub(crate) fn inspect_physical_refinement(
             points, du, dv, face_sense,
         ))
     };
+    let metric = if metric_preconditioning {
+        let anchor: [f64; 2] = std::array::from_fn(|axis| {
+            let lo = input.iter().map(|p| p[axis]).fold(f64::INFINITY, f64::min);
+            let hi = input
+                .iter()
+                .map(|p| p[axis])
+                .fold(f64::NEG_INFINITY, f64::max);
+            (lo + hi) * 0.5
+        });
+        let hu = (surface.u_domain.1 - surface.u_domain.0) * 1e-6;
+        let hv = (surface.v_domain.1 - surface.v_domain.0) * 1e-6;
+        let (um, up) = finite_difference_bounds(anchor[0], hu, surface.u_domain, false)
+            .ok_or("physical_metric_u_derivative_bounds_invalid")?;
+        let (vm, vp) =
+            finite_difference_bounds(anchor[1], hv, surface.v_domain, surface.v_period.is_some())
+                .ok_or("physical_metric_v_derivative_bounds_invalid")?;
+        let du = scale(
+            sub(evaluate([up, anchor[1]])?, evaluate([um, anchor[1]])?),
+            1. / (up - um),
+        );
+        let dv = scale(
+            sub(evaluate([anchor[0], vp])?, evaluate([anchor[0], vm])?),
+            1. / (vp - vm),
+        );
+        Some(crate::physical_surface_refinement::ChartMetric::from_tangents(anchor, du, dv)?)
+    } else {
+        None
+    };
     let candidate = crate::physical_surface_refinement::refine(
         &input,
         tolerance,
         5f64.to_radians().cos(),
+        metric,
         evaluate,
         orientation,
     );

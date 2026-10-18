@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-470 project files are listed.
+471 project files are listed.
 
 ```text
 tokito_cli/
@@ -109,6 +109,7 @@ tokito_cli/
 │   │   ├── kicad-pcb-export-step-help-10.0.7.txt
 │   │   ├── kicad-pcb-export-vrml-help-10.0.7.txt
 │   │   ├── kicad-pcbnew-dll-static-strings.json
+│   │   ├── metric-refinement-20261019.json
 │   │   ├── mixed-pad-kicad-10.0.5.json
 │   │   ├── model16-projection-audit-20261018.json
 │   │   ├── model16-projection-audit-20261018.receipt.json

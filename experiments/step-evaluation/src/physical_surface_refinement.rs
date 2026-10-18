@@ -28,8 +28,75 @@ fn linear_middle(a: P3, b: P3) -> P3 {
     std::array::from_fn(|i| (a[i] + b[i]) * 0.5)
 }
 
-fn initial_triangles(boundary: &[Uv]) -> Result<Vec<[usize; 3]>, String> {
-    let points = boundary.iter().map(|p| Point2::new(p[0], p[1])).collect();
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct ChartMetric {
+    pub anchor: Uv,
+    pub matrix: [[f64; 2]; 2],
+}
+
+impl ChartMetric {
+    pub(crate) fn from_tangents(anchor: Uv, du: P3, dv: P3) -> Result<Self, String> {
+        let norm = |p: P3| p[0].hypot(p[1]).hypot(p[2]);
+        let a = norm(du);
+        let d = norm(dv);
+        if !a.is_finite()
+            || !d.is_finite()
+            || a <= 0.
+            || d <= 0.
+            || anchor.iter().any(|v| !v.is_finite())
+        {
+            return Err("physical_metric_singular_or_nonfinite_tangents".into());
+        }
+        let cosine = du
+            .iter()
+            .zip(dv)
+            .map(|(u, v)| (u / a) * (v / d))
+            .sum::<f64>();
+        let sine_squared = 1. - cosine * cosine;
+        if !sine_squared.is_finite() || sine_squared <= 1e-12 {
+            return Err("physical_metric_singular_or_ill_conditioned_tangents".into());
+        }
+        // M^T M = J^T J, apart from one common scale that does not affect CDT.
+        let scale = a.max(d);
+        let matrix = [
+            [a / scale, d / scale * cosine],
+            [0., d / scale * sine_squared.sqrt()],
+        ];
+        if matrix[0][0] * matrix[1][1] <= 1e-12 {
+            return Err("physical_metric_excessive_axis_anisotropy".into());
+        }
+        Ok(Self { anchor, matrix })
+    }
+    fn map(self, p: Uv) -> Uv {
+        let d = [p[0] - self.anchor[0], p[1] - self.anchor[1]];
+        self.matrix.map(|row| row[0] * d[0] + row[1] * d[1])
+    }
+}
+
+fn initial_triangles(
+    boundary: &[Uv],
+    metric: Option<ChartMetric>,
+) -> Result<Vec<[usize; 3]>, String> {
+    if let Some(m) = metric {
+        let determinant = m.matrix[0][0] * m.matrix[1][1] - m.matrix[0][1] * m.matrix[1][0];
+        if m.anchor
+            .iter()
+            .chain(m.matrix.iter().flatten())
+            .any(|v| !v.is_finite())
+            || !determinant.is_finite()
+            || determinant <= 1e-12
+        {
+            return Err("physical_metric_invalid_chart_transform".into());
+        }
+    }
+    let chart = boundary
+        .iter()
+        .map(|p| metric.map_or(*p, |m| m.map(*p)))
+        .collect::<Vec<_>>();
+    if chart.iter().flatten().any(|x| !x.is_finite()) {
+        return Err("physical_metric_nonfinite_chart_coordinate".into());
+    }
+    let points = chart.iter().map(|p| Point2::new(p[0], p[1])).collect();
     let constraints = (0..boundary.len())
         .map(|i| [i, (i + 1) % boundary.len()])
         .collect();
@@ -38,35 +105,51 @@ fn initial_triangles(boundary: &[Uv]) -> Result<Vec<[usize; 3]>, String> {
     if cdt.num_vertices() != boundary.len() {
         return Err("physical_refinement_cdt_changed_boundary_inventory".into());
     }
-    let index = boundary
+    let index = chart
         .iter()
         .enumerate()
         .map(|(i, p)| ((p[0].to_bits(), p[1].to_bits()), i))
         .collect::<BTreeMap<_, _>>();
-    let inside = |p: Uv| {
-        let mut result = false;
-        for i in 0..boundary.len() {
-            let a = boundary[i];
-            let b = boundary[(i + 1) % boundary.len()];
-            if (a[1] > p[1]) != (b[1] > p[1])
-                && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]
-            {
-                result = !result;
+    // Determine the bounded domain by topology, never by a near-boundary
+    // floating-point centroid predicate. Original loop is preflighted simple.
+    let mut outside = BTreeSet::new();
+    let mut queue = Vec::new();
+    for e in cdt.directed_edges() {
+        if e.face().is_outer() && !e.is_constraint_edge() {
+            if let Some(face) = e.rev().face().as_inner() {
+                queue.push(face.fix());
             }
         }
-        result
-    };
-    let mut triangles = Vec::new();
-    for face in cdt.inner_faces() {
-        let p = face.positions().map(|p| [p.x, p.y]);
-        let center = std::array::from_fn(|i| (p[0][i] + p[1][i] + p[2][i]) / 3.);
-        if !inside(center) {
+    }
+    while let Some(handle) = queue.pop() {
+        if !outside.insert(handle.index()) {
             continue;
         }
+        for e in cdt.face(handle).adjacent_edges() {
+            if !e.is_constraint_edge() {
+                if let Some(face) = e.rev().face().as_inner() {
+                    queue.push(face.fix());
+                }
+            }
+        }
+    }
+    let mut triangles = Vec::new();
+    for face in cdt.inner_faces() {
+        if outside.contains(&face.index()) {
+            continue;
+        }
+        let p = face.positions().map(|p| [p.x, p.y]);
         let ids = p.map(|p| index.get(&(p[0].to_bits(), p[1].to_bits())).copied());
         let [Some(a), Some(b), Some(c)] = ids else {
             return Err("physical_refinement_cdt_changed_coordinates".into());
         };
+        let [p, q, r] = [boundary[a], boundary[b], boundary[c]];
+        let signed_area = (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]);
+        if !signed_area.is_finite() || signed_area <= 0. {
+            return Err(
+                "physical_metric_initial_original_uv_triangle_degenerate_or_reversed".into(),
+            );
+        }
         triangles.push([a, b, c]);
     }
     if triangles.len() != boundary.len() - 2 {
@@ -106,6 +189,7 @@ pub(crate) fn refine<F, O>(
     input: &[Uv],
     tolerance: f64,
     minimum_normal_alignment: f64,
+    metric: Option<ChartMetric>,
     mut evaluate: F,
     mut orientation: O,
 ) -> Result<Value, String>
@@ -134,7 +218,7 @@ where
     let winding = 1.; // Spade returns CCW UV faces; no 3D normal/winding flips.
     let boundary_count = initial.vertices.len();
     let mut uv = initial.vertices;
-    let mut triangles = initial_triangles(&uv)?;
+    let mut triangles = initial_triangles(&uv, metric)?;
     let boundary = (0..boundary_count)
         .map(|i| edge(i, (i + 1) % boundary_count))
         .collect::<BTreeSet<_>>();
@@ -298,6 +382,9 @@ where
     Ok(json!({"schema":"tokito.physical-surface-refinement.v1",
         "status":if reason=="sampled_targets_met" {"sampled_targets_met_unqualified"} else {"incomplete"},
         "termination":reason,"algorithm":"constrained_delaunay_initialization_then_physical_chord_and_signed_normal_driven_conforming_nonboundary_edge_subdivision",
+        "initialChartMetric":metric.map(|m|json!({"anchorUv":m.anchor,"normalizedCholeskyMatrix":m.matrix,
+            "scope":"single_anchor_affine_preconditioning_only_not_global_metric_or_accuracy_bound",
+            "originalUvCoordinatesRetainedByIdentity":true})),
         "chordToleranceSourceUnits":tolerance,"minimumNormalAlignmentTarget":minimum_normal_alignment,
         "boundaryVertexCount":boundary_count,"additionalBoundaryVertexCount":0,
         "originalInputSampleCount":input.len(),"removedExactDuplicateCount":removed_duplicates,
@@ -317,8 +404,56 @@ mod tests {
     use super::*;
     const LOOP: [Uv; 4] = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
     #[test]
+    fn chart_metric_reproduces_tangent_lengths_up_to_common_scale() {
+        let m = ChartMetric::from_tangents([3., 4.], [1., 0., 0.], [2., 3., 0.]).unwrap();
+        for d in [[1., 0.], [0., 1.], [2., -3.]] {
+            let q = m.map([3. + d[0], 4. + d[1]]);
+            let physical = [d[0] + 2. * d[1], 3. * d[1]];
+            let observed = (q[0] * q[0] + q[1] * q[1]) * 13.;
+            let expected = physical[0] * physical[0] + physical[1] * physical[1];
+            assert!((observed - expected).abs() < 1e-10);
+        }
+        assert!(ChartMetric::from_tangents([0., 0.], [0.; 3], [1., 0., 0.]).is_err());
+        assert!(ChartMetric::from_tangents([0., 0.], [1., 0., 0.], [2., 0., 0.]).is_err());
+        assert!(ChartMetric::from_tangents([f64::NAN, 0.], [1., 0., 0.], [0., 1., 0.]).is_err());
+        let invalid = ChartMetric {
+            anchor: [0., 0.],
+            matrix: [[1., 0.], [0., -1.]],
+        };
+        assert!(initial_triangles(&LOOP, Some(invalid)).is_err());
+    }
+
+    #[test]
+    fn chart_preconditioned_cdt_keeps_original_coordinates_and_constraints() {
+        let m = ChartMetric::from_tangents([0.5, 0.5], [0.03, 0., 0.], [0., 1., 0.]).unwrap();
+        let r = refine(
+            &LOOP,
+            1e-6,
+            0.99,
+            Some(m),
+            |p| Ok([p[0] * 0.03, p[1], 0.]),
+            |_, _| Ok(1.),
+        )
+        .unwrap();
+        assert_eq!(r["termination"], "sampled_targets_met");
+        assert_eq!(r["uvVertices"], json!(LOOP));
+        assert_eq!(r["originalConstraintSegmentsPreserved"], true);
+        assert_eq!(
+            r["initialChartMetric"]["originalUvCoordinatesRetainedByIdentity"],
+            true
+        );
+    }
+    #[test]
     fn plane_preserves_constraints_without_refinement() {
-        let r = refine(&LOOP, 1e-6, 0.99, |p| Ok([p[0], p[1], 0.]), |_, _| Ok(1.)).unwrap();
+        let r = refine(
+            &LOOP,
+            1e-6,
+            0.99,
+            None,
+            |p| Ok([p[0], p[1], 0.]),
+            |_, _| Ok(1.),
+        )
+        .unwrap();
         assert_eq!(r["termination"], "sampled_targets_met");
         assert_eq!(r["rounds"], 0);
         assert_eq!(r["triangleCount"], 2);
@@ -334,12 +469,30 @@ mod tests {
                 &uv,
                 1e-6,
                 0.99,
+                None,
                 |p| Ok([p[0] / factor, p[1] * factor, 0.]),
                 |_, _| Ok(1.),
             )
             .unwrap();
             assert_eq!(r["termination"], "sampled_targets_met");
             assert_eq!(r["triangleCount"], 4);
+            assert_eq!(r["originalConstraintSegmentsPreserved"], true);
+            let metric = ChartMetric::from_tangents(
+                [factor, 1. / factor],
+                [1. / factor, 0., 0.],
+                [0., factor, 0.],
+            )
+            .unwrap();
+            let r = refine(
+                &uv,
+                1e-6,
+                0.99,
+                Some(metric),
+                |p| Ok([p[0] / factor, p[1] * factor, 0.]),
+                |_, _| Ok(1.),
+            )
+            .unwrap();
+            assert_eq!(r["termination"], "sampled_targets_met");
             assert_eq!(r["originalConstraintSegmentsPreserved"], true);
         }
     }
@@ -349,6 +502,7 @@ mod tests {
             &LOOP,
             0.01,
             0.5,
+            None,
             |p| Ok([p[0], p[1], 0.2 * p[0] * p[0]]),
             |_, _| Ok(1.),
         )
@@ -387,13 +541,22 @@ mod tests {
     }
     #[test]
     fn invalid_geometry_and_evaluator_failures_refuse() {
-        assert!(refine(&LOOP, 0.01, 0., |p| Ok([p[0], p[1], 0.]), |_, _| Ok(0.)).is_err());
+        assert!(refine(
+            &LOOP,
+            0.01,
+            0.,
+            None,
+            |p| Ok([p[0], p[1], 0.]),
+            |_, _| Ok(0.)
+        )
+        .is_err());
         let near_duplicate = [[0., 0.], [1e-14, 0.], [1., 0.], [1., 1.], [0., 1.]];
         assert_eq!(
             refine(
                 &near_duplicate,
                 0.01,
                 0.9,
+                None,
                 |p| Ok([p[0], p[1], 0.]),
                 |_, _| Ok(1.)
             )
@@ -401,23 +564,32 @@ mod tests {
             "physical_refinement_distinct_boundary_sample_would_be_removed"
         );
         assert_eq!(
-            refine(&LOOP, 0.01, 0.9, |_| Ok([1e308; 3]), |_, _| Ok(1.)).unwrap_err(),
+            refine(&LOOP, 0.01, 0.9, None, |_| Ok([1e308; 3]), |_, _| Ok(1.)).unwrap_err(),
             "physical_refinement_nonfinite_chord_error"
         );
-        assert!(refine(&LOOP, f64::NAN, 0.9, |_| Ok([0.; 3]), |_, _| Ok(1.)).is_err());
-        assert!(refine(&LOOP, 0.01, 0.9, |_| Ok([f64::NAN; 3]), |_, _| Ok(1.)).is_err());
+        assert!(refine(&LOOP, f64::NAN, 0.9, None, |_| Ok([0.; 3]), |_, _| Ok(1.)).is_err());
+        assert!(refine(&LOOP, 0.01, 0.9, None, |_| Ok([f64::NAN; 3]), |_, _| Ok(1.)).is_err());
         assert_eq!(
             refine(
                 &LOOP,
                 0.01,
                 0.9,
+                None,
                 |_| Err("test_resource_refusal".into()),
                 |_, _| Ok(1.)
             )
             .unwrap_err(),
             "test_resource_refusal"
         );
-        let r = refine(&LOOP, 0.1, 0.99, |p| Ok([p[0], p[1], 0.]), |_, _| Ok(-1.)).unwrap();
+        let r = refine(
+            &LOOP,
+            0.1,
+            0.99,
+            None,
+            |p| Ok([p[0], p[1], 0.]),
+            |_, _| Ok(-1.),
+        )
+        .unwrap();
         assert_ne!(r["termination"], "sampled_targets_met");
         assert_eq!(r["admitted"], false);
     }

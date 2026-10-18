@@ -295,3 +295,11 @@ trims or produce a qualified solid. See
 [the evidence and limits](../../docs/GEOMETRY_RECOVERY_PLAN.md#physical-space-refinement-experiment-2026-10-19)
 and run `tests/physical_refinement_e2e.py` for the bounded development-only
 FreeCAD comparison. Native FreeCAD is not a production dependency.
+
+
+`--research-metric-source-face` accepts the same arguments and pinned fixture
+as the physical-source experiment. It adds a bounded single-anchor affine
+Jacobian-metric preconditioner to the initial CDT, while preserving all original
+UV samples by identity. It remains incomplete and unqualified; use
+`tests/physical_refinement_e2e.py --metric` for the paired independent audit.
+See [current metric evidence and remaining work](../../docs/GEOMETRY_RECOVERY_PLAN.md#single-anchor-metric-preconditioning-2026-10-19).

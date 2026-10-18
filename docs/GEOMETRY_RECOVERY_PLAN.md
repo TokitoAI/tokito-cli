@@ -272,12 +272,61 @@ Next: bounded metric/chart-aware tessellation and a reviewed source-curve/
 support-surface tolerance contract, then complete trim/orientation/shared-edge
 and solid checks. Keep this experiment outside production geometry admission.
 
+## Single-anchor metric preconditioning (2026-10-19)
+
+The isolated `--research-metric-source-face` mode now computes finite-difference
+surface tangents at the sampled loop bounding-box center. With `J=[Su Sv]`, it
+constructs an upper-triangular matrix `M` satisfying `MᵀM=JᵀJ/s²`, where `s` is
+one common positive scale. CDT uses `q=M(uv-anchor)`; every resulting vertex is
+mapped back by exact identity to its original UV sample. No inverse-coordinate
+roundtrip, snapping, source vertex movement or boundary subdivision occurs.
+
+Singular/ill-conditioned tangents, excessive anisotropy, nonfinite or
+nonpositive chart determinants and degenerate/reversed original-UV triangles
+refuse. Exterior classification now floods from unconstrained convex-hull edges
+without crossing constraint segments, replacing a near-boundary centroid test.
+The preflighted simple ring, exact coordinate inventory, `n-2` initial face count
+and final incidence checks remain required. This is one affine initial chart;
+it does not implement a variable Riemannian metric or general chart splitting.
+
+| Same pinned source/targets | Baseline UV CDT | Local metric initial CDT |
+| --- | --- | --- |
+| Final vertices / triangles | 7,919 / 15,740 | 24,911 / 49,724 |
+| Initial sampled interior chord error | 0.2351396201 mm | 0.0037155393 mm |
+| Final sampled interior chord error | 0.0011713830 mm | 0.0002864520 mm |
+| Final nonpositive normals | 2,312 | 10 |
+| Fixed-boundary chord error | 0.0002954254 mm | 0.0002954254 mm |
+| Termination | Mesh-budget incomplete | Mesh-budget incomplete |
+
+Both current-source E2E runs passed six checks each with independent FreeCAD
+all-vertex, all-unique-edge midpoint, all-triangle centroid and analytic-normal
+comparison. Metric vertex disagreement is at most `3.0867394805640034e-15 mm`;
+nonpositive counts and minimum alignments match. Only 255 metric / 254 baseline
+centroids are stride-sampled for trim containment; all are inside, without a
+full-coverage claim. The legacy source-face refusal journey also passed. See
+[captured receipts and producer hashes](evidence/metric-refinement-20261019.json).
+
+Refinement is not monotonic: the metric candidate has zero nonpositive normals
+in rounds 0–2, two in rounds 3–4 and ten in rounds 5–6. Sampled interior error
+bottoms at `0.0002590502 mm` in round 3 and then worsens. This is evidence against
+blindly raising budgets or assuming uniform midpoint subdivision always improves
+physical triangles. The final mesh still has 376 failures against the
+`cos(5 degrees)` normal target and misses the `0.00001 mm` chord target.
+
+Next implement bounded interior edge retriangulation/quality-aware subdivision,
+then reviewed source-curve boundary sampling and complete surface/solid checks.
+Retain the incomplete status and legacy refusal until those pass. The metric
+initializer itself does not repair the source curve/support-surface discrepancy.
+
+Add `--metric` to `tests/physical_refinement_e2e.py` to reproduce the isolated
+metric path with the same pinned source, FreeCAD oracle and bounded captures.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
 | Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | Physical-error-driven research subdivision implemented and independently measured; still incomplete | Implement metric/chart-aware tessellation and a measured edge discrepancy contract; preserve failures |
+| Main | Current Spade experiment | Physical-error-driven research subdivision implemented and independently measured; still incomplete | Single-anchor metric initializer implemented and independently compared; next quality-aware interior retriangulation, reviewed shared-edge discrepancy handling and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |

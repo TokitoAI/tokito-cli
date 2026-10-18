@@ -39,6 +39,11 @@ error but still reports 2,312 nonpositive normals and an incomplete mesh-budget
 outcome. Its [independent evidence](evidence/physical-refinement-20261019.json)
 does not qualify the face or clear the general STEP/complete-solid gate.
 
+The optional metric-preconditioned research path reduces the measured remaining
+nonpositive normals from 2,312 to ten and sampled interior error to 0.000286452 mm.
+It still misses its targets and remains incomplete. [Paired independent evidence](evidence/metric-refinement-20261019.json)
+does not clear any source-boundary, whole-solid or general STEP release gate.
+
 ## Candidate release boundary
 
 The shared Ultimaker presentation profile is implemented for existing packaged

@@ -15,12 +15,23 @@ def digest(path, maximum):
     return hashlib.sha256(bounded_read(path, maximum)).hexdigest()
 
 
-def validate_mesh(report):
+def validate_mesh(report, metric=False):
     p = report["physicalRefinementCandidate"]
     if p.get("admitted") is not False or p.get("geometryQualified") is not False or p.get("exportsProduced") != []:
         raise ValueError("research mesh must stay unqualified")
     if p.get("status") != "incomplete" or p.get("termination") != "mesh_budget_exhausted":
         raise ValueError("pinned incomplete outcome changed; re-evaluate fixture evidence")
+    chart=p.get("initialChartMetric")
+    if metric:
+        if not isinstance(chart,dict) or chart.get("originalUvCoordinatesRetainedByIdentity") is not True:
+            raise ValueError("metric chart source identity evidence missing")
+        matrix=chart["normalizedCholeskyMatrix"]
+        if not 0.02<matrix[0][0]<0.04 or matrix[1][0]!=0 or not 0.99<matrix[1][1]<=1.000001:
+            raise ValueError("pinned metric scale changed")
+        if not 0<p["quality"]["nonpositiveNormalCount"]<=10:
+            raise ValueError("metric remaining orientation count changed")
+    elif chart is not None:
+        raise ValueError("baseline unexpectedly uses a metric chart")
     uv = p["uvVertices"]
     points = p["surfacePointsSourceUnits"]
     triangles = p["triangles"]
@@ -79,7 +90,8 @@ def run(args):
             raise ValueError("wrong materialized source")
 
         def cli(name, tolerance="0.00001", face="2875"):
-            code, stdout, stderr = capture_bounded([str(binary), "--research-physical-source-face", face,
+            mode="--research-metric-source-face" if args.metric else "--research-physical-source-face"
+            code, stdout, stderr = capture_bounded([str(binary), mode, face,
                 "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
                 300, 32 * 1024 * 1024, 128 * 1024)
             (output / (name + ".json")).write_bytes(stdout)
@@ -90,7 +102,8 @@ def run(args):
         report = cli("diagnostic")
         if report.get("sourceSha256") != SOURCE_SHA256 or report.get("admitted") is not False:
             raise ValueError("CLI provenance/qualification mismatch")
-        receipt["mesh"] = validate_mesh(report)
+        receipt["metricPreconditioning"]=args.metric
+        receipt["mesh"] = validate_mesh(report,args.metric)
         receipt["diagnosticSha256"] = digest(output / "diagnostic.json", 32 * 1024 * 1024)
         receipt["checks"].append({"name": "real-source-physical-refinement-and-topology", "passed": True})
         for name, tolerance, face, error in [
@@ -159,4 +172,5 @@ if __name__ == "__main__":
     parser.add_argument("--freecad", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
     raise SystemExit(run(parser.parse_args()))
