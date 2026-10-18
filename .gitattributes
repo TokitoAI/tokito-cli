@@ -25,3 +25,7 @@ docs/evidence/kicad-pcb-export-*-help-10.0.7.txt -text -whitespace
 # reference hashes and structural comparisons.
 tests/reference/kicad-cli-10.0.7/svg/** -text -whitespace
 docs/evidence/kicad-dnp-local-verification-2026-10-14.json -text -whitespace !eol
+# Geometry audit receipts and reports preserve independently recorded byte hashes.
+docs/evidence/model16-projection-audit-20261018.json -text -whitespace !eol
+docs/evidence/model16-projection-audit-20261018.receipt.json -text -whitespace !eol
+experiments/step-evaluation/references/audit_model16_projection.FCMacro text eol=lf
