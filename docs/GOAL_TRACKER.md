@@ -2,11 +2,25 @@
 
 CLI-only release assessment: [release gates](CLI_RELEASE_READINESS.md). AR and
 YOLO are excluded from the current release scope. The latest 48-gate local
-Windows verifier receipt is recorded in the model-16 checkpoint below. The frozen-tool capture confirms
+Windows verifier receipt is recorded in the current checkpoint below. The frozen-tool capture confirms
 76/76 reference solids. The unmodified reader retains known failures; the
 opt-in model-14 repair has independent sampled-comparison evidence. The
 model-16 rational-spline candidate remains rejected, and general STEP admission
 is blocked.
+
+## Current PR and local verification checkpoint (2026-10-18)
+
+PR #45 is at `27ccc097ea3ffc8453535cd760ba2514b995e695`. The zero-remaining-byte
+model-output guard returns `BatchBudgetExceeded` before Zstandard frame
+initialization; its regression failed before the guard and passed after it.
+A fresh, isolated D: Windows verification passed all 48/48 local gates on
+Windows 10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5. The receipt and
+its hash are recorded in the PR #45 and issue #47 checkpoint comments. This
+replaces the earlier reused-F: verification as the latest local evidence. No
+GitHub Actions ran; the PR remains open with no review decision or hosted
+checks. V1 remains unfinished: KiCad and footprint/library parity, qualified
+general STEP geometry, component completeness, missing-model qualification,
+independent installation, and product integration are still open.
 
 ## Active production-readiness plan (2026-10-17)
 

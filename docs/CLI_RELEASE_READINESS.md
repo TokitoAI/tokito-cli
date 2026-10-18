@@ -1,8 +1,22 @@
-# CLI release readiness — 2026-10-17
+# CLI release readiness — 2026-10-18
 
 Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
+
+## Latest code and verification checkpoint
+
+PR #45 is at `27ccc097ea3ffc8453535cd760ba2514b995e695`. The zero-remaining-byte
+model-output guard refuses before Zstandard frame initialization, with a
+red/green regression test. A fresh isolated Windows verifier run passed 48/48
+gates on Windows 10.0.26200 x64 with Rust/Cargo 1.94.1 and Python 3.11.5. The
+local receipt and release-binary hashes are recorded in the PR #45 and issue
+#47 checkpoint comments. The earlier reused-F: run is superseded as the latest
+verification. No GitHub Actions ran; PR #45 remains open with no review
+decision or hosted check results.
+
+This verifies the currently implemented local command suite; it does not close
+production gates below. Tokito CLI V1 remains not production-ready.
 
 ## Candidate release boundary
 
