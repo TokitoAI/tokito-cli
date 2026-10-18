@@ -506,3 +506,37 @@ independently generated triangulation with recorded settings. Validate complete
 shell and solid topology before considering production exporter integration.
 Until then, do not describe this candidate as a repaired STEP face or complete
 component model.
+
+## Independent projection and metric audit (2026-10-18)
+
+The [geometry recovery investigation](GEOMETRY_RECOVERY_PLAN.md) now compares
+four current Rust source-curve probes with FreeCAD 1.1.4 / OCCT 7.8.1. For the
+selected rejected probe 1535, Rust reports `1.07888315327835e-6 mm` residual and
+OCCT's independently reconstructed natural support face reports
+`1.0788831531073023e-6 mm`. Surface evaluations at the same UV agree to
+`6.661338147750939e-16 mm`; sampled tangent/residual cosines are close to zero.
+The result supports a stationary off-support-surface point, not a demonstrated
+poor initial seed. It is not a global minimum proof.
+
+OCCT's trimmed topological face/edge distance for that point is near zero,
+while its surface-parameter roundtrip retains the same nonzero gap. The closest
+imported edge's tolerance is `1.0808480880344237e-6 mm`. This is importer-derived
+evidence; it does not grant a Tokito geometry acceptance tolerance. All 100
+source boundary samples match the independent imported face's boundary edges
+within `1.6011864169946884e-15 mm`.
+
+The local Jacobian anisotropy is about 34.93 in this parameterization, which
+also explains why a UV-only angle guarantee cannot imply a 3D angle guarantee.
+This does not establish the cause of every earlier reversed facet. The next
+work is explicit projection-status and discrepancy handling plus physical-space
+mesh quality; increasing seed counts or relaxing a global epsilon is not an
+established repair. Whole-solid checks and production admission remain open.
+
+The [raw report](evidence/model16-projection-audit-20261018.json) and
+[receipt](evidence/model16-projection-audit-20261018.receipt.json) record the four
+comparisons, three actual refusal checks, versions and source/tool hashes. The
+new [macro](../experiments/step-evaluation/references/audit_model16_projection.FCMacro)
+imports a frozen source snapshot, and the
+[E2E harness](../experiments/step-evaluation/tests/projection_audit_e2e.py)
+checks timeout/output bounds and refuses source/hash mismatches and overwrites.
+No mesh repair, model export or production adapter change is included.

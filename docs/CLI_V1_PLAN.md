@@ -65,6 +65,10 @@ electrical or thermal correctness is established by a polished visualization.
 2. Verify toolchain, dependencies, packaged Windows behavior and installation.
 3. Repair/independently qualify STEP planar faces, then spline cases and full
    bodies; add per-component dimensional/placement checks.
+   The [geometry recovery plan](GEOMETRY_RECOVERY_PLAN.md) records the new
+   independent curve/support-surface discrepancy measurement and parameter
+   anisotropy. Separate solver stationarity from residual acceptance; do not
+   weaken the current refusal or assume more inverse seeds will remove this gap.
 4. Implement remaining agreed KiCad exports and footprint/library families with
    pinned comparisons. Keep unsupported commands explicit.
    Mixed SMD/THT/NPTH pad generation is implemented as an explicitly

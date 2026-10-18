@@ -38,6 +38,12 @@ bytes remain unchanged. See [presentation evidence](evidence/ultimaker-presentat
 and [the standard](THREED_PRESENTATION_STANDARD.md). This is presentation
 acceptance; geometry qualification and production readiness remain separate.
 
+The [geometry recovery audit](GEOMETRY_RECOVERY_PLAN.md) now independently
+reproduces one rejected source curve/support-surface gap and quantifies local
+parameter distortion. Its four probe comparisons and three refusal checks are
+separate development evidence; they do not repair the surface or enable STEP
+export. No production release gate is cleared by that research result.
+
 A Windows preview can expose supported PCB inspection/outline validation,
 partial source-linked SVG/placement exports, source-bound offline bundles,
 bounded VRML assembly with selectable component identities, footprint/library
