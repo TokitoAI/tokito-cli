@@ -1031,6 +1031,101 @@ def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> 
     }
 
 
+def validate_solver_observations(report: dict) -> dict:
+    """Validate additive diagnostics without treating stationarity as admission."""
+    expected_tolerance = report["surface"]["controlNetDiagonalSourceUnits"] * 1e-10
+    numeric_statuses = {"singular_jacobian", "domain_boundary_no_stationarity_claim",
+                        "interior_tangent_orthogonality_observed", "tangent_orthogonality_not_observed"}
+    unavailable_statuses = {"not_evaluated_residual_met", "derivative_bounds_invalid",
+                            "singular_or_nonfinite_derivatives"}
+    groups = [
+        (report["trimProjection"]["sampleDetails"], "multiStartBestResidualSourceUnits", "multiStartBestConverged"),
+        (report["trimCandidate"]["boundarySamples"], "projectionResidualSourceUnits", "projectionConverged"),
+        (report["trimCandidate"]["boundaryRefinementProbes"], "projectionResidualSourceUnits", "projectionConverged"),
+        (report["trimCandidate"]["boundaryQualityProbes"], "projectionResidualSourceUnits", "projectionConverged"),
+    ]
+    checked = 0
+    orthogonal_residual_unmet = 0
+    reasons = {"iteration_limit", "derivative_bounds_invalid", "singular_jacobian", "nonfinite_step", "residual_met", "no_decreasing_step", "stagnation"}
+    for rows, residual_key, convergence_key in groups:
+        for row in rows:
+            solver = row.get("projectionSolver", {})
+            residual = row.get(residual_key)
+            tolerance = solver.get("residualToleranceSourceUnits")
+            iterations = solver.get("iterations")
+            if (not is_json_number(residual) or not math.isfinite(residual) or residual < 0
+                or not is_json_number(tolerance)
+                or not math.isfinite(tolerance) or tolerance <= 0
+                or tolerance != expected_tolerance
+                or type(iterations) is not int or not 1 <= iterations <= 24
+                or solver.get("iterationLimit") != 24
+                or solver.get("termination") not in reasons
+                or solver.get("residualToleranceMet") is not (residual <= tolerance)
+                or solver.get("globalMinimumProven") is not False
+                or solver.get("authorizesGeometryAdmission") is not False
+                or solver.get("tangentOrthogonalityObservationThreshold") != 1e-8
+                or (row.get(convergence_key) is True and residual > tolerance)):
+                raise ValueError("invalid solver termination/residual diagnostic")
+            cosines = solver.get("tangentResidualCosines")
+            determinant = solver.get("normalizedJacobianDeterminant")
+            status = solver.get("stationarityObservation")
+            if status not in numeric_statuses | unavailable_statuses:
+                raise ValueError("unknown or missing stationarity observation")
+            if status in unavailable_statuses and (cosines is not None or determinant is not None):
+                raise ValueError("unavailable stationarity has numeric evidence")
+            if status in numeric_statuses and cosines is None:
+                raise ValueError("numeric stationarity lacks tangent evidence")
+            if (status == "not_evaluated_residual_met") is not (residual <= tolerance):
+                raise ValueError("residual acceptance and stationarity status disagree")
+            if cosines is not None:
+                if (not isinstance(cosines, list) or len(cosines) != 2
+                    or not all(is_json_number(c) and math.isfinite(c) and abs(c) <= 1 + 1e-12 for c in cosines)
+                    or not is_json_number(determinant) or not 0 <= determinant <= 1):
+                    raise ValueError("invalid finite tangent observation")
+            if status == "interior_tangent_orthogonality_observed":
+                if cosines is None or max(abs(c) for c in cosines) > 1e-8 or determinant <= 1e-14:
+                    raise ValueError("orthogonality claim lacks tangent evidence")
+                if not solver["residualToleranceMet"]:
+                    orthogonal_residual_unmet += 1
+            checked += 1
+    probe = report["trimCandidate"]["boundaryQualityProbes"][1535]
+    solver = probe["projectionSolver"]
+    if (probe["projectionConverged"] is not False
+        or solver["residualToleranceMet"] is not False
+        or solver["stationarityObservation"] != "interior_tangent_orthogonality_observed"
+        or solver["termination"] != "no_decreasing_step"):
+        raise ValueError("real source stationary/residual-unmet refusal control changed")
+    return {"checkedObservationCount": checked,
+            "orthogonalButResidualUnmetObservationCount": orthogonal_residual_unmet,
+            "probe1535": solver, "authorizesGeometryAdmission": False}
+
+
+def test_solver_observation_refusals(report: dict) -> int:
+    """Alter a real record to ensure invalid observations cannot pass the harness."""
+    row = report["trimProjection"]["sampleDetails"][0]
+    original = row.copy()
+    solver = row["projectionSolver"].copy()
+    mutations = [
+        {"projectionSolver": {**solver, "stationarityObservation": "unknown"}},
+        {"projectionSolver": {**solver, "stationarityObservation": "interior_tangent_orthogonality_observed", "tangentResidualCosines": None}},
+        {"projectionSolver": {**solver, "residualToleranceSourceUnits": solver["residualToleranceSourceUnits"] * 2}},
+        {"multiStartBestResidualSourceUnits": float("nan")},
+    ]
+    for mutation in mutations:
+        try:
+            row.update(mutation)
+            try:
+                validate_solver_observations(report)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError("malformed solver observation was accepted")
+        finally:
+            row.clear()
+            row.update(original)
+    return len(mutations)
+
+
 def run(
     binary: Path,
     source: Path,
@@ -1090,13 +1185,15 @@ def run(
                 str(source),
             ],
             timeout_seconds=300,
-            stdout_limit=8 * 1024 * 1024,
+            stdout_limit=16 * 1024 * 1024,
             stderr_limit=512 * 1024,
         )
         (output / "diagnostic.json").write_bytes(stdout)
         if code != 2 or stderr:
             raise ValueError("diagnostic must refuse admission with exit 2 and no stderr")
         report = json.loads(stdout)
+        receipt["solverObservations"] = validate_solver_observations(report)
+        receipt["malformedSolverObservationControlsPassed"] = test_solver_observation_refusals(report)
         surface = report.get("surface", {})
         projection = report.get("trimProjection", {})
         evaluation = report.get("evaluation", {})
@@ -1592,7 +1689,7 @@ def run(
                 raise ValueError("candidate periodic branch trace is invalid or does not close")
         if any(fingerprint(path, limit) != before[str(path)] for path, limit in tracked):
             raise ValueError("source, binary, or test input changed during execution")
-        receipt["diagnosticSha256"] = fingerprint(output / "diagnostic.json", 8 * 1024 * 1024)
+        receipt["diagnosticSha256"] = fingerprint(output / "diagnostic.json", 16 * 1024 * 1024)
         if candidate_generator is not None:
             candidate_path = output / "spade-candidate.json"
             identity_code, identity_stdout, identity_stderr = capture_bounded(

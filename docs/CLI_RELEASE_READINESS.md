@@ -1,4 +1,4 @@
-# CLI release readiness — 2026-10-18
+# CLI release readiness — 2026-10-19
 
 Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
@@ -27,6 +27,12 @@ checks or independent PR approval.
 
 This verifies the currently implemented local command suite; it does not close
 production gates below. Tokito CLI V1 remains not production-ready.
+
+The 2026-10-19 experimental solver-status change separates residual acceptance
+from finite-difference tangent observations, preserving the selected source-face
+refusal. Its [source-face/independent-audit evidence](evidence/projection-solver-status-20261019.json)
+does not clear any production geometry gate. Complete-solid and missing-body
+qualification remain open.
 
 ## Candidate release boundary
 

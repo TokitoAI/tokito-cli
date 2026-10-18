@@ -30,6 +30,20 @@ absent. V1 remains unfinished: KiCad and footprint/library parity, qualified
 general STEP geometry, component completeness, missing-model qualification,
 independent installation, and product integration are still open.
 
+## Solver-status implementation checkpoint (2026-10-19)
+
+Implemented separate termination, residual and final-UV tangent observations in
+the experimental Rust spline diagnostic. The source-face E2E validated 6,248
+observations; all 6,248 prior projection records remain equal. The selected
+stationary-but-residual-unmet probe1535 still refuses with no candidate output.
+A fresh independent four-probe FreeCAD comparison and its three negative
+controls passed. The 16 MiB research input cap also refuses a real oversized
+input. [Evidence](evidence/projection-solver-status-20261019.json) and
+[remaining geometry tasks](GEOMETRY_RECOVERY_PLAN.md) keep this separate from
+physical-space refinement and whole-solid acceptance. No STEP repair, new
+production export capability or release readiness is established by this change.
+Current-source full verification remains tied to its per-run receipt.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

@@ -1,12 +1,12 @@
 # Versioned repository file map
 
-Snapshot updated on 18 October 2026 for the component-geometry investigation.
+Snapshot updated on 19 October 2026 for the component-geometry investigation.
 This map is generated from `git ls-files --cached --others --exclude-standard`;
 it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-465 project files are listed.
+466 project files are listed.
 
 ```text
 tokito_cli/
@@ -113,6 +113,7 @@ tokito_cli/
 │   │   ├── model16-projection-audit-20261018.json
 │   │   ├── model16-projection-audit-20261018.receipt.json
 │   │   ├── nxp-refined-local-verification-20261011.json
+│   │   ├── projection-solver-status-20261019.json
 │   │   └── ultimaker-presentation-browser-20261016.json
 │   ├── quality/
 │   │   ├── assets/

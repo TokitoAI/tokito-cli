@@ -23,7 +23,9 @@ const EXPECTED_SOURCE_SHA256: &str =
 const EXPECTED_FACE_ID: u64 = 2875;
 const EXPECTED_BOUNDARY_SAMPLE_COUNT: usize = 100;
 const EXPECTED_UNIQUE_BOUNDARY_VERTEX_COUNT: usize = 96;
-const MAX_INPUT_BYTES: usize = 8 * 1024 * 1024;
+// Additive solver observations make the pinned diagnostic about 9.9 MB.
+// The experiment still bounds input bytes and all parsed geometry inventories.
+const MAX_INPUT_BYTES: usize = 16 * 1024 * 1024;
 const MAX_SOURCE_BYTES: usize = 16 * 1024 * 1024;
 const MAX_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 const MAX_ADDITIONAL_VERTICES: usize = 20_000;

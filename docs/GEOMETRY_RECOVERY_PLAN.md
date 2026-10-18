@@ -1,6 +1,6 @@
 # Accurate component geometry: evidence and implementation plan
 
-Updated 2026-10-18. This is the CLI's geometry recovery decision record.
+Updated 2026-10-19. This is the CLI's geometry recovery decision record.
 Production dependencies remain pure Rust. Native CAD tools are development
 reference oracles only. No new production STEP capability is admitted here.
 
@@ -175,11 +175,44 @@ GLB tessellation does not retain exact CAD surfaces or inherently supply 4K
 quality. STL is unsuitable as the authoritative component/identity/material
 contract. See [Khronos's specification](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html).
 
+## Implemented solver-status separation (2026-10-19)
+
+The experimental Rust diagnostic now emits additive `projectionSolver` metadata
+for initial samples, retained boundary samples, source-edge refinement probes
+and quality probes. It records the actual termination reason and iteration count,
+residual tolerance/acceptance, final-UV finite-difference tangent observations,
+and normalized Jacobian determinant. All five final-point evaluations are
+charged to existing surface/control-point budgets.
+
+The old `projectionConverged`/`multiStartBestConverged` values, solver arithmetic,
+seed selection and mesh admission decisions are preserved. Stationarity evidence
+cannot authorize geometry. Domain boundaries explicitly make no constrained
+stationarity claim; collapsed/parallel tangents are unavailable or singular.
+Finite differences measure secants near knots/seams and do not prove exact
+stationarity, differentiability or a global nearest point.
+
+The real source-face E2E passed, validating 6,248 additive observations and
+refusing four malformed observation mutations. Comparing
+against the previous diagnostic found all 6,248 legacy projection records equal.
+Probe 1535 reports `no_decreasing_step` after two iterations and observed interior
+tangent orthogonality, while its residual remains `1.07888315327835e-6 mm` against
+`8.182579005321623e-11 mm` diagnostic tolerance. The Spade candidate still refuses
+that exact selected probe and produces no candidate output. The existing trim
+candidate still contains 3,995 nonpositive triangle-normal observations; this
+change does not repair those triangles.
+
+The expanded JSON is 9,852,339 bytes. Research-only consumer/harness input caps
+are now 16 MiB; geometry inventory/work limits are unchanged. A real 16 MiB+1
+input was refused with no output. The four-probe FreeCAD audit and its three
+refusal controls passed again with the new diagnostic. Unit regressions cover
+UV rescaling, off-surface targets, boundaries, rank deficiency, final-UV sampling
+and budget exhaustion. See the [captured evidence](evidence/projection-solver-status-20261019.json).
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
-| Main / read-only reviewer | Failed source-curve probe | Independent four-probe audit and three refusal checks passed | Preserve refusal; define separate minimizer and residual statuses |
+| Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
 | Main | Current Spade experiment | UV topology exists; physical quality unqualified | Add surface-space quality/metric-aware refinement and a measured edge discrepancy contract |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |

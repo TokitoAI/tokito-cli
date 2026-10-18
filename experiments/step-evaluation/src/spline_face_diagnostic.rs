@@ -26,6 +26,8 @@ const MAX_BRANCH_SHIFT: f64 = 1_000_000.0;
 const MULTISTART_SUBDIVISIONS: usize = 8;
 const MAX_AXIS_SEEDS: usize = 64;
 const MAX_PROJECTION_ITERATIONS: usize = 24;
+// Dimensionless observation threshold, not a geometric admission tolerance.
+const PROJECTION_TANGENT_ORTHOGONALITY_TOLERANCE: f64 = 1e-8;
 const MAX_SURFACE_EVALUATIONS: usize = 4_000_000;
 const MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS: usize = 50_000_000;
 const MAX_SHARED_KERNEL_GRID_CONTROL_POINT_EVALUATIONS: usize = 2_000_000;
@@ -1041,6 +1043,115 @@ struct ProjectionCandidate {
     uv: [f64; 2],
     residual: f64,
     converged: bool,
+    termination: &'static str,
+    iterations: usize,
+    stationarity: ProjectionStationarity,
+    residual_tolerance: f64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ProjectionStationarity {
+    status: &'static str,
+    tangent_residual_cosines: Option<[f64; 2]>,
+    normalized_jacobian_determinant: Option<f64>,
+}
+
+impl ProjectionCandidate {
+    fn solver_diagnostic(self) -> Json {
+        json!({
+            "termination": self.termination,
+            "iterations": self.iterations,
+            "iterationLimit": MAX_PROJECTION_ITERATIONS,
+            "residualToleranceSourceUnits": self.residual_tolerance,
+            "residualToleranceMet": self.residual <= self.residual_tolerance,
+            "stationarityObservation": self.stationarity.status,
+            "tangentResidualCosines": self.stationarity.tangent_residual_cosines,
+            "tangentOrthogonalityObservationThreshold": PROJECTION_TANGENT_ORTHOGONALITY_TOLERANCE,
+            "normalizedJacobianDeterminant": self.stationarity.normalized_jacobian_determinant,
+            "globalMinimumProven": false,
+            "authorizesGeometryAdmission": false
+        })
+    }
+}
+
+// Observe the selected final point only. A small gradient at an interior point
+// is not a global-minimum proof; at a domain boundary we make no KKT claim.
+// These extra evaluations are charged to the existing hard work budgets.
+fn observe_projection_stationarity(
+    definition: &SurfaceDefinition,
+    candidate: &ProjectionCandidate,
+    target: P3,
+    evaluations: &mut usize,
+    control_point_evaluations: &mut usize,
+) -> Result<ProjectionStationarity, String> {
+    let unavailable = |status| ProjectionStationarity {
+        status,
+        tangent_residual_cosines: None,
+        normalized_jacobian_determinant: None,
+    };
+    if candidate.residual <= candidate.residual_tolerance {
+        return Ok(unavailable("not_evaluated_residual_met"));
+    }
+    let uv = candidate.uv;
+    let step = |domain: (f64, f64)| (domain.1 - domain.0) * 1e-6;
+    let Some((um, up)) =
+        finite_difference_bounds(uv[0], step(definition.u_domain), definition.u_domain, false)
+    else {
+        return Ok(unavailable("derivative_bounds_invalid"));
+    };
+    let Some((vm, vp)) = finite_difference_bounds(
+        uv[1],
+        step(definition.v_domain),
+        definition.v_domain,
+        definition.v_period.is_some(),
+    ) else {
+        return Ok(unavailable("derivative_bounds_invalid"));
+    };
+    let mut sample = |p| eval_surface(definition, p, evaluations, control_point_evaluations);
+    let du = scale(
+        sub(sample([up, uv[1]])?, sample([um, uv[1]])?),
+        1. / (up - um),
+    );
+    let dv = scale(
+        sub(sample([uv[0], vp])?, sample([uv[0], vm])?),
+        1. / (vp - vm),
+    );
+    let residual = sub(sample(uv)?, target);
+    let length = |v: P3| v[0].hypot(v[1]).hypot(v[2]);
+    let lengths = [length(du), length(dv), length(residual)];
+    if lengths.iter().any(|n| !n.is_finite() || *n <= 0.) {
+        return Ok(unavailable("singular_or_nonfinite_derivatives"));
+    }
+    let du = scale(du, 1. / lengths[0]);
+    let dv = scale(dv, 1. / lengths[1]);
+    let residual = scale(residual, 1. / lengths[2]);
+    let cosines = [dot(du, residual), dot(dv, residual)];
+    let tangent_cosine = dot(du, dv);
+    let determinant = (1. - tangent_cosine * tangent_cosine).clamp(0., 1.);
+    if !determinant.is_finite() || cosines.iter().any(|x| !x.is_finite()) {
+        return Ok(unavailable("singular_or_nonfinite_derivatives"));
+    }
+    let boundary = uv[0] <= definition.u_domain.0
+        || uv[0] >= definition.u_domain.1
+        || (definition.v_period.is_none()
+            && (uv[1] <= definition.v_domain.0 || uv[1] >= definition.v_domain.1));
+    let status = if determinant <= 1e-14 {
+        "singular_jacobian"
+    } else if boundary {
+        "domain_boundary_no_stationarity_claim"
+    } else if cosines
+        .iter()
+        .all(|x| x.abs() <= PROJECTION_TANGENT_ORTHOGONALITY_TOLERANCE)
+    {
+        "interior_tangent_orthogonality_observed"
+    } else {
+        "tangent_orthogonality_not_observed"
+    };
+    Ok(ProjectionStationarity {
+        status,
+        tangent_residual_cosines: Some(cosines),
+        normalized_jacobian_determinant: Some(determinant),
+    })
 }
 
 fn multistart_inverse(
@@ -1065,10 +1176,14 @@ fn multistart_inverse(
             let mut residual_vector = sub(point, target);
             let mut error = dot(residual_vector, residual_vector);
             let mut converged = false;
+            let mut termination = "iteration_limit";
+            let mut iterations = 0;
             for _ in 0..MAX_PROJECTION_ITERATIONS {
+                iterations += 1;
                 let Some((um, up)) =
                     finite_difference_bounds(uv[0], h_u, definition.u_domain, false)
                 else {
+                    termination = "derivative_bounds_invalid";
                     break;
                 };
                 let Some((vm, vp)) = finite_difference_bounds(
@@ -1077,6 +1192,7 @@ fn multistart_inverse(
                     definition.v_domain,
                     definition.v_period.is_some(),
                 ) else {
+                    termination = "derivative_bounds_invalid";
                     break;
                 };
                 let pm_u = eval_surface(
@@ -1116,11 +1232,13 @@ fn multistart_inverse(
                     || a <= 0.
                     || c <= 0.
                 {
+                    termination = "singular_jacobian";
                     break;
                 }
                 let step_u = (-g0 * c + b * g1) / determinant;
                 let step_v = (b * g0 - a * g1) / determinant;
                 if !step_u.is_finite() || !step_v.is_finite() {
+                    termination = "nonfinite_step";
                     break;
                 }
                 let mut accepted = None;
@@ -1159,6 +1277,11 @@ fn multistart_inverse(
                     accepted
                 else {
                     converged = error.sqrt() <= definition.control_net_diagonal * 1e-10;
+                    termination = if converged {
+                        "residual_met"
+                    } else {
+                        "no_decreasing_step"
+                    };
                     break;
                 };
                 let previous_error = error;
@@ -1168,6 +1291,7 @@ fn multistart_inverse(
                 error = candidate_error;
                 if error.sqrt() <= definition.control_net_diagonal * 1e-10 {
                     converged = true;
+                    termination = "residual_met";
                     break;
                 }
                 let improvement = previous_error - error;
@@ -1175,6 +1299,7 @@ fn multistart_inverse(
                 if improvement <= stagnation_tolerance {
                     // A small absolute improvement is not proof of convergence:
                     // the residual must satisfy the geometric tolerance above.
+                    termination = "stagnation";
                     break;
                 }
             }
@@ -1186,14 +1311,29 @@ fn multistart_inverse(
                 uv,
                 residual,
                 converged,
+                termination,
+                iterations,
+                residual_tolerance: definition.control_net_diagonal * 1e-10,
+                stationarity: ProjectionStationarity {
+                    status: "not_evaluated",
+                    tangent_residual_cosines: None,
+                    normalized_jacobian_determinant: None,
+                },
             };
             if best.is_none_or(|current| candidate.residual < current.residual) {
                 best = Some(candidate);
             }
         }
     }
-    best.map(|candidate| (candidate, starts))
-        .ok_or_else(|| "multistart_projection_had_no_seed".to_string())
+    let mut best = best.ok_or_else(|| "multistart_projection_had_no_seed".to_string())?;
+    best.stationarity = observe_projection_stationarity(
+        definition,
+        &best,
+        target,
+        evaluations,
+        control_point_evaluations,
+    )?;
+    Ok((best, starts))
 }
 
 fn scale(point: P3, factor: f64) -> P3 {
@@ -1520,7 +1660,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             best_candidate.uv
         };
         candidate_uv_vertices.push(candidate_uv);
-        candidate_projection_details.push((best_candidate.residual, best_candidate.converged));
+        candidate_projection_details.push(best_candidate);
         previous_candidate_uv = Some(candidate_uv);
 
         let mut unwrapped = raw_uv;
@@ -1557,6 +1697,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 "multiStartBestUv": best_candidate.uv,
                 "multiStartBestResidualSourceUnits": best_candidate.residual,
                 "multiStartBestConverged": best_candidate.converged,
+                "projectionSolver": best_candidate.solver_diagnostic(),
                 "multiStartSeedCount": starts,
                 "poleFlag": pole
             }));
@@ -1711,6 +1852,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                         "surfaceResidualSourceUnits": surface_residual,
                         "projectionResidualSourceUnits": projection.residual,
                         "projectionConverged": projection.converged,
+                        "projectionSolver": projection.solver_diagnostic(),
                         "projectionStartCount": projection_starts
                     }),
                 ));
@@ -1856,8 +1998,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                     let surface_point = support_surface_points[candidate_vertex_index];
                     let mesh_point = refined.points[candidate_vertex_index];
                     let edge = &edges[*loop_index];
-                    let (projection_residual, projection_converged) =
-                        candidate_projection_details[boundary_index];
+                    let projection = candidate_projection_details[boundary_index];
                     json!({
                         "boundaryIndex": boundary_index,
                         "loopIndex": loop_index,
@@ -1873,8 +2014,9 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                         "surfaceResidualSourceUnits": distance(surface_point, *source_point),
                         "candidateMeshPointSourceUnits": mesh_point,
                         "meshToSourceTrimResidualSourceUnits": distance(mesh_point, *source_point),
-                        "projectionResidualSourceUnits": projection_residual,
-                        "projectionConverged": projection_converged
+                        "projectionResidualSourceUnits": projection.residual,
+                        "projectionConverged": projection.converged,
+                        "projectionSolver": projection.solver_diagnostic()
                     })
                 },
             )
@@ -2063,6 +2205,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                     "projectionResidualSourceUnits": projection.residual,
                     "surfaceResidualSourceUnits": surface_residual,
                     "projectionConverged": projection.converged,
+                        "projectionSolver": projection.solver_diagnostic(),
                     "projectionStartCount": projection_starts,
                     "deviationFromChordMidpointUv": chord_midpoint_deviation_uv
                 }));
@@ -2194,6 +2337,9 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "inverseSearch": "bounded multi-start finite-difference least-squares projection implemented in this diagnostic; uses the shared surface point evaluator",
             "inverseSearchAlgorithmDiffersFromReader": true,
             "inverseConvergenceStatusAvailable": false,
+            "diagnosticSolverTerminationAvailable": true,
+            "diagnosticStationarityMethod": "bounded finite differences at selected final UV; normalized tangent/residual dot products; no constrained stationarity claim at domain boundaries",
+            "diagnosticStationarityDoesNotChangeLegacyConvergenceOrAdmission": true,
             "inverseBranchesEnumerated": false,
             "surfaceCauseEstablished": false,
             "repairAttempted": false,
@@ -2462,6 +2608,154 @@ mod tests {
         assert!(unwrap_parameter(0., 1e20, Some(1e-9)).is_err());
     }
 
+    fn projection_test_plane(
+        u_domain: (f64, f64),
+        v_domain: (f64, f64),
+        collapsed: bool,
+    ) -> SurfaceDefinition {
+        let x = if collapsed { 0. } else { 1. };
+        let controls = vec![
+            vec![[0., 0., 0.], [0., 1., 0.]],
+            vec![[x, 0., 0.], [x, 1., 0.]],
+        ];
+        let spline = kernel::BSplineSurface::new(
+            1,
+            1,
+            &controls,
+            None,
+            (&[u_domain.0, u_domain.1], &[2, 2]),
+            (&[v_domain.0, v_domain.1], &[2, 2]),
+            Some(false),
+            Some(false),
+        )
+        .unwrap();
+        SurfaceDefinition {
+            evaluator: kernel::Surface::bspline(spline),
+            u_domain,
+            v_domain,
+            u_breaks: vec![u_domain.0, u_domain.1],
+            v_breaks: vec![v_domain.0, v_domain.1],
+            u_period: None,
+            v_period: None,
+            control_point_count: 4,
+            construction_control_point_evaluation_estimate: 81,
+            control_net_diagonal: 2f64.sqrt(),
+            report: json!({}),
+        }
+    }
+
+    #[test]
+    fn stationary_off_surface_evidence_is_invariant_under_uv_rescaling() {
+        for (u_domain, v_domain) in [((0., 1.), (0., 1.)), ((10., 1010.), (3., 3.02))] {
+            let plane = projection_test_plane(u_domain, v_domain, false);
+            let (candidate, _) = multistart_inverse(
+                &plane,
+                [0.3, 0.6, 1e-4],
+                &[u_domain.0],
+                &[v_domain.0],
+                &mut 0,
+                &mut 0,
+            )
+            .unwrap();
+            assert!(!candidate.converged);
+            assert!((candidate.residual - 1e-4).abs() < 1e-12);
+            assert_eq!(
+                candidate.stationarity.status, "interior_tangent_orthogonality_observed",
+                "{candidate:?}"
+            );
+            assert!(candidate
+                .stationarity
+                .tangent_residual_cosines
+                .unwrap()
+                .iter()
+                .all(|c| c.abs() <= PROJECTION_TANGENT_ORTHOGONALITY_TOLERANCE));
+        }
+    }
+
+    #[test]
+    fn domain_boundary_and_singular_surface_do_not_claim_stationarity() {
+        for (collapsed, target, status) in [
+            (
+                false,
+                [0.3, 1.2, 0.],
+                "domain_boundary_no_stationarity_claim",
+            ),
+            (true, [0.3, 0.6, 0.], "singular_or_nonfinite_derivatives"),
+        ] {
+            let plane = projection_test_plane((0., 1.), (0., 1.), collapsed);
+            let (candidate, _) =
+                multistart_inverse(&plane, target, &[0.5], &[0.5], &mut 0, &mut 0).unwrap();
+            assert!(!candidate.converged);
+            assert_eq!(candidate.stationarity.status, status, "{candidate:?}");
+            if collapsed {
+                assert_eq!(candidate.termination, "singular_jacobian");
+            }
+        }
+    }
+
+    #[test]
+    fn stationarity_is_measured_at_supplied_final_uv_and_obeys_work_budget() {
+        let plane = projection_test_plane((0., 1.), (0., 1.), false);
+        let mut candidate = ProjectionCandidate {
+            uv: [0.2, 0.4],
+            residual: 1.,
+            converged: false,
+            termination: "iteration_limit",
+            iterations: MAX_PROJECTION_ITERATIONS,
+            residual_tolerance: plane.control_net_diagonal * 1e-10,
+            stationarity: ProjectionStationarity {
+                status: "not_evaluated",
+                tangent_residual_cosines: None,
+                normalized_jacobian_determinant: None,
+            },
+        };
+        let target = [0.3, 0.6, 1e-4];
+        let observation =
+            observe_projection_stationarity(&plane, &candidate, target, &mut 0, &mut 0).unwrap();
+        assert_eq!(observation.status, "tangent_orthogonality_not_observed");
+        candidate.uv = [0.3, 0.6];
+        let mut evaluations = 0;
+        let mut controls = 0;
+        let observation = observe_projection_stationarity(
+            &plane,
+            &candidate,
+            target,
+            &mut evaluations,
+            &mut controls,
+        )
+        .unwrap();
+        assert_eq!(
+            observation.status,
+            "interior_tangent_orthogonality_observed"
+        );
+        assert_eq!(evaluations, 5);
+        assert_eq!(controls, 20);
+        let mut exhausted_surfaces = MAX_SURFACE_EVALUATIONS;
+        let mut exhausted_controls = MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS;
+        assert_eq!(
+            observe_projection_stationarity(
+                &plane,
+                &candidate,
+                target,
+                &mut exhausted_surfaces,
+                &mut 0
+            )
+            .unwrap_err(),
+            "multistart_surface_evaluation_budget_exceeded"
+        );
+        assert_eq!(
+            observe_projection_stationarity(
+                &plane,
+                &candidate,
+                target,
+                &mut 0,
+                &mut exhausted_controls
+            )
+            .unwrap_err(),
+            "multistart_control_point_evaluation_budget_exceeded"
+        );
+    }
+
     #[test]
     fn bounded_multistart_recovers_known_point_on_bilinear_surface() {
         let controls = vec![
@@ -2511,6 +2805,8 @@ mod tests {
         assert_eq!(starts, u.len() * v.len());
         assert!(candidate.residual < 1e-9, "{candidate:?}");
         assert!(candidate.converged);
+        assert_eq!(candidate.termination, "residual_met");
+        assert_eq!(candidate.stationarity.status, "not_evaluated_residual_met");
         assert!((candidate.uv[0] - 0.3).abs() < 1e-8);
         assert!((candidate.uv[1] - 0.6).abs() < 1e-8);
         let (offset_candidate, _) = multistart_inverse(
@@ -2524,6 +2820,15 @@ mod tests {
         .unwrap();
         assert!(offset_candidate.residual > 1e-7, "{offset_candidate:?}");
         assert!(!offset_candidate.converged, "{offset_candidate:?}");
+        assert_eq!(
+            offset_candidate.stationarity.status, "interior_tangent_orthogonality_observed",
+            "{offset_candidate:?}"
+        );
+        let solver = offset_candidate.solver_diagnostic();
+        assert_eq!(solver["residualToleranceMet"], false);
+        assert_eq!(solver["globalMinimumProven"], false);
+        assert_eq!(solver["authorizesGeometryAdmission"], false);
+        assert!(serde_json::to_string(&solver).is_ok());
         assert!(evaluations <= MAX_SURFACE_EVALUATIONS);
         assert_eq!(control_point_evaluations, evaluations * 4);
     }

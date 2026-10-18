@@ -540,3 +540,16 @@ imports a frozen source snapshot, and the
 [E2E harness](../experiments/step-evaluation/tests/projection_audit_e2e.py)
 checks timeout/output bounds and refuses source/hash mismatches and overwrites.
 No mesh repair, model export or production adapter change is included.
+
+
+## Solver-status follow-up — 2026-10-19
+
+The [implemented status separation](GEOMETRY_RECOVERY_PLAN.md#implemented-solver-status-separation-2026-10-19)
+now reproduces the distinction in Rust diagnostic output: probe1535 is an
+observed interior tangent-orthogonal point with residual above diagnostic
+geometric tolerance. It stops with `no_decreasing_step`; the old false convergence
+flag and exact Spade refusal remain unchanged. All 6,248 preexisting projection
+records compared equal, and a fresh independent oracle audit passed. This is
+local finite-difference evidence; knots/seams and boundary constraints remain
+explicit limitations. No reversed triangles, complete solids or production STEP
+exports are qualified by this change.
