@@ -15,12 +15,29 @@ def digest(path, maximum):
     return hashlib.sha256(bounded_read(path, maximum)).hexdigest()
 
 
-def validate_mesh(report, metric=False):
+def validate_mesh(report, metric=False, retriangulate=False):
     p = report["physicalRefinementCandidate"]
     if p.get("admitted") is not False or p.get("geometryQualified") is not False or p.get("exportsProduced") != []:
         raise ValueError("research mesh must stay unqualified")
-    if p.get("status") != "incomplete" or p.get("termination") != "mesh_budget_exhausted":
+    expected_termination="interior_retriangulation_incomplete" if retriangulate else "mesh_budget_exhausted"
+    if p.get("status") != "incomplete" or p.get("termination") != expected_termination:
         raise ValueError("pinned incomplete outcome changed; re-evaluate fixture evidence")
+    if retriangulate:
+        flips=p.get("interiorRetriangulation",{})
+        accepted=flips.get("acceptedFlips",[])
+        if (not accepted or len(accepted)!=flips.get("acceptedFlipCount")
+            or flips.get("verticesMoved")!=0 or flips.get("boundaryEdgesChanged")!=0
+            or flips.get("attempts",129)>128 or flips.get("passes",4)>3
+            or flips.get("sampleEvaluationCount",400001)>400000
+            or p.get("interiorRetriangulationControlPointEvaluationCount",50000001)>50000000
+            or p.get("beforeInteriorRetriangulationTermination")!="mesh_budget_exhausted"
+            or p["quality"]["nonpositiveNormalCount"]>=p["beforeInteriorRetriangulationQuality"]["nonpositiveNormalCount"]):
+            raise ValueError("interior flip preservation/budget/improvement evidence invalid")
+        for flip in accepted:
+            if (flip["newMinimumNormalAlignment"]<=0
+                or flip["newMinimumNormalAlignment"]<=flip["oldMinimumNormalAlignment"]
+                or flip["newMaximumSampledPairChordErrorSourceUnits"]>flip["oldMaximumSampledPairChordErrorSourceUnits"]):
+                raise ValueError("accepted flip did not meet pair quality requirements")
     chart=p.get("initialChartMetric")
     if metric:
         if not isinstance(chart,dict) or chart.get("originalUvCoordinatesRetainedByIdentity") is not True:
@@ -69,7 +86,8 @@ def validate_mesh(report, metric=False):
         raise ValueError("pinned remaining quality blockers changed")
     return {"vertices": len(uv), "triangles": len(triangles), "edges": len(edges), "eulerCharacteristic": 1,
             "fixedBoundaryEdges": len(boundary), "nonconformingEdges": 0,
-            "firstQuality": p["history"][0]["quality"], "lastQuality": quality}
+            "firstQuality": p["history"][0]["quality"], "lastQuality": quality,
+            "interiorRetriangulation":p.get("interiorRetriangulation")}
 
 
 def run(args):
@@ -89,8 +107,8 @@ def run(args):
         if hashes[str(source)] != SOURCE_SHA256:
             raise ValueError("wrong materialized source")
 
-        def cli(name, tolerance="0.00001", face="2875"):
-            mode="--research-metric-source-face" if args.metric else "--research-physical-source-face"
+        def cli(name, tolerance="0.00001", face="2875", mode=None):
+            mode=mode or ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face"))
             code, stdout, stderr = capture_bounded([str(binary), mode, face,
                 "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
                 300, 32 * 1024 * 1024, 128 * 1024)
@@ -102,8 +120,25 @@ def run(args):
         report = cli("diagnostic")
         if report.get("sourceSha256") != SOURCE_SHA256 or report.get("admitted") is not False:
             raise ValueError("CLI provenance/qualification mismatch")
-        receipt["metricPreconditioning"]=args.metric
-        receipt["mesh"] = validate_mesh(report,args.metric)
+        receipt["metricPreconditioning"]=args.metric or args.retriangulate
+        receipt["interiorRetriangulation"]=args.retriangulate
+        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate,args.retriangulate)
+        if args.retriangulate:
+            baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
+            final=report["physicalRefinementCandidate"]
+            for key in ["uvVertices","surfacePointsSourceUnits","inputSampleVertexIndices","boundaryVertexCount","originalInputSampleCount"]:
+                if baseline[key]!=final[key]:
+                    raise ValueError("interior flips changed source/mesh vertex identity")
+            replay=[list(t) for t in baseline["triangles"]]
+            for flip in final["interiorRetriangulation"]["acceptedFlips"]:
+                indices=flip["triangleIndices"]
+                if len(indices)!=2 or any(replay[i]!=t for i,t in zip(indices,flip["oldTriangles"])):
+                    raise ValueError("flip log does not replay against actual baseline")
+                for i,t in zip(indices,flip["newTriangles"]):replay[i]=t
+            if replay!=final["triangles"]:
+                raise ValueError("replayed flips differ from final mesh")
+            receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"actual-metric-baseline-identity-and-flip-replay","passed":True})
         receipt["diagnosticSha256"] = digest(output / "diagnostic.json", 32 * 1024 * 1024)
         receipt["checks"].append({"name": "real-source-physical-refinement-and-topology", "passed": True})
         for name, tolerance, face, error in [
@@ -136,6 +171,8 @@ def run(args):
                 raise ValueError("independent chord measurements disagree")
         if independent.get("analyticNonpositiveNormalCount", 0) <= 0 or independent.get("admitted") is not False:
             raise ValueError("independent remaining orientation blocker missing")
+        if args.retriangulate and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
+            raise ValueError("independent accepted-flip audit incomplete")
         quality = report["physicalRefinementCandidate"]["quality"]
         if (independent["analyticNonpositiveNormalCount"] != quality["nonpositiveNormalCount"]
                 or not math.isclose(independent["minimumAnalyticNormalAlignment"], quality["minimumSampledNormalAlignment"], rel_tol=1e-6, abs_tol=1e-8)):
@@ -172,5 +209,7 @@ if __name__ == "__main__":
     parser.add_argument("--freecad", type=Path, required=True)
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
+    modes.add_argument("--retriangulate", action="store_true", help="Exercise bounded interior flips after metric refinement")
     raise SystemExit(run(parser.parse_args()))

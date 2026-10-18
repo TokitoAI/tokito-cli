@@ -44,6 +44,12 @@ nonpositive normals from 2,312 to ten and sampled interior error to 0.000286452 
 It still misses its targets and remains incomplete. [Paired independent evidence](evidence/metric-refinement-20261019.json)
 does not clear any source-boundary, whole-solid or general STEP release gate.
 
+A further isolated interior-retriangulation pass accepts four independently
+verified flips and reduces nonpositive normals from ten to six, retaining all
+source coordinates/constraints. Global chord maxima remain unchanged. Its
+[seven-check evidence](evidence/interior-retriangulation-20261019.json) supports
+that narrow improvement; general STEP/whole-solid gates remain blocked.
+
 ## Candidate release boundary
 
 The shared Ultimaker presentation profile is implemented for existing packaged

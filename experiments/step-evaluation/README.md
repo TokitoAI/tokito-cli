@@ -303,3 +303,11 @@ Jacobian-metric preconditioner to the initial CDT, while preserving all original
 UV samples by identity. It remains incomplete and unqualified; use
 `tests/physical_refinement_e2e.py --metric` for the paired independent audit.
 See [current metric evidence and remaining work](../../docs/GEOMETRY_RECOVERY_PLAN.md#single-anchor-metric-preconditioning-2026-10-19).
+
+
+`--research-retriangulated-source-face` uses the same pinned arguments and adds
+bounded physical-quality interior flips after metric refinement. It preserves
+vertices/constraints and remains incomplete. Use
+`tests/physical_refinement_e2e.py --retriangulate` for actual metric-baseline
+replay, independent old/new pair and final-mesh comparisons, and refusal tests.
+See [accepted flips and remaining gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#bounded-interior-edge-flips-2026-10-19).

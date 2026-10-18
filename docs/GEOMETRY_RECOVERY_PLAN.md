@@ -321,6 +321,58 @@ initializer itself does not repair the source curve/support-surface discrepancy.
 Add `--metric` to `tests/physical_refinement_e2e.py` to reproduce the isolated
 metric path with the same pinned source, FreeCAD oracle and bounded captures.
 
+## Bounded interior edge flips (2026-10-19)
+
+The isolated `--research-retriangulated-source-face` path adds a postprocess to
+the metric candidate. It never moves vertices. An interior edge can change
+only when it has two opposite incidences, its alternate diagonal is absent,
+both replacement original-UV triangles are strictly positive (a convex local
+quadrilateral), both replacement sampled signed normals are positive and the
+pair minimum improves, and the maximum pair centroid/all-edge chord error does
+not increase. Mutation happens after every check; failed evaluation refuses
+the candidate. Constraints cannot flip, and newly introduced diagonals are
+tracked across triangle-disjoint changes to avoid stale-adjacency conflicts.
+
+The pass uses deterministic edge order, at most three passes / 128 attempts and
+400,000 chord samples. The adapter gives postprocessing its own explicit bounded
+stage: the same 50-million control-point cap as refinement, with separate
+reported counts. Actual refinement and postprocess counts are 39,824,838 and
+17,467,380 respectively; this is not a claim that their combined work is below
+one stage's cap. Final edge incidence and all centroid/unique-edge chord errors
+are recalculated. Unchanged triangles retain valid cached normals because no
+coordinates move; changed triangles receive new measurements. Final status and
+normal-target failures are recomputed, and refinement history is labelled as
+pre-retriangulation.
+
+The real source accepted four flips in 19 attempts / two passes. All 24,911
+vertices, 49,724 triangles, 96 fixed constraint segments and source mappings
+retain their inventories. Nonpositive normals fall from ten to **six**, and
+`cos(5 degrees)` target failures fall from 376 to **370**. Maximum sampled
+interior error remains `0.0002864520 mm`; fixed-boundary error remains
+`0.0002954254 mm`, so status is **interior_retriangulation_incomplete**.
+The accepted pair maxima include fixed-boundary samples; their nonincrease
+does not imply monotonicity of every interior-only statistic.
+
+The [actual seven-check E2E evidence](evidence/interior-retriangulation-20261019.json)
+includes a freshly executed metric baseline, exact coordinate/mapping comparison,
+full flip-log replay and independent FreeCAD all-vertex/chord/analytic-normal
+comparison. The oracle additionally recomputes every accepted old/new pair's
+normals and chord maxima; all four meet acceptance independently. Trim
+containment remains limited to 255 sampled centroids. Existing source-face
+refusal still passes without admitting the rejected projection.
+
+Three Rust test functions exercise an analytic curved surface, no-improvement,
+nonfinite/error input, concavity, worsened chord error and actual bounded-sample
+exhaustion. In the analytic case the old pair maximum is exactly `21/4` and the
+replacement maximum is `15/4`, with positive new normals; target alignment is
+still incomplete, proving positive normals alone do not qualify geometry.
+
+Run `tests/physical_refinement_e2e.py --retriangulate` with the same explicit
+binary/source/oracle/output arguments to reproduce this isolated mode. The
+remaining six inversions, boundary sampling, curve/support discrepancy,
+complete trim coverage and whole-solid gates stay open. This is connectivity
+improvement, not a qualified STEP repair or production exporter.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |

@@ -6,6 +6,7 @@ mod face_coverage;
 mod face_representation;
 mod negative_torus;
 mod occurrence_world;
+mod physical_edge_flip;
 mod physical_surface_refinement;
 mod planar_face;
 mod planar_repair;
@@ -370,7 +371,7 @@ fn probe_spline_face(
     path: &Path,
     face_id: u64,
     source_representation: Option<u64>,
-    physical_tolerance: Option<(f64, bool)>,
+    physical_tolerance: Option<(f64, bool, bool)>,
 ) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     if physical_tolerance.is_some()
@@ -389,8 +390,10 @@ fn probe_spline_face(
     };
     let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
         .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
-    let mut report = if let Some((tolerance, metric)) = physical_tolerance {
-        spline_face_diagnostic::inspect_physical_refinement(&parsed, face_id, tolerance, metric)?
+    let mut report = if let Some((tolerance, metric, flips)) = physical_tolerance {
+        spline_face_diagnostic::inspect_physical_refinement(
+            &parsed, face_id, tolerance, metric, flips,
+        )?
     } else {
         spline_face_diagnostic::inspect(&parsed, face_id)?
     };
@@ -413,7 +416,9 @@ fn probe_spline_face(
 fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
     if raw.first().is_some_and(|arg| {
-        arg == "--research-physical-source-face" || arg == "--research-metric-source-face"
+        arg == "--research-physical-source-face"
+            || arg == "--research-metric-source-face"
+            || arg == "--research-retriangulated-source-face"
     }) {
         let result = (|| -> Result<Value, String> {
             if raw.len() != 7
@@ -441,7 +446,11 @@ fn main() {
                 Path::new(&raw[6]),
                 face,
                 Some(representation),
-                Some((tolerance, raw[0] == "--research-metric-source-face")),
+                Some((
+                    tolerance,
+                    raw[0] != "--research-physical-source-face",
+                    raw[0] == "--research-retriangulated-source-face",
+                )),
             )
         })();
         println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));

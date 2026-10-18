@@ -70,6 +70,17 @@ quality-aware interior retriangulation, not a larger global budget.
 [Evidence](evidence/metric-refinement-20261019.json) keeps qualification false;
 whole-solid, source-boundary and production STEP gates remain open.
 
+## Interior retriangulation checkpoint (2026-10-19)
+
+Implemented isolated bounded source-preserving interior flips. Seven actual
+source/baseline-replay/oracle/refusal checks passed; four flips reduce remaining
+nonpositive normals from ten to six, without vertex or boundary movement.
+The independent oracle verifies every accepted pair and the final mesh. Chord
+maxima and boundary floor are unchanged; 370 normal-target failures remain.
+[Evidence](evidence/interior-retriangulation-20261019.json) records explicit
+separate stage budgets and incomplete status. Additional interior quality work,
+actual source-curve sampling and complete-solid acceptance remain open.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

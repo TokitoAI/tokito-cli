@@ -1365,6 +1365,7 @@ pub(crate) fn inspect_physical_refinement(
     face_id: u64,
     tolerance: f64,
     metric_preconditioning: bool,
+    interior_retriangulation: bool,
 ) -> Result<Json, String> {
     let mut report = inspect(step, face_id)?;
     let surface_id = report["surfaceId"]
@@ -1486,6 +1487,33 @@ pub(crate) fn inspect_physical_refinement(
     report["physicalRefinementCandidate"]["surfaceEvaluationCount"] = json!(*evaluations.borrow());
     report["physicalRefinementCandidate"]["controlPointEvaluationCount"] =
         json!(*control_evaluations.borrow());
+    if interior_retriangulation
+        && report["physicalRefinementCandidate"]
+            .get("triangles")
+            .is_some()
+    {
+        // A separate bounded stage, not a hidden increase to refinement's cap.
+        // Each stage independently obeys the same surface/control-point limits.
+        *evaluations.borrow_mut() = 0;
+        *control_evaluations.borrow_mut() = 0;
+        let current = &report["physicalRefinementCandidate"];
+        let improved = crate::physical_edge_flip::improve(current, evaluate, orientation);
+        match improved {
+            Ok(value) => report["physicalRefinementCandidate"] = value,
+            Err(error) => {
+                report["physicalRefinementCandidate"] = json!({"status":"refused","error":error,
+                "geometryQualified":false,"admitted":false,"exportsProduced":[]})
+            }
+        }
+        report["physicalRefinementCandidate"]["interiorRetriangulationSurfaceEvaluationCount"] =
+            json!(*evaluations.borrow());
+        report["physicalRefinementCandidate"]
+            ["interiorRetriangulationControlPointEvaluationCount"] =
+            json!(*control_evaluations.borrow());
+        report["physicalRefinementCandidate"]
+            ["interiorRetriangulationControlPointEvaluationLimit"] =
+            json!(MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS);
+    }
     Ok(report)
 }
 

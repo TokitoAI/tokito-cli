@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-471 project files are listed.
+473 project files are listed.
 
 ```text
 tokito_cli/
@@ -101,6 +101,7 @@ tokito_cli/
 │   │   ├── esp32-presentation-real-cli-20261011.json
 │   │   ├── esp8266-drilled-substrate-20261011.json
 │   │   ├── glb-dnp-local-verification-20261013.json
+│   │   ├── interior-retriangulation-20261019.json
 │   │   ├── kicad-3d-cli-help-10.0.7.json
 │   │   ├── kicad-dnp-10.0.7-structure-comparison.json
 │   │   ├── kicad-dnp-local-verification-2026-10-14.json
@@ -242,6 +243,7 @@ tokito_cli/
 │   │   │   ├── main.rs
 │   │   │   ├── negative_torus.rs
 │   │   │   ├── occurrence_world.rs
+│   │   │   ├── physical_edge_flip.rs
 │   │   │   ├── physical_surface_refinement.rs
 │   │   │   ├── planar_face.rs
 │   │   │   ├── planar_repair.rs

@@ -130,6 +130,45 @@ def main():
                 maximum_boundary_error = max(maximum_boundary_error, error)
             else:
                 maximum_interior_error = max(maximum_interior_error, error)
+    flip_audits=[]
+    flips=p.get("interiorRetriangulation",{}).get("acceptedFlips",[])
+    if not isinstance(flips,list) or len(flips)>128:
+        raise ValueError("flip audit inventory exceeded")
+
+    def triangle_measure(t):
+        if not isinstance(t,list) or len(t)!=3 or len(set(t))!=3 or any(type(k) is not int or not 0<=k<len(uv) for k in t):
+            raise ValueError("invalid flip triangle")
+        center=[sum(uv[k][j] for k in t)/3 for j in range(2)]
+        linear=[sum(points[k][j] for k in t)/3 for j in range(3)]
+        error=distance(sample(center),linear)
+        for x,y in [(t[0],t[1]),(t[1],t[2]),(t[2],t[0])]:
+            q=[(uv[x][j]+uv[y][j])*0.5 for j in range(2)]
+            linear=[(points[x][j]+points[y][j])*0.5 for j in range(3)]
+            error=max(error,distance(sample(q),linear))
+        a,b,c=[FreeCAD.Vector(*points[k]) for k in t]
+        normal=(b-a).cross(c-a)
+        u,v=canonical(center)
+        expected=face.normalAt(u,v)
+        divisor=normal.Length*expected.Length
+        alignment=normal.dot(expected)/divisor if divisor>0 else 0.0
+        return error,alignment
+
+    for index,flip in enumerate(flips):
+        old=flip["oldTriangles"];new=flip["newTriangles"]
+        if len(old)!=2 or len(new)!=2:
+            raise ValueError("flip requires triangle pair")
+        old_measures=[triangle_measure(t) for t in old]
+        new_measures=[triangle_measure(t) for t in new]
+        old_error=max(v[0] for v in old_measures);new_error=max(v[0] for v in new_measures)
+        old_normal=min(v[1] for v in old_measures);new_normal=min(v[1] for v in new_measures)
+        if new_normal<=0 or new_normal<=old_normal or new_error>old_error:
+            raise ValueError("independent flip quality acceptance failed")
+        for measured,key in [(old_error,"oldMaximumSampledPairChordErrorSourceUnits"),(new_error,"newMaximumSampledPairChordErrorSourceUnits"),
+                             (old_normal,"oldMinimumNormalAlignment"),(new_normal,"newMinimumNormalAlignment")]:
+            if not math.isclose(measured,flip[key],rel_tol=1e-6,abs_tol=1e-8):
+                raise ValueError("independent flip log measurement mismatch")
+        flip_audits.append({"flipIndex":index,"oldMaximumSampledPairChordErrorMm":old_error,"newMaximumSampledPairChordErrorMm":new_error,
+                            "oldMinimumAnalyticNormalAlignment":old_normal,"newMinimumAnalyticNormalAlignment":new_normal})
     result = {"schema": "tokito.freecad-physical-refinement-audit.v1", "sourceSha256": SOURCE_SHA256,
               "diagnosticSha256": hashlib.sha256(raw).hexdigest(), "auditScriptSha256": hashlib.sha256(read(__file__, 128 * 1024)).hexdigest(),
               "freecadVersion": list(FreeCAD.Version()), "occtVersion": Part.OCC_VERSION, "freecadFaceIndex": 231,
@@ -137,6 +176,7 @@ def main():
               "vertexCount": len(uv), "triangleCount": len(triangles), "maximumIndependentVertexGapMm": maximum_vertex_gap,
               "maximumSampledInteriorChordErrorMm": maximum_interior_error, "maximumSampledFixedBoundaryChordErrorMm": maximum_boundary_error,
               "minimumAnalyticNormalAlignment": minimum_normal, "analyticNonpositiveNormalCount": nonpositive,
+              "independentAcceptedFlipAudits":flip_audits,
               "trimContainmentSampleCount": inside_count + outside_count, "trimContainmentInsideCount": inside_count,
               "trimContainmentOutsideCount": outside_count, "trimContainmentToleranceMm": 1e-7,
               "parameterWrappingUsesRustReportedPeriods": True,
