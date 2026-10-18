@@ -81,6 +81,21 @@ maxima and boundary floor are unchanged; 370 normal-target failures remain.
 separate stage budgets and incomplete status. Additional interior quality work,
 actual source-curve sampling and complete-solid acceptance remain open.
 
+## Adaptive boundary checkpoint (2026-10-19)
+
+Implemented isolated native-curve parameter subdivision before metric meshing.
+Eight real-source/oracle/refusal checks passed. Preserving all 100 original rows
+and adding 480 samples reduces boundary chord error to `0.000004617252 mm` and
+eliminates the sampled inverted facets. FreeCAD independently checks all 580
+retained rows, 3,168 quarter probes and the final mesh. Four normal-target
+failures and interior error `0.00006014931 mm` remain, so the face stays
+incomplete. Source/support discrepancy, adjacent-face shared edges, whole-solid
+checks and production STEP admission are still open. Next: bounded prioritized
+interior refinement, followed by full geometry/solid qualification. See the
+[recovery record](GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).
+The [checkpoint receipt](evidence/adaptive-boundary-20261019.json) includes
+unchanged metric/retriangulated/legacy diagnostic byte comparisons.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

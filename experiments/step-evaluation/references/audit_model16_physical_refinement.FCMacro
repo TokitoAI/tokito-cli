@@ -32,6 +32,103 @@ def distance(a, b):
     return math.hypot(*(a[i] - b[i] for i in range(3)))
 
 
+def audit_boundary(face, report, support):
+    candidate = report.get("adaptiveBoundaryCandidate")
+    if candidate is None:
+        return None
+    original = report["trimCandidate"]["boundarySamples"]
+    grouped = {}
+    for row in original:
+        grouped.setdefault(row["loopIndex"], []).append(row)
+    if len(grouped) != 4 or len(face.Edges) != 4:
+        raise ValueError("adaptive boundary edge inventory changed")
+    bindings = {}
+    maximum_curve_gap = 0.0
+    for loop_index, rows in grouped.items():
+        matches = []
+        for index, edge in enumerate(face.Edges):
+            gap = max(float(Part.Vertex(FreeCAD.Vector(*s["sourcePointSourceUnits"])).distToShape(edge)[0]) for s in rows)
+            if gap < 1e-8:
+                matches.append(index)
+        if len(matches) != 1 or matches[0] in [i for i, _ in bindings.values()]:
+            raise ValueError("source curve has no unique independent edge binding")
+        index = matches[0]
+        curve = face.Edges[index].Curve
+        # Do not assume parameter equivalence merely from edge membership.
+        for row in rows:
+            gap = distance(xyz(curve.value(row["curveParameter"])), row["sourcePointSourceUnits"])
+            if gap > 1e-9:
+                raise ValueError("imported curve parameterization differs from STEP")
+            maximum_curve_gap = max(maximum_curve_gap, gap)
+        bindings[loop_index] = (index, curve)
+    samples = candidate["samples"]
+    observations = candidate["observations"]
+    if len(samples) > 4096 or len(observations) * 3 > 16384:
+        raise ValueError("adaptive boundary audit cap exceeded")
+    maximum_support_gap = 0.0
+    maximum_residual = 0.0
+
+    def check_sample(row):
+        nonlocal maximum_curve_gap, maximum_support_gap, maximum_residual
+        curve = bindings[row["loopIndex"]][1]
+        point = xyz(curve.value(row["curveParameter"]))
+        surface = support(row["candidateUv"])
+        cg = distance(point, row["sourcePointSourceUnits"])
+        sg = distance(surface, row["surfacePointSourceUnits"])
+        residual = distance(point, surface)
+        if cg > 1e-9 or sg > 1e-10 or not math.isclose(residual, row["surfaceResidualSourceUnits"], rel_tol=1e-6, abs_tol=1e-10):
+            raise ValueError("independent adaptive sample mismatch")
+        maximum_curve_gap = max(maximum_curve_gap, cg)
+        maximum_support_gap = max(maximum_support_gap, sg)
+        maximum_residual = max(maximum_residual, residual)
+        return point, surface
+
+    for row in samples:
+        check_sample(row)
+    measured_leaves = []
+    for observation in observations:
+        a = observation["start"]
+        b = observation["end"]
+        ap, asp = check_sample(a)
+        bp, bsp = check_sample(b)
+        if a["loopIndex"] != b["loopIndex"] or len(observation["probes"]) != 3:
+            raise ValueError("adaptive observation edge/fraction inventory invalid")
+        ce = se = 0.0
+        for probe, fraction in zip(observation["probes"], [0.25, 0.5, 0.75]):
+            row = probe["sample"]
+            expected_parameter = a["curveParameter"] * (1 - fraction) + b["curveParameter"] * fraction
+            uv = [a["candidateUv"][j] * (1 - fraction) + b["candidateUv"][j] * fraction for j in range(2)]
+            if (probe["fraction"] != fraction or row["loopIndex"] != a["loopIndex"]
+                    or row["curveParameter"] != expected_parameter or probe["linearUv"] != uv):
+                raise ValueError("adaptive parameter interpolation mismatch")
+            point, _ = check_sample(row)
+            on_support = support(uv)
+            if distance(on_support, probe["supportAtLinearUvSourceUnits"]) > 1e-10:
+                raise ValueError("adaptive linear-UV support mismatch")
+            ce = max(ce, distance(point, [ap[j] * (1 - fraction) + bp[j] * fraction for j in range(3)]))
+            se = max(se, distance(on_support, [asp[j] * (1 - fraction) + bsp[j] * fraction for j in range(3)]))
+        for measured, key in [(ce, "maximumSampledSourceCurveChordErrorSourceUnits"),
+                              (se, "maximumSampledSupportChordErrorSourceUnits")]:
+            if not math.isclose(measured, observation[key], rel_tol=1e-6, abs_tol=1e-10):
+                raise ValueError("adaptive observed chord measurement mismatch")
+        tolerance = candidate["toleranceSourceUnits"]
+        if observation["split"] != (ce > tolerance or se > tolerance):
+            raise ValueError("adaptive subdivision decision mismatch")
+        if not observation["split"]:
+            measured_leaves.append((ce, se))
+    if len(measured_leaves) != len(candidate["intervals"]):
+        raise ValueError("adaptive leaf inventory mismatch")
+    return {"edgeBindings": [{"loopIndex":k,"freecadEdgeIndex":v[0]} for k,v in bindings.items()],
+            "directParameterCorrespondenceOriginalSamples":len(original), "retainedSamplesAudited":len(samples),
+            "quarterProbesAudited":len(observations)*3, "leafIntervalsAudited":len(measured_leaves),
+            "maximumIndependentCurvePointGapMm":maximum_curve_gap,
+            "maximumIndependentSupportPointGapMm":maximum_support_gap,
+            "maximumObservedCurveSupportResidualMm":maximum_residual,
+            "maximumLeafSourceCurveChordErrorMm":max(e[0] for e in measured_leaves),
+            "maximumLeafSupportChordErrorMm":max(e[1] for e in measured_leaves),
+            "certifiedDeviationBound":False,"geometryQualified":False}
+
+
 def main():
     if list(FreeCAD.Version()) != EXPECTED_VERSION:
         raise ValueError("FreeCAD version mismatch")
@@ -92,6 +189,7 @@ def main():
     maximum_vertex_gap = max(distance(sample(q), point) for q, point in zip(uv, points))
     if maximum_vertex_gap > 1e-10:
         raise ValueError("independent surface evaluation mismatch")
+    boundary_audit = audit_boundary(face, r, sample)
     boundary = {tuple(sorted((i, (i + 1) % p["boundaryVertexCount"]))) for i in range(p["boundaryVertexCount"])}
     maximum_interior_error = 0.0
     maximum_boundary_error = 0.0
@@ -177,6 +275,7 @@ def main():
               "maximumSampledInteriorChordErrorMm": maximum_interior_error, "maximumSampledFixedBoundaryChordErrorMm": maximum_boundary_error,
               "minimumAnalyticNormalAlignment": minimum_normal, "analyticNonpositiveNormalCount": nonpositive,
               "independentAcceptedFlipAudits":flip_audits,
+              "independentAdaptiveBoundaryAudit":boundary_audit,
               "trimContainmentSampleCount": inside_count + outside_count, "trimContainmentInsideCount": inside_count,
               "trimContainmentOutsideCount": outside_count, "trimContainmentToleranceMm": 1e-7,
               "parameterWrappingUsesRustReportedPeriods": True,

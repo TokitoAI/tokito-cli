@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 #![recursion_limit = "256"]
+mod adaptive_boundary;
 mod candidate_mesh;
 mod exact_predicate;
 mod face_coverage;
@@ -371,7 +372,7 @@ fn probe_spline_face(
     path: &Path,
     face_id: u64,
     source_representation: Option<u64>,
-    physical_tolerance: Option<(f64, bool, bool)>,
+    physical_tolerance: Option<(f64, bool, bool, bool)>,
 ) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     if physical_tolerance.is_some()
@@ -390,9 +391,9 @@ fn probe_spline_face(
     };
     let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
         .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
-    let mut report = if let Some((tolerance, metric, flips)) = physical_tolerance {
+    let mut report = if let Some((tolerance, metric, flips, boundary)) = physical_tolerance {
         spline_face_diagnostic::inspect_physical_refinement(
-            &parsed, face_id, tolerance, metric, flips,
+            &parsed, face_id, tolerance, metric, flips, boundary,
         )?
     } else {
         spline_face_diagnostic::inspect(&parsed, face_id)?
@@ -419,6 +420,7 @@ fn main() {
         arg == "--research-physical-source-face"
             || arg == "--research-metric-source-face"
             || arg == "--research-retriangulated-source-face"
+            || arg == "--research-adaptive-boundary-source-face"
     }) {
         let result = (|| -> Result<Value, String> {
             if raw.len() != 7
@@ -450,6 +452,7 @@ fn main() {
                     tolerance,
                     raw[0] != "--research-physical-source-face",
                     raw[0] == "--research-retriangulated-source-face",
+                    raw[0] == "--research-adaptive-boundary-source-face",
                 )),
             )
         })();

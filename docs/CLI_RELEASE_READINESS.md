@@ -50,6 +50,13 @@ source coordinates/constraints. Global chord maxima remain unchanged. Its
 [seven-check evidence](evidence/interior-retriangulation-20261019.json) supports
 that narrow improvement; general STEP/whole-solid gates remain blocked.
 
+The opt-in adaptive source-boundary experiment removes the sampled inversions
+for pinned model16 and reaches `0.000004617252 mm` sampled boundary chord error.
+Eight dedicated E2E/oracle/refusal checks pass. Four normal-target failures and
+interior error `0.00006014931 mm` remain; source/support discrepancy and solid
+qualification are unresolved. This improves one face, not production STEP
+support. See the [adaptive sampling evidence and limits](GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).
+
 ## Candidate release boundary
 
 The shared Ultimaker presentation profile is implemented for existing packaged

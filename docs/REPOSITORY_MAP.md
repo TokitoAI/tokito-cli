@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-473 project files are listed.
+475 project files are listed.
 
 ```text
 tokito_cli/
@@ -97,6 +97,7 @@ tokito_cli/
 │   └── presentation-standard-verification.json
 ├── docs/
 │   ├── evidence/
+│   │   ├── adaptive-boundary-20261019.json
 │   │   ├── esp32-presentation-local-verification-20261011.json
 │   │   ├── esp32-presentation-real-cli-20261011.json
 │   │   ├── esp8266-drilled-substrate-20261011.json
@@ -236,6 +237,7 @@ tokito_cli/
 │   │   ├── src/
 │   │   │   ├── bin/
 │   │   │   │   └── model16_spade_candidate.rs
+│   │   │   ├── adaptive_boundary.rs
 │   │   │   ├── candidate_mesh.rs
 │   │   │   ├── exact_predicate.rs
 │   │   │   ├── face_coverage.rs

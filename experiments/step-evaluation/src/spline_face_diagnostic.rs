@@ -1366,6 +1366,7 @@ pub(crate) fn inspect_physical_refinement(
     tolerance: f64,
     metric_preconditioning: bool,
     interior_retriangulation: bool,
+    adaptive_boundary: bool,
 ) -> Result<Json, String> {
     let mut report = inspect(step, face_id)?;
     let surface_id = report["surfaceId"]
@@ -1378,7 +1379,7 @@ pub(crate) fn inspect_physical_refinement(
     let rows = report["trimCandidate"]["boundarySamples"]
         .as_array()
         .ok_or("physical_research_source_boundary_missing")?;
-    let input = rows
+    let mut input = rows
         .iter()
         .map(|row| {
             let uv = row["candidateUv"]
@@ -1441,6 +1442,137 @@ pub(crate) fn inspect_physical_refinement(
             points, du, dv, face_sense,
         ))
     };
+    let boundary_sampling = if adaptive_boundary {
+        let source_edges = report["edges"]
+            .as_array()
+            .ok_or("adaptive_source_edges_missing")?;
+        let mut edge_curves = Vec::new();
+        let mut seen_edges = std::collections::BTreeSet::new();
+        for edge in source_edges {
+            let id = edge["curveGeometryId"]
+                .as_u64()
+                .ok_or("adaptive_curve_id_missing")?;
+            let edge_id = edge["edgeCurveId"]
+                .as_u64()
+                .ok_or("adaptive_edge_id_missing")?;
+            if !seen_edges.insert(edge_id) {
+                return Err("adaptive_repeated_topological_edge_not_supported".into());
+            }
+            edge_curves.push(parse_curve(step, id)?);
+        }
+        let point3 = |row: &Json, key: &str| -> Result<P3, String> {
+            let values = row[key]
+                .as_array()
+                .filter(|p| p.len() == 3)
+                .ok_or("adaptive_source_point_missing")?;
+            Ok([
+                values[0].as_f64().ok_or("adaptive_source_point_invalid")?,
+                values[1].as_f64().ok_or("adaptive_source_point_invalid")?,
+                values[2].as_f64().ok_or("adaptive_source_point_invalid")?,
+            ])
+        };
+        let seeds = rows
+            .iter()
+            .enumerate()
+            .map(|(i, row)| {
+                Ok(crate::adaptive_boundary::Sample {
+                    edge: row["loopIndex"]
+                        .as_u64()
+                        .and_then(|i| usize::try_from(i).ok())
+                        .ok_or("adaptive_loop_index_invalid")?,
+                    parameter: row["curveParameter"]
+                        .as_f64()
+                        .ok_or("adaptive_curve_parameter_invalid")?,
+                    uv: input[i],
+                    source: point3(row, "sourcePointSourceUnits")?,
+                    surface: point3(row, "surfacePointSourceUnits")?,
+                    projection_converged: row["projectionConverged"]
+                        .as_bool()
+                        .ok_or("adaptive_projection_status_missing")?,
+                    projection_solver: row["projectionSolver"].clone(),
+                    original_index: Some(i),
+                })
+            })
+            .collect::<Result<Vec<_>, String>>()?;
+        let mut curve_control_work = 0usize;
+        for pair in seeds.windows(2) {
+            if pair[0].edge == pair[1].edge {
+                let curve = edge_curves
+                    .get(pair[0].edge)
+                    .ok_or("adaptive_source_curve_index_invalid")?;
+                if curve.breaks.iter().any(|k| {
+                    *k > pair[0].parameter.min(pair[1].parameter)
+                        && *k < pair[0].parameter.max(pair[1].parameter)
+                }) {
+                    return Err("adaptive_seed_interval_crosses_source_knot_break".into());
+                }
+            }
+        }
+        let sampled = crate::adaptive_boundary::subdivide(
+            &seeds,
+            tolerance,
+            |edge_index, parameter, seed| {
+                let curve = edge_curves
+                    .get(edge_index)
+                    .ok_or("adaptive_source_curve_index_invalid")?;
+                if parameter < curve.domain.0 || parameter > curve.domain.1 {
+                    return Err("adaptive_curve_parameter_outside_domain".into());
+                }
+                curve_control_work = curve_control_work
+                    .checked_add(curve.control_point_count)
+                    .ok_or("adaptive_curve_work_overflow")?;
+                if curve_control_work > MAX_EDGE_CURVE_CONTROL_POINT_EVALUATIONS {
+                    return Err("adaptive_curve_work_budget_exceeded".into());
+                }
+                let source = curve.curve.point_at(parameter);
+                if source.iter().any(|x| !x.is_finite()) {
+                    return Err("adaptive_source_curve_nonfinite".into());
+                }
+                let (projection, starts) = multistart_inverse(
+                    &surface,
+                    source,
+                    &[seed[0]],
+                    &[seed[1]],
+                    &mut evaluations.borrow_mut(),
+                    &mut control_evaluations.borrow_mut(),
+                )?;
+                if starts != 1 {
+                    return Err("adaptive_projection_start_count_invalid".into());
+                }
+                let (u, us) = unwrap_parameter(projection.uv[0], seed[0], surface.u_period)?;
+                let (v, vs) = unwrap_parameter(projection.uv[1], seed[1], surface.v_period)?;
+                if us.abs() > 1. || vs.abs() > 1. {
+                    return Err("adaptive_projection_branch_jump".into());
+                }
+                let uv = [u, v];
+                Ok(crate::adaptive_boundary::Sample {
+                    edge: edge_index,
+                    parameter,
+                    uv,
+                    source,
+                    surface: evaluate(uv)?,
+                    projection_converged: projection.converged,
+                    projection_solver: projection.solver_diagnostic(),
+                    original_index: None,
+                })
+            },
+            evaluate,
+        )?;
+        input = sampled.samples.iter().map(|p| p.uv).collect();
+        let mut metadata = sampled.report;
+        metadata["sourceEdges"] = report["edges"].clone();
+        metadata["curveControlPointEvaluationCount"] = json!(curve_control_work);
+        metadata["curveControlPointEvaluationLimit"] =
+            json!(MAX_EDGE_CURVE_CONTROL_POINT_EVALUATIONS);
+        metadata["surfaceEvaluationCount"] = json!(*evaluations.borrow());
+        metadata["controlPointEvaluationCount"] = json!(*control_evaluations.borrow());
+        metadata["controlPointEvaluationLimit"] = json!(MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS);
+        *evaluations.borrow_mut() = 0;
+        *control_evaluations.borrow_mut() = 0;
+        Some(metadata)
+    } else {
+        None
+    };
     let metric = if metric_preconditioning {
         let anchor: [f64; 2] = std::array::from_fn(|axis| {
             let lo = input.iter().map(|p| p[axis]).fold(f64::INFINITY, f64::min);
@@ -1483,11 +1615,40 @@ pub(crate) fn inspect_physical_refinement(
             json!({"status":"refused","error":error,"geometryQualified":false,"admitted":false,"exportsProduced":[]})
         }
     };
+    if let Some(metadata) = boundary_sampling {
+        if let Some(mapping) =
+            report["physicalRefinementCandidate"]["inputSampleVertexIndices"].as_array()
+        {
+            let original_map = metadata["originalSampleExpandedInputIndices"]
+                .as_array()
+                .ok_or("adaptive_original_mapping_missing")?
+                .iter()
+                .map(|i| {
+                    i.as_u64()
+                        .and_then(|v| usize::try_from(v).ok())
+                        .and_then(|i| mapping.get(i))
+                        .cloned()
+                        .ok_or("adaptive_original_mesh_mapping_invalid")
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            report["physicalRefinementCandidate"]["sourceOriginalSampleVertexIndices"] =
+                json!(original_map);
+            report["physicalRefinementCandidate"]["sourceOriginalInputSampleCount"] =
+                metadata["originalInputSampleCount"].clone();
+            report["physicalRefinementCandidate"]["additionalSourceBoundaryVertexCount"] =
+                metadata["addedSampleCount"].clone();
+            report["physicalRefinementCandidate"]["originalUnsplitSourceSegmentsPreserved"] =
+                json!(false);
+        }
+        report["adaptiveBoundaryCandidate"] = metadata;
+        report["physicalRefinementCandidate"]["constraintScope"] =
+            json!("expanded_source_parameter_sample_loop_not_original_unsplit_segments");
+    }
     report["physicalRefinementCandidate"]["sourceCurveToSupportSurfaceGapResolved"] = json!(false);
     report["physicalRefinementCandidate"]["surfaceEvaluationCount"] = json!(*evaluations.borrow());
     report["physicalRefinementCandidate"]["controlPointEvaluationCount"] =
         json!(*control_evaluations.borrow());
-    if interior_retriangulation
+    if (interior_retriangulation || adaptive_boundary)
         && report["physicalRefinementCandidate"]
             .get("triangles")
             .is_some()

@@ -373,12 +373,85 @@ remaining six inversions, boundary sampling, curve/support discrepancy,
 complete trim coverage and whole-solid gates stay open. This is connectivity
 improvement, not a qualified STEP repair or production exporter.
 
+## Adaptive source-parameter boundary sampling (2026-10-19)
+
+The isolated `--research-adaptive-boundary-source-face` mode subdivides native
+source-curve parameter intervals before the metric CDT, physical refinement and
+bounded interior flips. Each interval tests source-curve chord deviation at
+fractions 1/4, 1/2 and 3/4 and, separately, support-surface deviation at linearly
+interpolated UVs. An interval exceeding either sampled chord target splits at
+its projected native-curve parameter midpoint. This is sampled evidence, not a
+certified maximum-deviation bound.
+
+All original input rows, source coordinates, UVs and solver observations remain
+unchanged. Added points retain loop identity, native parameter, source position,
+projected support position and separate termination/residual/stationarity
+observations. Explicit original-row to expanded-row to mesh-vertex mappings
+retain the four original duplicate junction samples. Reversed parameter runs
+are supported; source-knot crossings, parameter/UV stagnation, invalid branches,
+nonfinite data and work exhaustion refuse. A new mode is necessary because
+expanded source intervals replace the original unsplit mesh constraints; older
+research paths preserve their existing boundary inventories and behavior.
+
+Sampling has separate limits of 4,096 retained input rows, depth 16 and 16,384
+curve/projection probes, including discarded probes and recursive parents.
+Native-curve work is capped at 20 million control-point evaluations and the
+sampling stage at 50 million surface-control evaluations. Refinement and flips
+retain their own explicit stage budgets. This is one face with one inventory
+per source edge, not a shared-edge implementation across adjacent faces.
+
+The independent FreeCAD audit identifies each imported edge from its complete
+original point signature and requires unique one-to-one bindings. It verifies
+direct parameter correspondence against every original sample before comparing
+retained and discarded probes, source-curve chords, support chords and geometric
+residuals. It refuses differing parameterization rather than silently fitting a
+mapping. The E2E harness replays recursion and every final leaf interval and
+checks source identities through the final mesh mapping. Source curve and
+support-surface geometry remain distinct; the mesh still evaluates support
+positions. Whole-solid, seam, complete-trim and production export gates remain
+open even if this one-face experiment meets its sampled targets.
+
+Actual pinned-source execution passed eight dedicated E2E checks, including
+independent source-sample tamper refusal. It retains all 100 original rows and
+adds 480 source-parameter samples, producing 576 distinct boundary vertices,
+12,069 total vertices and 23,560 triangles. The candidate has **zero nonpositive
+normals** throughout refinement; no interior flip is needed. Four triangles
+still miss the `cos(5 degrees)` target (minimum alignment `0.9873307048`), and
+sampled interior error `0.00006014931 mm` exceeds the `0.00001 mm` target. It
+stops at the unchanged mesh budget, remaining incomplete and unqualified.
+
+Sampled boundary support chord error is `0.000004617252 mm`, below the requested
+target and about 64 times smaller than the previous fixed boundary. FreeCAD
+independently confirms zero inversions and chord errors, all 580 retained
+rows, all 3,168 quarter probes and all 576 leaf intervals. Native curve points
+agree within `2.702e-15 mm`; mesh surface vertices within `2.713e-15 mm`.
+Only 254 triangle centroids are checked for trim containment, all inside; this
+does not establish complete trim coverage. The maximum independently observed
+curve/support gap remains `0.000001080838 mm` and is not repaired.
+
+Observed sampling work is 52,704 native-curve control evaluations and 2,649,510
+surface-control evaluations. Refinement uses 11,343,780 and the final flip/audit
+stage 8,285,112 surface-control evaluations, each separately below its stage
+cap. Next implement priority/budget-aware conforming interior refinement and
+remeasure the four normal-target failures, without moving original/source
+samples or widening tolerances. This result removes the previous sampled
+inversion and fixed-boundary blockers for this face, not its interior-error,
+source-gap, shared-seam or whole-solid qualification gates.
+
+The [checkpoint receipts](evidence/adaptive-boundary-20261019.json) preserve
+actual eight-check adaptive and seven-check prior-mode journeys, the legacy
+projection refusal, producer hashes and three byte-identical historical
+diagnostic comparisons. An initial legacy command used a nonexistent hyphenated
+binary name and did not reach test execution; rerunning with the actual
+`model16_spade_candidate.exe` passed. This invocation mistake is not recorded as
+a test pass.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
 | Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | Physical-error-driven research subdivision implemented and independently measured; still incomplete | Single-anchor metric initializer implemented and independently compared; next quality-aware interior retriangulation, reviewed shared-edge discrepancy handling and general chart support |
+| Main | Current Spade experiment | Metric initialization, bounded flips and adaptive source-boundary sampling implemented; expanded face has zero sampled inversions but remains incomplete | Prioritized conforming interior refinement for remaining chord/normal failures, reviewed shared-edge discrepancy handling and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |

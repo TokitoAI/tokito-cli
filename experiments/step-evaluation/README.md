@@ -311,3 +311,12 @@ vertices/constraints and remains incomplete. Use
 `tests/physical_refinement_e2e.py --retriangulate` for actual metric-baseline
 replay, independent old/new pair and final-mesh comparisons, and refusal tests.
 See [accepted flips and remaining gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#bounded-interior-edge-flips-2026-10-19).
+
+`--research-adaptive-boundary-source-face` takes the same pinned arguments and
+adds native source-parameter boundary sampling before metric refinement and
+flips. It preserves original samples and records expanded constraints, sampled
+curve/support chord errors, separate projection diagnostics and provenance.
+Run `tests/physical_refinement_e2e.py --adaptive-boundary` for recursion/mapping
+replay and independent source-curve, surface and normal checks. This one-face
+experiment does not qualify a whole solid or enable production STEP exports;
+see the [sampling contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).

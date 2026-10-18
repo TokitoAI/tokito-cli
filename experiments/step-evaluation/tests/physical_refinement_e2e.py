@@ -15,23 +15,31 @@ def digest(path, maximum):
     return hashlib.sha256(bounded_read(path, maximum)).hexdigest()
 
 
-def validate_mesh(report, metric=False, retriangulate=False):
+def validate_mesh(report, metric=False, retriangulate=False, adaptive=False):
     p = report["physicalRefinementCandidate"]
     if p.get("admitted") is not False or p.get("geometryQualified") is not False or p.get("exportsProduced") != []:
         raise ValueError("research mesh must stay unqualified")
     expected_termination="interior_retriangulation_incomplete" if retriangulate else "mesh_budget_exhausted"
-    if p.get("status") != "incomplete" or p.get("termination") != expected_termination:
+    if adaptive:
+        q=p["quality"]
+        met=(q["maximumSampledInteriorChordErrorSourceUnits"]<=p["chordToleranceSourceUnits"]
+             and q["maximumSampledFixedBoundaryChordErrorSourceUnits"]<=p["chordToleranceSourceUnits"]
+             and q["normalThresholdFailureCount"]==0)
+        if (p.get("status")!=("sampled_targets_met_unqualified" if met else "incomplete")
+            or p.get("termination")!=("interior_retriangulation_sampled_targets_met" if met else "interior_retriangulation_incomplete")):
+            raise ValueError("adaptive status contradicts measured quality")
+    elif p.get("status") != "incomplete" or p.get("termination") != expected_termination:
         raise ValueError("pinned incomplete outcome changed; re-evaluate fixture evidence")
     if retriangulate:
         flips=p.get("interiorRetriangulation",{})
         accepted=flips.get("acceptedFlips",[])
-        if (not accepted or len(accepted)!=flips.get("acceptedFlipCount")
+        if ((not accepted and not adaptive) or len(accepted)!=flips.get("acceptedFlipCount")
             or flips.get("verticesMoved")!=0 or flips.get("boundaryEdgesChanged")!=0
             or flips.get("attempts",129)>128 or flips.get("passes",4)>3
             or flips.get("sampleEvaluationCount",400001)>400000
             or p.get("interiorRetriangulationControlPointEvaluationCount",50000001)>50000000
-            or p.get("beforeInteriorRetriangulationTermination")!="mesh_budget_exhausted"
-            or p["quality"]["nonpositiveNormalCount"]>=p["beforeInteriorRetriangulationQuality"]["nonpositiveNormalCount"]):
+            or (not adaptive and p.get("beforeInteriorRetriangulationTermination")!="mesh_budget_exhausted")
+            or (not adaptive and p["quality"]["nonpositiveNormalCount"]>=p["beforeInteriorRetriangulationQuality"]["nonpositiveNormalCount"])):
             raise ValueError("interior flip preservation/budget/improvement evidence invalid")
         for flip in accepted:
             if (flip["newMinimumNormalAlignment"]<=0
@@ -45,7 +53,7 @@ def validate_mesh(report, metric=False, retriangulate=False):
         matrix=chart["normalizedCholeskyMatrix"]
         if not 0.02<matrix[0][0]<0.04 or matrix[1][0]!=0 or not 0.99<matrix[1][1]<=1.000001:
             raise ValueError("pinned metric scale changed")
-        if not 0<p["quality"]["nonpositiveNormalCount"]<=10:
+        if not adaptive and not 0<p["quality"]["nonpositiveNormalCount"]<=10:
             raise ValueError("metric remaining orientation count changed")
     elif chart is not None:
         raise ValueError("baseline unexpectedly uses a metric chart")
@@ -55,10 +63,11 @@ def validate_mesh(report, metric=False, retriangulate=False):
     count = p["boundaryVertexCount"]
     if len(uv) != len(points) or len(uv) != p["vertexCount"] or len(triangles) != p["triangleCount"]:
         raise ValueError("mesh inventory mismatch")
-    if count != 96 or p.get("originalInputSampleCount") != 100 or p.get("removedExactDuplicateCount") != 4 or p.get("additionalBoundaryVertexCount") != 0:
+    expanded=report["adaptiveBoundaryCandidate"]["expandedInputSampleCount"] if adaptive else 100
+    if count != expanded-4 or p.get("originalInputSampleCount") != expanded or p.get("removedExactDuplicateCount") != 4 or p.get("additionalBoundaryVertexCount") != 0:
         raise ValueError("source boundary inventory changed")
     mapping = p["inputSampleVertexIndices"]
-    source = report["trimCandidate"]["boundarySamples"]
+    source = report["adaptiveBoundaryCandidate"]["samples"] if adaptive else report["trimCandidate"]["boundarySamples"]
     if len(mapping) != len(source) or any(uv[k] != row["candidateUv"] for row, k in zip(source, mapping)):
         raise ValueError("source boundary coordinate changed")
     boundary = {tuple(sorted((i, (i + 1) % count))) for i in range(count)}
@@ -82,12 +91,79 @@ def validate_mesh(report, metric=False, retriangulate=False):
     quality = p["quality"]
     if not 0 < quality["maximumSampledInteriorChordErrorSourceUnits"] < p["history"][0]["quality"]["maximumSampledInteriorChordErrorSourceUnits"]:
         raise ValueError("physical interior error did not decrease")
-    if quality["maximumSampledFixedBoundaryChordErrorSourceUnits"] <= p["chordToleranceSourceUnits"] or quality["nonpositiveNormalCount"] <= 0:
+    if not adaptive and (quality["maximumSampledFixedBoundaryChordErrorSourceUnits"] <= p["chordToleranceSourceUnits"] or quality["nonpositiveNormalCount"] <= 0):
         raise ValueError("pinned remaining quality blockers changed")
     return {"vertices": len(uv), "triangles": len(triangles), "edges": len(edges), "eulerCharacteristic": 1,
             "fixedBoundaryEdges": len(boundary), "nonconformingEdges": 0,
             "firstQuality": p["history"][0]["quality"], "lastQuality": quality,
             "interiorRetriangulation":p.get("interiorRetriangulation")}
+
+
+def validate_adaptive_boundary(report):
+    a=report["adaptiveBoundaryCandidate"]
+    p=report["physicalRefinementCandidate"]
+    originals=report["trimCandidate"]["boundarySamples"]
+    samples=a["samples"]
+    mapping=a["originalSampleExpandedInputIndices"]
+    if (a.get("geometryQualified") is not False or a.get("admitted") is not False or a.get("exportsProduced")!=[]
+        or a.get("sharedAcrossFaces") is not False or a.get("certifiedCurveDeviationBound") is not False
+        or a.get("projectionAdmissionToleranceChanged") is not False or a.get("sourceCurveToSupportSurfaceGapResolved") is not False
+        or a["sourceEdges"]!=report["edges"] or len(mapping)!=len(originals)
+        or a["expandedInputSampleCount"]!=len(samples) or not len(originals)<len(samples)<=4096
+        or len(samples)!=len(originals)+a["addedSampleCount"]
+        or a["curveProjectionEvaluationCount"]!=len(a["observations"])*3
+        or a["curveProjectionEvaluationCount"]>16384 or a["maximumDepth"]>16
+        or a["controlPointEvaluationCount"]>50000000 or a["curveControlPointEvaluationCount"]>20000000):
+        raise ValueError("adaptive scope, inventory or budget mismatch")
+    if any(type(i) is not int or not 0<=i<len(samples) for i in mapping) or mapping!=sorted(set(mapping)):
+        raise ValueError("adaptive original sample mapping invalid")
+    for i,k in enumerate(mapping):
+        original=originals[i]; retained=samples[k]
+        for key in ["loopIndex","curveParameter","candidateUv","sourcePointSourceUnits","surfacePointSourceUnits","projectionConverged","projectionSolver"]:
+            if original[key]!=retained[key]:raise ValueError("original boundary observation changed")
+        if retained["originalInputIndex"]!=i or p["sourceOriginalSampleVertexIndices"][i]!=p["inputSampleVertexIndices"][k]:
+            raise ValueError("original to expanded to mesh mapping invalid")
+    if [i for i,s in enumerate(samples) if s["originalInputIndex"] is not None]!=mapping:
+        raise ValueError("extra original identity claimed")
+    roots=[(samples[mapping[i]],samples[mapping[i+1]],0) for i in range(len(originals)-1)
+           if originals[i]["loopIndex"]==originals[i+1]["loopIndex"]]
+    stack=list(reversed(roots)); leaves=[]
+    for observation in a["observations"]:
+        if not stack:raise ValueError("extra adaptive observation")
+        start,end,depth=stack.pop()
+        if observation["start"]!=start or observation["end"]!=end or observation["depth"]!=depth:
+            raise ValueError("adaptive recursion replay mismatch")
+        probes=observation["probes"]
+        if len(probes)!=3:raise ValueError("adaptive probe fractions missing")
+        for probe,fraction in zip(probes,[0.25,0.5,0.75]):
+            s=probe["sample"]
+            solver=s.get("projectionSolver",{})
+            if (not isinstance(solver.get("termination"),str)
+                or solver.get("residualToleranceMet") is not s.get("projectionConverged")
+                or not isinstance(solver.get("stationarityObservation"),str)
+                or solver.get("authorizesGeometryAdmission") is not False):
+                raise ValueError("adaptive projection solver observations missing")
+            t=start["curveParameter"]*(1-fraction)+end["curveParameter"]*fraction
+            if (probe["fraction"]!=fraction or s["loopIndex"]!=start["loopIndex"] or s["curveParameter"]!=t
+                or s["originalInputIndex"] is not None):raise ValueError("adaptive probe identity mismatch")
+        errors=[observation[k] for k in ["maximumSampledSourceCurveChordErrorSourceUnits","maximumSampledSupportChordErrorSourceUnits"]]
+        if any(not math.isfinite(v) or v<0 for v in errors):raise ValueError("invalid adaptive chord observation")
+        if observation["split"]!=(max(errors)>a["toleranceSourceUnits"]):raise ValueError("adaptive split decision mismatch")
+        if observation["split"]:
+            middle=probes[1]["sample"]
+            stack.append((middle,end,depth+1));stack.append((start,middle,depth+1))
+        else:leaves.append((start,end,depth,errors))
+    if stack or len(leaves)!=len(a["intervals"]):raise ValueError("missing adaptive recursion or leaves")
+    expected_pairs=[(i,i+1) for i in range(len(samples)-1) if samples[i]["loopIndex"]==samples[i+1]["loopIndex"]]
+    if [(v["startInputIndex"],v["endInputIndex"]) for v in a["intervals"]]!=expected_pairs:
+        raise ValueError("expanded boundary interval coverage mismatch")
+    for interval,leaf in zip(a["intervals"],leaves):
+        start,end,depth,errors=leaf
+        if (samples[interval["startInputIndex"]]!=start or samples[interval["endInputIndex"]]!=end
+            or interval["depth"]!=depth or errors!=[interval["maximumSampledSourceCurveChordErrorSourceUnits"],interval["maximumSampledSupportChordErrorSourceUnits"]]):
+            raise ValueError("adaptive leaf sample or measurement changed")
+    if p["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]>a["toleranceSourceUnits"]:
+        raise ValueError("expanded support boundary misses sampled chord target")
 
 
 def run(args):
@@ -108,7 +184,7 @@ def run(args):
             raise ValueError("wrong materialized source")
 
         def cli(name, tolerance="0.00001", face="2875", mode=None):
-            mode=mode or ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face"))
+            mode=mode or ("--research-adaptive-boundary-source-face" if args.adaptive_boundary else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face")))
             code, stdout, stderr = capture_bounded([str(binary), mode, face,
                 "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
                 300, 32 * 1024 * 1024, 128 * 1024)
@@ -120,9 +196,18 @@ def run(args):
         report = cli("diagnostic")
         if report.get("sourceSha256") != SOURCE_SHA256 or report.get("admitted") is not False:
             raise ValueError("CLI provenance/qualification mismatch")
-        receipt["metricPreconditioning"]=args.metric or args.retriangulate
-        receipt["interiorRetriangulation"]=args.retriangulate
-        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate,args.retriangulate)
+        receipt["metricPreconditioning"]=args.metric or args.retriangulate or args.adaptive_boundary
+        receipt["interiorRetriangulation"]=args.retriangulate or args.adaptive_boundary
+        receipt["adaptiveSourceBoundary"]=args.adaptive_boundary
+        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate or args.adaptive_boundary,args.retriangulate or args.adaptive_boundary,args.adaptive_boundary)
+        if args.adaptive_boundary:
+            validate_adaptive_boundary(report)
+            baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
+            if report["physicalRefinementCandidate"]["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]>=baseline["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]:
+                raise ValueError("expanded boundary did not improve measured support chord error")
+            receipt["baselineQuality"]=baseline["quality"]
+            receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"adaptive-native-curve-inventory-source-mapping-and-chord-targets","passed":True})
         if args.retriangulate:
             baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
             final=report["physicalRefinementCandidate"]
@@ -169,9 +254,9 @@ def run(args):
                                ("maximumSampledFixedBoundaryChordErrorSourceUnits", "maximumSampledFixedBoundaryChordErrorMm")]:
             if not math.isclose(report["physicalRefinementCandidate"]["quality"][native], independent[oracle], rel_tol=1e-6, abs_tol=1e-10):
                 raise ValueError("independent chord measurements disagree")
-        if independent.get("analyticNonpositiveNormalCount", 0) <= 0 or independent.get("admitted") is not False:
+        if (not args.adaptive_boundary and independent.get("analyticNonpositiveNormalCount", 0) <= 0) or independent.get("admitted") is not False:
             raise ValueError("independent remaining orientation blocker missing")
-        if args.retriangulate and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
+        if (args.retriangulate or args.adaptive_boundary) and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
             raise ValueError("independent accepted-flip audit incomplete")
         quality = report["physicalRefinementCandidate"]["quality"]
         if (independent["analyticNonpositiveNormalCount"] != quality["nonpositiveNormalCount"]
@@ -179,6 +264,19 @@ def run(args):
             raise ValueError("finite-difference and independent analytic orientation observations disagree")
         receipt["independentAudit"] = independent
         receipt["checks"].append({"name": "independent-surface-chord-normal-audit", "passed": True})
+        if args.adaptive_boundary:
+            boundary=independent.get("independentAdaptiveBoundaryAudit",{})
+            if (boundary.get("retainedSamplesAudited")!=report["adaptiveBoundaryCandidate"]["expandedInputSampleCount"]
+                or boundary.get("quarterProbesAudited")!=report["adaptiveBoundaryCandidate"]["curveProjectionEvaluationCount"]):
+                raise ValueError("independent boundary audit incomplete")
+            corrupted=json.loads(json.dumps(report))
+            corrupted["adaptiveBoundaryCandidate"]["samples"][1]["sourcePointSourceUnits"][0]+=0.01
+            path=output/"wrong-boundary.json"
+            path.write_text(json.dumps(corrupted),encoding="utf-8")
+            _,error=audit("wrong-boundary",{**config,"diagnostic":str(path),"output":str(output/"wrong-boundary-must-not-exist.json")})
+            if "independent adaptive sample mismatch" not in error or (output/"wrong-boundary-must-not-exist.json").exists():
+                raise ValueError("independent adaptive source tamper refusal failed")
+            receipt["checks"].append({"name":"independent-adaptive-source-tamper-refusal","passed":True})
         h = digest(output / "audit.json", 128 * 1024)
         _, error = audit("no-overwrite", config)
         if "refusing to overwrite output" not in error or digest(output / "audit.json", 128 * 1024) != h:
@@ -212,4 +310,5 @@ if __name__ == "__main__":
     modes=parser.add_mutually_exclusive_group()
     modes.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
     modes.add_argument("--retriangulate", action="store_true", help="Exercise bounded interior flips after metric refinement")
+    modes.add_argument("--adaptive-boundary", action="store_true", help="Exercise source-parameter adaptive boundary sampling before metric refinement")
     raise SystemExit(run(parser.parse_args()))
