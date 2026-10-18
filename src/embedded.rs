@@ -48,7 +48,9 @@ pub enum EmbeddedModelError {
     UnsupportedType,
     MissingData,
     MalformedData,
+    CompressedPayloadTooLarge,
     TooLarge,
+    BatchBudgetExceeded,
     DecompressionFailed,
     ChecksumMissing,
     ChecksumMismatch,
@@ -67,7 +69,11 @@ impl EmbeddedModelError {
             Self::UnsupportedType => "Embedded file is not declared as a model",
             Self::MissingData => "Embedded model has no payload",
             Self::MalformedData => "Embedded model payload is malformed",
+            Self::CompressedPayloadTooLarge => {
+                "Embedded model compressed payload exceeds the configured byte limit"
+            }
             Self::TooLarge => "Embedded model exceeds the configured byte limit",
+            Self::BatchBudgetExceeded => "Embedded model exceeds the remaining batch byte budget",
             Self::DecompressionFailed => "Embedded model Zstandard frame is invalid",
             Self::ChecksumMissing => "Embedded model has no supported checksum",
             Self::ChecksumMismatch => "Embedded model checksum does not match its payload",
@@ -111,6 +117,18 @@ pub(crate) fn resolve_model(
     board: &PhysicalBoardDocument,
     model: &ModelReference,
     max_bytes: usize,
+) -> Result<EmbeddedModelAsset, EmbeddedModelError> {
+    resolve_model_with_limits(board, model, max_bytes, max_bytes)
+}
+
+/// Resolve an embedded model with an independent per-model compressed-input
+/// ceiling and decoded-output ceilings. The batch allowance applies only to
+/// retained, expanded output; it must not shrink the compressed-input budget.
+pub(crate) fn resolve_model_with_limits(
+    board: &PhysicalBoardDocument,
+    model: &ModelReference,
+    max_file_bytes: usize,
+    max_output_bytes: usize,
 ) -> Result<EmbeddedModelAsset, EmbeddedModelError> {
     let name = parse_embedded_uri(
         model
@@ -185,12 +203,12 @@ pub(crate) fn resolve_model(
         .source_node(&entry.source)
         .ok_or(EmbeddedModelError::MalformedData)?;
     let data = file.child("data").ok_or(EmbeddedModelError::MissingData)?;
-    let compressed_budget = max_bytes
+    let compressed_budget = max_file_bytes
         .saturating_add(ZSTD_FRAME_OVERHEAD_BUDGET)
         .min(MAX_COMPRESSED_MODEL_BYTES);
     let encoded = extract_pipe_payload(data, compressed_budget)?;
     let compressed = decode_base64(&encoded, compressed_budget)?;
-    let bytes = decompress_single_frame(&compressed, max_bytes)?;
+    let bytes = decompress_single_frame(&compressed, max_file_bytes, max_output_bytes)?;
     let checksum = entry
         .checksum
         .as_deref()
@@ -213,7 +231,7 @@ fn extract_pipe_payload(
         .checked_mul(4)
         .and_then(|value| value.checked_div(3))
         .and_then(|value| value.checked_add(8))
-        .ok_or(EmbeddedModelError::TooLarge)?;
+        .ok_or(EmbeddedModelError::CompressedPayloadTooLarge)?;
     let mut payload = Vec::new();
     let mut opened = false;
     let mut closed = false;
@@ -236,7 +254,7 @@ fn extract_pipe_payload(
                     }
                     payload.push(byte);
                     if payload.len() > max_encoded_bytes {
-                        return Err(EmbeddedModelError::TooLarge);
+                        return Err(EmbeddedModelError::CompressedPayloadTooLarge);
                     }
                 }
                 _ => return Err(EmbeddedModelError::MalformedData),
@@ -257,9 +275,9 @@ fn decode_base64(encoded: &[u8], max_output_bytes: usize) -> Result<Vec<u8>, Emb
         .len()
         .checked_div(4)
         .and_then(|value| value.checked_mul(3))
-        .ok_or(EmbeddedModelError::TooLarge)?;
+        .ok_or(EmbeddedModelError::CompressedPayloadTooLarge)?;
     if capacity > max_output_bytes.saturating_add(2) {
-        return Err(EmbeddedModelError::TooLarge);
+        return Err(EmbeddedModelError::CompressedPayloadTooLarge);
     }
     let mut output = Vec::with_capacity(capacity.min(max_output_bytes));
     for (index, quartet) in encoded.chunks_exact(4).enumerate() {
@@ -285,7 +303,7 @@ fn decode_base64(encoded: &[u8], max_output_bytes: usize) -> Result<Vec<u8>, Emb
             }
         }
         if output.len() > max_output_bytes {
-            return Err(EmbeddedModelError::TooLarge);
+            return Err(EmbeddedModelError::CompressedPayloadTooLarge);
         }
     }
     Ok(output)
@@ -304,6 +322,7 @@ fn base64_value(byte: u8) -> Option<u8> {
 
 fn decompress_single_frame(
     compressed: &[u8],
+    max_file_bytes: usize,
     max_output_bytes: usize,
 ) -> Result<Vec<u8>, EmbeddedModelError> {
     use ruzstd::decoding::StreamingDecoder;
@@ -314,8 +333,11 @@ fn decompress_single_frame(
     if declared == 0 {
         return Err(EmbeddedModelError::DecompressionFailed);
     }
-    if declared > max_output_bytes as u64 {
+    if declared > max_file_bytes as u64 {
         return Err(EmbeddedModelError::TooLarge);
+    }
+    if declared > max_output_bytes as u64 {
+        return Err(EmbeddedModelError::BatchBudgetExceeded);
     }
     let mut output = Vec::with_capacity((declared as usize).min(max_output_bytes));
     (&mut decoder)
@@ -323,7 +345,11 @@ fn decompress_single_frame(
         .read_to_end(&mut output)
         .map_err(|_| EmbeddedModelError::DecompressionFailed)?;
     if output.len() > max_output_bytes {
-        return Err(EmbeddedModelError::TooLarge);
+        return Err(if max_output_bytes < max_file_bytes {
+            EmbeddedModelError::BatchBudgetExceeded
+        } else {
+            EmbeddedModelError::TooLarge
+        });
     }
     let (_, frame_decoder) = decoder.into_parts();
     if frame_decoder.bytes_read_from_source() != compressed.len() as u64 {
@@ -572,7 +598,7 @@ mod tests {
             include_bytes!("../tests/fixtures/embedded-models/step-sample.zst").to_vec();
         compressed.extend_from_slice(b"trailing");
         assert_eq!(
-            decompress_single_frame(&compressed, 1024),
+            decompress_single_frame(&compressed, 1024, 1024),
             Err(EmbeddedModelError::MalformedData)
         );
     }
@@ -583,7 +609,10 @@ mod tests {
             decode_base64(b"Zh==", 16),
             Err(EmbeddedModelError::MalformedData)
         );
-        assert_eq!(decode_base64(b"Zg==", 0), Err(EmbeddedModelError::TooLarge));
+        assert_eq!(
+            decode_base64(b"Zg==", 0),
+            Err(EmbeddedModelError::CompressedPayloadTooLarge)
+        );
         assert_eq!(decode_base64(b"Zg==", 1).unwrap(), b"f");
     }
 

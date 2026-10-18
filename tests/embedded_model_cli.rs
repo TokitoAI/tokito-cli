@@ -54,6 +54,18 @@ fn write_embedded_board_with_checksums(
     path
 }
 
+fn write_local_model_board(directory: &Path) -> PathBuf {
+    fs::write(
+        directory.join("chip.step"),
+        b"ISO-10303-21;\nEND-ISO-10303-21;\n",
+    )
+    .unwrap();
+    let source = "(kicad_pcb (version 20250114) (layers (0 F.Cu signal)) (footprint Test:U1 (uuid comp-1) (at 1 2) (property Reference U1) (model \"chip.step\")))";
+    let path = directory.join("local-model.kicad_pcb");
+    fs::write(&path, source).unwrap();
+    path
+}
+
 fn write_embedded_wrl_board(directory: &Path) -> (PathBuf, String) {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let model_path = repo.join("tests/fixtures/open-source/kicad-resistor-models/Resistor_SMD.3dshapes/R_0603_1608Metric.wrl");
@@ -102,6 +114,130 @@ fn run_with_extra(binary: &str, board: &Path, directory: &Path, extra: &[&str]) 
 
 fn run(binary: &str, board: &Path, directory: &Path) -> Value {
     run_with_extra(binary, board, directory, &[])
+}
+
+#[test]
+fn embedded_model_resolution_obeys_remaining_batch_budget_before_payload_capture() {
+    let directory = std::env::temp_dir().join(format!(
+        "tokito-embedded-budget-cli-{}-{}",
+        std::process::id(),
+        NEXT_DIR.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&directory).unwrap();
+    let good_checksum = "25bdbce8f3930e778844aff9e6deb9dd4aa5f01315979d7f7eebc68bbc301313";
+    let board = write_embedded_board(&directory, good_checksum);
+    let binary = env!("CARGO_BIN_EXE_tokito-cli");
+
+    let refused = Command::new(binary)
+        .args(["resolve", "models"])
+        .arg(&board)
+        .args(["--project-root"])
+        .arg(&directory)
+        .args(["--max-batch-bytes", "1", "--json"])
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("captured-byte budget"));
+
+    let partial_output = directory.join("budget-limited-partial");
+    let report = run_with_extra(
+        binary,
+        &board,
+        &directory,
+        &[
+            "--max-batch-bytes",
+            "1",
+            "--extract-dir",
+            partial_output.to_str().unwrap(),
+            "--allow-partial",
+        ],
+    );
+    assert_eq!(report["capturedBytes"], 0);
+    assert_eq!(report["resolvedAssets"], 0);
+    assert_eq!(report["models"][0]["status"], "batch_budget_exceeded");
+    assert_eq!(report["assetExport"]["partialExport"], true);
+    assert_eq!(report["assetExport"]["resolvedModelPayloads"], 0);
+    assert_eq!(report["assetExport"]["payloadBytes"], 0);
+}
+
+#[test]
+fn embedded_model_resolution_reports_per_file_limit_separately_from_batch_limit() {
+    let directory = std::env::temp_dir().join(format!(
+        "tokito-embedded-file-budget-cli-{}-{}",
+        std::process::id(),
+        NEXT_DIR.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&directory).unwrap();
+    let good_checksum = "25bdbce8f3930e778844aff9e6deb9dd4aa5f01315979d7f7eebc68bbc301313";
+    let board = write_embedded_board(&directory, good_checksum);
+    let binary = env!("CARGO_BIN_EXE_tokito-cli");
+    let partial_output = directory.join("file-limited-partial");
+    let report = run_with_extra(
+        binary,
+        &board,
+        &directory,
+        &[
+            "--max-model-bytes",
+            "1",
+            "--max-batch-bytes",
+            "128",
+            "--extract-dir",
+            partial_output.to_str().unwrap(),
+            "--allow-partial",
+        ],
+    );
+    assert_eq!(report["capturedBytes"], 0);
+    assert_eq!(report["resolvedAssets"], 0);
+    assert_eq!(report["models"][0]["status"], "embedded_too_large");
+    assert_eq!(report["assetExport"]["partialExport"], true);
+    assert_eq!(report["assetExport"]["resolvedModelPayloads"], 0);
+    assert_eq!(report["assetExport"]["payloadBytes"], 0);
+}
+
+#[test]
+fn local_model_resolution_obeys_remaining_batch_budget_before_file_capture() {
+    let directory = std::env::temp_dir().join(format!(
+        "tokito-local-model-budget-cli-{}-{}",
+        std::process::id(),
+        NEXT_DIR.fetch_add(1, Ordering::Relaxed)
+    ));
+    fs::create_dir(&directory).unwrap();
+    let board = write_local_model_board(&directory);
+    let binary = env!("CARGO_BIN_EXE_tokito-cli");
+    let refused_output = directory.join("budget-refused");
+    let refused = Command::new(binary)
+        .args(["resolve", "models"])
+        .arg(&board)
+        .args(["--project-root"])
+        .arg(&directory)
+        .args(["--max-batch-bytes", "1", "--extract-dir"])
+        .arg(&refused_output)
+        .arg("--json")
+        .output()
+        .unwrap();
+    assert!(!refused.status.success());
+    assert!(String::from_utf8_lossy(&refused.stderr).contains("captured-byte budget"));
+    assert!(!refused_output.exists());
+
+    let partial_output = directory.join("budget-limited-partial");
+    let report = run_with_extra(
+        binary,
+        &board,
+        &directory,
+        &[
+            "--max-batch-bytes",
+            "1",
+            "--extract-dir",
+            partial_output.to_str().unwrap(),
+            "--allow-partial",
+        ],
+    );
+    assert_eq!(report["capturedBytes"], 0);
+    assert_eq!(report["resolvedAssets"], 0);
+    assert_eq!(report["models"][0]["status"], "batch_budget_exceeded");
+    assert_eq!(report["assetExport"]["partialExport"], true);
+    assert_eq!(report["assetExport"]["resolvedModelPayloads"], 0);
+    assert_eq!(report["assetExport"]["payloadBytes"], 0);
 }
 
 #[test]

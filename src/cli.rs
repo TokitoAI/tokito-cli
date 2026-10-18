@@ -2132,8 +2132,18 @@ fn resolve_models(args: &[String]) -> Result<(), CliError> {
     let mut reports = Vec::with_capacity(models.len());
     let mut extraction_assets = Vec::new();
     for model in models {
-        let resolution = resolver.resolve_board_model(&board, model);
+        let remaining_batch_bytes = batch_budget.saturating_sub(captured_bytes);
+        let resolution = resolver.resolve_board_model_with_remaining_batch_bytes(
+            &board,
+            model,
+            remaining_batch_bytes,
+        );
         let resolution_status = resolution.status;
+        if resolution_status == ModelResolutionStatus::BatchBudgetExceeded
+            && !(allow_partial && extract_dir.is_some())
+        {
+            return Err(CliError::new("Model batch exceeds captured-byte budget"));
+        }
         let mut projection = resolution.shared_projection();
         if let Some(asset) = resolution.asset {
             captured_bytes = captured_bytes

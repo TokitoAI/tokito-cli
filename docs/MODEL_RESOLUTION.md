@@ -27,13 +27,20 @@ an adversarial race-proof filesystem sandbox. Library/license metadata is
 caller-owned provenance, not automatically inferred from an adjacent file.
 
 The CLI caps batches at 1024 references and 256 MiB of retained captured bytes.
-`--max-model-bytes` and `--max-batch-bytes` may lower those byte limits. JSON
-glTF dependency reads receive the remaining batch budget before file capture;
-metadata is checked first and the read is capped at the smaller of the remaining
-batch bytes and per-file limit, plus one detection byte. Dependencies beyond the
-remaining budget are reported as incomplete and are not retained. Repeated
-library API calls or retained byte snapshots still need a caller-owned aggregate
-budget.
+`--max-model-bytes` and `--max-batch-bytes` may lower those byte limits. Every
+model capture receives the remaining batch budget before a local file is read or
+an embedded payload is decompressed. Local file metadata is checked first and
+the read is capped at the smaller of the remaining batch bytes and per-file
+limit, plus one detection byte. Embedded compressed input has its own bounded
+per-model allowance; declared expanded output is checked independently against
+both the per-model and remaining batch limits before decompression. This keeps a
+small batch allowance from being misreported as a compressed-file size failure.
+JSON glTF dependency reads use the same remaining-budget rule. Assets or
+dependencies beyond the remaining budget
+are reported as `batch_budget_exceeded` and are not retained; extraction refuses
+that incomplete set unless `--allow-partial` is explicitly supplied with a new
+`--extract-dir`. Repeated library API calls or retained byte snapshots still
+need a caller-owned aggregate budget.
 
 Each `resolve models --json` record also names its owning footprint when the
 source locator can be joined: `ownerComponent` contains the source component
