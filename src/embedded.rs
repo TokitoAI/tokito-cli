@@ -325,6 +325,9 @@ fn decompress_single_frame(
     max_file_bytes: usize,
     max_output_bytes: usize,
 ) -> Result<Vec<u8>, EmbeddedModelError> {
+    if max_output_bytes == 0 {
+        return Err(EmbeddedModelError::BatchBudgetExceeded);
+    }
     use ruzstd::decoding::StreamingDecoder;
     use std::io::Cursor;
     let mut decoder = StreamingDecoder::new(Cursor::new(compressed))
@@ -600,6 +603,14 @@ mod tests {
         assert_eq!(
             decompress_single_frame(&compressed, 1024, 1024),
             Err(EmbeddedModelError::MalformedData)
+        );
+    }
+
+    #[test]
+    fn rejects_zero_output_budget_before_zstandard_frame_initialization() {
+        assert_eq!(
+            decompress_single_frame(b"not a zstandard frame", 1024, 0),
+            Err(EmbeddedModelError::BatchBudgetExceeded)
         );
     }
 
