@@ -97,6 +97,35 @@ qualification. The candidate reports `geometryQualified=false`, `admitted=false`
 and `exportsProduced=[]`. It does not change production STEP/GLB
 export.
 
+The v8 receipt above is historical evidence from before selected projection
+convergence became mandatory. The current generator retains each quality
+probe's `projectionConverged` result and refuses a Spade split if its matched
+source-curve projection did not converge. On the pinned input, the updated E2E
+expects the specific refusal
+`spade_boundary_split_uses_nonconverged_source_curve_projection`, verifies no
+candidate mesh file is emitted, and records `geometryQualified=false`,
+`admitted=false`, and no exports. A passing E2E here means the refusal contract
+worked; it does not mean a candidate mesh was produced or qualified.
+
+The updated receipt is
+`target/local-verification/20261017T201801Z-a804de7faa0c476ea49c0ed90a22ecde/esp8266-model16-source-face-trim-e2e-v13/receipt.json`
+(SHA-256 `96eeaa7ae408e3a5a8b2b7d656a9f0b59e41eff7e1f422ba1a98ce0a47209e04`). The E2E
+confirms the candidate binary embeds the hash of the current Rust source, then
+records the exact selected failed probe: index 1535, edge 470 / curve 3478,
+parameter `1.4035888909095733`, residual `1.07888315327835e-6` source units,
+`projectionConverged=false`. It observed 835 non-converged probes in the full
+quality-probe inventory. The top-level outcome is `expected_safety_refusal` and
+`researchCandidateProduced=false`; this is distinct from the diagnostic trim
+mesh reported elsewhere in the receipt. The E2E includes a negative self-test
+that rejects an unrelated exit-2 message containing the refusal phrase. An
+unexpected failure is recorded as `e2e_failed`, forces `passed=false`, and
+records whether a candidate file was emitted. One self-test starts from a
+previously passing receipt to exercise that reset; another starts with no
+`summary` field and checks that early failures still produce accurate receipts
+for both absent and present candidate files. The earlier four-split mesh is
+retained only as a historical research artifact and must not be treated as
+current accepted output.
+
 To reproduce with a materialized dataset source and local Rust release tools:
 
 ```powershell

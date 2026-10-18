@@ -71,6 +71,7 @@ struct QualityBoundaryProbe {
     interval_start_uv: [f64; 2],
     interval_end_uv: [f64; 2],
     chord_midpoint_uv: [f64; 2],
+    projection_converged: bool,
 }
 
 #[derive(Debug)]
@@ -124,9 +125,20 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let args = env::args_os().skip(1).collect::<Vec<_>>();
+    if args.len() == 1 && args[0].to_str() == Some("--build-identity") {
+        println!(
+            "{}",
+            json!({
+                "schema": "tokito.model16-spade-candidate-build-identity.v1",
+                "generatorSourceSha256": sha256(include_bytes!("model16_spade_candidate.rs")),
+                "spadeVersion": SPADE_VERSION,
+            })
+        );
+        return Ok(());
+    }
     if args.len() != 4 || args[0] != "--research-remesh-model16" {
         return Err(
-            "usage: model16-spade-candidate --research-remesh-model16 SOURCE.step DIAGNOSTIC.json NEW_OUTPUT.json"
+            "usage: model16-spade-candidate --build-identity | --research-remesh-model16 SOURCE.step DIAGNOSTIC.json NEW_OUTPUT.json"
                 .into(),
         );
     }
@@ -452,9 +464,11 @@ fn extract_boundary_loop(diagnostic: &Value) -> Result<BoundaryLoop, String> {
             .as_f64()
             .filter(|value| value.is_finite() && *value >= 0.0)
             .ok_or("source_boundary_quality_probe_surface_residual_missing")?;
+        let projection_converged = quality_probe["projectionConverged"]
+            .as_bool()
+            .ok_or("source_boundary_quality_probe_projection_status_missing")?;
         if projection_residual > declared_quality_residual_limit
             || surface_residual > declared_quality_residual_limit
-            || quality_probe["projectionConverged"].as_bool().is_none()
             || quality_probe["projectionStartCount"].as_u64() != Some(1)
         {
             return Err("source_boundary_quality_probe_residual_or_projection_unqualified".into());
@@ -497,6 +511,7 @@ fn extract_boundary_loop(diagnostic: &Value) -> Result<BoundaryLoop, String> {
             interval_start_uv: start_uv,
             interval_end_uv: end_uv,
             chord_midpoint_uv: expected_seed_uv,
+            projection_converged,
         });
     }
     if !expected_quality_intervals.is_empty() {
@@ -723,6 +738,15 @@ fn select_quality_probes(
             return Err("spade_boundary_split_has_ambiguous_source_curve_midpoint".into());
         }
         let probe = &quality_probes[matches[0]];
+        if !probe.projection_converged {
+            let quality_probe_index = probe
+                .point
+                .source_quality_probe_index
+                .ok_or("source_boundary_quality_probe_index_missing_for_refusal")?;
+            return Err(format!(
+                "spade_boundary_split_uses_nonconverged_source_curve_projection:quality_probe_index={quality_probe_index}"
+            ));
+        }
         let mut matched_interval = false;
         for index in 0..source_boundary.len() {
             let start = source_boundary[index];
@@ -1398,6 +1422,7 @@ mod tests {
             interval_start_uv: [0.0, 0.0],
             interval_end_uv: [1.0, 0.0],
             chord_midpoint_uv: [0.5, 0.0],
+            projection_converged: true,
         };
         let selected = select_quality_probes(std::slice::from_ref(&probe), &[[0.5, 0.0]], &source)
             .expect("exact curve midpoint matches the split");
@@ -1445,6 +1470,7 @@ mod tests {
             interval_start_uv: [0.0, 0.0],
             interval_end_uv: [1.0, 0.0],
             chord_midpoint_uv: [0.5, 0.0],
+            projection_converged: true,
         };
         assert_eq!(
             select_quality_probes(
@@ -1454,6 +1480,38 @@ mod tests {
             )
             .unwrap_err(),
             "spade_boundary_split_has_ambiguous_source_curve_midpoint"
+        );
+    }
+
+    #[test]
+    fn boundary_split_refuses_nonconverged_source_curve_projection() {
+        let probe = QualityBoundaryProbe {
+            point: BoundaryPoint {
+                loop_index: 0,
+                curve_parameter: 0.5,
+                uv: [0.5, 0.0],
+                source_point: [0.5, 0.0, 0.0],
+                oriented_edge_id: 1,
+                edge_curve_id: 2,
+                curve_geometry_id: 3,
+                source_boundary_index: None,
+                source_sample_index: None,
+                source_probe_index: None,
+                source_quality_probe_index: Some(0),
+            },
+            interval_start_uv: [0.0, 0.0],
+            interval_end_uv: [1.0, 0.0],
+            chord_midpoint_uv: [0.5, 0.0],
+            projection_converged: false,
+        };
+        assert_eq!(
+            select_quality_probes(
+                &[probe],
+                &[[0.5, 0.0]],
+                &[[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]
+            )
+            .unwrap_err(),
+            "spade_boundary_split_uses_nonconverged_source_curve_projection:quality_probe_index=0"
         );
     }
 

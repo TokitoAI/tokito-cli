@@ -42,6 +42,100 @@ EXPECTED_EDGE_SENSES = [
     (7109, True, True, True),
     (4933, False, True, False),
 ]
+EXPECTED_CANDIDATE_BUILD_IDENTITY_SCHEMA = "tokito.model16-spade-candidate-build-identity.v1"
+EXPECTED_CANDIDATE_REFUSAL_PREFIX = (
+    "model16_spade_candidate: "
+    "spade_boundary_split_uses_nonconverged_source_curve_projection:quality_probe_index="
+)
+
+
+def validate_expected_projection_refusal(
+    exit_code: int,
+    stdout: bytes,
+    stderr: bytes,
+    candidate_exists: bool,
+    quality_probes: list[dict],
+) -> dict:
+    if exit_code != 2 or stdout or candidate_exists:
+        raise ValueError("candidate did not produce a clean no-output safety refusal")
+    refusal = stderr.decode("utf-8", errors="strict").rstrip("\r\n")
+    if "\n" in refusal or "\r" in refusal or not refusal.startswith(
+        EXPECTED_CANDIDATE_REFUSAL_PREFIX
+    ):
+        raise ValueError("candidate refusal was not the exact expected projection refusal")
+    raw_index = refusal[len(EXPECTED_CANDIDATE_REFUSAL_PREFIX) :]
+    if not raw_index.isascii() or not raw_index.isdecimal() or str(int(raw_index)) != raw_index:
+        raise ValueError("candidate refusal has an invalid quality-probe index")
+    quality_probe_index = int(raw_index)
+    if quality_probe_index >= len(quality_probes):
+        raise ValueError("candidate refusal quality-probe index is outside the diagnostic")
+    probe = quality_probes[quality_probe_index]
+    if (
+        not isinstance(probe, dict)
+        or probe.get("qualityProbeIndex") != quality_probe_index
+        or probe.get("projectionConverged") is not False
+    ):
+        raise ValueError("candidate refusal did not identify a non-converged selected probe")
+    return {
+        "qualityProbeIndex": quality_probe_index,
+        "orientedEdgeId": probe.get("orientedEdgeId"),
+        "edgeCurveId": probe.get("edgeCurveId"),
+        "curveParameter": probe.get("curveParameter"),
+        "projectionResidualSourceUnits": probe.get("projectionResidualSourceUnits"),
+        "projectionConverged": probe.get("projectionConverged"),
+    }
+
+
+def self_test_candidate_refusal_contract() -> None:
+    nonconverged = [{"qualityProbeIndex": 0, "projectionConverged": False}]
+    valid_error = (
+        EXPECTED_CANDIDATE_REFUSAL_PREFIX + "0"
+    ).encode("utf-8") + b"\n"
+    validate_expected_projection_refusal(2, b"", valid_error, False, nonconverged)
+    unrelated_error = (
+        b"other tool failed: " + EXPECTED_CANDIDATE_REFUSAL_PREFIX.encode("utf-8") + b"0\n"
+    )
+    try:
+        validate_expected_projection_refusal(2, b"", unrelated_error, False, nonconverged)
+    except ValueError as error:
+        if "exact expected" not in str(error):
+            raise
+    else:
+        raise ValueError("unrelated exit-2 error passed the expected-refusal self-test")
+
+    # Errors before diagnostic parsing happen before `summary` exists in the
+    # normal receipt. Exercise that early-failure path explicitly.
+    failure_receipt = {"passed": True}
+    record_candidate_failure(failure_receipt, False)
+    if (
+        failure_receipt.get("outcome") != "e2e_failed"
+        or failure_receipt.get("passed") is not False
+        or failure_receipt.get("researchCandidateProduced") is not False
+        or failure_receipt["summary"]["researchSpadeCandidate"].get("candidateFileProduced")
+        is not False
+    ):
+        raise ValueError("no-artifact failure receipt is inaccurate")
+    record_candidate_failure(failure_receipt, True)
+    if (
+        failure_receipt.get("researchCandidateProduced") is not True
+        or failure_receipt["summary"]["researchSpadeCandidate"].get("candidateFileProduced")
+        is not True
+    ):
+        raise ValueError("partial-artifact failure receipt is inaccurate")
+
+
+def record_candidate_failure(receipt: dict, candidate_file_produced: bool) -> None:
+    receipt["passed"] = False
+    receipt["outcome"] = "e2e_failed"
+    receipt["researchCandidateProduced"] = candidate_file_produced
+    summary = receipt.setdefault("summary", {})
+    summary["researchSpadeCandidate"] = {
+        "status": "e2e_failed",
+        "candidateFileProduced": candidate_file_produced,
+        "geometryQualified": False,
+        "admitted": False,
+        "exportsProduced": [],
+    }
 
 
 def is_json_number(value: object) -> bool:
@@ -943,6 +1037,7 @@ def run(
     output: Path,
     candidate_generator: Path | None = None,
 ) -> dict:
+    self_test_candidate_refusal_contract()
     if output.exists():
         raise ValueError("output must be new")
     tracked = [
@@ -969,6 +1064,9 @@ def run(
     receipt = {
         "schema": "tokito.step-model16-source-face-trim-e2e.v1",
         "passed": False,
+        "outcome": "diagnostic_only",
+        "researchCandidateProduced": False,
+        "diagnosticTrimMeshIsNotTheResearchSpadeCandidate": True,
         "admitted": False,
         "exportsProduced": [],
         "inputSha256": before,
@@ -978,6 +1076,7 @@ def run(
             "or geometry admission"
         ),
     }
+    candidate_path: Path | None = None
     try:
         if before[str(source)] != SOURCE_SHA256:
             raise ValueError("pinned model-16 source digest mismatch")
@@ -1496,6 +1595,22 @@ def run(
         receipt["diagnosticSha256"] = fingerprint(output / "diagnostic.json", 8 * 1024 * 1024)
         if candidate_generator is not None:
             candidate_path = output / "spade-candidate.json"
+            identity_code, identity_stdout, identity_stderr = capture_bounded(
+                [str(candidate_generator), "--build-identity"],
+                timeout_seconds=10,
+                stdout_limit=4096,
+                stderr_limit=4096,
+            )
+            if identity_code != 0 or identity_stderr:
+                raise ValueError("research Spade candidate build identity command failed")
+            build_identity = json.loads(identity_stdout)
+            if (
+                build_identity.get("schema") != EXPECTED_CANDIDATE_BUILD_IDENTITY_SCHEMA
+                or build_identity.get("generatorSourceSha256") != before[str(candidate_source)]
+                or build_identity.get("spadeVersion") != "2.15.1"
+            ):
+                raise ValueError("research Spade candidate binary does not match current source")
+            receipt["summary"]["researchSpadeCandidateBuildIdentity"] = build_identity
             code, candidate_stdout, candidate_stderr = capture_bounded(
                 [
                     str(candidate_generator),
@@ -1508,7 +1623,43 @@ def run(
                 stdout_limit=256 * 1024,
                 stderr_limit=512 * 1024,
             )
-            if code != 0 or candidate_stderr or not candidate_path.is_file():
+            if any(fingerprint(path, limit) != before[str(path)] for path, limit in tracked):
+                raise ValueError("source, binary, or test input changed during candidate execution")
+            if code != 0:
+                diagnostic = json.loads((output / "diagnostic.json").read_bytes())
+                quality_probes = diagnostic.get("trimCandidate", {}).get(
+                    "boundaryQualityProbes", []
+                )
+                selected_probe = validate_expected_projection_refusal(
+                    code,
+                    candidate_stdout,
+                    candidate_stderr,
+                    candidate_path.exists(),
+                    quality_probes,
+                )
+                nonconverged_probe_count = sum(
+                    isinstance(probe, dict) and probe.get("projectionConverged") is False
+                    for probe in quality_probes
+                )
+                receipt["outcome"] = "expected_safety_refusal"
+                receipt["researchCandidateProduced"] = False
+                receipt["summary"]["researchSpadeCandidate"] = {
+                    "status": "refused_nonconverged_selected_projection",
+                    "selectedProbe": selected_probe,
+                    "refusal": EXPECTED_CANDIDATE_REFUSAL_PREFIX
+                    + str(selected_probe["qualityProbeIndex"]),
+                    "nonconvergedQualityProbeCount": nonconverged_probe_count,
+                    "candidateFileProduced": False,
+                    "geometryQualified": False,
+                    "admitted": False,
+                    "exportsProduced": [],
+                }
+                receipt["passed"] = True
+                (output / "receipt.json").write_text(
+                    json.dumps(receipt, indent=2) + "\n", encoding="utf-8"
+                )
+                return receipt
+            if candidate_stderr or not candidate_path.is_file():
                 raise ValueError("research Spade candidate generator did not complete cleanly")
             if candidate_path.stat().st_size > 32 * 1024 * 1024:
                 raise ValueError("research Spade candidate exceeded its output size bound")
@@ -1641,9 +1792,13 @@ def run(
                 "exportsProduced": [],
                 "scope": candidate.get("scope"),
             }
+            receipt["outcome"] = "unqualified_research_candidate_generated"
+            receipt["researchCandidateProduced"] = True
         receipt["passed"] = True
     except Exception as error:  # Keep a machine-readable refusal receipt on failure.
         receipt["error"] = f"{type(error).__name__}: {error}"
+        candidate_file_produced = candidate_path is not None and candidate_path.is_file()
+        record_candidate_failure(receipt, candidate_file_produced)
     (output / "receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     return receipt
 
