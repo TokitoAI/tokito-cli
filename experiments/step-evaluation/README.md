@@ -282,3 +282,16 @@ including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
 edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
 See [the per-solid contract and evidence](../../docs/STEP_SOLID_REFERENCE.md). Historical failed
 receipts above remain unchanged. This does not enable production STEP or AR.
+
+
+## Isolated physical-source refinement
+
+`--research-physical-source-face 2875 --chord-tolerance 0.00001 --source-representation 5957 SOURCE.step`
+accepts only the digest-pinned model16 fixture. It emits a diagnostic report and
+always exits2 without production admission/export. UV-CDT initialization and
+physical chord/normal-driven shared-edge subdivision keep original constraints
+fixed. Current real-source output is incomplete; it does not repair source
+trims or produce a qualified solid. See
+[the evidence and limits](../../docs/GEOMETRY_RECOVERY_PLAN.md#physical-space-refinement-experiment-2026-10-19)
+and run `tests/physical_refinement_e2e.py` for the bounded development-only
+FreeCAD comparison. Native FreeCAD is not a production dependency.

@@ -44,6 +44,19 @@ physical-space refinement and whole-solid acceptance. No STEP repair, new
 production export capability or release readiness is established by this change.
 Current-source full verification remains tied to its per-run receipt.
 
+## Physical refinement checkpoint (2026-10-19)
+
+Implemented source-pinned UV-CDT initialization and physical-error-driven
+conforming nonboundary subdivision in the experimental evaluator. Six real
+source/oracle/refusal checks passed, including independent all-vertex/chord/
+analytic-normal comparison. Final sampled interior error is `0.001171383 mm`,
+with 2,312 nonpositive normals and locked-boundary error `0.0002954254 mm`.
+The requested `0.00001 mm` target is **not met**; the candidate stops incomplete
+at a mesh budget. Existing selected-projection refusal still passes unchanged.
+[Evidence](evidence/physical-refinement-20261019.json) and
+[math/limits/next tasks](GEOMETRY_RECOVERY_PLAN.md) distinguish this progress
+from a repaired source face, qualified complete solid or production STEP export.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

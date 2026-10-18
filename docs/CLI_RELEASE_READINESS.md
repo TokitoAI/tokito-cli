@@ -34,6 +34,11 @@ refusal. Its [source-face/independent-audit evidence](evidence/projection-solver
 does not clear any production geometry gate. Complete-solid and missing-body
 qualification remain open.
 
+The new physical-refinement research mode reduces measured interior chord
+error but still reports 2,312 nonpositive normals and an incomplete mesh-budget
+outcome. Its [independent evidence](evidence/physical-refinement-20261019.json)
+does not qualify the face or clear the general STEP/complete-solid gate.
+
 ## Candidate release boundary
 
 The shared Ultimaker presentation profile is implemented for existing packaged

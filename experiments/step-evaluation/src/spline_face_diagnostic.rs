@@ -1358,6 +1358,107 @@ fn unwrap_parameter(raw: f64, previous: f64, period: Option<f64>) -> Result<(f64
     Ok((value, shift))
 }
 
+/// Isolated source-pinned physical refinement experiment. The mesh samples the
+/// supporting surface and does not replace or qualify source trim curves.
+pub(crate) fn inspect_physical_refinement(
+    step: &StepFile,
+    face_id: u64,
+    tolerance: f64,
+) -> Result<Json, String> {
+    let mut report = inspect(step, face_id)?;
+    let surface_id = report["surfaceId"]
+        .as_u64()
+        .ok_or("physical_research_surface_id_missing")?;
+    let surface = parse_surface(step, surface_id)?;
+    let face_sense = report["faceSameSense"]
+        .as_bool()
+        .ok_or("physical_research_face_sense_missing")?;
+    let rows = report["trimCandidate"]["boundarySamples"]
+        .as_array()
+        .ok_or("physical_research_source_boundary_missing")?;
+    let input = rows
+        .iter()
+        .map(|row| {
+            let uv = row["candidateUv"]
+                .as_array()
+                .filter(|v| v.len() == 2)
+                .ok_or("physical_research_uv_missing")?;
+            Ok([
+                uv[0].as_f64().ok_or("physical_research_uv_invalid")?,
+                uv[1].as_f64().ok_or("physical_research_uv_invalid")?,
+            ])
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let evaluations = std::cell::RefCell::new(0);
+    let control_evaluations = std::cell::RefCell::new(0);
+    let evaluate = |uv: [f64; 2]| {
+        if uv.iter().any(|x| !x.is_finite())
+            || uv[0] < surface.u_domain.0
+            || uv[0] > surface.u_domain.1
+        {
+            return Err("physical_research_uv_outside_source_domain".into());
+        }
+        if surface.v_period.is_none() && (uv[1] < surface.v_domain.0 || uv[1] > surface.v_domain.1)
+        {
+            return Err("physical_research_uv_outside_source_domain".into());
+        }
+        eval_surface(
+            &surface,
+            uv,
+            &mut evaluations.borrow_mut(),
+            &mut control_evaluations.borrow_mut(),
+        )
+    };
+    let orientation = |uv: [[f64; 2]; 3], points: [P3; 3]| -> Result<f64, String> {
+        let center: [f64; 2] = std::array::from_fn(|i| (uv[0][i] + uv[1][i] + uv[2][i]) / 3.);
+        let Some((um, up)) = finite_difference_bounds(
+            center[0],
+            (surface.u_domain.1 - surface.u_domain.0) * 1e-6,
+            surface.u_domain,
+            false,
+        ) else {
+            return Ok(0.);
+        };
+        let Some((vm, vp)) = finite_difference_bounds(
+            center[1],
+            (surface.v_domain.1 - surface.v_domain.0) * 1e-6,
+            surface.v_domain,
+            surface.v_period.is_some(),
+        ) else {
+            return Ok(0.);
+        };
+        let du = scale(
+            sub(evaluate([up, center[1]])?, evaluate([um, center[1]])?),
+            1. / (up - um),
+        );
+        let dv = scale(
+            sub(evaluate([center[0], vp])?, evaluate([center[0], vm])?),
+            1. / (vp - vm),
+        );
+        Ok(oriented_triangle_normal_alignment(
+            points, du, dv, face_sense,
+        ))
+    };
+    let candidate = crate::physical_surface_refinement::refine(
+        &input,
+        tolerance,
+        5f64.to_radians().cos(),
+        evaluate,
+        orientation,
+    );
+    report["physicalRefinementCandidate"] = match candidate {
+        Ok(value) => value,
+        Err(error) => {
+            json!({"status":"refused","error":error,"geometryQualified":false,"admitted":false,"exportsProduced":[]})
+        }
+    };
+    report["physicalRefinementCandidate"]["sourceCurveToSupportSurfaceGapResolved"] = json!(false);
+    report["physicalRefinementCandidate"]["surfaceEvaluationCount"] = json!(*evaluations.borrow());
+    report["physicalRefinementCandidate"]["controlPointEvaluationCount"] =
+        json!(*control_evaluations.borrow());
+    Ok(report)
+}
+
 /// Inspect one source ADVANCED_FACE whose surface and four-dimensional
 /// source trims are available as B-spline entities.
 pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {

@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-466 project files are listed.
+470 project files are listed.
 
 ```text
 tokito_cli/
@@ -113,6 +113,7 @@ tokito_cli/
 │   │   ├── model16-projection-audit-20261018.json
 │   │   ├── model16-projection-audit-20261018.receipt.json
 │   │   ├── nxp-refined-local-verification-20261011.json
+│   │   ├── physical-refinement-20261019.json
 │   │   ├── projection-solver-status-20261019.json
 │   │   └── ultimaker-presentation-browser-20261016.json
 │   ├── quality/
@@ -223,6 +224,7 @@ tokito_cli/
 │   │   │   └── torus_surface_evidence.rs
 │   │   ├── references/
 │   │   │   ├── README.md
+│   │   │   ├── audit_model16_physical_refinement.FCMacro
 │   │   │   ├── audit_model16_projection.FCMacro
 │   │   │   ├── compare_model16_trim_face.FCMacro
 │   │   │   ├── esp8266-model-15-freecad-1.1.4.json
@@ -239,6 +241,7 @@ tokito_cli/
 │   │   │   ├── main.rs
 │   │   │   ├── negative_torus.rs
 │   │   │   ├── occurrence_world.rs
+│   │   │   ├── physical_surface_refinement.rs
 │   │   │   ├── planar_face.rs
 │   │   │   ├── planar_repair.rs
 │   │   │   ├── source_uncertainty.rs
@@ -254,6 +257,7 @@ tokito_cli/
 │   │   │   ├── model16_source_face_trim_e2e.py
 │   │   │   ├── multi_surface_reference_e2e.py
 │   │   │   ├── negative_cli.rs
+│   │   │   ├── physical_refinement_e2e.py
 │   │   │   ├── planar_cli.rs
 │   │   │   ├── planar_repair_reference_e2e.py
 │   │   │   ├── projection_audit_e2e.py

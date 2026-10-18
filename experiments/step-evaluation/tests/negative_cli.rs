@@ -89,3 +89,46 @@ fn executable_reports_malformed_step_without_admission_or_export() {
     assert!(error.contains("expected `HEADER`"), "{error}");
     assert!(error.contains("MALFORMED"), "{error}");
 }
+
+#[test]
+fn physical_research_mode_refuses_invalid_parameters_and_unpinned_source() {
+    let input = NegativeFile::new(b"synthetic negative input, not a qualified STEP source");
+    for (arguments, expected) in [
+        (vec!["--research-physical-source-face"], "usage:"),
+        (
+            vec![
+                "--research-physical-source-face",
+                "2875",
+                "--chord-tolerance",
+                "nan",
+                "--source-representation",
+                "5957",
+            ],
+            "invalid_physical_chord_tolerance",
+        ),
+        (
+            vec![
+                "--research-physical-source-face",
+                "2875",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+            ],
+            "physical_research_requires_pinned_model16_face_and_representation",
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_tokito-step-evaluation"))
+            .args(&arguments)
+            .arg(&input.0)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stderr.is_empty());
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(report["error"].as_str().unwrap().starts_with(expected));
+        assert_eq!(report["admitted"], false);
+        assert_eq!(report["exportsProduced"], serde_json::json!([]));
+        assert!(report.get("physicalRefinementCandidate").is_none());
+    }
+}

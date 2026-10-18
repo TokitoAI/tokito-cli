@@ -6,6 +6,7 @@ mod face_coverage;
 mod face_representation;
 mod negative_torus;
 mod occurrence_world;
+mod physical_surface_refinement;
 mod planar_face;
 mod planar_repair;
 mod source_uncertainty;
@@ -369,8 +370,17 @@ fn probe_spline_face(
     path: &Path,
     face_id: u64,
     source_representation: Option<u64>,
+    physical_tolerance: Option<f64>,
 ) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
+    if physical_tolerance.is_some()
+        && (face_id != 2875
+            || source_representation != Some(5957)
+            || format!("{:x}", Sha256::digest(&bytes))
+                != "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f")
+    {
+        return Err("physical_research_requires_pinned_model16_face_and_representation".into());
+    }
     let limits = oxideav_ifc::StepLimits {
         max_input_len: MAX_BYTES,
         max_instances: 250_000,
@@ -379,7 +389,11 @@ fn probe_spline_face(
     };
     let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
         .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
-    let mut report = spline_face_diagnostic::inspect(&parsed, face_id)?;
+    let mut report = if let Some(tolerance) = physical_tolerance {
+        spline_face_diagnostic::inspect_physical_refinement(&parsed, face_id, tolerance)?
+    } else {
+        spline_face_diagnostic::inspect(&parsed, face_id)?
+    };
     if let Some(representation) = source_representation {
         let selected = face_representation::inspect(&parsed, representation, face_id)?;
         let context_id = selected["selectedRepresentationLengthUnits"]["contextId"]
@@ -398,6 +412,42 @@ fn probe_spline_face(
 
 fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if raw
+        .first()
+        .is_some_and(|arg| arg == "--research-physical-source-face")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 7
+                || raw[2] != "--chord-tolerance"
+                || raw[4] != "--source-representation"
+            {
+                return Err("usage: tokito-step-evaluation --research-physical-source-face 2875 --chord-tolerance POSITIVE_SOURCE_UNITS --source-representation 5957 STEP_PATH".into());
+            }
+            let face = raw[1]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|v| *v > 0)
+                .ok_or("invalid_diagnostic_face_id")?;
+            let tolerance = raw[3]
+                .to_str()
+                .and_then(|s| s.parse::<f64>().ok())
+                .filter(|v| v.is_finite() && *v > 0. && *v <= 1.)
+                .ok_or("invalid_physical_chord_tolerance")?;
+            let representation = raw[5]
+                .to_str()
+                .and_then(|s| s.parse::<u64>().ok())
+                .filter(|v| *v > 0)
+                .ok_or("invalid_source_representation")?;
+            probe_spline_face(
+                Path::new(&raw[6]),
+                face,
+                Some(representation),
+                Some(tolerance),
+            )
+        })();
+        println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
     if raw
         .first()
         .is_some_and(|arg| arg == "--diagnose-source-face")
@@ -429,7 +479,7 @@ fn main() {
             } else {
                 &raw[2]
             };
-            probe_spline_face(Path::new(path), face, source_representation)
+            probe_spline_face(Path::new(path), face, source_representation, None)
         })();
         println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.step-spline-face-trim-diagnostic.v1","error":error,"admitted":false,"exportsProduced":[]})));
         std::process::exit(2);

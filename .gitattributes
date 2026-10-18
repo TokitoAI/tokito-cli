@@ -29,3 +29,4 @@ docs/evidence/kicad-dnp-local-verification-2026-10-14.json -text -whitespace !eo
 docs/evidence/model16-projection-audit-20261018.json -text -whitespace !eol
 docs/evidence/model16-projection-audit-20261018.receipt.json -text -whitespace !eol
 experiments/step-evaluation/references/audit_model16_projection.FCMacro text eol=lf
+experiments/step-evaluation/references/audit_model16_physical_refinement.FCMacro text eol=lf

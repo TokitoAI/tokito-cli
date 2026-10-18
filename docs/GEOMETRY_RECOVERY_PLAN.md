@@ -208,12 +208,76 @@ refusal controls passed again with the new diagnostic. Unit regressions cover
 UV rescaling, off-surface targets, boundaries, rank deficiency, final-UV sampling
 and budget exhaustion. See the [captured evidence](evidence/projection-solver-status-20261019.json).
 
+## Physical-space refinement experiment (2026-10-19)
+
+A separate, source-digest-pinned research mode now initializes a UV constrained
+Delaunay mesh, then subdivides shared **nonboundary** edges when actual surface
+centroid/edge-midpoint chord deviation or signed normal alignment fails the
+requested target. It never invokes Spade angle refinement, adds boundary
+vertices, changes original boundary coordinates or alters the existing candidate
+refusal. This is physical-error-driven subdivision, not metric-aware Delaunay.
+
+The loop preflight rejects crossings/degeneracy, exposes the 100-to-96 sample
+mapping and four exact junction duplicates, and refuses removal of distinct
+near-duplicate coordinates. Shared midpoint templates preserve conformity;
+finite child UV areas, boundary/interior edge incidence and orientation are
+checked. Limits: 12 rounds, 25,000 vertices, 50,000 triangles and 400,000 surface
+samples, with additional existing evaluator/control-point caps. Singular,
+nonfinite, no-progress and budget failures never establish acceptance.
+
+For the pinned ESP8266 source, requested chord tolerance is `0.00001 mm` and
+normal target is `cos(5 degrees)`. These are explicit experimental targets, not
+values inferred from the STEP uncertainty or a source-curve repair policy.
+
+| Measurement | Initial CDT | Final after four subdivision rounds |
+| --- | --- | --- |
+| Triangles | 94 | 15,740 |
+| Vertices | 96 | 7,919 |
+| Maximum sampled interior chord error | 0.2351396201 mm | 0.0011713830 mm |
+| Maximum sampled locked-boundary chord error | 0.0002954254 mm | 0.0002954254 mm |
+| Nonpositive normal observations | 29 | 2,312 |
+
+The candidate stops **incomplete: mesh budget exhausted**; the next proposed
+subdivision would exceed a mesh cap. Absolute orientation failures remain, so
+the lower chord error is not evidence of a usable repaired face. Fixed boundary
+segments alone also prevent the requested chord target. An earlier ear-clipped
+initializer reached 0.00218186 mm/2,825 nonpositive normals; the CDT initializer
+improves those final measurements without clearing either gate.
+
+FreeCAD 1.1.4 / OCCT 7.8.1 independently evaluated all 7,919 vertices, all unique
+edge midpoints and 15,740 triangle centroid/analytic-normal observations.
+Maximum vertex disagreement is `2.9976021664879227e-15 mm`; independent chord
+maxima and the nonpositive normal count match the Rust observations. All 254
+stride-selected trim-containment centroids are inside at `1e-7 mm`. Parameter
+wrapping uses Rust-reported periods, with OCCT independently reporting that V
+is periodic and closed. This is not exhaustive trim coverage or an independent
+parameter-correspondence proof.
+
+The [captured evidence](evidence/physical-refinement-20261019.json) contains six
+passed source/oracle/refusal checks and the separate legacy refusal journey.
+Five Rust tests cover plane, concave/rescaled domains, curved fixed-boundary
+obstruction, all edge-split templates, nonfinite/error inputs, zero normal
+threshold and distinct boundary sample refusal. No new production dependency
+or export capability is added.
+
+```powershell
+python experiments/step-evaluation/tests/physical_refinement_e2e.py `
+  --binary '<experimental-build>/tokito-step-evaluation.exe' `
+  --freecad 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe' `
+  --source '<materialized-dataset>/embedded-models/16.step' `
+  --output 'target/research/new-physical-refinement'
+```
+
+Next: bounded metric/chart-aware tessellation and a reviewed source-curve/
+support-surface tolerance contract, then complete trim/orientation/shared-edge
+and solid checks. Keep this experiment outside production geometry admission.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
 | Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | UV topology exists; physical quality unqualified | Add surface-space quality/metric-aware refinement and a measured edge discrepancy contract |
+| Main | Current Spade experiment | Physical-error-driven research subdivision implemented and independently measured; still incomplete | Implement metric/chart-aware tessellation and a measured edge discrepancy contract; preserve failures |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |
