@@ -59,6 +59,58 @@ triangulation, or source geometry. FreeCAD evaluates the Tokito triangles; it
 has not produced an independent triangulation. The candidate stays refused and
 unexported.
 
+### Source-curve midpoint Spade remesh (2026-10-18)
+
+A separate research candidate uses a constrained Spade remesh of the same
+hash-pinned model-16 face. It starts with source-backed boundary samples, lets a
+quality pass identify four needed boundary splits, and associates each split
+with a unique source interval using its UV chord midpoint. For each matched
+source edge, the STEP curve is evaluated at the interval's arithmetic parameter
+midpoint, projected to UV, and used as the constrained boundary point. The final
+remesh preserves constrained edges. The E2E independently rebuilds the source
+boundary inventory and recomputes mesh incidence and trim containment; source
+curve and surface evaluations themselves still come from the Rust diagnostic,
+not an independent STEP evaluator. Of the four selected source-curve midpoint projections, one is marked non-converged at a residual of `1.07888315327835e-6` source units, below the `1e-5` probe-selection ceiling. That ceiling is not an admission tolerance or proof that the projection converged.
+
+Dataset source revision: `5283bc059e30e51f4d3a81a674425936fc213214`; STEP
+SHA-256: `7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`.
+The local E2E receipt is
+`output/model16-source-curve-quality-e2e-v8-20261018/receipt.json` (SHA-256
+`56840b9e6ccd461e7402a16a708638ff82d795589535639890bb4a97cf4797fe`); the
+candidate SHA-256 is
+`99b666928b6a0952c5669a419b35c59776ce2264b4a9e6b07db0012acc7a496a`.
+The independent UV checks passed: 20,069 vertices, 57,128 edges, 37,060
+triangles, 3,076 source-provenanced boundary vertices, Euler characteristic 1,
+no non-manifold edges, no inconsistent interior edge winding, and no tested
+vertices or edge midpoints outside the trim. UV area was
+`0.9869575847275533` versus `0.9869575847275449` for the source trim, and the
+minimum UV angle was `20.00227905484014` degrees. The optimized containment
+oracle was checked against the original predicate on 1,089 points over the
+actual trim plus 20 endpoint, sloped-edge, horizontal-edge, and bucket-seam
+regression points. This is differential evidence for this normalized fixture
+and these cases, not a proof over every finite floating-point input.
+
+This is still only UV-domain/topology evidence for one face. Full 3D surface
+deviation was not performed; the preceding source-surface candidate's normal
+orientation failure remains unresolved; and this is not whole-solid
+qualification. The candidate reports `geometryQualified=false`, `admitted=false`,
+and `exportsProduced=[]`. It does not change production STEP/GLB
+export.
+
+To reproduce with a materialized dataset source and local Rust release tools:
+
+```powershell
+$source = 'path\to\embedded-models\16.step'
+cargo build --locked --manifest-path experiments/step-evaluation/Cargo.toml `
+  --release --bin tokito-step-evaluation --bin model16_spade_candidate `
+  --target-dir target\model16-source-curve-quality-probes
+python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
+  --binary target\model16-source-curve-quality-probes\release\tokito-step-evaluation.exe `
+  --candidate-generator target\model16-source-curve-quality-probes\release\model16_spade_candidate.exe `
+  --source $source `
+  --output target\model16-source-curve-quality-e2e
+```
+
 One explicit input path is required. The probe refuses Git LFS pointer text and input beyond 32 MiB before parsing. It caps parser instances at 250,000, parameter depth at 48, individual strings at 1 MiB, triangles at 1,000,000 and curve samples at 16,384. Absolute chordal tolerance requested from the reader is 10 micrometres. These are resource controls, not a hard process timeout or a proven worst-case memory bound.
 
 The output is machine-readable JSON. A reader-returned model includes source SHA-256, declared AP schema, reader-reported metres per output unit, part/root/child occurrence counts, triangles, shape/triangle colour counts, triangle face provenance entries, nonfinite positions, duration, and warning total. Up to 128 warning details of 512 Unicode characters each are retained; truncation is explicit. Any reader warning adds `reader_warnings_or_partial_geometry` to the rejection reasons. Fatal errors emit JSON and exit 2 without fabricated geometry fields.

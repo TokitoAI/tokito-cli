@@ -11,6 +11,8 @@ SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138
 SOURCE_REPRESENTATION_ID = 5957
 SOURCE_CONTEXT_ID = 206
 DECLARED_SOURCE_UNCERTAINTY = 1e-5
+MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS = DECLARED_SOURCE_UNCERTAINTY
+POLYGON_BOUNDARY_TOLERANCE = 1e-10
 FREECAD_REFERENCE_REPORT_SHA256 = "3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc"
 EXPECTED_ORIENTED_EDGES = [2809, 470, 7109, 4933]
 MAX_EDGE_CURVE_CONTROL_POINT_STORAGE_BUDGET = 65_536
@@ -288,6 +290,160 @@ def point_in_polygon(point: tuple[float, float], loop: list[tuple[float, float]]
     return inside
 
 
+class PolygonPointIndex:
+    """Y-bucket the same ray-crossing predicate to keep large E2E checks bounded."""
+
+    def __init__(self, loop: list[tuple[float, float]], bucket_count: int = 1024) -> None:
+        if len(loop) < 3 or bucket_count < 1:
+            raise ValueError("polygon point index requires a polygon and positive bucket count")
+        self.loop = loop
+        self.bucket_count = bucket_count
+        self.minimum_y = min(point[1] for point in loop)
+        self.maximum_y = max(point[1] for point in loop)
+        self.y_span = self.maximum_y - self.minimum_y
+        if not math.isfinite(self.y_span) or self.y_span <= 0.0:
+            raise ValueError("polygon point index has no finite vertical span")
+        self.buckets: list[list[tuple[tuple[float, float], tuple[float, float]]]] = [
+            [] for _ in range(bucket_count)
+        ]
+        self.boundary_buckets: list[list[tuple[tuple[float, float], tuple[float, float]]]] = [
+            [] for _ in range(bucket_count)
+        ]
+        self.minimum_boundary_query_y = math.inf
+        self.maximum_boundary_query_y = -math.inf
+        previous = loop[-1]
+        for current in loop:
+            low = min(previous[1], current[1])
+            high = max(previous[1], current[1])
+            endpoint_extension = POLYGON_BOUNDARY_TOLERANCE * (
+                1.0 + abs(current[1] - previous[1])
+            )
+            boundary_low = math.nextafter(low - endpoint_extension, -math.inf)
+            boundary_high = math.nextafter(high + endpoint_extension, math.inf)
+            self.minimum_boundary_query_y = min(self.minimum_boundary_query_y, boundary_low)
+            self.maximum_boundary_query_y = max(self.maximum_boundary_query_y, boundary_high)
+            first = self._bucket(boundary_low)
+            last = self._bucket(boundary_high)
+            for bucket in range(first, last + 1):
+                self.boundary_buckets[bucket].append((previous, current))
+            if low != high:
+                first = self._bucket(low)
+                last = self._bucket(high)
+                for bucket in range(first, last + 1):
+                    self.buckets[bucket].append((current, previous))
+            previous = current
+
+    def _bucket(self, y: float) -> int:
+        scaled = (y - self.minimum_y) / self.y_span * self.bucket_count
+        return min(self.bucket_count - 1, max(0, int(scaled)))
+
+    def contains(self, point: tuple[float, float]) -> bool:
+        y = point[1]
+        if y < self.minimum_boundary_query_y or y > self.maximum_boundary_query_y:
+            return False
+        # Preserve the reference predicate's boundary-is-inside behavior while
+        # limiting the exact segment test to edges whose Y interval contains y.
+        for start, end in self.boundary_buckets[self._bucket(y)]:
+            dx = end[0] - start[0]
+            dy = end[1] - start[1]
+            length_squared = dx * dx + dy * dy
+            if length_squared == 0.0:
+                continue
+            offset_x = point[0] - start[0]
+            offset_y = y - start[1]
+            parameter = (offset_x * dx + offset_y * dy) / length_squared
+            if -POLYGON_BOUNDARY_TOLERANCE <= parameter <= 1.0 + POLYGON_BOUNDARY_TOLERANCE:
+                projected = (start[0] + parameter * dx, start[1] + parameter * dy)
+                if math.hypot(point[0] - projected[0], y - projected[1]) <= POLYGON_BOUNDARY_TOLERANCE:
+                    return True
+        inside = False
+        for current, previous in self.buckets[self._bucket(y)]:
+            if (current[1] > y) != (previous[1] > y) and point[0] < (
+                (previous[0] - current[0]) * (y - current[1])
+                / (previous[1] - current[1])
+                + current[0]
+            ):
+                inside = not inside
+        return inside
+
+
+def verify_polygon_index_matches_reference(loop: list[tuple[float, float]]) -> int:
+    indexed = PolygonPointIndex(loop)
+    minimum_x = min(point[0] for point in loop)
+    maximum_x = max(point[0] for point in loop)
+    minimum_y = min(point[1] for point in loop)
+    maximum_y = max(point[1] for point in loop)
+    samples = 33
+    checked = 0
+    for row in range(samples):
+        y = minimum_y + (maximum_y - minimum_y) * row / (samples - 1)
+        for column in range(samples):
+            x = minimum_x + (maximum_x - minimum_x) * column / (samples - 1)
+            point = (x, y)
+            if indexed.contains(point) != point_in_polygon(point, loop):
+                raise ValueError("bucketed point-in-loop oracle differs from the reference predicate")
+            checked += 1
+    return checked
+
+
+def verify_polygon_index_boundary_cases() -> int:
+    tolerance = POLYGON_BOUNDARY_TOLERANCE
+    fixtures = [
+        (
+            [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)],
+            4,
+            [
+                (0.5, -0.5 * tolerance),
+                (0.5, -1.1 * tolerance),
+                (0.0, 0.0),
+                (0.5, 0.0),
+                (0.5, 0.5),
+                (1.0, 0.5),
+                (0.5, 1.0),
+                (0.5, 1.0 + 0.5 * tolerance),
+                (0.5, 1.0 + 1.1 * tolerance),
+                (-0.5 * tolerance, 0.5),
+            ],
+        ),
+        (
+            [
+                (0.0, 0.0), (0.25, 0.0), (0.25, 0.5), (0.75, 0.5),
+                (0.75, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0),
+            ],
+            2,
+            [
+                (0.5, 0.5 - 0.5 * tolerance),
+                (0.5, 0.5),
+                (0.5, 0.5 + 0.5 * tolerance),
+                (0.5, 0.5 - 2.0 * tolerance),
+                (0.25, 0.5),
+                (0.75, 0.5),
+                (0.5, 0.5 + 2.0 * tolerance),
+            ],
+        ),
+        (
+            [(0.0, 0.0), (1.0, 1.0), (0.0, 1.0)],
+            2,
+            [
+                (
+                    -0.5 * tolerance - 0.5 * tolerance / math.sqrt(2.0),
+                    -0.5 * tolerance + 0.5 * tolerance / math.sqrt(2.0),
+                ),
+                (0.5 - 0.5 * tolerance / math.sqrt(2.0), 0.5 + 0.5 * tolerance / math.sqrt(2.0)),
+                (0.5 + 0.5 * tolerance / math.sqrt(2.0), 0.5 - 0.5 * tolerance / math.sqrt(2.0)),
+            ],
+        ),
+    ]
+    checked = 0
+    for loop, bucket_count, points in fixtures:
+        indexed = PolygonPointIndex(loop, bucket_count=bucket_count)
+        for point in points:
+            if indexed.contains(point) != point_in_polygon(point, loop):
+                raise ValueError("bucketed point-in-loop oracle differs on a boundary fixture")
+            checked += 1
+    return checked
+
+
 def point_on_polygon_boundary(point: tuple[float, float], loop: list[tuple[float, float]]) -> bool:
     for index, start in enumerate(loop):
         end = loop[(index + 1) % len(loop)]
@@ -299,9 +455,9 @@ def point_on_polygon_boundary(point: tuple[float, float], loop: list[tuple[float
         offset_x = point[0] - start[0]
         offset_y = point[1] - start[1]
         parameter = (offset_x * dx + offset_y * dy) / length_squared
-        if -1e-10 <= parameter <= 1.0 + 1e-10:
+        if -POLYGON_BOUNDARY_TOLERANCE <= parameter <= 1.0 + POLYGON_BOUNDARY_TOLERANCE:
             projected = (start[0] + parameter * dx, start[1] + parameter * dy)
-            if math.hypot(point[0] - projected[0], point[1] - projected[1]) <= 1e-10:
+            if math.hypot(point[0] - projected[0], point[1] - projected[1]) <= POLYGON_BOUNDARY_TOLERANCE:
                 return True
     return False
 
@@ -353,6 +509,286 @@ def _boundary_polyline_covered(
     return True
 
 
+def ordered_source_boundary_points(
+    diagnostic: dict, selected_quality_probe_indices: list[int]
+) -> list[dict]:
+    """Rebuild the boundary from independently recorded source-curve samples."""
+    trim = diagnostic.get("trimCandidate", {})
+    raw_samples = trim.get("boundarySamples")
+    raw_probes = trim.get("boundaryRefinementProbes")
+    raw_quality_probes = trim.get("boundaryQualityProbes")
+    if not isinstance(raw_samples, list) or len(raw_samples) != 100:
+        raise ValueError("pinned diagnostic boundary sample count changed")
+    if not isinstance(raw_probes, list) or len(raw_probes) > 20_000:
+        raise ValueError("pinned diagnostic source-curve probes are missing or over budget")
+    if (
+        not isinstance(raw_quality_probes, list)
+        or len(raw_quality_probes) != trim.get("boundaryQualityProbeCount")
+        or len(raw_quality_probes) > 8_192
+        or trim.get("boundaryQualityProbeSelectionResidualSourceUnits")
+        != MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+        or trim.get("boundaryQualityProbeSelectionIsGeometryAdmissionTolerance") is not False
+    ):
+        raise ValueError("pinned diagnostic source-curve quality-probe inventory changed")
+    if (
+        not isinstance(selected_quality_probe_indices, list)
+        or not selected_quality_probe_indices
+        or len(selected_quality_probe_indices) > len(raw_quality_probes)
+        or any(
+            not isinstance(index, int)
+            or isinstance(index, bool)
+            or not 0 <= index < len(raw_quality_probes)
+            for index in selected_quality_probe_indices
+        )
+        or len(set(selected_quality_probe_indices)) != len(selected_quality_probe_indices)
+    ):
+        raise ValueError("candidate-selected quality-probe indices are invalid")
+    selected_quality_probe_set = set(selected_quality_probe_indices)
+    samples: list[dict | None] = [None] * len(raw_samples)
+    for row in raw_samples:
+        index = row.get("boundaryIndex")
+        if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(samples) or samples[index] is not None:
+            raise ValueError("source boundary sample index is invalid")
+        samples[index] = row
+    if any(row is None for row in samples):
+        raise ValueError("source boundary sample index is missing")
+
+    def parse(
+        row: dict,
+        boundary_index: int | None,
+        probe_index: int | None,
+        quality_probe_index: int | None = None,
+    ) -> dict:
+        loop_index = row.get("loopIndex")
+        parameter = row.get("curveParameter")
+        oriented_edge_id = row.get("orientedEdgeId")
+        edge_curve_id = row.get("edgeCurveId")
+        curve_geometry_id = row.get("curveGeometryId")
+        if (
+            not isinstance(loop_index, int) or isinstance(loop_index, bool) or not 0 <= loop_index < 4
+            or not is_json_number(parameter) or not math.isfinite(float(parameter))
+            or not isinstance(oriented_edge_id, int) or oriented_edge_id <= 0
+            or not isinstance(edge_curve_id, int) or edge_curve_id <= 0
+            or not isinstance(curve_geometry_id, int) or curve_geometry_id <= 0
+        ):
+            raise ValueError("source boundary curve provenance is malformed")
+        point = _uv_point(row.get("candidateUv"))
+        source = row.get("sourcePointSourceUnits")
+        if not isinstance(source, list) or len(source) != 3 or any(
+            not is_json_number(value) or not math.isfinite(float(value)) for value in source
+        ):
+            raise ValueError("source boundary physical point is malformed")
+        sample_index = row.get("sampleIndex") if boundary_index is not None else None
+        if boundary_index is not None and (
+            not isinstance(sample_index, int) or isinstance(sample_index, bool) or sample_index < 0
+        ):
+            raise ValueError("source boundary sample provenance is incomplete")
+        return {
+            "loopIndex": loop_index,
+            "curveParameter": float(parameter),
+            "candidateUv": list(point),
+            "sourcePointSourceUnits": [float(value) for value in source],
+            "orientedEdgeId": oriented_edge_id,
+            "edgeCurveId": edge_curve_id,
+            "curveGeometryId": curve_geometry_id,
+            "boundaryIndex": boundary_index,
+            "sampleIndex": sample_index,
+            "probeIndex": probe_index,
+            "qualityProbeIndex": quality_probe_index,
+        }
+
+    by_edge: dict[int, list[dict]] = {index: [] for index in range(4)}
+    for index, row in enumerate(samples):
+        assert row is not None
+        point = parse(row, index, None)
+        by_edge[point["loopIndex"]].append(point)
+    retained_probe_count = 0
+    additional_low_residual_probe_count = 0
+    for probe_index, row in enumerate(raw_probes):
+        retained = row.get("retainedInCandidate")
+        projection_converged = row.get("projectionConverged")
+        if not isinstance(retained, bool) or not isinstance(projection_converged, bool):
+            raise ValueError("source boundary probe selection evidence is incomplete")
+        projection_residual = row.get("projectionResidualSourceUnits")
+        surface_residual = row.get("surfaceResidualSourceUnits")
+        low_residual = (
+            is_json_number(projection_residual)
+            and math.isfinite(float(projection_residual))
+            and projection_residual >= 0
+            and projection_residual <= MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+            and is_json_number(surface_residual)
+            and math.isfinite(float(surface_residual))
+            and surface_residual >= 0
+            and surface_residual <= MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+        )
+        if not retained and not low_residual:
+            continue
+        point = parse(row, None, probe_index)
+        by_edge[point["loopIndex"]].append(point)
+        if retained:
+            retained_probe_count += 1
+        else:
+            additional_low_residual_probe_count += 1
+
+    expected_quality_intervals: set[tuple] = set()
+    for loop_index in range(4):
+        edge_rows = [row for row in by_edge[loop_index] if row["boundaryIndex"] is not None]
+        if len(edge_rows) < 2:
+            raise ValueError("source edge has too few boundary samples for quality probes")
+        first_parameter = edge_rows[0]["curveParameter"]
+        direction = next(
+            (
+                1 if row["curveParameter"] > first_parameter else -1
+                for row in edge_rows[1:]
+                if row["curveParameter"] != first_parameter
+            ),
+            0,
+        )
+        if direction == 0:
+            raise ValueError("source edge curve-parameter direction is undefined")
+        interval_points = sorted(
+            by_edge[loop_index],
+            key=lambda row: row["curveParameter"],
+            reverse=direction < 0,
+        )
+        deduplicated: list[dict] = []
+        for row in interval_points:
+            if (
+                deduplicated
+                and row["curveParameter"] == deduplicated[-1]["curveParameter"]
+                and row["candidateUv"] == deduplicated[-1]["candidateUv"]
+            ):
+                continue
+            deduplicated.append(row)
+        for start, end in zip(deduplicated, deduplicated[1:]):
+            if start["curveParameter"] == end["curveParameter"]:
+                raise ValueError("source boundary has conflicting equal-parameter samples")
+            expected_quality_intervals.add(
+                (
+                    loop_index,
+                    start["curveParameter"],
+                    end["curveParameter"],
+                    tuple(start["candidateUv"]),
+                    tuple(end["candidateUv"]),
+                )
+            )
+
+    for quality_probe_index, row in enumerate(raw_quality_probes):
+        if row.get("qualityProbeIndex") != quality_probe_index:
+            raise ValueError("source curve quality-probe index changed")
+        start_parameter = row.get("intervalStartCurveParameter")
+        end_parameter = row.get("intervalEndCurveParameter")
+        parameter = row.get("curveParameter")
+        if (
+            not is_json_number(start_parameter)
+            or not is_json_number(end_parameter)
+            or not is_json_number(parameter)
+            or start_parameter == end_parameter
+            or parameter != (start_parameter + end_parameter) * 0.5
+        ):
+            raise ValueError("quality probe is not an exact source-curve interval midpoint")
+        projection_residual = row.get("projectionResidualSourceUnits")
+        surface_residual = row.get("surfaceResidualSourceUnits")
+        if (
+            not is_json_number(projection_residual)
+            or not is_json_number(surface_residual)
+            or not math.isfinite(float(projection_residual))
+            or not math.isfinite(float(surface_residual))
+            or projection_residual < 0
+            or surface_residual < 0
+            or projection_residual > MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+            or surface_residual > MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+            or not isinstance(row.get("projectionConverged"), bool)
+            or row.get("projectionStartCount") != 1
+        ):
+            raise ValueError("quality probe residual or projection evidence is invalid")
+        loop_index = row.get("loopIndex")
+        start_uv = _uv_point(row.get("intervalStartCandidateUv"))
+        end_uv = _uv_point(row.get("intervalEndCandidateUv"))
+        if row.get("projectionSeedUv") != [
+            (start_uv[0] + end_uv[0]) * 0.5,
+            (start_uv[1] + end_uv[1]) * 0.5,
+        ]:
+            raise ValueError("quality probe seed is not its source interval chord midpoint")
+        interval = (
+            loop_index,
+            float(start_parameter),
+            float(end_parameter),
+            tuple(start_uv),
+            tuple(end_uv),
+        )
+        if interval not in expected_quality_intervals:
+            raise ValueError("quality probe does not correspond to a selected source boundary interval")
+        expected_quality_intervals.remove(interval)
+        if quality_probe_index in selected_quality_probe_set:
+            by_edge[loop_index].append(parse(row, None, None, quality_probe_index))
+    if expected_quality_intervals:
+        raise ValueError("source boundary quality probes omit selected curve intervals")
+
+    ordered: list[dict] = []
+    for loop_index in range(4):
+        edge_rows = [row for row in by_edge[loop_index] if row["boundaryIndex"] is not None]
+        if len(edge_rows) < 2:
+            raise ValueError("source edge has too few boundary samples")
+        direction = 0
+        first_parameter = edge_rows[0]["curveParameter"]
+        for row in edge_rows[1:]:
+            if row["curveParameter"] > first_parameter:
+                direction = 1
+                break
+            if row["curveParameter"] < first_parameter:
+                direction = -1
+                break
+        if direction == 0:
+            raise ValueError("source edge parameter direction is undefined")
+        first = edge_rows[0]
+        last = edge_rows[-1]
+        edge_points = by_edge[loop_index]
+        for row in edge_points:
+            if (
+                row["orientedEdgeId"] != first["orientedEdgeId"]
+                or row["curveGeometryId"] != first["curveGeometryId"]
+                or row["orientedEdgeId"] != last["orientedEdgeId"]
+                or row["curveGeometryId"] != last["curveGeometryId"]
+                or not min(first["curveParameter"], last["curveParameter"])
+                <= row["curveParameter"]
+                <= max(first["curveParameter"], last["curveParameter"])
+            ):
+                raise ValueError("source-curve probe does not belong to its trim edge")
+        edge_points.sort(
+            key=lambda row: row["curveParameter"],
+            reverse=direction < 0,
+        )
+        for left, right in zip(edge_points, edge_points[1:]):
+            if left["curveParameter"] == right["curveParameter"] and left["candidateUv"] != right["candidateUv"]:
+                raise ValueError("same source-curve parameter has conflicting UV points")
+        for point in edge_points:
+            if ordered and ordered[-1]["candidateUv"] == point["candidateUv"]:
+                if ordered[-1]["sourcePointSourceUnits"] != point["sourcePointSourceUnits"]:
+                    raise ValueError("adjacent source trim edges disagree at their junction")
+                continue
+            ordered.append(point)
+    if ordered and ordered[0]["candidateUv"] == ordered[-1]["candidateUv"]:
+        if ordered[0]["sourcePointSourceUnits"] != ordered[-1]["sourcePointSourceUnits"]:
+            raise ValueError("closed source trim endpoints disagree")
+        ordered.pop()
+    original = []
+    for row in samples:
+        assert row is not None
+        point = _uv_point(row.get("candidateUv"))
+        if not original or original[-1] != point:
+            original.append(point)
+    if original and original[0] == original[-1]:
+        original.pop()
+    if len(original) != 96 or not {tuple(point) for point in original}.issubset(
+        {tuple(row["candidateUv"]) for row in ordered}
+    ):
+        raise ValueError("source-bound refinement dropped an original trim sample")
+    if len(ordered) != 96 + retained_probe_count + additional_low_residual_probe_count + len(selected_quality_probe_indices):
+        raise ValueError("source-bound boundary point inventory is inconsistent")
+    return ordered
+
+
 def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> dict:
     """Recompute UV mesh metrics and incidence without trusting candidate summaries."""
     raw_triangles = candidate.get("trianglesUv")
@@ -366,6 +802,9 @@ def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> 
     minimum_angle = math.inf
     maximum_area = 0.0
     loop = [_uv_point(point) for point in raw_loop]
+    polygon_index = PolygonPointIndex(loop)
+    polygon_index_reference_samples = verify_polygon_index_matches_reference(loop)
+    polygon_index_boundary_case_samples = verify_polygon_index_boundary_cases()
     for raw_triangle in raw_triangles:
         if not isinstance(raw_triangle, list) or len(raw_triangle) != 3:
             raise ValueError("candidate contains malformed UV triangle")
@@ -393,42 +832,51 @@ def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> 
             sum(point[0] for point in triangle) / 3.0,
             sum(point[1] for point in triangle) / 3.0,
         )
-        loop_points = [_uv_point(point) for point in raw_loop]
-        if not point_in_polygon(centroid, loop_points):
+        if not polygon_index.contains(centroid):
             raise ValueError("candidate triangle centroid lies outside the pinned trim loop")
 
-    diagnostic_samples = diagnostic.get("trimCandidate", {}).get("boundarySamples")
-    if not isinstance(diagnostic_samples, list) or len(diagnostic_samples) != 100:
-        raise ValueError("pinned diagnostic boundary samples changed")
-    ordered: list[tuple[float, float] | None] = [None] * len(diagnostic_samples)
-    for sample in diagnostic_samples:
-        index = sample.get("boundaryIndex")
-        if not isinstance(index, int) or isinstance(index, bool) or not 0 <= index < len(ordered) or ordered[index] is not None:
-            raise ValueError("pinned diagnostic boundary sample index is invalid")
-        ordered[index] = _uv_point(sample.get("candidateUv"))
-    unique_loop: list[tuple[float, float]] = []
-    for point in ordered:
-        if point is None:
-            raise ValueError("pinned diagnostic boundary sample is absent")
-        if not unique_loop or unique_loop[-1] != point:
-            unique_loop.append(point)
-    if unique_loop[0] == unique_loop[-1]:
-        unique_loop.pop()
-    if len(unique_loop) != 96 or len(loop) != len(unique_loop) or any(
-        math.hypot(actual[0] - expected[0], actual[1] - expected[1]) > 1e-12
-        for actual, expected in zip(loop, unique_loop)
+    selected_quality_probe_indices = candidate.get("matchedQualityProbeIndices")
+    initial_split_points = candidate.get("initialRefinementBoundarySplitPointsUv")
+    raw_quality_probes = diagnostic.get("trimCandidate", {}).get("boundaryQualityProbes", [])
+    if (
+        not isinstance(selected_quality_probe_indices, list)
+        or not isinstance(initial_split_points, list)
+        or len(selected_quality_probe_indices) != len(initial_split_points)
+        or candidate.get("matchedInitialBoundarySplitCount") != len(initial_split_points)
+        or candidate.get("availableQualitySourceCurveBoundaryProbeCount") != len(raw_quality_probes)
     ):
-        raise ValueError("candidate UV trim loop differs from source diagnostic samples")
+        raise ValueError("candidate did not account for every initial Spade boundary split")
+    for split_uv, quality_index in zip(initial_split_points, selected_quality_probe_indices):
+        split = _uv_point(split_uv)
+        if (
+            not isinstance(quality_index, int)
+            or isinstance(quality_index, bool)
+            or not 0 <= quality_index < len(raw_quality_probes)
+            or math.dist(split, _uv_point(raw_quality_probes[quality_index].get("projectionSeedUv")))
+            > 1e-9
+        ):
+            raise ValueError("initial Spade split does not match its source-interval UV chord midpoint")
+    expected_boundary_points = ordered_source_boundary_points(
+        diagnostic, selected_quality_probe_indices
+    )
+    candidate_boundary_points = candidate.get("sourceBoundaryPoints")
+    if candidate_boundary_points != expected_boundary_points:
+        raise ValueError("candidate boundary points are not the retained source-curve samples")
+    expected_loop = [tuple(row["candidateUv"]) for row in expected_boundary_points]
+    if len(loop) != len(expected_loop) or any(
+        actual != expected for actual, expected in zip(loop, expected_loop)
+    ):
+        raise ValueError("candidate trim loop differs from retained source-curve samples")
 
     if not {_point_key(point) for point in loop}.issubset(vertices):
         raise ValueError("candidate mesh does not preserve every original trim-loop vertex")
-    outside_mesh_vertex_count = sum(not point_in_polygon(point, loop) for point in vertices)
+    outside_mesh_vertex_count = sum(not polygon_index.contains(point) for point in vertices)
     unique_edges = [
         (edge[0], edge[1])
         for edge in edges
     ]
     outside_edge_midpoint_count = sum(
-        not point_in_polygon(((a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5), loop)
+        not polygon_index.contains(((a[0] + b[0]) * 0.5, (a[1] + b[1]) * 0.5))
         for a, b in unique_edges
     )
     trim_area = abs(sum(
@@ -442,6 +890,7 @@ def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> 
         raise ValueError("candidate triangle area does not cover the trim polygon area")
 
     boundary_edges = [edge for edge, (count, _) in edges.items() if count == 1]
+    boundary_vertices = {vertex for edge in boundary_edges for vertex in edge}
     nonmanifold_edges = sum(count > 2 for count, _ in edges.values())
     inconsistent_winding = sum(count == 2 and direction != 0 for count, direction in edges.values())
     euler = len(vertices) - len(edges) + len(raw_triangles)
@@ -450,11 +899,32 @@ def independently_measure_spade_candidate(candidate: dict, diagnostic: dict) -> 
         "edges": len(edges),
         "triangles": len(raw_triangles),
         "boundaryEdges": len(boundary_edges),
+        "boundaryVertices": len(boundary_vertices),
         "nonmanifoldEdges": nonmanifold_edges,
         "inconsistentInteriorEdgeWindingCount": inconsistent_winding,
         "eulerCharacteristic": euler,
         "boundaryPolylineCovered": _boundary_polyline_covered(boundary_edges, loop),
-        "boundaryLoopVerticesPreserved": True,
+        "boundaryLoopVerticesPreserved": {_point_key(point) for point in loop}.issubset(vertices),
+        "sourceBoundaryVertexCount": len(expected_boundary_points),
+        "polygonIndexReferenceSamples": polygon_index_reference_samples,
+        "polygonIndexBoundaryCaseSamples": polygon_index_boundary_case_samples,
+        "retainedSourceBoundaryProbeCount": sum(
+            diagnostic["trimCandidate"]["boundaryRefinementProbes"][row["probeIndex"]]["retainedInCandidate"]
+            for row in expected_boundary_points
+            if row["probeIndex"] is not None
+        ),
+        "additionalSourceCurveBoundaryProbeCount": sum(
+            not diagnostic["trimCandidate"]["boundaryRefinementProbes"][row["probeIndex"]]["retainedInCandidate"]
+            and diagnostic["trimCandidate"]["boundaryRefinementProbes"][row["probeIndex"]]["projectionResidualSourceUnits"]
+            <= MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+            and diagnostic["trimCandidate"]["boundaryRefinementProbes"][row["probeIndex"]]["surfaceResidualSourceUnits"]
+            <= MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+            for row in expected_boundary_points
+            if row["probeIndex"] is not None
+        ),
+        "qualitySourceCurveBoundaryProbeCount": sum(
+            row["qualityProbeIndex"] is not None for row in expected_boundary_points
+        ),
         "allMeshVerticesInsideOrOnTrim": True,
         "allEdgeMidpointsInsideOrOnTrim": True,
         "trimLoopArea": trim_area,
@@ -1052,6 +1522,8 @@ def run(
             if (
                 candidate.get("schema") != "tokito.spade-model16-remesh-candidate.v1"
                 or candidate.get("researchOnly") is not True
+                or candidate.get("scope")
+                != "pinned model-16 face 2875 UV remesh experiment; original diagnostic boundary samples and eligible source-curve probes form the initial boundary; each initial Spade boundary split is associated with a unique source interval by its UV chord midpoint, then replaced by the projected source-curve arithmetic parameter midpoint; no geometry admission or export is performed"
                 or candidate.get("sourceFaceId") != 2875
                 or candidate.get("sourceSha256") != before[str(source)]
                 or candidate.get("diagnosticSha256") != receipt["diagnosticSha256"]
@@ -1060,7 +1532,24 @@ def run(
                 or candidate.get("spadeVersion") != "2.15.1"
                 or candidate.get("angleLimitDegrees") != 20.0
                 or candidate.get("maxUvTriangleArea") != 0.00005
-                or candidate.get("keepConstraintEdges") is not False
+                or candidate.get("keepConstraintEdges") is not True
+                or candidate.get("parameters", {}).get(
+                    "additionalBoundaryProbeResidualSelectionLimitSourceUnits"
+                ) != MAX_ADDITIONAL_BOUNDARY_PROBE_RESIDUAL_SOURCE_UNITS
+                or candidate.get("parameters", {}).get(
+                    "additionalBoundaryProbeResidualIsAdmissionTolerance"
+                ) is not False
+                or candidate.get("parameters", {}).get("qualityProbeSelectionStrategy")
+                != "associate_each_initial_spade_boundary_split_to_a_unique_source_interval_by_uv_chord_midpoint_then_insert_projected_curve_interval_midpoint"
+                or candidate.get("originalBoundarySampleCount") != 96
+                or candidate.get("retainedSourceBoundaryProbeCount")
+                != independently_measured["retainedSourceBoundaryProbeCount"]
+                or candidate.get("additionalSourceCurveBoundaryProbeCount")
+                != independently_measured["additionalSourceCurveBoundaryProbeCount"]
+                or candidate.get("qualitySourceCurveBoundaryProbeCount")
+                != independently_measured["qualitySourceCurveBoundaryProbeCount"]
+                or candidate.get("sourceBoundaryVertexCount")
+                != independently_measured["sourceBoundaryVertexCount"]
                 or candidate.get("refinementComplete") is not True
                 or candidate.get("geometryQualified") is not False
                 or candidate.get("admitted") is not False
@@ -1069,15 +1558,28 @@ def run(
                 or candidate_summary.get("admitted") is not False
                 or candidate_summary.get("exportsProduced") != []
                 or not 3 <= len(triangles) <= 50_000
-                or topology.get("vertices", 0) > 20_096
+                or topology.get("vertices", 0)
+                > independently_measured["sourceBoundaryVertexCount"] + 20_000
                 or topology.get("triangles") != len(triangles)
                 or topology.get("boundaryPolylineCovered") is not True
                 or topology.get("originalBoundarySamplesPreserved") is not True
+                or topology.get("boundaryEdges")
+                != independently_measured["sourceBoundaryVertexCount"]
+                or topology.get("boundaryVertices")
+                != independently_measured["sourceBoundaryVertexCount"]
                 or topology.get("nonmanifoldEdges") != 0
                 or topology.get("inconsistentInteriorEdgeWindingCount") != 0
                 or topology.get("eulerCharacteristic") != 1
                 or candidate.get("geometryEvaluation", {}).get("sourceEdgeCurveReevaluation")
-                != "not_performed"
+                != "evaluate_pinned_source_curve_at_arithmetic_parameter_midpoint_then_project_with_diagnostic_surface_solver"
+                or candidate.get("geometryEvaluation", {}).get("boundarySplitRepair")
+                != "replace_each_initial_spade_split_with_projected_source_curve_interval_midpoint"
+                or candidate.get("geometryEvaluation", {}).get("newBoundarySplitCount") != 0
+                or candidate.get("geometryEvaluation", {}).get("sourceBoundaryEdgeCountDelta") != 0
+                or candidate.get("geometryEvaluation", {}).get(
+                    "allBoundaryVerticesHaveSourceCurveProvenance"
+                ) is not True
+                or candidate.get("domainClassificationPointInLoopMismatchCount") != 0
                 or candidate.get("geometryEvaluation", {}).get("fullSurfaceDeviationBound")
                 != "not_performed"
                 or candidate_summary.get("candidateOutput") != str(candidate_path)
@@ -1089,6 +1591,17 @@ def run(
                 or candidate_summary.get("refinementComplete") is not True
                 or candidate_summary.get("vertices") != independently_measured["vertices"]
                 or candidate_summary.get("triangles") != independently_measured["triangles"]
+                or candidate_summary.get("sourceBoundaryVertices")
+                != independently_measured["sourceBoundaryVertexCount"]
+                or candidate_summary.get("originalBoundarySamples") != 96
+                or candidate_summary.get("retainedSourceBoundaryProbes")
+                != independently_measured["retainedSourceBoundaryProbeCount"]
+                or candidate_summary.get("additionalSourceCurveBoundaryProbes")
+                != independently_measured["additionalSourceCurveBoundaryProbeCount"]
+                or candidate_summary.get("qualitySourceCurveBoundaryProbes")
+                != independently_measured["qualitySourceCurveBoundaryProbeCount"]
+                or candidate_summary.get("boundaryEdgeCount")
+                != independently_measured["sourceBoundaryVertexCount"]
                 or candidate_summary.get("nonmanifoldEdges") != independently_measured["nonmanifoldEdges"]
                 or candidate_summary.get("boundaryPolylineCovered")
                 != independently_measured["boundaryPolylineCovered"]
@@ -1102,6 +1615,7 @@ def run(
                 or independently_measured["edges"] != topology.get("edges")
                 or independently_measured["triangles"] != topology.get("triangles")
                 or independently_measured["boundaryEdges"] != topology.get("boundaryEdges")
+                or independently_measured["boundaryVertices"] != topology.get("boundaryVertices")
                 or independently_measured["nonmanifoldEdges"] != topology.get("nonmanifoldEdges")
                 or independently_measured["inconsistentInteriorEdgeWindingCount"]
                 != topology.get("inconsistentInteriorEdgeWindingCount")

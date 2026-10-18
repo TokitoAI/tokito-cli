@@ -16,6 +16,8 @@ const MAX_CURVE_SPANS: usize = 256;
 const SAMPLES_PER_CURVE_SPAN: usize = 16;
 const MAX_BOUNDARY_SAMPLES: usize = 16_384;
 const MAX_BOUNDARY_REFINEMENT_PROBES: usize = 8_192;
+const MAX_BOUNDARY_QUALITY_PROBES: usize = 8_192;
+const BOUNDARY_QUALITY_PROBE_SELECTION_RESIDUAL_SOURCE_UNITS: f64 = 1e-5;
 const MAX_SAMPLE_DETAILS: usize = 128;
 const MAX_ORIENTATION_OBSERVATIONS: usize = 100_000;
 const MAX_ORIENTATION_DIAGNOSTIC_TRIANGLES: usize = 50_000;
@@ -1885,6 +1887,187 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
                 probe
             })
             .collect::<Vec<_>>();
+        // Record exact source-curve samples at the midpoint of every adjacent
+        // candidate boundary interval. The Spade experiment may need a boundary
+        // split to meet its angle target; it must be able to replace that split
+        // with a point evaluated on the STEP curve, never an unprovenanced chord
+        // midpoint. These probes are geometric evidence only and do not qualify
+        // the source model or relax the admission gates.
+        let mut quality_samples_by_edge = vec![Vec::<([f64; 2], f64)>::new(); edges.len()];
+        for row in &candidate_boundary_samples {
+            let loop_index = row["loopIndex"]
+                .as_u64()
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|index| *index < edges.len())
+                .ok_or("boundary_quality_sample_edge_invalid")?;
+            let curve_parameter = row["curveParameter"]
+                .as_f64()
+                .filter(|value| value.is_finite())
+                .ok_or("boundary_quality_sample_parameter_invalid")?;
+            let uv = row["candidateUv"]
+                .as_array()
+                .filter(|values| values.len() == 2)
+                .map(|values| {
+                    [
+                        values[0].as_f64().unwrap_or(f64::NAN),
+                        values[1].as_f64().unwrap_or(f64::NAN),
+                    ]
+                })
+                .filter(|uv| uv.iter().all(|value| value.is_finite()))
+                .ok_or("boundary_quality_sample_uv_invalid")?;
+            quality_samples_by_edge[loop_index].push((uv, curve_parameter));
+        }
+        let mut eligible_refinement_probe_count = 0usize;
+        for row in &boundary_refinement_probes {
+            let retained = row["retainedInCandidate"]
+                .as_bool()
+                .ok_or("boundary_quality_probe_retention_status_missing")?;
+            let projection_residual = row["projectionResidualSourceUnits"].as_f64();
+            let surface_residual = row["surfaceResidualSourceUnits"].as_f64();
+            let selected_by_residual = matches!(
+                (projection_residual, surface_residual),
+                (Some(projection), Some(surface))
+                    if projection.is_finite()
+                        && surface.is_finite()
+                        && projection >= 0.0
+                        && surface >= 0.0
+                        && projection <= BOUNDARY_QUALITY_PROBE_SELECTION_RESIDUAL_SOURCE_UNITS
+                        && surface <= BOUNDARY_QUALITY_PROBE_SELECTION_RESIDUAL_SOURCE_UNITS
+            );
+            if !retained && !selected_by_residual {
+                continue;
+            }
+            let loop_index = row["loopIndex"]
+                .as_u64()
+                .and_then(|value| usize::try_from(value).ok())
+                .filter(|index| *index < edges.len())
+                .ok_or("boundary_quality_probe_edge_invalid")?;
+            let curve_parameter = row["curveParameter"]
+                .as_f64()
+                .filter(|value| value.is_finite())
+                .ok_or("boundary_quality_probe_parameter_invalid")?;
+            let uv = row["candidateUv"]
+                .as_array()
+                .filter(|values| values.len() == 2)
+                .map(|values| {
+                    [
+                        values[0].as_f64().unwrap_or(f64::NAN),
+                        values[1].as_f64().unwrap_or(f64::NAN),
+                    ]
+                })
+                .filter(|uv| uv.iter().all(|value| value.is_finite()))
+                .ok_or("boundary_quality_probe_uv_invalid")?;
+            quality_samples_by_edge[loop_index].push((uv, curve_parameter));
+            eligible_refinement_probe_count += 1;
+        }
+        let mut boundary_quality_probes = Vec::new();
+        for (loop_index, edge) in edges.iter().enumerate() {
+            let edge_samples = boundary_samples
+                .iter()
+                .filter(|(sample_edge_index, _, _, _)| *sample_edge_index == loop_index)
+                .collect::<Vec<_>>();
+            let first_parameter = edge_samples
+                .first()
+                .map(|(_, _, parameter, _)| *parameter)
+                .ok_or("boundary_quality_edge_samples_missing")?;
+            let last_parameter = edge_samples
+                .last()
+                .map(|(_, _, parameter, _)| *parameter)
+                .ok_or("boundary_quality_edge_samples_missing")?;
+            let direction = if last_parameter > first_parameter {
+                1.0
+            } else if last_parameter < first_parameter {
+                -1.0
+            } else {
+                return Err("boundary_quality_edge_parameter_direction_missing".into());
+            };
+            let samples = &mut quality_samples_by_edge[loop_index];
+            samples.sort_by(|left, right| {
+                let order = left.1.total_cmp(&right.1);
+                if direction < 0.0 {
+                    order.reverse()
+                } else {
+                    order
+                }
+            });
+            samples.dedup_by(|right, left| right.1 == left.1 && right.0 == left.0);
+            for pair in samples.windows(2) {
+                let (start_uv, start_parameter) = pair[0];
+                let (end_uv, end_parameter) = pair[1];
+                if start_parameter == end_parameter {
+                    return Err("boundary_quality_duplicate_parameter_conflict".into());
+                }
+                let curve_parameter = (start_parameter + end_parameter) * 0.5;
+                if !curve_parameter.is_finite()
+                    || curve_parameter < edge.curve_domain.0
+                    || curve_parameter > edge.curve_domain.1
+                {
+                    return Err("boundary_quality_midpoint_outside_source_curve_domain".into());
+                }
+                if boundary_quality_probes.len() >= MAX_BOUNDARY_QUALITY_PROBES {
+                    return Err("boundary_quality_probe_budget_exceeded".into());
+                }
+                let source_point = edge.curve.point_at(curve_parameter);
+                if source_point
+                    .iter()
+                    .any(|value| !value.is_finite() || value.abs() > 1e12)
+                {
+                    return Err("boundary_quality_source_curve_point_invalid".into());
+                }
+                let seed_uv = [
+                    (start_uv[0] + end_uv[0]) * 0.5,
+                    (start_uv[1] + end_uv[1]) * 0.5,
+                ];
+                let (projection, projection_starts) = multistart_inverse(
+                    &surface,
+                    source_point,
+                    &[seed_uv[0]],
+                    &[seed_uv[1]],
+                    &mut candidate_surface_evaluation_count,
+                    &mut control_point_evaluation_count,
+                )?;
+                if projection_starts != 1 {
+                    return Err("boundary_quality_projection_start_count_invalid".into());
+                }
+                let (u, _) = unwrap_parameter(projection.uv[0], seed_uv[0], u_period)?;
+                let (v, _) = unwrap_parameter(projection.uv[1], seed_uv[1], v_period)?;
+                let candidate_uv = [u, v];
+                let surface_point = eval_surface(
+                    &surface,
+                    candidate_uv,
+                    &mut candidate_surface_evaluation_count,
+                    &mut control_point_evaluation_count,
+                )?;
+                let surface_residual = distance(surface_point, source_point);
+                if !surface_residual.is_finite() {
+                    return Err("boundary_quality_surface_residual_invalid".into());
+                }
+                let chord_midpoint = seed_uv;
+                let chord_midpoint_deviation_uv = (candidate_uv[0] - chord_midpoint[0])
+                    .hypot(candidate_uv[1] - chord_midpoint[1]);
+                boundary_quality_probes.push(json!({
+                    "qualityProbeIndex": boundary_quality_probes.len(),
+                    "loopIndex": loop_index,
+                    "orientedEdgeId": edge.oriented_id,
+                    "edgeCurveId": edge.edge_id,
+                    "curveGeometryId": edge.curve_id,
+                    "intervalStartCurveParameter": start_parameter,
+                    "intervalEndCurveParameter": end_parameter,
+                    "intervalStartCandidateUv": start_uv,
+                    "intervalEndCandidateUv": end_uv,
+                    "curveParameter": curve_parameter,
+                    "sourcePointSourceUnits": source_point,
+                    "projectionSeedUv": seed_uv,
+                    "candidateUv": candidate_uv,
+                    "surfacePointSourceUnits": surface_point,
+                    "projectionResidualSourceUnits": projection.residual,
+                    "surfaceResidualSourceUnits": surface_residual,
+                    "projectionConverged": projection.converged,
+                    "projectionStartCount": projection_starts,
+                    "deviationFromChordMidpointUv": chord_midpoint_deviation_uv
+                }));
+            }
+        }
         Ok(json!({
             "status": "candidate_only",
             "algorithm": "bounded_simple_loop_ear_clipping_with_uniform_refinement_and_source_curve_boundary_midpoint_projection",
@@ -1907,6 +2090,11 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             "surfaceEvaluationCount": candidate_surface_evaluation_count,
             "boundaryRefinementProbeCount": boundary_refinement_probes.len(),
             "boundaryRefinementProbeBudget": MAX_BOUNDARY_REFINEMENT_PROBES,
+            "boundaryQualityProbeCount": boundary_quality_probes.len(),
+            "boundaryQualityProbeBudget": MAX_BOUNDARY_QUALITY_PROBES,
+            "boundaryQualityProbeSelectionResidualSourceUnits": BOUNDARY_QUALITY_PROBE_SELECTION_RESIDUAL_SOURCE_UNITS,
+            "boundaryQualityProbeSelectionIsGeometryAdmissionTolerance": false,
+            "boundaryQualityInputRefinementProbeCount": eligible_refinement_probe_count,
             "uvVertices": refined.vertices,
             "surfacePointsSourceUnits": support_surface_points,
             "meshPointsSourceUnits": refined.points,
@@ -1923,6 +2111,7 @@ pub fn inspect(step: &StepFile, face_id: u64) -> Result<Json, String> {
             },
             "boundarySamples": candidate_boundary_samples,
             "boundaryRefinementProbes": boundary_refinement_probes,
+            "boundaryQualityProbes": boundary_quality_probes,
             "sourceMeshModified": false,
             "geometryQualified": false,
             "admitted": false,
