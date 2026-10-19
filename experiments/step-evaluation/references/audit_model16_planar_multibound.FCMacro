@@ -134,8 +134,11 @@ def main():
     triangles = mesh.get("triangles")
     if not isinstance(vertices, list) or not 4 <= len(vertices) <= 16384 or not isinstance(triangles, list) or not triangles or len(triangles) > 32768:
         raise ValueError("candidate mesh inventory invalid or over budget")
-    if len(diagnostic.get("rings", [])) != 2 or [r.get("sourceRole") for r in diagnostic["rings"]] != ["outer", "inner_or_unspecified"]:
-        raise ValueError("expected one outer and one explicit generic inner-bound candidate")
+    if (len(diagnostic.get("rings", [])) != 2
+            or [r.get("sourceRole") for r in diagnostic["rings"]] != ["outer", "inner"]
+            or [r.get("sourceEntityType") for r in diagnostic["rings"]] != ["FACE_OUTER_BOUND", "FACE_BOUND"]
+            or [r.get("triangulationTreatment") for r in diagnostic["rings"]] != ["outer", "interior_hole"]):
+        raise ValueError("expected one declared outer bound and one STEP-semantic inner bound")
     target = float(diagnostic["sampling"]["requestedQuarterMidpointChordTargetSourceUnits"])
     if not math.isfinite(target) or target <= 0.0 or not diagnostic["sampling"].get("certifiedContinuousCurveErrorBound") is False:
         raise ValueError("sampled target or certification scope invalid")

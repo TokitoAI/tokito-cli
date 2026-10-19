@@ -656,9 +656,17 @@ The next bounded Rust experiment handles only source face `8127` in the pinned
 ESP8266 `16.step` model (`representation 5957`, owner `6218`, SHA-256
 `7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`). The
 face uses plane `6835`, an outer loop with four line edges, and a second loop
-carried by a generic `FACE_BOUND`. The generic bound is preserved as
-`inner_or_unspecified` in source provenance; it is treated as a hole only for
-this one mesh attempt after strict containment and non-intersection checks.
+carried by a generic `FACE_BOUND`. For this face, the source declares exactly
+one `FACE_OUTER_BOUND`; ISO 10303-42 defines the other loops as inside that
+outer loop, with the face interior outside those remaining loops. The selected
+generic `FACE_BOUND` therefore has inner-boundary semantics and is triangulated
+as a hole after strict containment and non-intersection checks. The experiment
+preserves both the raw STEP entity type and the interpreted face role. This
+classification is specific to a face with one explicit outer bound; the
+general topology inventory continues to preserve role uncertainty for other
+faces until their complete surface/embedding context is evaluated.
+
+Reference: [ISO 10303-42:2021 geometric and topological schema](https://www.steptools.com/stds/smrl/data/resource_docs/geometric_and_topological_representation/sys/5_schema.htm), clauses 5.5.18–5.5.20 (`face_bound`, `face_outer_bound`, and `face`).
 
 The research command evaluates full clamped B-spline edge domains at an
 explicit quarter/midpoint chord target, validates line endpoints against their
@@ -692,9 +700,10 @@ sampled geometric correspondence from each of the six ordered STEP
 endpoints. The largest retained source-edge sample-to-imported-edge gap is
 `1.9984e-15` source units (the explicit acceptance ceiling is `1e-7`). This
 does not prove exact topological identity or continuous curve agreement, nor is
-it a certified maximum curve error or tolerance policy. The generic
-`FACE_BOUND` role remains ambiguous at the source-format level, so the
-candidate's hole interpretation remains diagnostic only.
+it a certified maximum curve error or tolerance policy. Source topology now
+identifies the second loop as an inner boundary for this planar face, but this
+does not qualify the complete trimmed surface, any non-planar face, or the
+solid.
 
 The [five-check local E2E evidence](evidence/planar-multibound-face-20261019.json)
 records the pinned source, release binary, Rust/Python inputs, FreeCAD audit and

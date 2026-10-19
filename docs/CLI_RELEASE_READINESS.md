@@ -30,8 +30,11 @@ and [checkpoint evidence](evidence/shared-edges-20261019.json).
 ## Multi-bound planar face research status
 
 The original Rust research evaluator now creates a diagnostic triangulation for
-one pinned planar ESP8266 STEP face with one outer loop and an additional
-generic `FACE_BOUND`. A local FreeCAD 1.1.4 / OCCT 7.8.1 comparison uniquely
+one pinned planar ESP8266 STEP face with one declared `FACE_OUTER_BOUND` and an
+additional generic `FACE_BOUND`. Under ISO 10303-42, when an outer bound is
+explicitly declared, the other face loops lie inside it and are inner loops;
+the evaluator retains the raw entity type and reports that interpreted role.
+A local FreeCAD 1.1.4 / OCCT 7.8.1 comparison uniquely
 maps both sampled loops to distinct imported wires and finds a unique sampled
 geometric correspondence from each of the six STEP `EDGE_CURVE` IDs to an
 imported edge, checking source samples and both endpoints. The maximum measured
@@ -41,9 +44,10 @@ sampled area, all 516 triangle centroids and triangle winding. Rust and an
 independent Python check examine 132,870 triangle pairs for interior overlap.
 The sampled chord target is met, but continuous curve error is not certified
 and the result is not admitted to the product exporter. This remains one-face
-diagnostic evidence: the generic bound's engineering meaning, complete STEP
-component and solid qualification, and the product adapter remain open. It
-does not close issue #19. See the
+diagnostic evidence: complete STEP component/solid qualification and the
+product adapter remain open. It does not close issue #19. See
+[ISO 10303-42:2021 face/bound semantics](https://www.steptools.com/stds/smrl/data/resource_docs/geometric_and_topological_representation/sys/5_schema.htm),
+the
 [geometry evidence](GEOMETRY_RECOVERY_PLAN.md#pinned-planar-face-with-an-additional-bound-2026-10-19)
 and [captured receipt](evidence/planar-multibound-face-20261019.json).
 
@@ -61,14 +65,24 @@ synthetic mixed-pad footprint does not qualify its semantics or manufacturer
 land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
 The most recent full Windows verifier run passed **48/48 gates** on 2026-10-19
-at 16:17:20 UTC. Its local receipt is
-`target/delivery/local/20261019T161720Z-fd473781f83146bfa5d8f0979701fd0e/verification.json`
-(SHA-256 `967bc405b91a1e6322c13f609a3bea64da23abbdffb8d8048d9a6c371f4a2a65`).
-The evidence file records the receipt and its input fingerprint. The run reused
-the isolated D: Cargo target and did not receive optional live dataset board
-profiles, so it is not a clean-cache, independent-machine, installation,
-cross-platform or all-dataset-board test. No GitHub Actions ran; PR #45 remains
-open with no hosted checks or independent PR approval.
+at 16:29:19 UTC. Its local receipt is
+`target/delivery/local/20261019T162919Z-8432f67c6b324ff0a67d34c9d89a69ad/verification.json`
+(SHA-256 `ea91a61156f6b83566570ff864c6259d8f04f091724c8367e95e54b66f56f021`).
+The evidence file records the receipt and the input fingerprint captured by
+that run before its receipt metadata was added. It reused the isolated D: Cargo
+target and did not receive optional live dataset board profiles, so it is not a
+clean-cache, independent-machine, installation, cross-platform or all-dataset-
+board test.
+
+The updated face-bound semantic result was separately rerun against the pinned
+STEP source with the release evaluator and FreeCAD 1.1.4 / OCCT 7.8.1: **5/5**
+focused checks passed. Receipt:
+`D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v12/receipt.json`
+(SHA-256 `02b201470910100638b7e9ac9c78358ca6fea088d14f6966d7292b423ee5c8de`).
+This still establishes only sampled correspondence for one planar face, not
+continuous curve equivalence, a complete solid, or production STEP admission.
+No GitHub Actions ran; PR #45 remains open with no hosted checks or independent
+PR approval.
 
 This verifies the currently implemented local command suite; it does not close
 production gates below. Tokito CLI V1 remains not production-ready.

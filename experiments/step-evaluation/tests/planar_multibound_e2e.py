@@ -53,8 +53,14 @@ def validate_report(report):
     if report["sourceTopologicalShellPreflight"].get("sourceTopologicalClosedShellCandidateVerified") is not True:
         raise ValueError("whole-shell source topology preflight changed")
     rings = report.get("rings")
-    if not isinstance(rings, list) or len(rings) != 2 or [r.get("sourceRole") for r in rings] != ["outer", "inner_or_unspecified"]:
-        raise ValueError("expected outer loop and preserved generic face bound")
+    if not isinstance(rings, list) or len(rings) != 2:
+        raise ValueError("expected one source outer loop and one source inner loop")
+    if ([r.get("sourceRole") for r in rings] != ["outer", "inner"]
+            or [r.get("sourceEntityType") for r in rings] != ["FACE_OUTER_BOUND", "FACE_BOUND"]
+            or [r.get("triangulationTreatment") for r in rings] != ["outer", "interior_hole"]):
+        raise ValueError("source bound entity semantics were not preserved and applied")
+    if report.get("validation", {}).get("exactlyOneSourceOuterBound") is not True:
+        raise ValueError("face must have exactly one explicit source outer bound")
     all_points = []
     total_area = 0.0
     for ring in rings:

@@ -26,6 +26,7 @@ struct Sample {
 struct Ring {
     bound_id: u64,
     loop_id: u64,
+    source_entity_type: &'static str,
     source_role: &'static str,
     samples: Vec<Sample>,
     points: Vec<[f64; 2]>,
@@ -504,9 +505,9 @@ fn collect_ring(
     work: &mut SamplingWork,
 ) -> Result<Ring, String> {
     let bound = entity(step, bound_id, "FACE_BOUND")?;
-    let role = match bound.inst.keyword.as_str() {
-        "FACE_OUTER_BOUND" => "outer",
-        "FACE_BOUND" => "inner_or_unspecified",
+    let (source_entity_type, role) = match bound.inst.keyword.as_str() {
+        "FACE_OUTER_BOUND" => ("FACE_OUTER_BOUND", "outer"),
+        "FACE_BOUND" => ("FACE_BOUND", "inner"),
         _ => return Err("planar_face_unsupported_bound_kind".into()),
     };
     let bound_sense = bound
@@ -617,6 +618,7 @@ fn collect_ring(
     Ok(Ring {
         bound_id,
         loop_id,
+        source_entity_type,
         source_role: role,
         samples,
         points,
@@ -625,6 +627,25 @@ fn collect_ring(
         source_edge_curve_ids: ordered_edge_ids,
         source_edges,
     })
+}
+
+fn outer_ring_index(rings: &[Ring]) -> Result<usize, String> {
+    let outer_indices = rings
+        .iter()
+        .enumerate()
+        .filter_map(|(index, ring)| (ring.source_role == "outer").then_some(index))
+        .collect::<Vec<_>>();
+    if outer_indices.len() != 1 {
+        return Err("planar_face_requires_exactly_one_face_outer_bound".into());
+    }
+    let outer_index = outer_indices[0];
+    if rings.iter().enumerate().any(|(index, ring)| {
+        index != outer_index
+            && (ring.source_entity_type != "FACE_BOUND" || ring.source_role != "inner")
+    }) {
+        return Err("planar_face_non_outer_bound_role_unsupported".into());
+    }
+    Ok(outer_index)
 }
 
 fn triangulate(rings: &[Ring], same_sense: bool) -> Result<TriangulatedFace, String> {
@@ -812,27 +833,9 @@ pub(crate) fn inspect(step: &StepFile, face_id: u64, target: f64) -> Result<Json
         .iter()
         .map(|&id| collect_ring(step, face_id, id, &frame, target, &mut work))
         .collect::<Result<Vec<_>, _>>()?;
-    if rings
-        .iter()
-        .filter(|ring| ring.source_role == "outer")
-        .count()
-        != 1
-    {
-        return Err("planar_face_requires_exactly_one_face_outer_bound".into());
-    }
-    if rings[0].source_role != "outer" {
-        let outer_index = rings
-            .iter()
-            .position(|r| r.source_role == "outer")
-            .ok_or("planar_face_outer_bound_missing")?;
+    let outer_index = outer_ring_index(&rings)?;
+    if outer_index != 0 {
         rings.swap(0, outer_index);
-    }
-    if rings
-        .iter()
-        .skip(1)
-        .any(|ring| ring.source_role != "inner_or_unspecified")
-    {
-        return Err("planar_face_non_outer_bound_role_unsupported".into());
     }
     let mut intersection_tests = 0usize;
     for ring in &rings {
@@ -873,8 +876,8 @@ pub(crate) fn inspect(step: &StepFile, face_id: u64, target: f64) -> Result<Json
     Ok(json!({
         "schema":"tokito.planar-multibound-face-candidate.v1",
         "sourceFaceId":face_id,"sourceSurfaceId":surface_id,"surfaceType":"PLANE","faceSameSense":same_sense,
-        "rings":rings.iter().map(|ring| json!({"boundId":ring.bound_id,"loopId":ring.loop_id,"sourceRole":ring.source_role,
-            "triangulationTreatment":if ring.source_role == "outer" {"outer"} else {"hole_candidate_from_generic_FACE_BOUND"},
+        "rings":rings.iter().map(|ring| json!({"boundId":ring.bound_id,"loopId":ring.loop_id,"sourceEntityType":ring.source_entity_type,"sourceRole":ring.source_role,
+            "triangulationTreatment":if ring.source_role == "outer" {"outer"} else {"interior_hole"},
             "sourceEdgeCount":ring.edge_count,"sourceEdgeCurveIds":ring.source_edge_curve_ids,
             "sourceEdges":ring.source_edges.iter().map(|edge| json!({"sourceEdgeCurveId":edge.source_edge_curve_id,
                 "traversalStartVertexId":edge.traversal_start_vertex_id,"traversalEndVertexId":edge.traversal_end_vertex_id,
@@ -890,9 +893,9 @@ pub(crate) fn inspect(step: &StepFile, face_id: u64, target: f64) -> Result<Json
             "certifiedContinuousCurveErrorBound":false,"planarityCheck":"source-boundary samples checked against declared PLANE at floating point scale"},
         "validation":{"allSourceLoopsClosedByVertexIdentity":true,"sampledRingsSimpleAndNonTouching":true,"innerBoundsStrictlyInsideOuterCandidate":true,
             "triangulationAreaMatchesSampledRings":true,"boundaryAndInteriorEdgeIncidenceVerified":true,"centroidMaterialChecks":true,
-            "triangleInteriorsDoNotOverlap":true,"trianglePairTests":triangle_pair_tests,"intersectionTests":intersection_tests},
+            "triangleInteriorsDoNotOverlap":true,"exactlyOneSourceOuterBound":true,"trianglePairTests":triangle_pair_tests,"intersectionTests":intersection_tests},
         "geometryQualified":false,"completeFaceGeometryCertified":false,"completeSolidVerified":false,"admitted":false,"exportsProduced":[],
-        "scope":"single sampled planar face candidate; generic FACE_BOUND treated as a hole only for this triangulation attempt; no STEP source mutation, full component qualification, production export, or continuous deviation certificate"
+        "scope":"single sampled planar face candidate; with exactly one declared FACE_OUTER_BOUND, remaining FACE_BOUND loops have inner-face semantics under ISO 10303-42; sampled geometry is still diagnostic only, with no STEP source mutation, full component qualification, production export, or continuous deviation certificate"
     }))
 }
 
@@ -904,6 +907,7 @@ mod tests {
         vec![Ring {
             bound_id: 1,
             loop_id: 2,
+            source_entity_type: "FACE_OUTER_BOUND",
             source_role: "outer",
             samples: points
                 .iter()
@@ -951,7 +955,8 @@ mod tests {
         rings.push(Ring {
             bound_id: 3,
             loop_id: 4,
-            source_role: "inner_or_unspecified",
+            source_entity_type: "FACE_BOUND",
+            source_role: "inner",
             samples: hole
                 .iter()
                 .map(|p| Sample {
@@ -973,6 +978,53 @@ mod tests {
         assert_eq!(area, 48.0);
         assert_eq!(edges, 16);
         assert!(pair_tests > 0);
+    }
+
+    #[test]
+    fn explicit_outer_bound_gives_generic_face_bounds_inner_semantics() {
+        let mut rings = ring(&[[0., 0.], [8., 0.], [8., 8.], [0., 8.]]);
+        rings.push(Ring {
+            bound_id: 3,
+            loop_id: 4,
+            source_entity_type: "FACE_BOUND",
+            source_role: "inner",
+            samples: Vec::new(),
+            points: Vec::new(),
+            signed_area: 0.0,
+            edge_count: 0,
+            source_edge_curve_ids: Vec::new(),
+            source_edges: Vec::new(),
+        });
+        assert_eq!(outer_ring_index(&rings), Ok(0));
+    }
+
+    #[test]
+    fn planar_face_bound_roles_require_exactly_one_declared_outer() {
+        let mut no_outer = ring(&[[0., 0.], [8., 0.], [8., 8.], [0., 8.]]);
+        no_outer[0].source_entity_type = "FACE_BOUND";
+        no_outer[0].source_role = "inner";
+        assert_eq!(
+            outer_ring_index(&no_outer).unwrap_err(),
+            "planar_face_requires_exactly_one_face_outer_bound"
+        );
+
+        let mut two_outers = ring(&[[0., 0.], [8., 0.], [8., 8.], [0., 8.]]);
+        two_outers.push(Ring {
+            bound_id: 3,
+            loop_id: 4,
+            source_entity_type: "FACE_OUTER_BOUND",
+            source_role: "outer",
+            samples: Vec::new(),
+            points: Vec::new(),
+            signed_area: 0.0,
+            edge_count: 0,
+            source_edge_curve_ids: Vec::new(),
+            source_edges: Vec::new(),
+        });
+        assert_eq!(
+            outer_ring_index(&two_outers).unwrap_err(),
+            "planar_face_requires_exactly_one_face_outer_bound"
+        );
     }
 
     #[test]
