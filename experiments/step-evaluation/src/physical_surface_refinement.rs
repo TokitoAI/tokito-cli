@@ -77,6 +77,14 @@ fn initial_triangles(
     boundary: &[Uv],
     metric: Option<ChartMetric>,
 ) -> Result<Vec<[usize; 3]>, String> {
+    chart_triangles(boundary, boundary.len(), metric)
+}
+
+fn chart_triangles(
+    boundary: &[Uv],
+    boundary_count: usize,
+    metric: Option<ChartMetric>,
+) -> Result<Vec<[usize; 3]>, String> {
     if let Some(m) = metric {
         let determinant = m.matrix[0][0] * m.matrix[1][1] - m.matrix[0][1] * m.matrix[1][0];
         if m.anchor
@@ -97,8 +105,8 @@ fn initial_triangles(
         return Err("physical_metric_nonfinite_chart_coordinate".into());
     }
     let points = chart.iter().map(|p| Point2::new(p[0], p[1])).collect();
-    let constraints = (0..boundary.len())
-        .map(|i| [i, (i + 1) % boundary.len()])
+    let constraints = (0..boundary_count)
+        .map(|i| [i, (i + 1) % boundary_count])
         .collect();
     let cdt = ConstrainedDelaunayTriangulation::<Point2<f64>>::bulk_load_cdt(points, constraints)
         .map_err(|e| format!("physical_refinement_initial_cdt_failed:{e}"))?;
@@ -152,7 +160,8 @@ fn initial_triangles(
         }
         triangles.push([a, b, c]);
     }
-    if triangles.len() != boundary.len() - 2 {
+    let used = triangles.iter().flatten().copied().collect::<BTreeSet<_>>();
+    if used.len() != boundary.len() || triangles.len() != 2 * boundary.len() - boundary_count - 2 {
         return Err("physical_refinement_initial_domain_triangle_count_mismatch".into());
     }
     Ok(triangles)
@@ -223,6 +232,7 @@ where
             minimum_normal_alignment,
             metric,
             priority: false,
+            seed: None,
         },
         evaluate,
         orientation,
@@ -251,6 +261,41 @@ where
             minimum_normal_alignment,
             metric,
             priority: true,
+            seed: None,
+        },
+        evaluate,
+        orientation,
+        remaining_surface,
+    )
+}
+
+pub(crate) struct SeededInput<'a> {
+    pub boundary: &'a [Uv],
+    pub grid: crate::surface_grid::Grid,
+}
+
+pub(crate) fn refine_seeded<F, O, R>(
+    input: SeededInput<'_>,
+    tolerance: f64,
+    minimum_normal_alignment: f64,
+    metric: Option<ChartMetric>,
+    evaluate: F,
+    orientation: O,
+    remaining_surface: R,
+) -> Result<Value, String>
+where
+    F: FnMut(Uv) -> Result<P3, String>,
+    O: FnMut([Uv; 3], [P3; 3]) -> Result<f64, String>,
+    R: FnMut() -> Result<usize, String>,
+{
+    refine_impl(
+        input.boundary,
+        Settings {
+            tolerance,
+            minimum_normal_alignment,
+            metric,
+            priority: true,
+            seed: Some(input.grid),
         },
         evaluate,
         orientation,
@@ -263,6 +308,7 @@ struct Settings {
     minimum_normal_alignment: f64,
     metric: Option<ChartMetric>,
     priority: bool,
+    seed: Option<crate::surface_grid::Grid>,
 }
 
 fn refine_impl<F, O, R>(
@@ -282,6 +328,7 @@ where
         minimum_normal_alignment,
         metric,
         priority,
+        seed,
     } = settings;
     if !(tolerance.is_finite()
         && tolerance > 0.
@@ -304,7 +351,15 @@ where
     let winding = 1.; // Spade returns CCW UV faces; no 3D normal/winding flips.
     let boundary_count = initial.vertices.len();
     let mut uv = initial.vertices;
-    let mut triangles = initial_triangles(&uv, metric)?;
+    let mut seed_metadata = None;
+    let mut triangles = if let Some(grid) = seed {
+        let accepted = crate::seeded_domain::append(&mut uv, grid.points)?;
+        seed_metadata = Some(json!({"sampling":grid.report,"domain":accepted}));
+        chart_triangles(&uv, boundary_count, metric)?
+    } else {
+        initial_triangles(&uv, metric)?
+    };
+    let seeded_initial_uv = seed_metadata.as_ref().map(|_| uv.clone());
     let priority_initial_triangles = priority.then(|| triangles.clone());
     let boundary = (0..boundary_count)
         .map(|i| edge(i, (i + 1) % boundary_count))
@@ -586,11 +641,17 @@ where
         "sourceCurveBoundaryGeometryUsedForMeshPoints":false,
         "certifiedSurfaceDeviationBound":false,"completeSolidVerified":false,
         "geometryQualified":false,"admitted":false,"exportsProduced":[]});
+    if let Some(metadata) = seed_metadata {
+        report["surfaceGridInitialization"] = metadata;
+    }
     if priority {
         report["prioritizedInteriorRefinement"] = json!({"schema":"tokito.prioritized-interior-refinement.v1",
             "decisions":priority_decisions,"initialTriangles":priority_initial_triangles,"normalEvaluationSurfaceCallUpperBoundPerTriangle":4,
             "usesActualRemainingAdapterSurfaceAndControlBudgets":true,"lastMeshFullyMeasured":true,
             "geometryQualified":false,"admitted":false});
+        if let Some(initial_uv) = seeded_initial_uv {
+            report["prioritizedInteriorRefinement"]["initialUvVertices"] = json!(initial_uv);
+        }
     }
     Ok(report)
 }
@@ -599,6 +660,33 @@ where
 mod tests {
     use super::*;
     const LOOP: [Uv; 4] = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
+    #[test]
+    fn seeded_chart_keeps_boundary_and_uses_every_interior_point() {
+        let mut uv = LOOP.to_vec();
+        uv.extend([[0.25, 0.5], [0.75, 0.5]]);
+        let t = chart_triangles(&uv, 4, None).unwrap();
+        assert_eq!(t.len(), 6);
+        let mut incidence = BTreeMap::<Edge, usize>::new();
+        for t in &t {
+            for (a, b) in [(t[0], t[1]), (t[1], t[2]), (t[2], t[0])] {
+                *incidence.entry(edge(a, b)).or_default() += 1;
+            }
+        }
+        let outline = incidence
+            .iter()
+            .filter(|(_, v)| **v == 1)
+            .map(|(e, _)| *e)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(outline, (0..4).map(|i| edge(i, (i + 1) % 4)).collect());
+        for bad in [[0.5, 0.], [2., 2.], [0., 0.]] {
+            let mut uv = LOOP.to_vec();
+            uv.push(bad);
+            assert!(
+                chart_triangles(&uv, 4, None).is_err(),
+                "seed must not split boundary, remain exterior or collapse"
+            );
+        }
+    }
     #[test]
     fn priority_reserves_real_surface_calls_and_keeps_last_fully_measured_mesh() {
         for (limit, expected_vertices, expected_calls) in

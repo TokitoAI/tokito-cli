@@ -166,16 +166,37 @@ def validate_adaptive_boundary(report):
         raise ValueError("expanded support boundary misses sampled chord target")
 
 
-def validate_prioritized(report):
+def validate_prioritized(report, seeded=False):
     p=report["physicalRefinementCandidate"]
     trace=p["prioritizedInteriorRefinement"]
     if (trace.get("lastMeshFullyMeasured") is not True or trace.get("usesActualRemainingAdapterSurfaceAndControlBudgets") is not True
         or trace.get("normalEvaluationSurfaceCallUpperBoundPerTriangle")!=4):
         raise ValueError("priority measurement/reservation scope missing")
     boundary=p["boundaryVertexCount"]
-    uv=[list(q) for q in p["uvVertices"][:boundary]]
+    uv=[list(q) for q in (trace["initialUvVertices"] if seeded else p["uvVertices"][:boundary])]
     triangles=[list(t) for t in trace["initialTriangles"]]
-    if len(triangles)!=boundary-2:raise ValueError("priority initial disk inventory invalid")
+    if len(triangles)!=2*len(uv)-boundary-2:raise ValueError("priority initial disk inventory invalid")
+    if seeded:
+        grid=p["surfaceGridInitialization"];sampler=grid["sampling"];domain=grid["domain"]
+        axes=[sampler[k] for k in ["u_axis","v_axis"]]
+        for axis,knots in zip(axes,[sampler["preserved_u_breaks"],sampler["preserved_v_breaks"]]):
+            if (len(axis)>257 or any(not math.isfinite(v) for v in axis)
+                or any(a>=b for a,b in zip(axis,axis[1:])) or any(k not in axis for k in knots)):
+                raise ValueError("grid axis/knot preservation invalid")
+        proposals=[[u,v] for u in axes[0][1:-1] for v in axes[1][1:-1]]
+        ids=domain["acceptedProposalIndices"]
+        if (sampler.get("grid_tested") is not True or sampler.get("qualified") is not False
+            or len(proposals)!=sampler["interior_proposals"] or len(proposals)>8192
+            or ids!=sorted(set(ids)) or any(type(i) is not int or not 0<=i<len(proposals) for i in ids)
+            or domain["acceptedCount"]!=len(ids) or len(uv)!=boundary+len(ids)
+            or uv[boundary:]!=[proposals[i] for i in ids]
+            or sum(domain[k] for k in ["acceptedCount","duplicateProposalCount","nearConstraintProposalCount","exteriorProposalCount"])!=len(proposals)
+            or sampler["unique_evaluations"]>60000 or domain["predicateCount"]>8000000):
+            raise ValueError("grid proposal identity/filter/budget replay failed")
+        last=sampler["rounds"][-1]
+        if (last["errors"]!=sampler["final_errors"] or last["u_count"]!=len(axes[0])
+            or last["v_count"]!=len(axes[1]) or last["unique_evaluations"]!=sampler["unique_evaluations"]):
+            raise ValueError("grid retained stale last-pass measurements")
     partial=False
     for d in trace["decisions"]:
         edges=collections.Counter()
@@ -245,7 +266,7 @@ def validate_prioritized(report):
         if [triangles[i] for i in indices]!=flip["oldTriangles"]:raise ValueError("priority cleanup flip cannot be replayed")
         if len(flip["newTriangles"])!=2:raise ValueError("priority cleanup flip pair missing")
         for i,t in zip(indices,flip["newTriangles"]):triangles[i]=t
-    if not partial or uv!=p["uvVertices"] or triangles!=p["triangles"]:
+    if (not seeded and not partial) or uv!=p["uvVertices"] or triangles!=p["triangles"]:
         raise ValueError("priority refinement/cleanup replay differs from measured final mesh")
     if p["controlPointEvaluationCount"]>50000000 or p["sampleEvaluationCount"]>400000:
         raise ValueError("priority actual evaluator cap exceeded")
@@ -265,12 +286,12 @@ def run(args):
     receipt = {"schema": "tokito.physical-refinement-e2e.v1", "passed": False, "checks": [],
                "inputSha256": hashes, "geometryQualified": False, "admitted": False, "exportsProduced": []}
     try:
-        adaptive=args.adaptive_boundary or args.prioritized
+        adaptive=args.adaptive_boundary or args.prioritized or args.grid
         if hashes[str(source)] != SOURCE_SHA256:
             raise ValueError("wrong materialized source")
 
         def cli(name, tolerance="0.00001", face="2875", mode=None):
-            mode=mode or ("--research-prioritized-source-face" if args.prioritized else ("--research-adaptive-boundary-source-face" if adaptive else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face"))))
+            mode=mode or ("--research-grid-source-face" if args.grid else ("--research-prioritized-source-face" if args.prioritized else ("--research-adaptive-boundary-source-face" if adaptive else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face")))))
             code, stdout, stderr = capture_bounded([str(binary), mode, face,
                 "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
                 300, 32 * 1024 * 1024, 128 * 1024)
@@ -285,7 +306,8 @@ def run(args):
         receipt["metricPreconditioning"]=args.metric or args.retriangulate or adaptive
         receipt["interiorRetriangulation"]=args.retriangulate or adaptive
         receipt["adaptiveSourceBoundary"]=adaptive
-        receipt["prioritizedInterior"]=args.prioritized
+        receipt["prioritizedInterior"]=args.prioritized or args.grid
+        receipt["directionalSurfaceGrid"]=args.grid
         receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate or adaptive,args.retriangulate or adaptive,adaptive)
         if adaptive:
             validate_adaptive_boundary(report)
@@ -295,8 +317,8 @@ def run(args):
             receipt["baselineQuality"]=baseline["quality"]
             receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
             receipt["checks"].append({"name":"adaptive-native-curve-inventory-source-mapping-and-chord-targets","passed":True})
-        if args.prioritized:
-            validate_prioritized(report)
+        if args.prioritized or args.grid:
+            validate_prioritized(report,seeded=args.grid)
             before=cli("adaptive-baseline",mode="--research-adaptive-boundary-source-face")
             if before["adaptiveBoundaryCandidate"]!=report["adaptiveBoundaryCandidate"]:
                 raise ValueError("priority mode changed source boundary sampling")
@@ -412,4 +434,5 @@ if __name__ == "__main__":
     modes.add_argument("--retriangulate", action="store_true", help="Exercise bounded interior flips after metric refinement")
     modes.add_argument("--adaptive-boundary", action="store_true", help="Exercise source-parameter adaptive boundary sampling before metric refinement")
     modes.add_argument("--prioritized", action="store_true", help="Exercise resource-reserved, transition-checked priority refinement")
+    modes.add_argument("--grid", action="store_true", help="Exercise bounded knot-preserving directional surface-grid initialization")
     raise SystemExit(run(parser.parse_args()))

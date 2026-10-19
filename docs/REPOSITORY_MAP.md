@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-478 project files are listed.
+481 project files are listed.
 
 ```text
 tokito_cli/
@@ -119,6 +119,7 @@ tokito_cli/
 │   │   ├── physical-refinement-20261019.json
 │   │   ├── projection-solver-status-20261019.json
 │   │   ├── priority-refinement-20261019.json
+│   │   ├── surface-grid-20261019.json
 │   │   └── ultimaker-presentation-browser-20261016.json
 │   ├── quality/
 │   │   ├── assets/
@@ -252,8 +253,10 @@ tokito_cli/
 │   │   │   ├── planar_repair.rs
 │   │   │   ├── priority_quality.rs
 │   │   │   ├── priority_refinement.rs
+│   │   │   ├── seeded_domain.rs
 │   │   │   ├── source_uncertainty.rs
 │   │   │   ├── spline_face_diagnostic.rs
+│   │   │   ├── surface_grid.rs
 │   │   │   ├── triangle_diagnostics.rs
 │   │   │   ├── trim_polygon_candidate.rs
 │   │   │   └── unit_preflight.rs

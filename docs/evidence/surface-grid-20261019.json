@@ -1,0 +1,2025 @@
+{
+  "schema": "tokito.directional-surface-grid-checkpoint.v1",
+  "date": "2026-10-19",
+  "baseCommit": "b1ef64398e267ff5f4bc18756a6b8cd7b6f6dd26",
+  "geometryQualified": false,
+  "admitted": false,
+  "exportsProduced": [],
+  "runs": {
+    "grid": {
+      "receiptPath": "target/research/surface-grid-20261019-e2e-v1/receipt.json",
+      "receiptSha256": "387d9d3fff8a64bdddaa82a49c60f093ab50d125ae3e5febd549d58d34cd8c08",
+      "receipt": {
+        "schema": "tokito.physical-refinement-e2e.v1",
+        "passed": true,
+        "checks": [
+          {
+            "name": "adaptive-native-curve-inventory-source-mapping-and-chord-targets",
+            "passed": true
+          },
+          {
+            "name": "priority-reservation-transition-area-and-subdivision-replay",
+            "passed": true
+          },
+          {
+            "name": "real-source-physical-refinement-and-topology",
+            "passed": true
+          },
+          {
+            "name": "invalid-tolerance-refusal",
+            "passed": true
+          },
+          {
+            "name": "wrong-face-refusal",
+            "passed": true
+          },
+          {
+            "name": "independent-surface-chord-normal-audit",
+            "passed": true
+          },
+          {
+            "name": "independent-adaptive-source-tamper-refusal",
+            "passed": true
+          },
+          {
+            "name": "oracle-no-overwrite-refusal",
+            "passed": true
+          },
+          {
+            "name": "oracle-source-mismatch-refusal",
+            "passed": true
+          }
+        ],
+        "inputSha256": {
+          "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\dataset-intake\\esp8266-pr6-5283bc0-source-candidate\\data\\board-sources\\esp8266-nodemcu-reference\\structured-source\\embedded-models\\16.step": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\target\\local-verification\\priority-20261019\\release\\tokito-step-evaluation.exe": "6c12aabd7c2a8e368f3ac978a9a61a8fecea52c39e5e5786ba631e4c0a17f37b",
+          "C:\\Program Files\\FreeCAD 1.1\\bin\\freecadcmd.exe": "1692e54224b48989974e8b91d3ac7a38d1d502d3db4dee1d4cf79ba91356e42d",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\references\\audit_model16_physical_refinement.FCMacro": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\physical_refinement_e2e.py": "f3dc7b50e2362e36eaceeac8b289972848026e7ba230849d2c4142abcf45c6ab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\surface_reference_e2e.py": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\adaptive_boundary.rs": "9fcb5ceae2e4084249c4a0f0643e96ba4449513c87940831ebce20308fd838cc",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\bin\\model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\candidate_mesh.rs": "be1e6cc8aa8c927b60209412a965a57347f91a746711c68ed176eb6256e9e965",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\exact_predicate.rs": "12b06aa3dfb955131a5d81fe7fce4f19894ee26fc01e7a53ac3f8289dc2bb333",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_coverage.rs": "0bd884b2c960580af5d5a43e420dbdb42be577be2188bdd292faa3f40e9e0d1a",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_representation.rs": "47106514a9e58355f9492bd86805f77ac975448be182de229e69a14566e2c826",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\main.rs": "6c63fdf827c2f7590a22304ca97759ae0da870e004d9c8ec84a0ca354017bb2c",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\negative_torus.rs": "1496d56f25c45a2f743356e72cbf4266bcedba7ea9e6a050e524659d8c4524ad",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\occurrence_world.rs": "f1ebe7e54b5a26cb2d375c3b692f848688022a4e11a843b2144814cec9669512",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_edge_flip.rs": "60cfee6d546402d28491475bf9e1e033a85dce037e5c0cc749a779cb6c58aadd",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_surface_refinement.rs": "f71d6ce58e2d6cde1af26246e91b2ad92837a068f99b85f66e730ef41805afb7",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_face.rs": "fec1761cd632dca0cde1228c17014147213f984ea88eca275e98145ac869d4b0",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_repair.rs": "6bd370fc0c2cf0cf7dff43c08a50baf5729bd6da711c39397258c15d6342acbe",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_quality.rs": "727db35c4d482749cb6a7de222691e4c41e3a47a4fd4fa5487220176f5ffbd67",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_refinement.rs": "eb8fc49b9ba6f7f43e31b0a936ff2dd979a0fdfc5e31c9c035c6e8271417ca7f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\seeded_domain.rs": "5daf6381035e90c249721c4c4ceccac25447b78be6f03c301205f05d78cf7273",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\source_uncertainty.rs": "b7ea50c44cad9d680487d31553870fa3dab70069fdaa50f18a7d7326c2a86e41",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\spline_face_diagnostic.rs": "e71a79527d215d06e76799c9f91d2e52bf6b3e918ac8f877fd501925d2dae623",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\surface_grid.rs": "57f139f5d7e3c7fef7d12473b00783e94d38d6c6e51d745e23e671d49c9273cf",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\triangle_diagnostics.rs": "9cf8c23a4c95757584b8045f3a18fd92995498e75c2d8dd5ddc8ef21e585c8e9",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\trim_polygon_candidate.rs": "0b6d532facb34444d5091434cc46594a6002d36ccc460e0776d77b001e56b850",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\unit_preflight.rs": "29be2fa1993a2b1e3f55cba10d31343ebe7219fc1dda4f5e6c6f2899fdfbeb88",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+        },
+        "geometryQualified": false,
+        "admitted": false,
+        "exportsProduced": [],
+        "metricPreconditioning": true,
+        "interiorRetriangulation": true,
+        "adaptiveSourceBoundary": true,
+        "prioritizedInterior": true,
+        "directionalSurfaceGrid": true,
+        "mesh": {
+          "vertices": 16260,
+          "triangles": 31942,
+          "edges": 48201,
+          "eulerCharacteristic": 1,
+          "fixedBoundaryEdges": 576,
+          "nonconformingEdges": 0,
+          "firstQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+            "maximumSampledInteriorChordErrorSourceUnits": 2.033091686505309e-05,
+            "minimumSampledNormalAlignment": 0.9998831894433149,
+            "nonpositiveNormalCount": 0,
+            "normalThresholdFailureCount": 0
+          },
+          "lastQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+            "maximumSampledInteriorChordErrorSourceUnits": 8.749145837161875e-06,
+            "minimumSampledNormalAlignment": 0.9998499022776023,
+            "nonpositiveNormalCount": 0,
+            "normalThresholdFailureCount": 0
+          },
+          "interiorRetriangulation": {
+            "acceptedFlipCount": 0,
+            "acceptedFlips": [],
+            "acceptedPairTargetFailureCountsNonIncreasing": true,
+            "admitted": false,
+            "allAcceptedPairNormalsPositive": true,
+            "allAcceptedPairSampledChordErrorsNonIncreasing": true,
+            "attemptLimit": 128,
+            "attempts": 0,
+            "beforeNonpositiveNormalCount": 0,
+            "beforeNormalThresholdFailureCount": 0,
+            "boundaryEdgesChanged": 0,
+            "candidateOrder": "lowest_pair_normal_first_then_edge_identity",
+            "geometryQualified": false,
+            "historyDescribesPreRetriangulationRefinement": true,
+            "normalTargetSelectionThreshold": 0.9961946980917455,
+            "passLimit": 3,
+            "passes": 1,
+            "sampleEvaluationCount": 80143,
+            "sampleEvaluationLimit": 400000,
+            "schema": "tokito.physical-interior-edge-flips.v1",
+            "verticesMoved": 0
+          }
+        },
+        "baselineQuality": {
+          "maximumSampledFixedBoundaryChordErrorSourceUnits": 0.00029542537509620435,
+          "maximumSampledInteriorChordErrorSourceUnits": 0.00028645203841942983,
+          "minimumSampledNormalAlignment": -0.9999998657778826,
+          "nonpositiveNormalCount": 10,
+          "normalThresholdFailureCount": 376
+        },
+        "baselineDiagnosticSha256": "bdbdd115f7378315faff03357ce94f040ec5d270630302685519ac16aa44bf27",
+        "adaptiveBaselineQuality": {
+          "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+          "maximumSampledInteriorChordErrorSourceUnits": 6.0149310976255986e-05,
+          "minimumSampledNormalAlignment": 0.9873307047959842,
+          "nonpositiveNormalCount": 0,
+          "normalThresholdFailureCount": 4
+        },
+        "adaptiveBaselineDiagnosticSha256": "e0c8822b6ac175d5c834f5009886e1c10a91554de6be5a8b1648abfbadc84474",
+        "diagnosticSha256": "3a8d24cd84bdeac53dd082ee07335813b532b2d82c368ae702731274d7611867",
+        "independentAudit": {
+          "schema": "tokito.freecad-physical-refinement-audit.v1",
+          "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "diagnosticSha256": "3a8d24cd84bdeac53dd082ee07335813b532b2d82c368ae702731274d7611867",
+          "auditScriptSha256": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "freecadVersion": [
+            "1",
+            "1",
+            "4",
+            "20260928 (Git shallow)",
+            "Unknown",
+            "2026/09/28 13:46:34",
+            "(HEAD detached at 4fd3bf320)",
+            "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+          ],
+          "occtVersion": "7.8.1",
+          "freecadFaceIndex": 231,
+          "sourceBoundarySignatureCount": 100,
+          "maximumBoundarySignatureGapMm": 1.6011864169946884e-15,
+          "vertexCount": 16260,
+          "triangleCount": 31942,
+          "maximumIndependentVertexGapMm": 3.0927234722497852e-15,
+          "maximumSampledInteriorChordErrorMm": 8.749145837345152e-06,
+          "maximumSampledFixedBoundaryChordErrorMm": 4.617251771241803e-06,
+          "minimumAnalyticNormalAlignment": 0.9998499022957288,
+          "analyticNonpositiveNormalCount": 0,
+          "independentAcceptedFlipAudits": [],
+          "independentAdaptiveBoundaryAudit": {
+            "edgeBindings": [
+              {
+                "loopIndex": 0,
+                "freecadEdgeIndex": 0
+              },
+              {
+                "loopIndex": 1,
+                "freecadEdgeIndex": 1
+              },
+              {
+                "loopIndex": 2,
+                "freecadEdgeIndex": 2
+              },
+              {
+                "loopIndex": 3,
+                "freecadEdgeIndex": 3
+              }
+            ],
+            "directParameterCorrespondenceOriginalSamples": 100,
+            "retainedSamplesAudited": 580,
+            "quarterProbesAudited": 3168,
+            "leafIntervalsAudited": 576,
+            "maximumIndependentCurvePointGapMm": 2.7012892057857038e-15,
+            "maximumIndependentSupportPointGapMm": 3.3027968761353315e-15,
+            "maximumObservedCurveSupportResidualMm": 1.080837279767591e-06,
+            "maximumLeafSourceCurveChordErrorMm": 4.617251771455398e-06,
+            "maximumLeafSupportChordErrorMm": 4.617251771241803e-06,
+            "certifiedDeviationBound": false,
+            "geometryQualified": false
+          },
+          "trimContainmentSampleCount": 256,
+          "trimContainmentInsideCount": 256,
+          "trimContainmentOutsideCount": 0,
+          "trimContainmentToleranceMm": 1e-07,
+          "parameterWrappingUsesRustReportedPeriods": true,
+          "occtSurfaceUPeriodic": false,
+          "occtSurfaceVPeriodic": true,
+          "occtSurfaceUClosed": false,
+          "occtSurfaceVClosed": true,
+          "sourceCurveSupportGapResolved": false,
+          "certifiedDeviationBound": false,
+          "completeSolidVerified": false,
+          "geometryQualified": false,
+          "admitted": false,
+          "exportsProduced": []
+        }
+      }
+    },
+    "prioritizedRegression": {
+      "receiptPath": "target/research/surface-grid-20261019-prioritized-regression-v1/receipt.json",
+      "receiptSha256": "49840aa0b0283c74ac79378d800d88551d8344f459e03a56722adc89c4c636d3",
+      "receipt": {
+        "schema": "tokito.physical-refinement-e2e.v1",
+        "passed": true,
+        "checks": [
+          {
+            "name": "adaptive-native-curve-inventory-source-mapping-and-chord-targets",
+            "passed": true
+          },
+          {
+            "name": "priority-reservation-transition-area-and-subdivision-replay",
+            "passed": true
+          },
+          {
+            "name": "real-source-physical-refinement-and-topology",
+            "passed": true
+          },
+          {
+            "name": "invalid-tolerance-refusal",
+            "passed": true
+          },
+          {
+            "name": "wrong-face-refusal",
+            "passed": true
+          },
+          {
+            "name": "independent-surface-chord-normal-audit",
+            "passed": true
+          },
+          {
+            "name": "independent-adaptive-source-tamper-refusal",
+            "passed": true
+          },
+          {
+            "name": "oracle-no-overwrite-refusal",
+            "passed": true
+          },
+          {
+            "name": "oracle-source-mismatch-refusal",
+            "passed": true
+          }
+        ],
+        "inputSha256": {
+          "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\dataset-intake\\esp8266-pr6-5283bc0-source-candidate\\data\\board-sources\\esp8266-nodemcu-reference\\structured-source\\embedded-models\\16.step": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\target\\local-verification\\priority-20261019\\release\\tokito-step-evaluation.exe": "6c12aabd7c2a8e368f3ac978a9a61a8fecea52c39e5e5786ba631e4c0a17f37b",
+          "C:\\Program Files\\FreeCAD 1.1\\bin\\freecadcmd.exe": "1692e54224b48989974e8b91d3ac7a38d1d502d3db4dee1d4cf79ba91356e42d",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\references\\audit_model16_physical_refinement.FCMacro": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\physical_refinement_e2e.py": "f3dc7b50e2362e36eaceeac8b289972848026e7ba230849d2c4142abcf45c6ab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\surface_reference_e2e.py": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\adaptive_boundary.rs": "9fcb5ceae2e4084249c4a0f0643e96ba4449513c87940831ebce20308fd838cc",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\bin\\model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\candidate_mesh.rs": "be1e6cc8aa8c927b60209412a965a57347f91a746711c68ed176eb6256e9e965",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\exact_predicate.rs": "12b06aa3dfb955131a5d81fe7fce4f19894ee26fc01e7a53ac3f8289dc2bb333",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_coverage.rs": "0bd884b2c960580af5d5a43e420dbdb42be577be2188bdd292faa3f40e9e0d1a",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_representation.rs": "47106514a9e58355f9492bd86805f77ac975448be182de229e69a14566e2c826",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\main.rs": "6c63fdf827c2f7590a22304ca97759ae0da870e004d9c8ec84a0ca354017bb2c",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\negative_torus.rs": "1496d56f25c45a2f743356e72cbf4266bcedba7ea9e6a050e524659d8c4524ad",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\occurrence_world.rs": "f1ebe7e54b5a26cb2d375c3b692f848688022a4e11a843b2144814cec9669512",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_edge_flip.rs": "60cfee6d546402d28491475bf9e1e033a85dce037e5c0cc749a779cb6c58aadd",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_surface_refinement.rs": "f71d6ce58e2d6cde1af26246e91b2ad92837a068f99b85f66e730ef41805afb7",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_face.rs": "fec1761cd632dca0cde1228c17014147213f984ea88eca275e98145ac869d4b0",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_repair.rs": "6bd370fc0c2cf0cf7dff43c08a50baf5729bd6da711c39397258c15d6342acbe",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_quality.rs": "727db35c4d482749cb6a7de222691e4c41e3a47a4fd4fa5487220176f5ffbd67",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_refinement.rs": "eb8fc49b9ba6f7f43e31b0a936ff2dd979a0fdfc5e31c9c035c6e8271417ca7f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\seeded_domain.rs": "5daf6381035e90c249721c4c4ceccac25447b78be6f03c301205f05d78cf7273",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\source_uncertainty.rs": "b7ea50c44cad9d680487d31553870fa3dab70069fdaa50f18a7d7326c2a86e41",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\spline_face_diagnostic.rs": "e71a79527d215d06e76799c9f91d2e52bf6b3e918ac8f877fd501925d2dae623",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\surface_grid.rs": "57f139f5d7e3c7fef7d12473b00783e94d38d6c6e51d745e23e671d49c9273cf",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\triangle_diagnostics.rs": "9cf8c23a4c95757584b8045f3a18fd92995498e75c2d8dd5ddc8ef21e585c8e9",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\trim_polygon_candidate.rs": "0b6d532facb34444d5091434cc46594a6002d36ccc460e0776d77b001e56b850",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\unit_preflight.rs": "29be2fa1993a2b1e3f55cba10d31343ebe7219fc1dda4f5e6c6f2899fdfbeb88",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+        },
+        "geometryQualified": false,
+        "admitted": false,
+        "exportsProduced": [],
+        "metricPreconditioning": true,
+        "interiorRetriangulation": true,
+        "adaptiveSourceBoundary": true,
+        "prioritizedInterior": true,
+        "directionalSurfaceGrid": false,
+        "mesh": {
+          "vertices": 24668,
+          "triangles": 48758,
+          "edges": 73425,
+          "eulerCharacteristic": 1,
+          "fixedBoundaryEdges": 576,
+          "nonconformingEdges": 0,
+          "firstQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+            "maximumSampledInteriorChordErrorSourceUnits": 0.003709016067338043,
+            "minimumSampledNormalAlignment": 0.974320358439383,
+            "nonpositiveNormalCount": 0,
+            "normalThresholdFailureCount": 526
+          },
+          "lastQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+            "maximumSampledInteriorChordErrorSourceUnits": 5.968069049248256e-05,
+            "minimumSampledNormalAlignment": 0.9963682807397817,
+            "nonpositiveNormalCount": 0,
+            "normalThresholdFailureCount": 0
+          },
+          "interiorRetriangulation": {
+            "acceptedFlipCount": 0,
+            "acceptedFlips": [],
+            "acceptedPairTargetFailureCountsNonIncreasing": true,
+            "admitted": false,
+            "allAcceptedPairNormalsPositive": true,
+            "allAcceptedPairSampledChordErrorsNonIncreasing": true,
+            "attemptLimit": 128,
+            "attempts": 0,
+            "beforeNonpositiveNormalCount": 0,
+            "beforeNormalThresholdFailureCount": 0,
+            "boundaryEdgesChanged": 0,
+            "candidateOrder": "lowest_pair_normal_first_then_edge_identity",
+            "geometryQualified": false,
+            "historyDescribesPreRetriangulationRefinement": true,
+            "normalTargetSelectionThreshold": 0.9961946980917455,
+            "passLimit": 3,
+            "passes": 1,
+            "sampleEvaluationCount": 122183,
+            "sampleEvaluationLimit": 400000,
+            "schema": "tokito.physical-interior-edge-flips.v1",
+            "verticesMoved": 0
+          }
+        },
+        "baselineQuality": {
+          "maximumSampledFixedBoundaryChordErrorSourceUnits": 0.00029542537509620435,
+          "maximumSampledInteriorChordErrorSourceUnits": 0.00028645203841942983,
+          "minimumSampledNormalAlignment": -0.9999998657778826,
+          "nonpositiveNormalCount": 10,
+          "normalThresholdFailureCount": 376
+        },
+        "baselineDiagnosticSha256": "bdbdd115f7378315faff03357ce94f040ec5d270630302685519ac16aa44bf27",
+        "adaptiveBaselineQuality": {
+          "maximumSampledFixedBoundaryChordErrorSourceUnits": 4.617251771241803e-06,
+          "maximumSampledInteriorChordErrorSourceUnits": 6.0149310976255986e-05,
+          "minimumSampledNormalAlignment": 0.9873307047959842,
+          "nonpositiveNormalCount": 0,
+          "normalThresholdFailureCount": 4
+        },
+        "adaptiveBaselineDiagnosticSha256": "e0c8822b6ac175d5c834f5009886e1c10a91554de6be5a8b1648abfbadc84474",
+        "diagnosticSha256": "9b99426ac5dd66d313174a78721a2c42d161e384adc6a86482e361fd0e989c97",
+        "independentAudit": {
+          "schema": "tokito.freecad-physical-refinement-audit.v1",
+          "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "diagnosticSha256": "9b99426ac5dd66d313174a78721a2c42d161e384adc6a86482e361fd0e989c97",
+          "auditScriptSha256": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "freecadVersion": [
+            "1",
+            "1",
+            "4",
+            "20260928 (Git shallow)",
+            "Unknown",
+            "2026/09/28 13:46:34",
+            "(HEAD detached at 4fd3bf320)",
+            "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+          ],
+          "occtVersion": "7.8.1",
+          "freecadFaceIndex": 231,
+          "sourceBoundarySignatureCount": 100,
+          "maximumBoundarySignatureGapMm": 1.6011864169946884e-15,
+          "vertexCount": 24668,
+          "triangleCount": 48758,
+          "maximumIndependentVertexGapMm": 2.7194799110210367e-15,
+          "maximumSampledInteriorChordErrorMm": 5.9680690492603834e-05,
+          "maximumSampledFixedBoundaryChordErrorMm": 4.617251771241803e-06,
+          "minimumAnalyticNormalAlignment": 0.9963682806283714,
+          "analyticNonpositiveNormalCount": 0,
+          "independentAcceptedFlipAudits": [],
+          "independentAdaptiveBoundaryAudit": {
+            "edgeBindings": [
+              {
+                "loopIndex": 0,
+                "freecadEdgeIndex": 0
+              },
+              {
+                "loopIndex": 1,
+                "freecadEdgeIndex": 1
+              },
+              {
+                "loopIndex": 2,
+                "freecadEdgeIndex": 2
+              },
+              {
+                "loopIndex": 3,
+                "freecadEdgeIndex": 3
+              }
+            ],
+            "directParameterCorrespondenceOriginalSamples": 100,
+            "retainedSamplesAudited": 580,
+            "quarterProbesAudited": 3168,
+            "leafIntervalsAudited": 576,
+            "maximumIndependentCurvePointGapMm": 2.7012892057857038e-15,
+            "maximumIndependentSupportPointGapMm": 3.3027968761353315e-15,
+            "maximumObservedCurveSupportResidualMm": 1.080837279767591e-06,
+            "maximumLeafSourceCurveChordErrorMm": 4.617251771455398e-06,
+            "maximumLeafSupportChordErrorMm": 4.617251771241803e-06,
+            "certifiedDeviationBound": false,
+            "geometryQualified": false
+          },
+          "trimContainmentSampleCount": 256,
+          "trimContainmentInsideCount": 256,
+          "trimContainmentOutsideCount": 0,
+          "trimContainmentToleranceMm": 1e-07,
+          "parameterWrappingUsesRustReportedPeriods": true,
+          "occtSurfaceUPeriodic": false,
+          "occtSurfaceVPeriodic": true,
+          "occtSurfaceUClosed": false,
+          "occtSurfaceVClosed": true,
+          "sourceCurveSupportGapResolved": false,
+          "certifiedDeviationBound": false,
+          "completeSolidVerified": false,
+          "geometryQualified": false,
+          "admitted": false,
+          "exportsProduced": []
+        }
+      }
+    },
+    "flipRegression": {
+      "receiptPath": "target/research/surface-grid-20261019-flip-regression-v1/receipt.json",
+      "receiptSha256": "15053a8119114a0535f29121e58432653e1942f905b43118ee96a3900de4810e",
+      "receipt": {
+        "schema": "tokito.physical-refinement-e2e.v1",
+        "passed": true,
+        "checks": [
+          {
+            "name": "actual-metric-baseline-identity-and-flip-replay",
+            "passed": true
+          },
+          {
+            "name": "real-source-physical-refinement-and-topology",
+            "passed": true
+          },
+          {
+            "name": "invalid-tolerance-refusal",
+            "passed": true
+          },
+          {
+            "name": "wrong-face-refusal",
+            "passed": true
+          },
+          {
+            "name": "independent-surface-chord-normal-audit",
+            "passed": true
+          },
+          {
+            "name": "oracle-no-overwrite-refusal",
+            "passed": true
+          },
+          {
+            "name": "oracle-source-mismatch-refusal",
+            "passed": true
+          }
+        ],
+        "inputSha256": {
+          "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\dataset-intake\\esp8266-pr6-5283bc0-source-candidate\\data\\board-sources\\esp8266-nodemcu-reference\\structured-source\\embedded-models\\16.step": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\target\\local-verification\\priority-20261019\\release\\tokito-step-evaluation.exe": "6c12aabd7c2a8e368f3ac978a9a61a8fecea52c39e5e5786ba631e4c0a17f37b",
+          "C:\\Program Files\\FreeCAD 1.1\\bin\\freecadcmd.exe": "1692e54224b48989974e8b91d3ac7a38d1d502d3db4dee1d4cf79ba91356e42d",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\references\\audit_model16_physical_refinement.FCMacro": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\physical_refinement_e2e.py": "f3dc7b50e2362e36eaceeac8b289972848026e7ba230849d2c4142abcf45c6ab",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\surface_reference_e2e.py": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\adaptive_boundary.rs": "9fcb5ceae2e4084249c4a0f0643e96ba4449513c87940831ebce20308fd838cc",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\bin\\model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\candidate_mesh.rs": "be1e6cc8aa8c927b60209412a965a57347f91a746711c68ed176eb6256e9e965",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\exact_predicate.rs": "12b06aa3dfb955131a5d81fe7fce4f19894ee26fc01e7a53ac3f8289dc2bb333",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_coverage.rs": "0bd884b2c960580af5d5a43e420dbdb42be577be2188bdd292faa3f40e9e0d1a",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\face_representation.rs": "47106514a9e58355f9492bd86805f77ac975448be182de229e69a14566e2c826",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\main.rs": "6c63fdf827c2f7590a22304ca97759ae0da870e004d9c8ec84a0ca354017bb2c",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\negative_torus.rs": "1496d56f25c45a2f743356e72cbf4266bcedba7ea9e6a050e524659d8c4524ad",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\occurrence_world.rs": "f1ebe7e54b5a26cb2d375c3b692f848688022a4e11a843b2144814cec9669512",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_edge_flip.rs": "60cfee6d546402d28491475bf9e1e033a85dce037e5c0cc749a779cb6c58aadd",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\physical_surface_refinement.rs": "f71d6ce58e2d6cde1af26246e91b2ad92837a068f99b85f66e730ef41805afb7",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_face.rs": "fec1761cd632dca0cde1228c17014147213f984ea88eca275e98145ac869d4b0",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\planar_repair.rs": "6bd370fc0c2cf0cf7dff43c08a50baf5729bd6da711c39397258c15d6342acbe",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_quality.rs": "727db35c4d482749cb6a7de222691e4c41e3a47a4fd4fa5487220176f5ffbd67",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\priority_refinement.rs": "eb8fc49b9ba6f7f43e31b0a936ff2dd979a0fdfc5e31c9c035c6e8271417ca7f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\seeded_domain.rs": "5daf6381035e90c249721c4c4ceccac25447b78be6f03c301205f05d78cf7273",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\source_uncertainty.rs": "b7ea50c44cad9d680487d31553870fa3dab70069fdaa50f18a7d7326c2a86e41",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\spline_face_diagnostic.rs": "e71a79527d215d06e76799c9f91d2e52bf6b3e918ac8f877fd501925d2dae623",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\surface_grid.rs": "57f139f5d7e3c7fef7d12473b00783e94d38d6c6e51d745e23e671d49c9273cf",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\triangle_diagnostics.rs": "9cf8c23a4c95757584b8045f3a18fd92995498e75c2d8dd5ddc8ef21e585c8e9",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\trim_polygon_candidate.rs": "0b6d532facb34444d5091434cc46594a6002d36ccc460e0776d77b001e56b850",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\unit_preflight.rs": "29be2fa1993a2b1e3f55cba10d31343ebe7219fc1dda4f5e6c6f2899fdfbeb88",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+        },
+        "geometryQualified": false,
+        "admitted": false,
+        "exportsProduced": [],
+        "metricPreconditioning": true,
+        "interiorRetriangulation": true,
+        "adaptiveSourceBoundary": false,
+        "prioritizedInterior": false,
+        "directionalSurfaceGrid": false,
+        "mesh": {
+          "vertices": 24911,
+          "triangles": 49724,
+          "edges": 74634,
+          "eulerCharacteristic": 1,
+          "fixedBoundaryEdges": 96,
+          "nonconformingEdges": 0,
+          "firstQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 0.00029542537509620435,
+            "maximumSampledInteriorChordErrorSourceUnits": 0.0037155392874444046,
+            "minimumSampledNormalAlignment": 0.9807862936594681,
+            "nonpositiveNormalCount": 0,
+            "normalThresholdFailureCount": 76
+          },
+          "lastQuality": {
+            "maximumSampledFixedBoundaryChordErrorSourceUnits": 0.00029542537509620435,
+            "maximumSampledInteriorChordErrorSourceUnits": 0.00028645203841942983,
+            "minimumSampledNormalAlignment": -0.9999998657778826,
+            "nonpositiveNormalCount": 6,
+            "normalThresholdFailureCount": 370
+          },
+          "interiorRetriangulation": {
+            "acceptedFlipCount": 4,
+            "acceptedFlips": [
+              {
+                "insertedEdge": [
+                  6719,
+                  22521
+                ],
+                "newMaximumSampledPairChordErrorSourceUnits": 1.8417189553013358e-05,
+                "newMinimumNormalAlignment": 0.9999999636169705,
+                "newTriangles": [
+                  [
+                    6719,
+                    22520,
+                    22521
+                  ],
+                  [
+                    6719,
+                    22521,
+                    23936
+                  ]
+                ],
+                "oldMaximumSampledPairChordErrorSourceUnits": 6.911977296076763e-05,
+                "oldMinimumNormalAlignment": -0.9999986344700841,
+                "oldTriangles": [
+                  [
+                    23936,
+                    6719,
+                    22520
+                  ],
+                  [
+                    23936,
+                    22520,
+                    22521
+                  ]
+                ],
+                "pass": 0,
+                "removedEdge": [
+                  22520,
+                  23936
+                ],
+                "triangleIndices": [
+                  49561,
+                  49563
+                ]
+              },
+              {
+                "insertedEdge": [
+                  6904,
+                  22675
+                ],
+                "newMaximumSampledPairChordErrorSourceUnits": 1.839756737681787e-05,
+                "newMinimumNormalAlignment": 0.9999999636499722,
+                "newTriangles": [
+                  [
+                    6904,
+                    22674,
+                    22675
+                  ],
+                  [
+                    6904,
+                    22675,
+                    24151
+                  ]
+                ],
+                "oldMaximumSampledPairChordErrorSourceUnits": 6.90568465632048e-05,
+                "oldMinimumNormalAlignment": -0.9999986336268414,
+                "oldTriangles": [
+                  [
+                    24151,
+                    6904,
+                    22674
+                  ],
+                  [
+                    24151,
+                    22674,
+                    22675
+                  ]
+                ],
+                "pass": 0,
+                "removedEdge": [
+                  22674,
+                  24151
+                ],
+                "triangleIndices": [
+                  48065,
+                  48067
+                ]
+              },
+              {
+                "insertedEdge": [
+                  6943,
+                  22715
+                ],
+                "newMaximumSampledPairChordErrorSourceUnits": 1.5775684693351858e-05,
+                "newMinimumNormalAlignment": 0.9971535106717497,
+                "newTriangles": [
+                  [
+                    6943,
+                    22714,
+                    22715
+                  ],
+                  [
+                    6943,
+                    22715,
+                    24166
+                  ]
+                ],
+                "oldMaximumSampledPairChordErrorSourceUnits": 5.921228699450529e-05,
+                "oldMinimumNormalAlignment": -0.48990701178778967,
+                "oldTriangles": [
+                  [
+                    24166,
+                    6943,
+                    22714
+                  ],
+                  [
+                    24166,
+                    22714,
+                    22715
+                  ]
+                ],
+                "pass": 0,
+                "removedEdge": [
+                  22714,
+                  24166
+                ],
+                "triangleIndices": [
+                  48204,
+                  48206
+                ]
+              },
+              {
+                "insertedEdge": [
+                  7129,
+                  22842
+                ],
+                "newMaximumSampledPairChordErrorSourceUnits": 1.579469568426948e-05,
+                "newMinimumNormalAlignment": 0.9971484457994639,
+                "newTriangles": [
+                  [
+                    7129,
+                    22840,
+                    22842
+                  ],
+                  [
+                    7129,
+                    22842,
+                    24325
+                  ]
+                ],
+                "oldMaximumSampledPairChordErrorSourceUnits": 5.927357611207255e-05,
+                "oldMinimumNormalAlignment": -0.49020710513165877,
+                "oldTriangles": [
+                  [
+                    24325,
+                    7129,
+                    22840
+                  ],
+                  [
+                    24325,
+                    22840,
+                    22842
+                  ]
+                ],
+                "pass": 0,
+                "removedEdge": [
+                  22840,
+                  24325
+                ],
+                "triangleIndices": [
+                  49394,
+                  49396
+                ]
+              }
+            ],
+            "admitted": false,
+            "allAcceptedPairNormalsPositive": true,
+            "allAcceptedPairSampledChordErrorsNonIncreasing": true,
+            "attemptLimit": 128,
+            "attempts": 19,
+            "beforeNonpositiveNormalCount": 10,
+            "boundaryEdgesChanged": 0,
+            "geometryQualified": false,
+            "historyDescribesPreRetriangulationRefinement": true,
+            "passLimit": 3,
+            "passes": 2,
+            "sampleEvaluationCount": 124422,
+            "sampleEvaluationLimit": 400000,
+            "schema": "tokito.physical-interior-edge-flips.v1",
+            "verticesMoved": 0
+          }
+        },
+        "baselineDiagnosticSha256": "bdbdd115f7378315faff03357ce94f040ec5d270630302685519ac16aa44bf27",
+        "diagnosticSha256": "03cbc80d04d501263e5161044d0935810da87ae137a3544ae7a57507a93d0853",
+        "independentAudit": {
+          "schema": "tokito.freecad-physical-refinement-audit.v1",
+          "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "diagnosticSha256": "03cbc80d04d501263e5161044d0935810da87ae137a3544ae7a57507a93d0853",
+          "auditScriptSha256": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+          "freecadVersion": [
+            "1",
+            "1",
+            "4",
+            "20260928 (Git shallow)",
+            "Unknown",
+            "2026/09/28 13:46:34",
+            "(HEAD detached at 4fd3bf320)",
+            "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+          ],
+          "occtVersion": "7.8.1",
+          "freecadFaceIndex": 231,
+          "sourceBoundarySignatureCount": 100,
+          "maximumBoundarySignatureGapMm": 1.6011864169946884e-15,
+          "vertexCount": 24911,
+          "triangleCount": 49724,
+          "maximumIndependentVertexGapMm": 3.0867394805640034e-15,
+          "maximumSampledInteriorChordErrorMm": 0.0002864520384197072,
+          "maximumSampledFixedBoundaryChordErrorMm": 0.00029542537509620435,
+          "minimumAnalyticNormalAlignment": -0.9999998657762504,
+          "analyticNonpositiveNormalCount": 6,
+          "independentAcceptedFlipAudits": [
+            {
+              "flipIndex": 0,
+              "oldMaximumSampledPairChordErrorMm": 6.911977296073306e-05,
+              "newMaximumSampledPairChordErrorMm": 1.8417189552778957e-05,
+              "oldMinimumAnalyticNormalAlignment": -0.999998634472634,
+              "newMinimumAnalyticNormalAlignment": 0.9999999636174337
+            },
+            {
+              "flipIndex": 1,
+              "oldMaximumSampledPairChordErrorMm": 6.905684656321517e-05,
+              "newMaximumSampledPairChordErrorMm": 1.8397567376817868e-05,
+              "oldMinimumAnalyticNormalAlignment": -0.9999986336269836,
+              "newMinimumAnalyticNormalAlignment": 0.9999999636507535
+            },
+            {
+              "flipIndex": 2,
+              "oldMaximumSampledPairChordErrorMm": 5.9212286994968096e-05,
+              "newMaximumSampledPairChordErrorMm": 1.5775684693808436e-05,
+              "oldMinimumAnalyticNormalAlignment": -0.4899070093562922,
+              "newMinimumAnalyticNormalAlignment": 0.997153510699912
+            },
+            {
+              "flipIndex": 3,
+              "oldMaximumSampledPairChordErrorMm": 5.9273576112072544e-05,
+              "newMaximumSampledPairChordErrorMm": 1.5794695684310765e-05,
+              "oldMinimumAnalyticNormalAlignment": -0.4902071076132705,
+              "newMinimumAnalyticNormalAlignment": 0.9971484459740965
+            }
+          ],
+          "independentAdaptiveBoundaryAudit": null,
+          "trimContainmentSampleCount": 255,
+          "trimContainmentInsideCount": 255,
+          "trimContainmentOutsideCount": 0,
+          "trimContainmentToleranceMm": 1e-07,
+          "parameterWrappingUsesRustReportedPeriods": true,
+          "occtSurfaceUPeriodic": false,
+          "occtSurfaceVPeriodic": true,
+          "occtSurfaceUClosed": false,
+          "occtSurfaceVClosed": true,
+          "sourceCurveSupportGapResolved": false,
+          "certifiedDeviationBound": false,
+          "completeSolidVerified": false,
+          "geometryQualified": false,
+          "admitted": false,
+          "exportsProduced": []
+        }
+      }
+    },
+    "legacyRefusal": {
+      "receiptPath": "target/research/surface-grid-20261019-legacy-regression-v1/receipt.json",
+      "receiptSha256": "8af1bb7bd72e2dc8ed80171f8ce848c748efe0aabc3fd1d1a6879e3a873026b8",
+      "receipt": {
+        "schema": "tokito.step-model16-source-face-trim-e2e.v1",
+        "passed": true,
+        "outcome": "expected_safety_refusal",
+        "researchCandidateProduced": false,
+        "diagnosticTrimMeshIsNotTheResearchSpadeCandidate": true,
+        "admitted": false,
+        "exportsProduced": [],
+        "inputSha256": {
+          "target\\local-verification\\priority-20261019\\release\\tokito-step-evaluation.exe": "6c12aabd7c2a8e368f3ac978a9a61a8fecea52c39e5e5786ba631e4c0a17f37b",
+          "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\dataset-intake\\esp8266-pr6-5283bc0-source-candidate\\data\\board-sources\\esp8266-nodemcu-reference\\structured-source\\embedded-models\\16.step": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\model16_source_face_trim_e2e.py": "da33913fa5dcb3bb75beb9d5528cbbc09e6cda261ae990c0c3feda46390be165",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\bounded_fingerprint.py": "e6d886d3d1c0f1714c4693bde03908ad60bacc8bc5f42ee95de045a243143590",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\surface_reference_e2e.py": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184",
+          "target\\local-verification\\priority-20261019\\release\\model16_spade_candidate.exe": "4bae4101b9d93642592424dba7ea01ace13a9f1ea7ab734de2cc45db05cb65aa",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\bin\\model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+        },
+        "scope": "pinned source B-spline face/trim diagnostics, bounded projection observations, and an isolated research-only Spade candidate; no production repair/export or geometry admission",
+        "solverObservations": {
+          "checkedObservationCount": 6248,
+          "orthogonalButResidualUnmetObservationCount": 720,
+          "probe1535": {
+            "authorizesGeometryAdmission": false,
+            "globalMinimumProven": false,
+            "iterationLimit": 24,
+            "iterations": 2,
+            "normalizedJacobianDeterminant": 0.9999999999893031,
+            "residualToleranceMet": false,
+            "residualToleranceSourceUnits": 8.182579005321623e-11,
+            "stationarityObservation": "interior_tangent_orthogonality_observed",
+            "tangentOrthogonalityObservationThreshold": 1e-08,
+            "tangentResidualCosines": [
+              -3.6181391771528126e-09,
+              -7.444844738102695e-10
+            ],
+            "termination": "no_decreasing_step"
+          },
+          "authorizesGeometryAdmission": false
+        },
+        "malformedSolverObservationControlsPassed": 4,
+        "summary": {
+          "faceId": 2875,
+          "surfaceId": 10410,
+          "boundId": 8995,
+          "loopId": 8007,
+          "orientedEdgeIds": [
+            2809,
+            470,
+            7109,
+            4933
+          ],
+          "faceSameSense": true,
+          "sourceBoundarySampleCount": 100,
+          "readerInverseMaximumResidualSourceUnits": 0.024010970673693524,
+          "multiStartMaximumResidualSourceUnits": 1.0808372790666913e-06,
+          "sharedKernelInverseDistanceChecks": 15300,
+          "sharedKernelInverseGridDimensions": [
+            9,
+            17
+          ],
+          "sharedKernelInverseControlPointEvaluationEstimate": 661662,
+          "sourceEdgeCurveControlPointEvaluationEstimate": 1290,
+          "sourceEdgeCurveControlPointStorageCount": 42,
+          "sourceEdgeCurveControlPointStorageBudget": 65536,
+          "trimCandidateStatus": "candidate_only",
+          "trimCandidateVertexCount": 12801,
+          "trimCandidateTriangleCount": 24064,
+          "trimCandidateChordConverged": true,
+          "trimCandidateOrientationConverged": false,
+          "triangleOrientationCheckCount": 24064,
+          "minimumTriangleNormalAlignment": -0.9999979635374178,
+          "nonpositiveTriangleNormalCount": 3995,
+          "orientationContinuity": {
+            "schema": "tokito.step-trim-candidate-orientation-continuity.v1",
+            "diagnosticOnly": true,
+            "admissionAffecting": false,
+            "finalTriangleCount": 24064,
+            "cachedObservationCountAcrossRefinementLevels": 32054,
+            "observationCacheLimit": 100000,
+            "uvWindingSigns": {
+              "negative": 0,
+              "positive": 24064,
+              "zero": 0
+            },
+            "uBinTriangleAndNonpositiveCounts": [
+              {
+                "uBin": 0,
+                "count": 8981,
+                "nonpositiveCount": 3130
+              },
+              {
+                "uBin": 1,
+                "count": 1277,
+                "nonpositiveCount": 47
+              },
+              {
+                "uBin": 2,
+                "count": 1680,
+                "nonpositiveCount": 81
+              },
+              {
+                "uBin": 3,
+                "count": 1829,
+                "nonpositiveCount": 104
+              },
+              {
+                "uBin": 4,
+                "count": 2080,
+                "nonpositiveCount": 127
+              },
+              {
+                "uBin": 5,
+                "count": 2701,
+                "nonpositiveCount": 219
+              },
+              {
+                "uBin": 6,
+                "count": 2635,
+                "nonpositiveCount": 148
+              },
+              {
+                "uBin": 7,
+                "count": 2881,
+                "nonpositiveCount": 139
+              }
+            ],
+            "edgeAdjacency": {
+              "uniqueEdgeCount": 36864,
+              "boundaryEdgeCount": 1536,
+              "interiorEdgeCount": 35328,
+              "nonmanifoldEdgeCount": 0,
+              "inconsistentInteriorEdgeWindingCount": 0,
+              "adjacentTrianglePairCount": 35328
+            },
+            "adjacentNormalDotSummaries": {
+              "geometricTriangleNormalDot": {
+                "comparedPairCount": 35328,
+                "maximumDot": 1.0,
+                "meanDot": 0.2966933263485951,
+                "minimumDot": -0.9999999954757033,
+                "nonpositiveDotPairCount": 12396,
+                "undefinedPairCount": 0
+              },
+              "parameterNormalDot": {
+                "comparedPairCount": 35328,
+                "maximumDot": 0.9999999999919589,
+                "meanDot": 0.9997113267206206,
+                "minimumDot": 0.9957814186927694,
+                "nonpositiveDotPairCount": 0,
+                "undefinedPairCount": 0
+              }
+            },
+            "adjacentNormalContinuityByU8": [
+              {
+                "uBin": 0,
+                "adjacentTrianglePairCount": 13207,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 13207,
+                  "maximumDot": 1.0,
+                  "meanDot": -0.4198228124652235,
+                  "minimumDot": -0.9999999954757033,
+                  "nonpositiveDotPairCount": 9371,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 13207,
+                  "maximumDot": 0.9999999999919589,
+                  "meanDot": 0.9999956526330321,
+                  "minimumDot": 0.9994816353454872,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 1,
+                "adjacentTrianglePairCount": 1909,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 1909,
+                  "maximumDot": 0.9999993375498463,
+                  "meanDot": 0.8887685914130204,
+                  "minimumDot": -0.9881091890664183,
+                  "nonpositiveDotPairCount": 105,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 1909,
+                  "maximumDot": 0.9999998762458641,
+                  "meanDot": 0.9998463314955086,
+                  "minimumDot": 0.9992685792391807,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 2,
+                "adjacentTrianglePairCount": 2281,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 2281,
+                  "maximumDot": 0.9999979709481204,
+                  "meanDot": 0.81577742708135,
+                  "minimumDot": -0.9597612117340438,
+                  "nonpositiveDotPairCount": 209,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 2281,
+                  "maximumDot": 0.9999996292843468,
+                  "meanDot": 0.9997185361860679,
+                  "minimumDot": 0.9989300087627448,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 3,
+                "adjacentTrianglePairCount": 2653,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 2653,
+                  "maximumDot": 0.9999959512451859,
+                  "meanDot": 0.7683512989896077,
+                  "minimumDot": -0.916100808399246,
+                  "nonpositiveDotPairCount": 317,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 2653,
+                  "maximumDot": 0.999999292912695,
+                  "meanDot": 0.9996105344435293,
+                  "minimumDot": 0.9984145691532915,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 4,
+                "adjacentTrianglePairCount": 3615,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3615,
+                  "maximumDot": 0.9999986475875958,
+                  "meanDot": 0.6936605751490689,
+                  "minimumDot": -0.8614031760605599,
+                  "nonpositiveDotPairCount": 588,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3615,
+                  "maximumDot": 0.9999991693790828,
+                  "meanDot": 0.9995614965534775,
+                  "minimumDot": 0.9977086419927166,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 5,
+                "adjacentTrianglePairCount": 3521,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3521,
+                  "maximumDot": 0.99999541384926,
+                  "meanDot": 0.7012472026194951,
+                  "minimumDot": -0.7945307206951204,
+                  "nonpositiveDotPairCount": 506,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3521,
+                  "maximumDot": 0.9999989424401645,
+                  "meanDot": 0.999466579337712,
+                  "minimumDot": 0.9969820096222091,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 6,
+                "adjacentTrianglePairCount": 3893,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3893,
+                  "maximumDot": 0.9999999602045482,
+                  "meanDot": 0.6803371160721036,
+                  "minimumDot": -0.7393201385130753,
+                  "nonpositiveDotPairCount": 602,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3893,
+                  "maximumDot": 0.999998777342376,
+                  "meanDot": 0.9994294033539045,
+                  "minimumDot": 0.9962047877283435,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 7,
+                "adjacentTrianglePairCount": 4249,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 4249,
+                  "maximumDot": 1.0,
+                  "meanDot": 0.6601721338235303,
+                  "minimumDot": -0.6904784115198289,
+                  "nonpositiveDotPairCount": 698,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 4249,
+                  "maximumDot": 0.99999916558501,
+                  "meanDot": 0.9994145651144808,
+                  "minimumDot": 0.9957814186927694,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              }
+            ],
+            "pinnedFreecadReference": {
+              "reportSha256": "3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc",
+              "matchedPinnedAggregateConstants": true,
+              "referenceFileLoadedByThisTest": false,
+              "comparedPerTriangleAgainstIndependentTriangulation": false,
+              "scope": "E2E compares Rust aggregate counts with pinned constants attributed to this report SHA; it does not open or hash the report file, and FreeCAD evaluated the same Rust candidate"
+            }
+          },
+          "trimCandidateRefinementConverged": false,
+          "trimCandidateRefinementFailureReason": "trim_candidate_normal_orientation_not_reached",
+          "trimCandidateMaxSampledChordErrorSourceUnits": 0.0011816150928133978,
+          "trimCandidateBoundarySampleCount": 100,
+          "trimCandidateBoundaryTrace": {
+            "ambiguousHalfPeriodStepCount": 0,
+            "candidateLoopClosureUv": [
+              0.0,
+              0.0
+            ],
+            "maximumUnwrappedUStep": 0.0878106961777228,
+            "maximumUnwrappedVStep": 0.02200041448737733,
+            "sampleCount": 100,
+            "sourceSampleOrderPreserved": true,
+            "uPeriodicBranchShiftCount": 0,
+            "vPeriodicBranchShiftCount": 61
+          },
+          "sourceDrivenBoundaryRefinementProbeCount": 2976,
+          "retainedBoundaryRefinementProbeCount": 1440,
+          "uvProjectionConvergence": {
+            "sourceBoundarySamplesConverged": 73,
+            "sourceBoundarySamplesNotConverged": 27,
+            "sourceEdgeMidpointProbesConverged": 2167,
+            "sourceEdgeMidpointProbesNotConverged": 809
+          },
+          "declaredSourceUncertainty": {
+            "representationId": 5957,
+            "contextId": 206,
+            "valueInContextUnits": 1e-05,
+            "uncertaintyUnitMetresPerUnit": 0.001,
+            "usedAsAdmissionTolerance": false,
+            "boundaryProjectionResiduals": {
+              "sampleCount": 100,
+              "withinDeclaredSourceUncertainty": 100,
+              "maximumResidualSourceUnits": 1.0808372790666913e-06,
+              "declaredSourceUncertaintySourceUnits": 1e-05,
+              "usedAsAdmissionTolerance": false
+            },
+            "midpointProjectionResiduals": {
+              "sampleCount": 2976,
+              "withinDeclaredSourceUncertainty": 2976,
+              "maximumResidualSourceUnits": 1.0769296318977893e-06,
+              "declaredSourceUncertaintySourceUnits": 1e-05,
+              "usedAsAdmissionTolerance": false
+            }
+          },
+          "candidateMeshTopology": {
+            "vertices": 12801,
+            "edges": 36864,
+            "triangles": 24064,
+            "boundaryEdges": 1536,
+            "boundaryVertices": 1536,
+            "nonManifoldEdges": 0,
+            "inconsistentInteriorEdges": 0,
+            "boundaryVerticesWithDegreeOtherThanTwo": 0,
+            "eulerCharacteristic": 1,
+            "connectedComponents": 1,
+            "boundaryComponents": 1
+          },
+          "researchSpadeCandidateBuildIdentity": {
+            "generatorSourceSha256": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+            "schema": "tokito.model16-spade-candidate-build-identity.v1",
+            "spadeVersion": "2.15.1"
+          },
+          "researchSpadeCandidate": {
+            "status": "refused_nonconverged_selected_projection",
+            "selectedProbe": {
+              "qualityProbeIndex": 1535,
+              "orientedEdgeId": 470,
+              "edgeCurveId": 3478,
+              "curveParameter": 1.4035888909095733,
+              "projectionResidualSourceUnits": 1.07888315327835e-06,
+              "projectionConverged": false
+            },
+            "refusal": "model16_spade_candidate: spade_boundary_split_uses_nonconverged_source_curve_projection:quality_probe_index=1535",
+            "nonconvergedQualityProbeCount": 835,
+            "candidateFileProduced": false,
+            "geometryQualified": false,
+            "admitted": false,
+            "exportsProduced": []
+          }
+        },
+        "diagnosticSha256": "c38327dd4ce562ce492ef1278b886c299d1d654e7542c66f67ad75a318361d79"
+      }
+    }
+  },
+  "historicalDiagnosticByteComparisons": [
+    {
+      "currentPath": "target/research/surface-grid-20261019-e2e-v1/metric-baseline.json",
+      "historicalPath": "target/research/priority-refinement-20261019-e2e-v1/metric-baseline.json",
+      "byteIdentical": true,
+      "sha256": "bdbdd115f7378315faff03357ce94f040ec5d270630302685519ac16aa44bf27"
+    },
+    {
+      "currentPath": "target/research/surface-grid-20261019-e2e-v1/adaptive-baseline.json",
+      "historicalPath": "target/research/priority-refinement-20261019-e2e-v1/adaptive-baseline.json",
+      "byteIdentical": true,
+      "sha256": "e0c8822b6ac175d5c834f5009886e1c10a91554de6be5a8b1648abfbadc84474"
+    },
+    {
+      "currentPath": "target/research/surface-grid-20261019-prioritized-regression-v1/diagnostic.json",
+      "historicalPath": "target/research/priority-refinement-20261019-e2e-v1/diagnostic.json",
+      "byteIdentical": true,
+      "sha256": "9b99426ac5dd66d313174a78721a2c42d161e384adc6a86482e361fd0e989c97"
+    },
+    {
+      "currentPath": "target/research/surface-grid-20261019-flip-regression-v1/diagnostic.json",
+      "historicalPath": "target/research/priority-refinement-20261019-retriangulated-regression-v1/diagnostic.json",
+      "byteIdentical": true,
+      "sha256": "03cbc80d04d501263e5161044d0935810da87ae137a3544ae7a57507a93d0853"
+    },
+    {
+      "currentPath": "target/research/surface-grid-20261019-legacy-regression-v1/diagnostic.json",
+      "historicalPath": "target/research/priority-refinement-20261019-legacy-v1/diagnostic.json",
+      "byteIdentical": true,
+      "sha256": "c38327dd4ce562ce492ef1278b886c299d1d654e7542c66f67ad75a318361d79"
+    }
+  ],
+  "initialization": {
+    "domain": {
+      "acceptedCount": 3937,
+      "boundaryCoordinateTolerance": 3.9931391116311945e-14,
+      "duplicateProposalCount": 0,
+      "exteriorProposalCount": 0,
+      "geometryQualified": false,
+      "nearConstraintProposalCount": 31,
+      "originalBoundaryVertexCount": 576,
+      "predicateCount": 2285072,
+      "predicateLimit": 8000000,
+      "proposalCount": 3968,
+      "scope": "conservative_uv_proposal_filter_followed_by_independent_constrained_domain_topology_checks"
+    },
+    "sampling": {
+      "accuracy_proven": false,
+      "algorithm": "bounded_knot_directional_chord_grid_v1",
+      "chord_probes": 55368,
+      "final_errors": {
+        "diagonal_chord": 2.0690853501012697e-05,
+        "u_chord": 3.7612517240279696e-06,
+        "v_chord": 1.8468845494551464e-05,
+        "worst_uv": [
+          [
+            0.7244329759533281,
+            -0.2832553365249138
+          ],
+          [
+            0.0,
+            -0.06325119165116382
+          ],
+          [
+            0.021952514422828126,
+            -0.06325119165116382
+          ]
+        ]
+      },
+      "grid_tested": true,
+      "interior_proposals": 3968,
+      "limits": {
+        "axis_points": 257,
+        "cells_per_round": 8192,
+        "interior_points": 8192,
+        "subdivision_rounds": 12,
+        "unique_evaluations": 60000
+      },
+      "preserved_u_breaks": [
+        0.0,
+        1.404960923061
+      ],
+      "preserved_v_breaks": [
+        -0.7024804615304414,
+        -0.35200663179796066,
+        3.930189507173054e-14,
+        4.323084083410503e-14
+      ],
+      "qualified": false,
+      "rounds": [
+        {
+          "cells": 3,
+          "errors": {
+            "diagonal_chord": 0.06646284212565332,
+            "u_chord": 0.0037090071047954864,
+            "v_chord": 0.0717367556283539,
+            "worst_uv": [
+              [
+                0.7024804615305,
+                -0.7024804615304414
+              ],
+              [
+                0.0,
+                -0.17600331589896068
+              ],
+              [
+                0.7024804615305,
+                -0.17600331589896068
+              ]
+            ]
+          },
+          "marked_u_intervals": [
+            0
+          ],
+          "marked_v_intervals": [
+            0,
+            1
+          ],
+          "new_evaluations": 21,
+          "round": 0,
+          "sampled_target_met": false,
+          "u_count": 2,
+          "unique_evaluations": 21,
+          "v_count": 4
+        },
+        {
+          "cells": 10,
+          "errors": {
+            "diagonal_chord": 0.01823285424605856,
+            "u_chord": 0.0009404319091832609,
+            "v_chord": 0.018655289504845886,
+            "worst_uv": [
+              [
+                1.05372069229575,
+                -0.26400497384846067
+              ],
+              [
+                0.0,
+                -0.08800165794946069
+              ],
+              [
+                0.35124023076525,
+                -0.08800165794946069
+              ]
+            ]
+          },
+          "marked_u_intervals": [
+            0,
+            1
+          ],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "new_evaluations": 34,
+          "round": 1,
+          "sampled_target_met": false,
+          "u_count": 3,
+          "unique_evaluations": 55,
+          "v_count": 6
+        },
+        {
+          "cells": 36,
+          "errors": {
+            "diagonal_chord": 0.004728359329867595,
+            "u_chord": 0.0002393044858540702,
+            "v_chord": 0.004709744383209348,
+            "worst_uv": [
+              [
+                0.878100576913125,
+                -0.26400497384846067
+              ],
+              [
+                0.0,
+                -0.04400082897471069
+              ],
+              [
+                0.175620115382625,
+                -0.04400082897471069
+              ]
+            ]
+          },
+          "marked_u_intervals": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "new_evaluations": 116,
+          "round": 2,
+          "sampled_target_met": false,
+          "u_count": 5,
+          "unique_evaluations": 171,
+          "v_count": 10
+        },
+        {
+          "cells": 136,
+          "errors": {
+            "diagonal_chord": 0.0012009434134552,
+            "u_chord": 6.0095369545903406e-05,
+            "v_chord": 0.0011810023480539778,
+            "worst_uv": [
+              [
+                0.7902905192218126,
+                -0.28600538833583566
+              ],
+              [
+                0.0,
+                -0.06600124346208569
+              ],
+              [
+                0.0878100576913125,
+                -0.06600124346208569
+              ]
+            ]
+          },
+          "marked_u_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "new_evaluations": 424,
+          "round": 3,
+          "sampled_target_met": false,
+          "u_count": 9,
+          "unique_evaluations": 595,
+          "v_count": 18
+        },
+        {
+          "cells": 528,
+          "errors": {
+            "diagonal_chord": 0.0003022808769447748,
+            "u_chord": 1.5040770798681193e-05,
+            "v_chord": 0.00029542537509625845,
+            "worst_uv": [
+              [
+                0.7463854903761563,
+                -0.28600538833583566
+              ],
+              [
+                0.0,
+                -0.05500103621839819
+              ],
+              [
+                0.04390502884565625,
+                -0.05500103621839819
+              ]
+            ]
+          },
+          "marked_u_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ],
+          "new_evaluations": 1616,
+          "round": 4,
+          "sampled_target_met": false,
+          "u_count": 17,
+          "unique_evaluations": 2211,
+          "v_count": 34
+        },
+        {
+          "cells": 2080,
+          "errors": {
+            "diagonal_chord": 7.581493768391073e-05,
+            "u_chord": 3.7612517174526866e-06,
+            "v_chord": 7.387197101885153e-05,
+            "worst_uv": [
+              [
+                0.7244329759533281,
+                -0.28600538833583566
+              ],
+              [
+                0.0,
+                -0.06050113984024194
+              ],
+              [
+                0.021952514422828126,
+                -0.06050113984024194
+              ]
+            ]
+          },
+          "marked_u_intervals": [],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63
+          ],
+          "new_evaluations": 6304,
+          "round": 5,
+          "sampled_target_met": false,
+          "u_count": 33,
+          "unique_evaluations": 8515,
+          "v_count": 66
+        },
+        {
+          "cells": 4128,
+          "errors": {
+            "diagonal_chord": 2.0690853501012697e-05,
+            "u_chord": 3.7612517240279696e-06,
+            "v_chord": 1.8468845494551464e-05,
+            "worst_uv": [
+              [
+                0.7244329759533281,
+                -0.2832553365249138
+              ],
+              [
+                0.0,
+                -0.06325119165116382
+              ],
+              [
+                0.021952514422828126,
+                -0.06325119165116382
+              ]
+            ]
+          },
+          "marked_u_intervals": [],
+          "marked_v_intervals": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125,
+            126,
+            127
+          ],
+          "new_evaluations": 8320,
+          "round": 6,
+          "sampled_target_met": false,
+          "u_count": 33,
+          "unique_evaluations": 16835,
+          "v_count": 130
+        }
+      ],
+      "sampled_target_met": false,
+      "scope": "discrete midpoint probes only; caller must filter interior proposals against trim",
+      "status": "incomplete",
+      "tolerance": 5e-06,
+      "trim_filtered": false,
+      "truncation": "axis_limit",
+      "u_axis": [
+        0.0,
+        0.04390502884565625,
+        0.0878100576913125,
+        0.13171508653696876,
+        0.175620115382625,
+        0.21952514422828126,
+        0.2634301730739375,
+        0.30733520191959374,
+        0.35124023076525,
+        0.3951452596109063,
+        0.4390502884565625,
+        0.48295531730221875,
+        0.526860346147875,
+        0.5707653749935313,
+        0.6146704038391875,
+        0.6585754326848438,
+        0.7024804615305,
+        0.7463854903761563,
+        0.7902905192218126,
+        0.8341955480674688,
+        0.878100576913125,
+        0.9220056057587813,
+        0.9659106346044375,
+        1.0098156634500937,
+        1.05372069229575,
+        1.0976257211414064,
+        1.1415307499870626,
+        1.1854357788327188,
+        1.229340807678375,
+        1.2732458365240311,
+        1.3171508653696875,
+        1.361055894215344,
+        1.404960923061
+      ],
+      "unique_evaluations": 16835,
+      "v_axis": [
+        -0.7024804615304414,
+        -0.6970043079408714,
+        -0.6915281543513014,
+        -0.6860520007617315,
+        -0.6805758471721614,
+        -0.6750996935825913,
+        -0.6696235399930213,
+        -0.6641473864034513,
+        -0.6586712328138813,
+        -0.6531950792243113,
+        -0.6477189256347413,
+        -0.6422427720451713,
+        -0.6367666184556012,
+        -0.6312904648660311,
+        -0.6258143112764611,
+        -0.6203381576868912,
+        -0.6148620040973212,
+        -0.6093858505077512,
+        -0.6039096969181812,
+        -0.5984335433286112,
+        -0.5929573897390411,
+        -0.587481236149471,
+        -0.582005082559901,
+        -0.576528928970331,
+        -0.571052775380761,
+        -0.5655766217911911,
+        -0.5601004682016211,
+        -0.5546243146120511,
+        -0.5491481610224811,
+        -0.5436720074329111,
+        -0.5381958538433411,
+        -0.5327197002537711,
+        -0.527243546664201,
+        -0.5217673930746309,
+        -0.516291239485061,
+        -0.510815085895491,
+        -0.505338932305921,
+        -0.499862778716351,
+        -0.49438662512678094,
+        -0.4889104715372109,
+        -0.4834343179476409,
+        -0.4779581643580709,
+        -0.4724820107685009,
+        -0.46700585717893084,
+        -0.46152970358936085,
+        -0.45605354999979086,
+        -0.4505773964102209,
+        -0.4451012428206509,
+        -0.43962508923108085,
+        -0.4341489356415108,
+        -0.4286727820519408,
+        -0.4231966284623708,
+        -0.41772047487280084,
+        -0.41224432128323085,
+        -0.4067681676936608,
+        -0.40129201410409077,
+        -0.3958158605145208,
+        -0.3903397069249508,
+        -0.38486355333538075,
+        -0.3793873997458107,
+        -0.3739112461562407,
+        -0.36843509256667073,
+        -0.3629589389771007,
+        -0.35748278538753064,
+        -0.35200663179796066,
+        -0.34650652817611693,
+        -0.34100642455427316,
+        -0.3355063209324294,
+        -0.33000621731058566,
+        -0.32450611368874194,
+        -0.31900601006689816,
+        -0.3135059064450544,
+        -0.30800580282321066,
+        -0.30250569920136694,
+        -0.29700559557952316,
+        -0.2915054919576794,
+        -0.28600538833583566,
+        -0.28050528471399194,
+        -0.27500518109214817,
+        -0.2695050774703044,
+        -0.26400497384846067,
+        -0.25850487022661695,
+        -0.25300476660477317,
+        -0.24750466298292942,
+        -0.24200455936108567,
+        -0.23650445573924192,
+        -0.23100435211739817,
+        -0.22550424849555442,
+        -0.22000414487371067,
+        -0.21450404125186692,
+        -0.20900393763002317,
+        -0.20350383400817942,
+        -0.19800373038633567,
+        -0.19250362676449193,
+        -0.18700352314264818,
+        -0.18150341952080443,
+        -0.17600331589896068,
+        -0.17050321227711693,
+        -0.16500310865527318,
+        -0.15950300503342943,
+        -0.15400290141158568,
+        -0.14850279778974193,
+        -0.14300269416789818,
+        -0.13750259054605443,
+        -0.13200248692421068,
+        -0.12650238330236693,
+        -0.12100227968052318,
+        -0.11550217605867943,
+        -0.11000207243683569,
+        -0.10450196881499194,
+        -0.09900186519314819,
+        -0.09350176157130444,
+        -0.08800165794946069,
+        -0.08250155432761694,
+        -0.07700145070577319,
+        -0.07150134708392944,
+        -0.06600124346208569,
+        -0.06050113984024194,
+        -0.05500103621839819,
+        -0.04950093259655444,
+        -0.04400082897471069,
+        -0.038500725352866944,
+        -0.033000621731023194,
+        -0.027500518109179445,
+        -0.022000414487335695,
+        -0.016500310865491946,
+        -0.011000207243648197,
+        -0.0055001036218044475,
+        3.930189507173054e-14,
+        4.323084083410503e-14
+      ]
+    }
+  },
+  "measuredStages": {
+    "surfaceEvaluationCount": 411207,
+    "controlPointEvaluationCount": 22205178,
+    "sampleEvaluationCount": 106064,
+    "interiorRetriangulationSurfaceEvaluationCount": 207911,
+    "interiorRetriangulationControlPointEvaluationCount": 11227194
+  },
+  "limitations": [
+    "One digest-pinned historical dataset support face, not whole component or latest-dataset-main qualification.",
+    "Initializer is incompletely sampled at its axis cap; subsequent final-mesh discrete samples meet the separate requested mesh target.",
+    "Full trim coverage, cross-face shared edges, source-curve/support discrepancy and complete-solid qualification remain open.",
+    "No continuous surface-error proof, production STEP admission/export, new native runtime dependency, merge, release or Actions.",
+    "Raw local source/diagnostic/native reports are digest-bound but not uploaded as model artifacts."
+  ],
+  "developmentCorrections": [
+    "Initial Rust compilation failed on cache key type inference; explicitly typed cache and dereferenced lookup keys corrected it before the passing runs.",
+    "An initial ad-hoc Python import failed before CLI execution; corrected invocation used the existing bounded subprocess harness."
+  ]
+}

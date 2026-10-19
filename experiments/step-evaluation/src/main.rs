@@ -13,8 +13,10 @@ mod planar_face;
 mod planar_repair;
 mod priority_quality;
 mod priority_refinement;
+mod seeded_domain;
 mod source_uncertainty;
 mod spline_face_diagnostic;
+mod surface_grid;
 mod triangle_diagnostics;
 mod trim_polygon_candidate;
 mod unit_preflight;
@@ -374,7 +376,7 @@ fn probe_spline_face(
     path: &Path,
     face_id: u64,
     source_representation: Option<u64>,
-    physical_tolerance: Option<(f64, bool, bool, bool, bool)>,
+    physical_tolerance: Option<(f64, bool, bool, bool, u8)>,
 ) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     if physical_tolerance.is_some()
@@ -425,6 +427,7 @@ fn main() {
             || arg == "--research-retriangulated-source-face"
             || arg == "--research-adaptive-boundary-source-face"
             || arg == "--research-prioritized-source-face"
+            || arg == "--research-grid-source-face"
     }) {
         let result = (|| -> Result<Value, String> {
             if raw.len() != 7
@@ -457,8 +460,13 @@ fn main() {
                     raw[0] != "--research-physical-source-face",
                     raw[0] == "--research-retriangulated-source-face",
                     raw[0] == "--research-adaptive-boundary-source-face"
-                        || raw[0] == "--research-prioritized-source-face",
-                    raw[0] == "--research-prioritized-source-face",
+                        || raw[0] == "--research-prioritized-source-face"
+                        || raw[0] == "--research-grid-source-face",
+                    if raw[0] == "--research-grid-source-face" {
+                        2
+                    } else {
+                        u8::from(raw[0] == "--research-prioritized-source-face")
+                    },
                 )),
             )
         })();

@@ -523,12 +523,79 @@ outcomes. Two old-target `LNK1104` attempts failed with unconfirmed cause;
 verification used a fresh shorter D: build target. None of these results
 qualifies a whole component, STEP exporter or production release.
 
+## Directional interior-grid initialization (2026-10-19)
+
+The next original Rust experiment adds `--research-grid-source-face`. It studies
+Truck's pinned [directional parameter division](https://github.com/ricosjp/truck/blob/c2a1da87313e7879b0f4efe118da8410f8f0699a/truck-geotrait/src/algo/surface.rs#L219)
+and [interior CDT insertion](https://github.com/ricosjp/truck/blob/c2a1da87313e7879b0f4efe118da8410f8f0699a/truck-meshalgo/src/tessellation/triangulation.rs#L570),
+without adding a Truck dependency or translating KiCad code. The reviewed
+Monstertruck pin `d2ad1ed7aa420b7f32cd2c1e3ad319b46d593652` also demonstrates
+typed work truncation. Neither library has passed Tokito's corpus here; their
+optional dependency graphs and compiler requirements remain unqualified.
+
+Tokito clips source knot breaks to the sampled UV bounding box, explicitly
+lifts periodic breaks into the selected chart, and retains every clipped knot
+while adding directional dyadic divisions. It measures physical U/V midpoint
+chords on boundary and midlines and **both cell diagonals**. A bilinear-only
+probe misses the saddle `S(u,v)=(u,v,u*v)`; analytic regression tests cover this
+case, pure-U curvature, affine surfaces and anisotropic parameter units.
+One-directional refinement supplies an interior cross-section in the other
+axis. Immutable UV evaluation caching records actual calls, not nominal probe
+counts. These discrete samples cannot prove a continuous deviation bound.
+
+The bounded sampler allows 257 values per axis, 8,192 interior proposals,
+8,192 cells per pass, 12 subdivision rounds and 60,000 unique evaluations.
+It reserves each complete sampling pass and retains the last fully measured
+grid on truncation. Initial over-budget grids remain explicitly untested.
+Evaluation failures/nonfinite values refuse. The real initializer stops at its
+axis limit with **33 U / 130 V values**, 16,835 unique evaluations and 3,968
+proposals; it does **not** claim its stricter `0.000005 mm` sampler target.
+
+The simple-loop domain filter preserves the boundary prefix, rejects duplicate,
+near-constraint and exterior proposals explicitly, and caps predicate work at
+eight million. The real case retains 3,937 seeds and rejects 31 near-constraint
+proposals. This conservative floating-point filter is not full CAD trim proof.
+The CDT independently preserves the original sampled constraints, floods the
+exterior through unconstrained edges, verifies every retained seed is used and
+requires `F = 2V - B - 2`. Final subdivision checks exact boundary-edge inventory,
+positive original-UV winding, opposite interior-edge incidence and Euler one.
+On-boundary, duplicate and exterior-seed regressions must refuse rather than
+silently split a constraint, collapse an identity or omit a retained seed.
+
+Seeded initialization shares refinement's existing 50-million control-work cap;
+it is not a hidden extra allowance. The initial quality reservation accounts for
+all seed evaluations already consumed. Historical modes keep their boundary-only
+initialization and byte-compatible diagnostics. Priority replay now retains the
+initial UV inventory for seeded runs and replays every accepted split/template
+through the final topology. The source-coordinate mappings are unchanged.
+
+The independent real-source journey passed nine checks. After one refinement
+round, the face has **16,260 vertices / 31,942 triangles**, zero nonpositive
+normals and zero five-degree normal-target failures. Independent FreeCAD error
+is `0.000008749145837345152 mm` interior and `0.000004617251771241803 mm`
+boundary, both below the unchanged `0.00001 mm` mesh target. Minimum analytic
+normal alignment is `0.9998499022957288`; maximum vertex disagreement is
+`3.093e-15 mm`. No cleanup flip is needed. Refinement including grid sampling
+uses 22,205,178 control evaluations. The refinement sampler records 106,064
+surface evaluations (including initial vertices); the grid separately records
+16,835 unique evaluations and 55,368 chord probes. Postprocessing
+uses its separate 11,227,194 control evaluations. The boundary-sampling stage
+still has its separately recorded existing allowance.
+
+**Sampled face targets now pass, but the component is not qualified.** The
+source-curve/support discrepancy remains about `0.000001080838 mm`. Only 256
+trim centroids are checked; complete trim coverage, cross-face correspondence,
+watertightness, self-intersection, whole-solid deviation and physical component
+placement remain open. Status is `sampled_targets_met_unqualified`, not
+`geometryQualified` or `admitted`. No production STEP export or model output is
+introduced. See [checkpoint evidence](evidence/surface-grid-20261019.json).
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
 | Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | Reserved priority splits and guarded transitions reach zero sampled normal-target failures; interior chord target remains unmet | More efficient physical-space interior meshing/error control, reviewed shared-edge discrepancy handling and general chart support |
+| Main | Current Spade experiment | Directional interior seeding and reserved splits meet this face's sampled chord/normal targets; whole-solid qualification remains open | Reviewed shared-edge discrepancy handling, full trims/solid comparison and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |

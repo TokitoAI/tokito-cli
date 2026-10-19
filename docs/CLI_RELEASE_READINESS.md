@@ -219,3 +219,12 @@ Windows UCRT imports. Receipt: `target/windows-loader-imports-20261016.json`.
 This is static import evidence only. An independent-machine Windows install
 test and a documented prerequisite/portable-build choice remain release gates.
 No 1.0 version bump or production readiness claim is made.
+
+
+### Directional surface-grid research checkpoint
+
+The original Rust seeded face experiment meets sampled interior/boundary chord
+and five-degree normal targets; independent FreeCAD checks agree. This is one
+unqualified supporting-surface face, not complete component or STEP admission.
+Source-curve discrepancy, complete trims, cross-face seams and whole-solid
+checks remain open. See [the evidence-backed contract](GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19).

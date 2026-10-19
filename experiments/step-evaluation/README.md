@@ -328,3 +328,12 @@ fully measured mesh; sampled-target success still does not qualify a solid.
 Use `tests/physical_refinement_e2e.py --prioritized` for subdivision/topology/
 reservation replay and fresh native-oracle comparisons. See the
 [priority contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#reserved-priority-refinement-and-transition-checks-2026-10-19).
+
+
+`--research-grid-source-face` adds original bounded knot-preserving directional
+interior seeds before priority refinement. Run
+`tests/physical_refinement_e2e.py --grid` to replay seed identities/constraints
+and subdivisions, then independently audit the final face. A truncated
+initializer can be followed by refinement that meets sampled mesh targets;
+neither result qualifies the whole solid.
+See [the grid contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19).

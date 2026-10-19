@@ -1367,8 +1367,9 @@ pub(crate) fn inspect_physical_refinement(
     metric_preconditioning: bool,
     interior_retriangulation: bool,
     adaptive_boundary: bool,
-    prioritized_interior: bool,
+    interior_mode: u8,
 ) -> Result<Json, String> {
+    let prioritized_interior = interior_mode > 0;
     let mut report = inspect(step, face_id)?;
     let surface_id = report["surfaceId"]
         .as_u64()
@@ -1602,7 +1603,38 @@ pub(crate) fn inspect_physical_refinement(
     } else {
         None
     };
-    let candidate = if prioritized_interior {
+    let remaining = || {
+        let surfaces = MAX_SURFACE_EVALUATIONS.saturating_sub(*evaluations.borrow());
+        let controls =
+            MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS.saturating_sub(*control_evaluations.borrow());
+        Ok(surfaces.min(controls / surface.control_point_count))
+    };
+    let candidate = if interior_mode == 2 {
+        let bounds: [[f64; 2]; 2] = std::array::from_fn(|axis| {
+            [
+                input.iter().map(|p| p[axis]).fold(f64::INFINITY, f64::min),
+                input
+                    .iter()
+                    .map(|p| p[axis])
+                    .fold(f64::NEG_INFINITY, f64::max),
+            ]
+        });
+        let u = crate::seeded_domain::axis(&surface.u_breaks, bounds[0], surface.u_period)?;
+        let v = crate::seeded_domain::axis(&surface.v_breaks, bounds[1], surface.v_period)?;
+        let grid = crate::surface_grid::sample(&u, &v, tolerance * 0.5, evaluate)?;
+        crate::physical_surface_refinement::refine_seeded(
+            crate::physical_surface_refinement::SeededInput {
+                boundary: &input,
+                grid,
+            },
+            tolerance,
+            5f64.to_radians().cos(),
+            metric,
+            evaluate,
+            orientation,
+            remaining,
+        )
+    } else if prioritized_interior {
         crate::physical_surface_refinement::refine_prioritized(
             &input,
             tolerance,

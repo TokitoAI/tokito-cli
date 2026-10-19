@@ -109,6 +109,21 @@ failed preliminary experiments and four unchanged historical diagnostics.
 Next: improve physical-space interior error control without weakening budgets,
 tolerances, original coordinates or admission rules.
 
+## Directional surface-grid checkpoint (2026-10-19)
+
+Original Rust knot-preserving directional interior sampling plus constrained
+initialization now meets the pinned face's **sampled** mesh targets. Nine
+real-source/oracle/refusal checks pass: 16,260 vertices, 31,942 triangles,
+independent interior error `0.000008749146 mm` below `0.00001 mm`, and zero
+sampled normal-target failures. The sampler itself truncates at its axis cap;
+the following fully measured refinement reaches the mesh targets. This does
+not qualify source curves, complete trims, shared edges or the component solid.
+The source/support discrepancy remains unresolved. Next: reviewed edge/surface
+correspondence, full trim/solid qualification and complete component bodies.
+[Implementation/math](GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19)
+and [evidence](evidence/surface-grid-20261019.json) preserve the open gates.
+Current-source full verification remains tied to its per-run receipt.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit

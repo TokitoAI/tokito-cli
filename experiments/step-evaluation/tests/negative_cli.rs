@@ -95,6 +95,18 @@ fn physical_research_mode_refuses_invalid_parameters_and_unpinned_source() {
     let input = NegativeFile::new(b"synthetic negative input, not a qualified STEP source");
     for (arguments, expected) in [
         (vec!["--research-physical-source-face"], "usage:"),
+        (vec!["--research-grid-source-face"], "usage:"),
+        (
+            vec![
+                "--research-grid-source-face",
+                "2875",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+            ],
+            "physical_research_requires_pinned_model16_face_and_representation",
+        ),
         (
             vec![
                 "--research-physical-source-face",
