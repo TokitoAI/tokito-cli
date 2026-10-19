@@ -96,6 +96,18 @@ fn physical_research_mode_refuses_invalid_parameters_and_unpinned_source() {
     for (arguments, expected) in [
         (vec!["--research-physical-source-face"], "usage:"),
         (vec!["--research-grid-source-face"], "usage:"),
+        (vec!["--research-shared-edges"], "usage:"),
+        (
+            vec![
+                "--research-shared-edges",
+                "2875",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "shared_edge_research_requires_pinned_source_face_representation_owner",
+        ),
         (
             vec![
                 "--research-grid-source-face",

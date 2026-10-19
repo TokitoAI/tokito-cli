@@ -590,11 +590,120 @@ placement remain open. Status is `sampled_targets_met_unqualified`, not
 `geometryQualified` or `admitted`. No production STEP export or model output is
 introduced. See [checkpoint evidence](evidence/surface-grid-20261019.json).
 
+## Shared-edge support audit (2026-10-19)
+
+The new original Rust `--research-shared-edges` mode follows the selected
+solid's actual `CLOSED_SHELL`, face bounds, loops, oriented uses and shared
+`EDGE_CURVE` identities. It preserves source senses and unknown flags. For the
+pinned face `2875` in solid `6218` / representation `5957`, all four edges have
+two oppositely oriented uses. Edges `3478` and `9149` share the same neighbouring
+face `10475`; they must not create two distinct neighbour identities. Face
+`8127` has an outer bound and another bound, whose role remains
+`inner_or_unspecified`. Surface `42` declares `self_intersect=.T.`: this is a
+source warning, not independent proof that the physical surface intersects.
+No source pcurves or per-edge tolerance are available in this fixture.
+
+Each unique source curve is evaluated once at 16 intervals per native knot
+span. The resulting 100 canonical parameter/XYZ samples are reused by both
+incident supports, with explicit identity-preserving traversal permutations.
+The canonical digest is SHA-256 over successive little-endian IEEE754 f64
+`parameter,x,y,z` values, without a header; signed zero is retained. Python
+independently replays the encoding. This fixed sampling is not adaptive edge
+discretization, a complete trimmed-interval proof or a certified error bound.
+
+Plane projection uses the declared axis placement. NURBS projection retains
+stationarity/residual observations and does not prove a globally closest point.
+Every projection is explicitly unverified for trim membership. Plane results
+have no numerical-solver residual threshold; their threshold availability is
+reported as unavailable rather than counted as successful acceptance.
+
+| Source edge | Other face / support | Independent maximum support separation (mm) |
+| --- | --- | --- |
+| 3400 | 8127 / plane 6835 | 1.4756016888346606e-11 |
+| 3478 | 10475 / spline 7558 | 0 at sampled parameters |
+| 5409 | 8445 / spline 42 | 4.6454902159258955e-6 |
+| 9149 | 10475 / spline 7558 | 0 at sampled parameters |
+
+The nine-check native journey binds the selected face uniquely from all four
+curve signatures, then identifies neighbours through shared native topological
+edges. It independently evaluates all 100 curve samples and 200 support points
+at Rust-reported UVs. Maximum independent point disagreement is
+`2.2232198742534223e-15 mm` for curves and `2.8435583831733384e-15 mm` for
+supports. It recomputes residuals, separations and maxima; wrong owner/source,
+usage, overwrite and mutated-support/gap controls refuse. This corroborates
+the sampled seam discrepancy; it does not repair it or prove optimal projection.
+
+One aggregate budget covers all incident surfaces, including a reservation
+before inverse-grid construction and seam evaluation. Limits are 8,192
+canonical probes, 16 supports, 8,192 coarse-grid points, 65,536 retained surface
+controls, four million surface calls and 50 million control-work units.
+The real run charges 10,104 surface calls, comprising 9,581 explicitly measured
+NURBS evaluations and 523 preparation estimates. Analytic plane projections
+are separately counted (33). Charged surface-control work is 431,958,
+including 25,164 preparation estimates. These bounded work units are not a
+complete CPU-instruction count. Surface preparation is reused for the two
+edges sharing support `7558`; allowances do not reset per neighbour.
+
+See [captured evidence](evidence/shared-edges-20261019.json), the
+[Rust topology audit](../experiments/step-evaluation/src/shared_edge_topology.rs),
+[support evaluator](../experiments/step-evaluation/src/spline_face_diagnostic/shared_edges.rs)
+and [native comparison](../experiments/step-evaluation/tests/shared_edges_e2e.py).
+All admission/qualification flags remain false; no geometry is exported.
+
+## Selected solution and next implementation gates
+
+The upstream checks were refreshed on 2026-10-19. The official footprint
+generator URL now redirects to [KiCad Library Tools](https://gitlab.com/kicad/libraries/kicad-library-tools),
+which groups footprint, symbol and 3D generators. The retained revision above
+remains the reproducible code reference; do not follow a mutable branch when
+implementing package arithmetic. [Truck](https://github.com/ricosjp/truck)
+remains the alternative pure-Rust B-rep/STEP experiment, not an already
+qualified replacement. [OCCT shape healing](https://dev.opencascade.org/doc/overview/html/occt_user_guides__shape_healing.html)
+documents separate analysis, modification and status reporting, including
+curve/pcurve deviation, missing seams, wire orientation and tolerance limits.
+Its native implementation remains a development reference only.
+
+Implement two complementary routes, with the existing source/identity contract:
+
+1. **Existing STEP:** keep exact units, occurrence transforms and face ownership;
+   advance this audit to adaptive shared edge samples and explicit UV trims,
+   including holes and periodic seams. Use one canonical edge inventory across
+   incident faces. Evaluate physical chord and normal error, not UV angles alone.
+2. **Missing package bodies:** use the reviewed manufacturer/package dimensions
+   to generate a small supported family in original Rust. Start with SMD
+   resistor bodies and distinct terminals, then leaded IC/header families.
+   Preserve the complete drawing, terminal and material evidence. A footprint
+   pad pattern alone is insufficient to generate a qualified package body.
+
+The immediate STEP design gate is a **local boundary reconciliation policy**:
+record source uncertainty, requested mesh error, measured curve/support gaps,
+any actual boundary displacement and the affected source IDs separately. A
+sampled discrepancy below a mesh target does not itself approve a repair.
+Proposed canonical-edge meshing must demonstrate that both incident face
+boundaries conform to the same samples while staying within the reviewed
+physical error allowance. Preserve the source unchanged and record every
+correction. Refuse ambiguous projection, excess error, unknown trims or budget
+exhaustion; do not silently weld nearby vertices or globally inflate tolerance.
+This policy is specified as the next task, not implemented by the audit.
+
+Then qualify each complete component: all faces accounted for, trimmed holes
+preserved, closed consistently oriented shell when a solid is claimed,
+nondegenerate triangles, self-intersection checks, bidirectional reference
+deviation, volume and dimension comparisons. Compare placement, rotation and
+top/bottom transforms separately at board level. Only qualified profiles may
+enter the production exporter. Unresolved models stay explicitly incomplete.
+
+Use STEP/B-rep plus a provenance manifest for engineering source data and
+GLB for selectable presentation. One component UUID/refdes remains the parent
+of its body/terminal/material primitives. 4K is a render-size option, independent
+of geometric accuracy. Neither a format conversion nor increased triangle
+count repairs a bad source or supplies missing physical dimensions.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
-| Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
+| Main / read-only reviewer | Failed source-curve probe | Solver-status separation and shared-edge support audit implemented; native nine-check comparison passes | Define local boundary reconciliation policy; preserve refusal until physical geometry qualifies |
 | Main | Current Spade experiment | Directional interior seeding and reserved splits meet this face's sampled chord/normal targets; whole-solid qualification remains open | Reviewed shared-edge discrepancy handling, full trims/solid comparison and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |

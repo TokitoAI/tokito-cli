@@ -9,6 +9,22 @@ retains known failures; the opt-in model-14 repair has independent
 sampled-comparison evidence. The model-16 rational-spline candidate remains
 rejected, and general STEP admission is blocked.
 
+## Shared-edge geometry checkpoint (2026-10-19)
+
+The original Rust research evaluator now inventories source adjacency and
+canonical edge samples, then measures both incident supports with aggregate
+resource limits. Nine real-source/native/refusal checks pass: 100 curve
+samples and 200 support evaluations agree independently. Source edge `5409`
+has a sampled support separation of `4.6454902159258955e-6 mm`. Source warnings,
+unknown trim roles and unavailable per-edge tolerances remain explicit.
+The audit does not sew faces, approve a tolerance policy, qualify a complete
+solid, generate missing bodies or add production STEP export. The goal remains
+active. Next: reviewed local boundary reconciliation, adaptive shared-edge UV
+trims, whole-solid checks and dimension-driven component families. See
+[evidence](evidence/shared-edges-20261019.json) and the
+[selected solution](GEOMETRY_RECOVERY_PLAN.md#selected-solution-and-next-implementation-gates).
+Full local verification remains authoritative only through its per-run receipt.
+
 ## Current PR and local verification checkpoint (2026-10-18)
 
 PR #45 contains bounded mixed per-pad SMD/plated-THT/NPTH footprint generation

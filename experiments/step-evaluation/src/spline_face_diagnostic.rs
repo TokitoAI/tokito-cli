@@ -4,6 +4,9 @@
 //! data with oxideav-ifc's shared geometry kernel and measures projection
 //! residuals; it does not repair, export, or qualify the source model.
 
+mod shared_edges;
+pub(crate) use shared_edges::inspect as inspect_shared_edges;
+
 use crate::trim_polygon_candidate::{BoundaryCurveSegment, BoundaryVertexPoint, RefinementOptions};
 use oxideav_ifc::{kernel, StepFile, Value};
 use oxideav_step::schema::Entity;
@@ -204,6 +207,17 @@ fn source_boundary_curve_segments(
 }
 
 fn parse_surface(step: &StepFile, id: u64) -> Result<SurfaceDefinition, String> {
+    parse_surface_with_preparation_reservation(step, id, |_, _| Ok(()))
+}
+
+fn parse_surface_with_preparation_reservation<F>(
+    step: &StepFile,
+    id: u64,
+    mut reserve: F,
+) -> Result<SurfaceDefinition, String>
+where
+    F: FnMut(usize, usize) -> Result<(), String>,
+{
     let source = entity(step, id, "B_SPLINE_SURFACE")?;
     if !source.is_a("B_SPLINE_SURFACE_WITH_KNOTS") {
         return Err("unsupported_surface_requires_bspline_with_knots".into());
@@ -312,6 +326,12 @@ fn parse_surface(step: &StepFile, id: u64) -> Result<SurfaceDefinition, String> 
     if !control_net_diagonal.is_finite() || control_net_diagonal <= 0. {
         return Err("invalid_surface_control_net_extent".into());
     }
+    // BSplineSurface::new only builds bounded control/knot data in the pinned
+    // Rust kernel. Its inverse grid is evaluated by Surface::bspline below.
+    let preparation = construction_control_point_evaluation_estimate
+        .checked_add(if v_closed { 68 * total_controls } else { 0 })
+        .ok_or("surface_preparation_work_overflow")?;
+    reserve(total_controls, preparation)?;
     let surface = kernel::Surface::bspline(surface);
     let periods = surface.periods();
     let seam = seam_diagnostics(&surface, v_closed, u_domain, v_domain)?;

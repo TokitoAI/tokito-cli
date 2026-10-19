@@ -337,3 +337,29 @@ and subdivisions, then independently audit the final face. A truncated
 initializer can be followed by refinement that meets sampled mesh targets;
 neither result qualifies the whole solid.
 See [the grid contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19).
+
+## Isolated shared-edge support audit
+
+```powershell
+./target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --research-shared-edges 2875 --source-representation 5957 --source-owner 6218 `
+  '<materialized-dataset>/embedded-models/16.step'
+
+python experiments/step-evaluation/tests/shared_edges_e2e.py `
+  --binary target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --freecad 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe' `
+  --source '<materialized-dataset>/embedded-models/16.step' `
+  --output target/research/new-shared-edges-audit
+```
+
+The Rust mode accepts only the pinned source/owner/representation/face and
+exits 2 with an unqualified diagnostic. It shares one 16-interval-per-knot-span
+curve inventory across both incident supports, preserves topology/orientation
+and source warnings, and charges one aggregate preparation/evaluation budget.
+The native oracle binds faces through source-curve signatures and shared edges,
+then compares direct curve/support evaluations. The harness passes only if
+positive comparisons and refusal controls succeed; its exit 0 is not model
+qualification. It requires a fresh output path, bounded process output and
+unchanged source/tool fingerprints. No repair, geometry export, trim-coverage
+or global-nearest-point proof is supplied. See
+[the exact contract and next gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#shared-edge-support-audit-2026-10-19).

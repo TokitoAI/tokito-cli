@@ -4,6 +4,17 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## Shared-edge research status
+
+The experimental Rust shared-edge audit passed nine actual source/native/
+refusal checks. Independent evaluation corroborates a sampled incident-support
+gap of `4.6454902159258955e-6 mm`; the report preserves source warnings and
+unknown trim/tolerance status. It does not repair/sew a shell, qualify a
+component or add production STEP exports. Complete solids, missing component
+bodies and local tolerance-policy validation remain release blockers. See
+[the selected geometry solution](GEOMETRY_RECOVERY_PLAN.md#selected-solution-and-next-implementation-gates)
+and [checkpoint evidence](evidence/shared-edges-20261019.json).
+
 ## Latest code and verification checkpoint
 
 PR #45 contains mixed per-pad SMD/plated-THT/NPTH footprint generation as a
