@@ -97,14 +97,48 @@ where
 
 fn improve_bounded<F, O>(
     candidate: &Value,
-    mut evaluate: F,
-    mut orientation: O,
+    evaluate: F,
+    orientation: O,
     sample_limit: usize,
 ) -> Result<Value, String>
 where
     F: FnMut(Uv) -> Result<P3, String>,
     O: FnMut([Uv; 3], [P3; 3]) -> Result<f64, String>,
 {
+    improve_policy(candidate, evaluate, orientation, sample_limit, false)
+}
+
+pub(crate) fn improve_normal_target<F, O>(
+    candidate: &Value,
+    evaluate: F,
+    orientation: O,
+) -> Result<Value, String>
+where
+    F: FnMut(Uv) -> Result<P3, String>,
+    O: FnMut([Uv; 3], [P3; 3]) -> Result<f64, String>,
+{
+    improve_policy(candidate, evaluate, orientation, MAX_SAMPLES, true)
+}
+
+fn improve_policy<F, O>(
+    candidate: &Value,
+    mut evaluate: F,
+    mut orientation: O,
+    sample_limit: usize,
+    normal_target: bool,
+) -> Result<Value, String>
+where
+    F: FnMut(Uv) -> Result<P3, String>,
+    O: FnMut([Uv; 3], [P3; 3]) -> Result<f64, String>,
+{
+    let threshold = if normal_target {
+        candidate["minimumNormalAlignmentTarget"]
+            .as_f64()
+            .filter(|n| n.is_finite() && *n > 0. && *n <= 1.)
+            .ok_or("edge_flip_normal_target_invalid")?
+    } else {
+        0.
+    };
     if sample_limit == 0 || sample_limit > MAX_SAMPLES {
         return Err("edge_flip_invalid_sample_budget".into());
     }
@@ -169,6 +203,7 @@ where
         .map(|t| alignment(*t, &uv, &points, &mut orientation))
         .collect::<Result<Vec<_>, _>>()?;
     let before_nonpositive = normals.iter().filter(|n| **n <= 0.).count();
+    let before_target_failures = normals.iter().filter(|n| **n < threshold).count();
     let mut samples = 0;
     let mut sample = |p: Uv| -> Result<P3, String> {
         samples += 1;
@@ -195,7 +230,16 @@ where
         let mut touched = BTreeSet::new();
         let mut introduced_edges = BTreeSet::new();
         let before = accepted.len();
-        for (key, pair) in &incidence {
+        let mut candidates = incidence.iter().collect::<Vec<_>>();
+        if normal_target {
+            candidates.sort_by(|(ka, a), (kb, b)| {
+                let score = |p: &Vec<(usize, usize, usize, usize)>| {
+                    p.iter().map(|(i, _, _, _)| normals[*i]).fold(1., f64::min)
+                };
+                score(a).total_cmp(&score(b)).then_with(|| ka.cmp(kb))
+            });
+        }
+        for (key, pair) in candidates {
             if attempts >= MAX_ATTEMPTS {
                 break;
             }
@@ -204,7 +248,10 @@ where
             }
             let (i, a, b, c) = pair[0];
             let (j, x, y, d) = pair[1];
-            if touched.contains(&i) || touched.contains(&j) || normals[i].min(normals[j]) > 0. {
+            if touched.contains(&i)
+                || touched.contains(&j)
+                || normals[i].min(normals[j]) > threshold
+            {
                 continue;
             }
             if a != y || b != x {
@@ -230,6 +277,12 @@ where
             ];
             if new_normals[0].min(new_normals[1]) <= 0.
                 || new_normals[0].min(new_normals[1]) <= normals[i].min(normals[j])
+                || (normal_target
+                    && new_normals.iter().filter(|n| **n < threshold).count()
+                        > [normals[i], normals[j]]
+                            .iter()
+                            .filter(|n| **n < threshold)
+                            .count())
             {
                 continue;
             }
@@ -321,6 +374,15 @@ where
         "sampleEvaluationCount":samples,"sampleEvaluationLimit":sample_limit,"beforeNonpositiveNormalCount":before_nonpositive,
         "verticesMoved":0,"boundaryEdgesChanged":0,"allAcceptedPairNormalsPositive":true,"allAcceptedPairSampledChordErrorsNonIncreasing":true,
         "historyDescribesPreRetriangulationRefinement":true,"geometryQualified":false,"admitted":false});
+    if normal_target {
+        report["interiorRetriangulation"]["normalTargetSelectionThreshold"] = json!(threshold);
+        report["interiorRetriangulation"]["beforeNormalThresholdFailureCount"] =
+            json!(before_target_failures);
+        report["interiorRetriangulation"]["acceptedPairTargetFailureCountsNonIncreasing"] =
+            json!(true);
+        report["interiorRetriangulation"]["candidateOrder"] =
+            json!("lowest_pair_normal_first_then_edge_identity");
+    }
     Ok(report)
 }
 
@@ -353,6 +415,58 @@ mod tests {
         json!({"uvVertices":uv,"surfacePointsSourceUnits":uv.map(surface),"triangles":[[0,1,2],[0,2,3]],
             "boundaryVertexCount":4,"minimumNormalAlignmentTarget":0.99,"chordToleranceSourceUnits":0.01,
             "quality":{},"termination":"test_incomplete","admitted":false,"geometryQualified":false,"exportsProduced":[]})
+    }
+    #[test]
+    fn opt_in_normal_target_repairs_positive_but_poor_normals_without_increasing_target_failures() {
+        let point = |p: Uv| {
+            let mut q = surface(p);
+            q[2] *= 0.1;
+            q
+        };
+        let orientation =
+            |uv: [Uv; 3], p: [P3; 3]| -> Result<f64, String> {
+                let u = (uv[0][0] + uv[1][0] + uv[2][0]) / 3.;
+                let v = (uv[0][1] + uv[1][1] + uv[2][1]) / 3.;
+                let expected = [
+                    (9. - 18. * u - 3. * v) * 0.1,
+                    (9. - 18. * v - 3. * u) * 0.1,
+                    1.,
+                ];
+                let a: [f64; 3] = std::array::from_fn(|i| p[1][i] - p[0][i]);
+                let b: [f64; 3] = std::array::from_fn(|i| p[2][i] - p[0][i]);
+                let n = [
+                    a[1] * b[2] - a[2] * b[1],
+                    a[2] * b[0] - a[0] * b[2],
+                    a[0] * b[1] - a[1] * b[0],
+                ];
+                let norm = |v: P3| v[0].hypot(v[1]).hypot(v[2]);
+                Ok(n.iter().zip(expected).map(|(a, b)| a * b).sum::<f64>()
+                    / (norm(n) * norm(expected)))
+            };
+        let mut input = fixture();
+        let uv = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
+        input["surfacePointsSourceUnits"] = json!(uv.map(point));
+        let old = improve(&input, |p| Ok(point(p)), orientation).unwrap();
+        assert_eq!(old["interiorRetriangulation"]["acceptedFlipCount"], 0);
+        let improved = improve_normal_target(&input, |p| Ok(point(p)), orientation).unwrap();
+        assert_eq!(improved["interiorRetriangulation"]["acceptedFlipCount"], 1);
+        assert!(
+            improved["quality"]["minimumSampledNormalAlignment"]
+                .as_f64()
+                .unwrap()
+                > old["quality"]["minimumSampledNormalAlignment"]
+                    .as_f64()
+                    .unwrap()
+        );
+        assert!(
+            improved["quality"]["normalThresholdFailureCount"]
+                .as_u64()
+                .unwrap()
+                <= old["quality"]["normalThresholdFailureCount"]
+                    .as_u64()
+                    .unwrap()
+        );
+        assert_eq!(improved["geometryQualified"], false);
     }
     #[test]
     fn actual_curved_surface_flip_improves_normals_and_sampled_error_without_moving_vertices() {

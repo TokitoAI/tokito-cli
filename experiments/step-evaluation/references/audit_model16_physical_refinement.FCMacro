@@ -230,6 +230,10 @@ def main():
                 maximum_interior_error = max(maximum_interior_error, error)
     flip_audits=[]
     flips=p.get("interiorRetriangulation",{}).get("acceptedFlips",[])
+    flip_target=p.get("interiorRetriangulation",{}).get("normalTargetSelectionThreshold")
+    if flip_target is not None and (type(flip_target) not in (int,float) or not math.isfinite(flip_target)
+            or not 0<flip_target<=1 or flip_target!=p["minimumNormalAlignmentTarget"]):
+        raise ValueError("normal-target flip threshold invalid")
     if not isinstance(flips,list) or len(flips)>128:
         raise ValueError("flip audit inventory exceeded")
 
@@ -261,6 +265,8 @@ def main():
         old_normal=min(v[1] for v in old_measures);new_normal=min(v[1] for v in new_measures)
         if new_normal<=0 or new_normal<=old_normal or new_error>old_error:
             raise ValueError("independent flip quality acceptance failed")
+        if flip_target is not None and sum(v[1]<flip_target for v in new_measures)>sum(v[1]<flip_target for v in old_measures):
+            raise ValueError("independent flip increased target-normal failures")
         for measured,key in [(old_error,"oldMaximumSampledPairChordErrorSourceUnits"),(new_error,"newMaximumSampledPairChordErrorSourceUnits"),
                              (old_normal,"oldMinimumNormalAlignment"),(new_normal,"newMinimumNormalAlignment")]:
             if not math.isclose(measured,flip[key],rel_tol=1e-6,abs_tol=1e-8):

@@ -320,3 +320,11 @@ Run `tests/physical_refinement_e2e.py --adaptive-boundary` for recursion/mapping
 replay and independent source-curve, surface and normal checks. This one-face
 experiment does not qualify a whole solid or enable production STEP exports;
 see the [sampling contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).
+
+`--research-prioritized-source-face` adds ranked, resource-reserved conforming
+interior splits, guarded transition templates and bounded normal-target flips.
+Original source samples stay fixed. Incomplete preflight retains the last
+fully measured mesh; sampled-target success still does not qualify a solid.
+Use `tests/physical_refinement_e2e.py --prioritized` for subdivision/topology/
+reservation replay and fresh native-oracle comparisons. See the
+[priority contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#reserved-priority-refinement-and-transition-checks-2026-10-19).

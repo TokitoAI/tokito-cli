@@ -57,6 +57,13 @@ interior error `0.00006014931 mm` remain; source/support discrepancy and solid
 qualification are unresolved. This improves one face, not production STEP
 support. See the [adaptive sampling evidence and limits](GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).
 
+The reserved-priority research path passes nine dedicated E2E checks and reaches
+zero sampled inversions and zero five-degree normal-target failures on the
+pinned face. Interior chord error `0.00005968069 mm` still misses its target;
+source-gap, trim and solid qualification remain unresolved. See the
+[priority checkpoint](evidence/priority-refinement-20261019.json). V1 is still
+not production-ready; this path enables no production STEP export.
+
 ## Candidate release boundary
 
 The shared Ultimaker presentation profile is implemented for existing packaged

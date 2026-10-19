@@ -166,6 +166,91 @@ def validate_adaptive_boundary(report):
         raise ValueError("expanded support boundary misses sampled chord target")
 
 
+def validate_prioritized(report):
+    p=report["physicalRefinementCandidate"]
+    trace=p["prioritizedInteriorRefinement"]
+    if (trace.get("lastMeshFullyMeasured") is not True or trace.get("usesActualRemainingAdapterSurfaceAndControlBudgets") is not True
+        or trace.get("normalEvaluationSurfaceCallUpperBoundPerTriangle")!=4):
+        raise ValueError("priority measurement/reservation scope missing")
+    boundary=p["boundaryVertexCount"]
+    uv=[list(q) for q in p["uvVertices"][:boundary]]
+    triangles=[list(t) for t in trace["initialTriangles"]]
+    if len(triangles)!=boundary-2:raise ValueError("priority initial disk inventory invalid")
+    partial=False
+    for d in trace["decisions"]:
+        edges=collections.Counter()
+        senses=collections.Counter()
+        for t in triangles:
+            if len(t)!=3 or len(set(t))!=3 or any(type(i) is not int or not 0<=i<len(uv) for i in t):
+                raise ValueError("priority trace triangle invalid")
+            for a,b in zip(t,t[1:]+t[:1]):
+                key=tuple(sorted((a,b)));edges[key]+=1;senses[key]+=1 if a<b else -1
+        fixed={tuple(sorted((i,(i+1)%boundary))) for i in range(boundary)}
+        if {e for e,n in edges.items() if n==1}!=fixed or any(n!=1 if e in fixed else n!=2 or senses[e]!=0 for e,n in edges.items()):
+            raise ValueError("priority intermediate mesh is not conforming")
+        b=d["budgetBefore"]
+        if [b[k] for k in ["vertices","triangles","edges"]]!=[len(uv),len(triangles),len(edges)]:
+            raise ValueError("priority trace budget mesh inventory mismatch")
+        chosen=[tuple(e) for e in d["selectedEdges"]]
+        if chosen!=sorted(set(chosen)) or len(chosen)!=d["selectedEdgeCount"] or any(e not in edges or edges[e]!=2 or e in fixed for e in chosen):
+            raise ValueError("priority selected edges invalid or constrained")
+        n=len(chosen)
+        if n==0:continue
+        partial|=n<d["markedEdgeCount"]
+        q=d["transitionQualityPreflight"]
+        if (q.get("complete") is not True or q.get("budgetStopped") is not False
+            or q.get("protectsPassingParentsFromNewNormalFailures") is not True
+            or q["passes"]>16 or q["childNormalEvaluationCount"]>200000):
+            raise ValueError("priority transition preflight incomplete")
+        chord=len(triangles)+len(edges)+5*n
+        surface=5*len(triangles)+len(edges)+13*n
+        if (d["reservedNextChordSamples"]!=chord or chord>b["remainingChordSamples"]
+            or d["reservedNextSurfaceEvaluations"]!=surface or surface>q["surfaceEvaluationsRemainingAfterPreflight"]
+            or len(uv)+n>25000 or len(triangles)+2*n>50000):
+            raise ValueError("priority next-pass reservation invalid")
+        midpoints={}
+        for a,b in chosen:
+            midpoints[(a,b)]=len(uv)
+            uv.append([(uv[a][j]+uv[b][j])*0.5 for j in range(2)])
+        alternatives=set(q["alternateParents"])
+        if any(type(i) is not int or not 0<=i<len(triangles) for i in alternatives):raise ValueError("priority alternative parent invalid")
+        out=[]
+        for index,t in enumerate(triangles):
+            m=[midpoints.get(tuple(sorted((t[i],t[(i+1)%3])))) for i in range(3)]
+            count=sum(i is not None for i in m)
+            if count==0:children=[t]
+            elif count==3:
+                a,b,c=t;x,y,z=m;children=[[a,x,z],[x,b,y],[z,y,c],[x,y,z]]
+            else:
+                start=next(i for i in range(3) if m[i] is not None and m[(i+2)%3] is None)
+                a,b,c=[t[(start+j)%3] for j in range(3)];x=m[start];y=m[(start+1)%3]
+                if count==1:children=[[a,x,c],[x,b,c]]
+                elif index in alternatives:children=[[a,x,y],[a,y,c],[x,b,y]]
+                else:children=[[a,x,c],[x,y,c],[x,b,y]]
+            if index in alternatives and count!=2:raise ValueError("priority alternative requires two split edges")
+            def area(row):
+                a,b,c=[uv[i] for i in row]
+                return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+            areas=[area(child) for child in children]
+            if any(not math.isfinite(v) or v<=0 for v in areas) or not math.isclose(sum(areas),area(t),rel_tol=1e-8,abs_tol=1e-20):
+                raise ValueError("priority child orientation or parent area not preserved")
+            out+=children
+        triangles=out
+        if [len(uv),len(triangles),len(uv)+len(triangles)-1]!=[d[k] for k in ["expectedNextVertices","expectedNextTriangles","expectedNextEdges"]]:
+            raise ValueError("priority growth accounting mismatch")
+    for flip in p["interiorRetriangulation"]["acceptedFlips"]:
+        indices=flip["triangleIndices"]
+        if len(indices)!=2 or len(set(indices))!=2 or any(type(i) is not int or not 0<=i<len(triangles) for i in indices):
+            raise ValueError("priority flip index invalid")
+        if [triangles[i] for i in indices]!=flip["oldTriangles"]:raise ValueError("priority cleanup flip cannot be replayed")
+        if len(flip["newTriangles"])!=2:raise ValueError("priority cleanup flip pair missing")
+        for i,t in zip(indices,flip["newTriangles"]):triangles[i]=t
+    if not partial or uv!=p["uvVertices"] or triangles!=p["triangles"]:
+        raise ValueError("priority refinement/cleanup replay differs from measured final mesh")
+    if p["controlPointEvaluationCount"]>50000000 or p["sampleEvaluationCount"]>400000:
+        raise ValueError("priority actual evaluator cap exceeded")
+
+
 def run(args):
     source = args.source.resolve(strict=True)
     binary = args.binary.resolve(strict=True)
@@ -180,11 +265,12 @@ def run(args):
     receipt = {"schema": "tokito.physical-refinement-e2e.v1", "passed": False, "checks": [],
                "inputSha256": hashes, "geometryQualified": False, "admitted": False, "exportsProduced": []}
     try:
+        adaptive=args.adaptive_boundary or args.prioritized
         if hashes[str(source)] != SOURCE_SHA256:
             raise ValueError("wrong materialized source")
 
         def cli(name, tolerance="0.00001", face="2875", mode=None):
-            mode=mode or ("--research-adaptive-boundary-source-face" if args.adaptive_boundary else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face")))
+            mode=mode or ("--research-prioritized-source-face" if args.prioritized else ("--research-adaptive-boundary-source-face" if adaptive else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face"))))
             code, stdout, stderr = capture_bounded([str(binary), mode, face,
                 "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
                 300, 32 * 1024 * 1024, 128 * 1024)
@@ -196,11 +282,12 @@ def run(args):
         report = cli("diagnostic")
         if report.get("sourceSha256") != SOURCE_SHA256 or report.get("admitted") is not False:
             raise ValueError("CLI provenance/qualification mismatch")
-        receipt["metricPreconditioning"]=args.metric or args.retriangulate or args.adaptive_boundary
-        receipt["interiorRetriangulation"]=args.retriangulate or args.adaptive_boundary
-        receipt["adaptiveSourceBoundary"]=args.adaptive_boundary
-        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate or args.adaptive_boundary,args.retriangulate or args.adaptive_boundary,args.adaptive_boundary)
-        if args.adaptive_boundary:
+        receipt["metricPreconditioning"]=args.metric or args.retriangulate or adaptive
+        receipt["interiorRetriangulation"]=args.retriangulate or adaptive
+        receipt["adaptiveSourceBoundary"]=adaptive
+        receipt["prioritizedInterior"]=args.prioritized
+        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate or adaptive,args.retriangulate or adaptive,adaptive)
+        if adaptive:
             validate_adaptive_boundary(report)
             baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
             if report["physicalRefinementCandidate"]["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]>=baseline["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]:
@@ -208,6 +295,19 @@ def run(args):
             receipt["baselineQuality"]=baseline["quality"]
             receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
             receipt["checks"].append({"name":"adaptive-native-curve-inventory-source-mapping-and-chord-targets","passed":True})
+        if args.prioritized:
+            validate_prioritized(report)
+            before=cli("adaptive-baseline",mode="--research-adaptive-boundary-source-face")
+            if before["adaptiveBoundaryCandidate"]!=report["adaptiveBoundaryCandidate"]:
+                raise ValueError("priority mode changed source boundary sampling")
+            old=before["physicalRefinementCandidate"]["quality"];new=report["physicalRefinementCandidate"]["quality"]
+            if (new["nonpositiveNormalCount"]>old["nonpositiveNormalCount"]
+                or new["normalThresholdFailureCount"]>old["normalThresholdFailureCount"]
+                or new["maximumSampledInteriorChordErrorSourceUnits"]>=old["maximumSampledInteriorChordErrorSourceUnits"]):
+                raise ValueError("priority candidate regressed baseline orientation or failed to improve interior error")
+            receipt["adaptiveBaselineQuality"]=old
+            receipt["adaptiveBaselineDiagnosticSha256"]=digest(output/"adaptive-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"priority-reservation-transition-area-and-subdivision-replay","passed":True})
         if args.retriangulate:
             baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
             final=report["physicalRefinementCandidate"]
@@ -254,9 +354,9 @@ def run(args):
                                ("maximumSampledFixedBoundaryChordErrorSourceUnits", "maximumSampledFixedBoundaryChordErrorMm")]:
             if not math.isclose(report["physicalRefinementCandidate"]["quality"][native], independent[oracle], rel_tol=1e-6, abs_tol=1e-10):
                 raise ValueError("independent chord measurements disagree")
-        if (not args.adaptive_boundary and independent.get("analyticNonpositiveNormalCount", 0) <= 0) or independent.get("admitted") is not False:
+        if (not adaptive and independent.get("analyticNonpositiveNormalCount", 0) <= 0) or independent.get("admitted") is not False:
             raise ValueError("independent remaining orientation blocker missing")
-        if (args.retriangulate or args.adaptive_boundary) and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
+        if (args.retriangulate or adaptive) and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
             raise ValueError("independent accepted-flip audit incomplete")
         quality = report["physicalRefinementCandidate"]["quality"]
         if (independent["analyticNonpositiveNormalCount"] != quality["nonpositiveNormalCount"]
@@ -264,7 +364,7 @@ def run(args):
             raise ValueError("finite-difference and independent analytic orientation observations disagree")
         receipt["independentAudit"] = independent
         receipt["checks"].append({"name": "independent-surface-chord-normal-audit", "passed": True})
-        if args.adaptive_boundary:
+        if adaptive:
             boundary=independent.get("independentAdaptiveBoundaryAudit",{})
             if (boundary.get("retainedSamplesAudited")!=report["adaptiveBoundaryCandidate"]["expandedInputSampleCount"]
                 or boundary.get("quarterProbesAudited")!=report["adaptiveBoundaryCandidate"]["curveProjectionEvaluationCount"]):
@@ -311,4 +411,5 @@ if __name__ == "__main__":
     modes.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
     modes.add_argument("--retriangulate", action="store_true", help="Exercise bounded interior flips after metric refinement")
     modes.add_argument("--adaptive-boundary", action="store_true", help="Exercise source-parameter adaptive boundary sampling before metric refinement")
+    modes.add_argument("--prioritized", action="store_true", help="Exercise resource-reserved, transition-checked priority refinement")
     raise SystemExit(run(parser.parse_args()))

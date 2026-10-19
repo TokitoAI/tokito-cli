@@ -11,6 +11,8 @@ mod physical_edge_flip;
 mod physical_surface_refinement;
 mod planar_face;
 mod planar_repair;
+mod priority_quality;
+mod priority_refinement;
 mod source_uncertainty;
 mod spline_face_diagnostic;
 mod triangle_diagnostics;
@@ -372,7 +374,7 @@ fn probe_spline_face(
     path: &Path,
     face_id: u64,
     source_representation: Option<u64>,
-    physical_tolerance: Option<(f64, bool, bool, bool)>,
+    physical_tolerance: Option<(f64, bool, bool, bool, bool)>,
 ) -> Result<Value, String> {
     let bytes = read_bounded(File::open(path).map_err(|e| e.to_string())?)?;
     if physical_tolerance.is_some()
@@ -391,13 +393,14 @@ fn probe_spline_face(
     };
     let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
         .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
-    let mut report = if let Some((tolerance, metric, flips, boundary)) = physical_tolerance {
-        spline_face_diagnostic::inspect_physical_refinement(
-            &parsed, face_id, tolerance, metric, flips, boundary,
-        )?
-    } else {
-        spline_face_diagnostic::inspect(&parsed, face_id)?
-    };
+    let mut report =
+        if let Some((tolerance, metric, flips, boundary, priority)) = physical_tolerance {
+            spline_face_diagnostic::inspect_physical_refinement(
+                &parsed, face_id, tolerance, metric, flips, boundary, priority,
+            )?
+        } else {
+            spline_face_diagnostic::inspect(&parsed, face_id)?
+        };
     if let Some(representation) = source_representation {
         let selected = face_representation::inspect(&parsed, representation, face_id)?;
         let context_id = selected["selectedRepresentationLengthUnits"]["contextId"]
@@ -421,6 +424,7 @@ fn main() {
             || arg == "--research-metric-source-face"
             || arg == "--research-retriangulated-source-face"
             || arg == "--research-adaptive-boundary-source-face"
+            || arg == "--research-prioritized-source-face"
     }) {
         let result = (|| -> Result<Value, String> {
             if raw.len() != 7
@@ -452,7 +456,9 @@ fn main() {
                     tolerance,
                     raw[0] != "--research-physical-source-face",
                     raw[0] == "--research-retriangulated-source-face",
-                    raw[0] == "--research-adaptive-boundary-source-face",
+                    raw[0] == "--research-adaptive-boundary-source-face"
+                        || raw[0] == "--research-prioritized-source-face",
+                    raw[0] == "--research-prioritized-source-face",
                 )),
             )
         })();

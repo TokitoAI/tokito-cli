@@ -1367,6 +1367,7 @@ pub(crate) fn inspect_physical_refinement(
     metric_preconditioning: bool,
     interior_retriangulation: bool,
     adaptive_boundary: bool,
+    prioritized_interior: bool,
 ) -> Result<Json, String> {
     let mut report = inspect(step, face_id)?;
     let surface_id = report["surfaceId"]
@@ -1601,14 +1602,31 @@ pub(crate) fn inspect_physical_refinement(
     } else {
         None
     };
-    let candidate = crate::physical_surface_refinement::refine(
-        &input,
-        tolerance,
-        5f64.to_radians().cos(),
-        metric,
-        evaluate,
-        orientation,
-    );
+    let candidate = if prioritized_interior {
+        crate::physical_surface_refinement::refine_prioritized(
+            &input,
+            tolerance,
+            5f64.to_radians().cos(),
+            metric,
+            evaluate,
+            orientation,
+            || {
+                let surfaces = MAX_SURFACE_EVALUATIONS.saturating_sub(*evaluations.borrow());
+                let controls = MAX_DIAGNOSTIC_CONTROL_POINT_EVALUATIONS
+                    .saturating_sub(*control_evaluations.borrow());
+                Ok(surfaces.min(controls / surface.control_point_count))
+            },
+        )
+    } else {
+        crate::physical_surface_refinement::refine(
+            &input,
+            tolerance,
+            5f64.to_radians().cos(),
+            metric,
+            evaluate,
+            orientation,
+        )
+    };
     report["physicalRefinementCandidate"] = match candidate {
         Ok(value) => value,
         Err(error) => {
@@ -1658,7 +1676,11 @@ pub(crate) fn inspect_physical_refinement(
         *evaluations.borrow_mut() = 0;
         *control_evaluations.borrow_mut() = 0;
         let current = &report["physicalRefinementCandidate"];
-        let improved = crate::physical_edge_flip::improve(current, evaluate, orientation);
+        let improved = if prioritized_interior {
+            crate::physical_edge_flip::improve_normal_target(current, evaluate, orientation)
+        } else {
+            crate::physical_edge_flip::improve(current, evaluate, orientation)
+        };
         match improved {
             Ok(value) => report["physicalRefinementCandidate"] = value,
             Err(error) => {

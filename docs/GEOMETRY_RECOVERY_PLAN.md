@@ -446,12 +446,89 @@ binary name and did not reach test execution; rerunning with the actual
 `model16_spade_candidate.exe` passed. This invocation mistake is not recorded as
 a test pass.
 
+## Reserved priority refinement and transition checks (2026-10-19)
+
+The isolated `--research-prioritized-source-face` path retains adaptive source
+boundary sampling and the original mesh/evaluator caps. It ranks normal-failing
+triangle obligations first, then sampled chord-error ratios, with stable
+triangle/edge tie-breaking. Triangle obligations select their interior edges as
+groups; shared edges are counted once. For `s` interior splits on a conforming
+disk, growth is exactly `+s` vertices, `+2s` triangles and `+3s` edges.
+
+Before mutation, reserve the complete next quality pass: `F + E + 5s` chord
+samples and at most `5F + E + 13s` surface calls, including four normal-derivative
+evaluations per triangle. The callback reads the adapter's actual remaining
+surface/control-point counters, so preflight and refinement share the same
+50-million control-point cap. Midpoint coordinates reuse already measured edge
+samples. Initial quality measurement is also reserved; an unavailable initial
+pass refuses rather than publishing unevaluated geometry.
+
+A geometry-blind partial-fill experiment produced 49 normal-target failures
+from the prior four, despite zero inversions. It is a failed quality experiment,
+not an accepted improvement. The guarded implementation preflights affected
+children, tries both legal two-edge diagonals, and protects previously passing
+parents from creating new normal-target failures. Already failing parents may
+produce multiple positive but below-target children; global monotonic failure
+counts are not guaranteed. A stricter early experiment requiring each bad parent
+to retain at most one bad child stalled coarse initialization and was discarded.
+
+Unsafe edges remove every accepted group owning them. The selected union only
+shrinks; every changed neighbouring mask is rechecked. Measurements are cached
+by immutable parent identity, split mask and diagonal variant. The pass limit is
+16 and the child-normal evaluation limit 200,000. Before each additional normal
+evaluation, the actual remaining budget must still fit that evaluation and the
+entire next mesh measurement. Incomplete preflight retains the last fully
+measured mesh. Actual subdivision applies precisely the checked diagonal.
+
+Optional normal-target flips in this mode also consider positive triangles
+below the target. They retain the three-pass/128-attempt bounds and require
+positive replacement normals, improved pair minimum, no additional pair target
+failures and no worse sampled pair chord maximum. Other modes keep their
+previous inversion-only selection behavior.
+
+The E2E harness replays every selected midpoint, subdivision/alternate template,
+parent UV area, topology and resource reservation from the recorded initial CDT
+through the final flip log. It compares against a freshly generated adaptive
+baseline; native CAD checks remain separate independent geometry evidence.
+These mechanisms do not qualify source curves, complete trims or whole solids.
+
+Actual release-binary execution passed nine dedicated E2E checks, including
+full subdivision/alternate-template/area/reservation replay and an independent
+FreeCAD comparison. The final face has 24,668 vertices, 48,758 triangles and
+576 fixed boundary edges, with **zero sampled inversions and zero five-degree
+normal-target failures**. Minimum analytic alignment is `0.9963682806`, above
+`cos(5 degrees) = 0.9961946981`. Sampled interior error is only slightly better,
+`0.00005968069 mm` versus the adaptive baseline's `0.00006014931 mm`; it still
+exceeds the `0.00001 mm` target. Boundary error stays `0.000004617252 mm`.
+
+Four alternate diagonals avoid the former normal failures in round 2. In the
+partial round, five preflight passes prune 220 groups, reducing the initial
+12,931 selected edges to 12,599. No final cleanup flip is needed. Preflight and
+refinement together use 43,343,910 control-point evaluations; postprocessing
+uses its separate 17,129,610. Chord sampling uses 204,041 / 400,000. The final
+round cannot reserve another full measurement pass: 123,260 surface calls
+remain, below the 317,215 required even before another split. It retains the
+last completely measured mesh, with incomplete status and no admission.
+For zero-selection decisions, reported next-pass costs describe this unmet
+hypothetical measurement requirement; no such pass is executed.
+
+Independent native evaluation agrees with vertices within `2.720e-15 mm` and
+confirms the sampled normal/chord measurements. Trim containment checks only
+256 centroids, all inside; complete coverage is not established. The source
+curve/support gap remains approximately `0.000001080838 mm`. The
+[checkpoint evidence](evidence/priority-refinement-20261019.json) includes nine
+priority checks, seven prior-mode checks, the unchanged legacy refusal, four
+byte-identical historical diagnostics and explicitly limited failed exploratory
+outcomes. Two old-target `LNK1104` attempts failed with unconfirmed cause;
+verification used a fresh shorter D: build target. None of these results
+qualifies a whole component, STEP exporter or production release.
+
 ## Ordered implementation and acceptance
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
 | Main / read-only reviewer | Failed source-curve probe | Separate solver termination/residual/orthogonality observations implemented; real source refusal and independent audit pass | Define measured curve/support-surface discrepancy contract; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | Metric initialization, bounded flips and adaptive source-boundary sampling implemented; expanded face has zero sampled inversions but remains incomplete | Prioritized conforming interior refinement for remaining chord/normal failures, reviewed shared-edge discrepancy handling and general chart support |
+| Main | Current Spade experiment | Reserved priority splits and guarded transitions reach zero sampled normal-target failures; interior chord target remains unmet | More efficient physical-space interior meshing/error control, reviewed shared-edge discrepancy handling and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |

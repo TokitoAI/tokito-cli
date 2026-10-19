@@ -96,6 +96,19 @@ interior refinement, followed by full geometry/solid qualification. See the
 The [checkpoint receipt](evidence/adaptive-boundary-20261019.json) includes
 unchanged metric/retriangulated/legacy diagnostic byte comparisons.
 
+## Reserved priority and transition-quality checkpoint (2026-10-19)
+
+Implemented ranked atomic split groups with whole-next-pass resource reserves,
+normal-checked transition alternatives and bounded pruning. Nine real-source
+E2E checks passed, including subdivision/area/reservation replay and independent
+FreeCAD measurements. The face now has zero sampled inversions and zero
+five-degree normal-target failures. Interior chord error `0.00005968069 mm`
+still misses the `0.00001 mm` target. Source-gap, trim, shared-edge and whole-solid
+gates remain open. [Evidence](evidence/priority-refinement-20261019.json) retains
+failed preliminary experiments and four unchanged historical diagnostics.
+Next: improve physical-space interior error control without weakening budgets,
+tolerances, original coordinates or admission rules.
+
 ## Active production-readiness plan (2026-10-17)
 
 2026-10-18 geometry investigation: a separate FreeCAD 1.1.4 / OCCT 7.8.1 audit
