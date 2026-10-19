@@ -180,12 +180,12 @@ The expanded local profile has 48 gates, including temp-path confinement tests,
 the final output-tree audit, the independent Rust sample-distance validator,
 footprint/library and dataset journeys, pinned KiCad 10.0.7 comparisons, the
 required SVG reference-evidence validator, and the STEP, Altium and twin-refinement
-experiment crates. The current-source Windows root verification passed 48/48
-gates after the POS ASCII changes. Each full run writes the authoritative
-current-source result and hashes to
+experiment crates. A Windows root verification passed 48/48 gates on its recorded
+2026-10-19 input tree; that result does not automatically cover later changes.
+Each full run writes its result and the exact observed input hashes to
 `target/delivery/local/<run-id>/verification.json`. The receipt records its
-toolchain, executed gates and outcome. Reusing the isolated D: Cargo target is
-not a clean-cache or independent-machine run. Local checks do not establish
+toolchain, executed gates and outcome. Reusing a Cargo target is not a clean-cache
+or independent-machine run. Local checks do not establish
 installation or production qualification.
 
 The opt-in planar repair has a passing pinned model-14 reference comparison,

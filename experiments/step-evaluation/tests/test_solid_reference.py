@@ -72,6 +72,7 @@ class SolidReferenceTests(unittest.TestCase):
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(unexpectedSourceFaceCount=1),
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(unassignedTriangleEntries=1),
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(triangleProvenanceCountMatches=False),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(sourceFacePresenceMatches=False),
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(emittedDistinctSourceFaces=1),
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(expectedSourceFaces=True),
             lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(expectedSourceFaceIdsSha256="not-a-digest"),
