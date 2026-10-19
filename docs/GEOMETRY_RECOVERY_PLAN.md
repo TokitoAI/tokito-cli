@@ -893,3 +893,14 @@ invocation. The raw source/diagnostic hashes and generator fingerprints in the
 receipt are required when comparing runs. Passing this audit verifies these
 measurements and refusals; it does not repair a face, produce GLB, qualify a
 component or close the production issues.
+
+## Diagnostic STEP-to-GLB occurrence candidate (2026-10-19)
+
+The isolated `tokito-step-evaluation` research binary can serialize its reader-derived occurrence-world mesh into a bounded, unqualified GLB. This provides a concrete viewer artifact for inspecting the pinned ESP8266 STEP sample, but does not add STEP support to the production CLI exporter. Each STEP assembly occurrence has a stable path selector and retains source occurrence, part-definition, product, placed-by, shape, triangle and source-face identifiers where the reader exposes them. It deliberately does not claim PCB reference or footprint UUID selection.
+
+The E2E reads back the GLB accessors and checks every emitted point, flat normal, material grouping, occurrence identity and triangle provenance against the same reader-derived candidate. This is a serialization oracle, not an independent geometry oracle. The sample contains 8,270 reader triangles, including 520 degenerate triangles, and one geometryless occurrence. Degenerate triangles are preserved with a diagnostic display normal; the exporter does not repair them.
+
+This candidate remains explicitly unqualified: source-face completeness, trimmed-surface fidelity, shell closure/orientation, whole-solid validity, physical material meaning, model-axis interpretation, PCB placement and component-to-reference mapping have not been established. Do not use it for manufacturing, measurements, AR registration or a production-ready digital twin. Promotion requires independent geometry comparison and per-component source/placement qualification. The production STEP and complete 3D generation gates in issues #19, #24 and #47 remain open.
+
+The local source, evaluator, harness, and output digests are recorded in
+[the diagnostic GLB evidence receipt](evidence/step-diagnostic-glb-20261019.json).

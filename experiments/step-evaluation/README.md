@@ -1,5 +1,57 @@
 # Experimental STEP reader qualification probe
 
+## Diagnostic STEP-to-GLB occurrence export
+
+The research evaluator has an explicit output mode for inspecting a STEP
+assembly mesh in a GLB viewer:
+
+```powershell
+cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- `
+  --research-export-diagnostic-glb '<materialized-board>/embedded-models/16.step' `
+  target/research/esp8266-step-candidate.glb
+```
+
+The output path must be new. The writer syncs a uniquely named sibling
+temporary file and publishes it with a no-replace hard link; it fails closed if
+the filesystem cannot do that. The receipt reports whether the temporary link
+was removed after publication. A successful command emits a GLB with one stable
+selector per STEP occurrence path and separate geometry primitives retaining
+source shape, triangle and STEP face provenance. Millimetres are converted to
+metres once; normals are generated per triangle; reader colors are projected to
+neutral glTF materials only when the triangle color inventory is aligned. The
+command exits zero when the diagnostic artifact is written, while its JSON
+receipt and embedded GLB metadata still say `admitted: false` and
+`productionExport: false`. Its selector identifies a STEP occurrence only; it
+does not identify a PCB reference/UUID or establish board placement.
+
+This GLB is useful for visual inspection and renderer integration tests, not as
+a qualified digital twin. The reader-derived tessellation can omit or misread
+STEP surfaces, and source-face completeness, material semantics and solid
+validity remain unverified. Degenerate source triangles are retained and marked;
+the pinned ESP8266 model-16 sample contains 520 among 8,270 triangles. Those
+triangles receive a display-only +Y normal fallback, which does not repair their
+geometry. The source axis is preserved without assuming its up direction.
+
+The local E2E decodes the GLB container and every triangle/accessor, checks
+positions/normals/materials, shape and occurrence IDs, and face provenance
+against the same pinned reader-derived candidate, verifies that selector IDs
+encode their occurrence paths, and exercises malformed-input and no-overwrite
+refusal. That comparison proves serialization
+consistency with the reader output, not independent engineering accuracy.
+The captured hashes, counts and generated local artifact path are in the
+[2026-10-19 evidence receipt](../../docs/evidence/step-diagnostic-glb-20261019.json):
+
+```powershell
+python experiments/step-evaluation/tests/diagnostic_glb_e2e.py `
+  --binary experiments/step-evaluation/target/debug/tokito-step-evaluation.exe `
+  --source '<materialized-board>/embedded-models/16.step' `
+  --output target/research/step-diagnostic-glb-e2e-unique-run
+```
+
+The output directory must be new. The production `tokito-cli` STEP resolver
+and board GLB exporter are unchanged by this experiment; production STEP-to-
+selectable-component export remains open.
+
 The explicit `--negative-torus-compat` research option retains original warnings,
 records cloned-AST edits/fingerprints and remains unqualified. Its face-count
 recovery on `57.step` is contradicted by large nearest-reference surface

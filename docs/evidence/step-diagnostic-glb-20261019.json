@@ -1,0 +1,56 @@
+{
+  "schema": "tokito.step-diagnostic-glb-local-evidence.v1",
+  "runDateUtc": "2026-10-19",
+  "source": {
+    "description": "Pinned local ESP8266 model-16 STEP materialization",
+    "relativePath": "tokito_cli/target/dataset-intake/esp8266-pr6-5283bc0-source-candidate/data/board-sources/esp8266-nodemcu-reference/structured-source/embedded-models/16.step",
+    "sha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+    "bytes": 823120
+  },
+  "evaluator": {
+    "relativePath": "experiments/step-evaluation/target/debug/tokito-step-evaluation.exe",
+    "sha256": "04d36b1bcf2e97de94b34a54ac65678ddcd1620dfffbe788a995434ca2860e61",
+    "command": "--research-export-diagnostic-glb INPUT.step OUTPUT.glb"
+  },
+  "harness": {
+    "relativePath": "experiments/step-evaluation/tests/diagnostic_glb_e2e.py",
+    "sha256": "15e1b5eacadeb7863b8e674aa549200b1f412f2cf816e994b37527eb9b880d2a"
+  },
+  "output": {
+    "relativePath": "experiments/step-evaluation/target/research/step-diagnostic-glb-e2e-20261019-v6/candidate.glb",
+    "sha256": "8541918e8edeccccaa31c5371b1c16128ee2abd124dee43bbff9ae3f138733fa",
+    "bytes": 811868,
+    "occurrenceCount": 3,
+    "primitiveCount": 30,
+    "triangleCount": 8270,
+    "degenerateTriangleCount": 520,
+    "geometrylessOccurrenceCount": 1,
+    "temporaryFileCleanupCompleted": true,
+    "selectorScope": "STEP occurrence path only",
+    "componentReferenceMappingAvailable": false,
+    "componentUuidMappingAvailable": false
+  },
+  "qualification": {
+    "independentGeometryOracle": false,
+    "geometryQualified": false,
+    "completeSolidVerified": false,
+    "pcbPlacementQualified": false,
+    "admitted": false,
+    "productionExport": false,
+    "notes": [
+      "GLB accessors and payloads read back and were compared with the same STEP reader-derived candidate.",
+      "This checks serialization consistency only, not independent physical geometry accuracy.",
+      "520 zero-area reader triangles are preserved and flagged; they are not repaired.",
+      "PCB component identity/placement, shell closure, source-face completeness, axis meaning and physical material semantics remain unverified."
+    ]
+  },
+  "checks": [
+    "GLB container and accessor readback",
+    "one stable selector per STEP occurrence",
+    "source occurrence identity/path, face provenance and material colors retained",
+    "unqualified/component-unmapped status retained",
+    "existing output refusal without partial overwrite",
+    "malformed STEP refusal without output",
+    "temporary output cleanup"
+  ]
+}

@@ -14,3 +14,4 @@ sha2 = "=0.10.9"
 oxideav-ifc = { version = "=0.0.3", default-features = false }
 spade = "=2.15.1"
 earcut = "=0.4.11"
+gltf = { version = "=1.4.1", default-features = false }

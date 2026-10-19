@@ -51,6 +51,28 @@ the
 [geometry evidence](GEOMETRY_RECOVERY_PLAN.md#pinned-planar-face-with-an-additional-bound-2026-10-19)
 and [captured receipt](evidence/planar-multibound-face-20261019.json).
 
+## Diagnostic STEP-to-GLB occurrence export
+
+The isolated Rust STEP research evaluator can now write a bounded GLB candidate
+from its occurrence-world mesh. It keeps assembly occurrences as separate
+selectable nodes and retains per-triangle source face IDs, material groups and
+degenerate-triangle diagnostics. On the pinned ESP8266 model-16 input, the local
+E2E decoded 8,270 triangles across three occurrence nodes and 30 primitives;
+520 zero-area source triangles were retained and explicitly marked. The GLB
+container, accessors, float32 positions, generated normals, color projection,
+selector inventory and no-overwrite/malformed-input refusals passed.
+
+This is a visualization candidate from the same STEP reader being serialized;
+the E2E is not an independent geometry reference. Selection is by STEP
+occurrence path, not PCB reference or UUID. STEP-to-board placement, source-face
+completeness, shell/solid validity, tessellation fidelity and physical material
+semantics remain unverified. No production exporter changed, and the artifact
+remains `admitted:false`, `geometryQualified:false` and
+`productionExport:false`. See the [experimental command contract](../experiments/step-evaluation/README.md#diagnostic-step-to-glb-occurrence-export)
+and the [geometry recovery plan](GEOMETRY_RECOVERY_PLAN.md#diagnostic-step-to-glb-occurrence-candidate-2026-10-19).
+Hashes, decoded counts and the local artifact path are captured in the
+[STEP diagnostic GLB evidence receipt](evidence/step-diagnostic-glb-20261019.json).
+
 ## Latest code and verification checkpoint
 
 PR #45 contains mixed per-pad SMD/plated-THT/NPTH footprint generation as a

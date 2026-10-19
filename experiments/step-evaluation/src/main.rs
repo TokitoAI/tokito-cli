@@ -2,6 +2,7 @@
 #![recursion_limit = "256"]
 mod adaptive_boundary;
 mod candidate_mesh;
+mod diagnostic_glb;
 mod exact_predicate;
 mod face_coverage;
 mod face_representation;
@@ -422,6 +423,64 @@ fn probe_spline_face(
 
 fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
+    if raw
+        .first()
+        .is_some_and(|arg| arg == "--research-export-diagnostic-glb")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 3 {
+                return Err("usage: tokito-step-evaluation --research-export-diagnostic-glb INPUT.step OUTPUT.glb".into());
+            }
+            let input = Path::new(&raw[1]);
+            let output = Path::new(&raw[2]);
+            let bytes = read_bounded(File::open(input).map_err(|e| e.to_string())?)?;
+            let source_sha256 = format!("{:x}", Sha256::digest(&bytes));
+            let options = ReadOptions {
+                parse_limits: oxideav_step::StepLimits {
+                    max_input_len: MAX_BYTES,
+                    max_instances: 250_000,
+                    max_depth: 48,
+                    max_string_len: 1_048_576,
+                },
+                geometry_limits: GeometryLimits {
+                    max_triangles: PROBE_MAX_TRIANGLES,
+                    max_curve_samples: 16_384,
+                },
+                tolerance: Tolerance {
+                    absolute: Some(PROBE_ABSOLUTE_TOLERANCE_METRES),
+                    ..Tolerance::default()
+                },
+                keep_invisible: false,
+            };
+            let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &options.parse_limits)
+                .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
+            let model = oxideav_step::model_from_file(&parsed, &options)
+                .map_err(|error| format!("reader_error: {error}"))?;
+            let occurrence_world =
+                occurrence_world_report(&model, &unit_preflight::inspect(&parsed));
+            let scale_to_mm = occurrence_world["lengthScaleModelUnitsToMm"]
+                .as_f64()
+                .filter(|_| occurrence_world["transformCompositionResolved"] == true)
+                .ok_or_else(|| "independently_resolved_occurrence_units_required".to_string())?;
+            let candidate = candidate_mesh::inspect(&model, scale_to_mm)?;
+            let report = diagnostic_glb::write(&candidate, &source_sha256, output)?;
+            Ok(
+                json!({"schema":"tokito.step-diagnostic-glb-command.v1","commandCompleted":true,
+                "sourceSha256":source_sha256,"sourceBytes":bytes.len(),"occurrenceWorld":occurrence_world,
+                "candidateMesh":{"schema":candidate["schema"],"occurrenceCount":candidate["occurrenceCount"],
+                    "positionedVertexCount":candidate["positionedVertexCount"],"positionedTriangleCount":candidate["positionedTriangleCount"],
+                    "geometryQualified":candidate["geometryQualified"],"surfaceCompletenessVerified":candidate["surfaceCompletenessVerified"],
+                    "pcbPlacementQualified":candidate["pcbPlacementQualified"]},
+                "diagnosticGlb":report,"admitted":false,"productionExport":false,
+                "limitations":["STEP units are reader-derived and not independently qualified","surface completeness and exact solid geometry are unverified",
+                    "component reference and UUID mapping are unavailable","PCB placement is unverified","this artifact is for visual diagnosis only"]}),
+            )
+        })();
+        let exit_code = if result.is_ok() { 0 } else { 2 };
+        println!("{}", result.unwrap_or_else(|error| json!({"schema":"tokito.step-diagnostic-glb-command.v1","commandCompleted":false,
+            "error":error,"admitted":false,"productionExport":false,"exportsProduced":[]})));
+        std::process::exit(exit_code);
+    }
     if raw
         .first()
         .is_some_and(|arg| arg == "--research-planar-multibound-face")
