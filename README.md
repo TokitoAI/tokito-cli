@@ -153,8 +153,8 @@ shape is not a declaration of complete KiCad command compatibility.
 | `export placements` | CSV in the saved source board frame; not a manufacturing-position certificate |
 | `pcb export pos` | KiCad-reference CSV and ASCII subsets: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; Gerber and variants remain unsupported |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
-| `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection; copied STEP/glTF bytes are not decoded geometry or selector qualification |
-| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE` and checked planar polygon `IndexedFaceSet`), reference wildcards, native DNP exclusion, and [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md) with explicit coverage, or candidate assignments |
+| `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection with generated crease-angle normals; copied STEP/glTF bytes are not decoded geometry or selector qualification |
+| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE`, checked planar polygon `IndexedFaceSet`, and `creaseAngle` smoothing), reference wildcards, native DNP exclusion, and [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md) with explicit coverage, or candidate assignments |
 | `model assignments template/verify` | Explicit source-bound model assignment records and checks |
 | `model derive-wrl` | Opt-in new VRML candidate with an explicit unused-invalid-material/zero-area-face change report; original source preserved, solid repair not certified |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
@@ -227,7 +227,9 @@ partial output requires explicit `--allow-partial`. Assembly resolves only under
 approved local roots and supports a bounded VRML97 Group/Transform (including
 the standard `scaleOrientation` order)/DEF/USE and planar polygon
 `IndexedFaceSet` profile with planarity, winding, area and resource-budget
-checks. `--component-filter` accepts case-sensitive
+checks. It derives per-corner normals from `creaseAngle` across manifold shared
+edges and transforms them with the required inverse-transpose normal matrix.
+Explicit `Normal` nodes and textures remain unsupported. `--component-filter` accepts case-sensitive
 comma-separated reference patterns with `*` and `?`; empty list items are
 ignored and a no-match pattern produces a board-only export. Filter selection
 has a board-wide work budget and happens before model paths are resolved. Tokito

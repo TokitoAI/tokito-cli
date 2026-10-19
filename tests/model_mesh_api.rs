@@ -82,6 +82,45 @@ fn planar_vrml_polygon_faces_are_triangulated_with_area_and_winding_preserved() 
 }
 
 #[test]
+fn vrml97_crease_angle_smooths_only_oppositely_shared_manifold_edges() {
+    let shape = "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 0 0,0 1 0,0 0 1] } coordIndex [0 1 2 -1,1 0 3 -1] creaseAngle 2.0 } }";
+    let smooth = parse(&scene(shape)).unwrap();
+    let part = &smooth.parts[0];
+    assert_eq!(part.triangles.len(), 2);
+    let diagonal = std::f64::consts::FRAC_1_SQRT_2;
+    assert_point(part.corner_normals[0][0], [0.0, diagonal, diagonal]);
+    assert_point(part.corner_normals[0][1], [0.0, diagonal, diagonal]);
+    assert_point(part.corner_normals[0][2], [0.0, 0.0, 1.0]);
+    assert_point(part.corner_normals[1][0], [0.0, diagonal, diagonal]);
+    assert_point(part.corner_normals[1][1], [0.0, diagonal, diagonal]);
+    assert_point(part.corner_normals[1][2], [0.0, 1.0, 0.0]);
+
+    let sharp = parse(&scene(&shape.replace("creaseAngle 2.0", "creaseAngle 1.0"))).unwrap();
+    assert_eq!(sharp.parts[0].corner_normals[0], [[0.0, 0.0, 1.0]; 3]);
+    assert_eq!(sharp.parts[0].corner_normals[1], [[0.0, 1.0, 0.0]; 3]);
+
+    let nonmanifold = "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 0 0,0 1 0,0 0 1,0 -1 0] } coordIndex [0 1 2 -1,1 0 3 -1,0 1 4 -1] creaseAngle 3.0 } }";
+    let nonmanifold = parse(&scene(nonmanifold)).unwrap();
+    assert_eq!(nonmanifold.parts[0].corner_normals[0], [[0.0, 0.0, 1.0]; 3]);
+    assert_eq!(nonmanifold.parts[0].corner_normals[1], [[0.0, 1.0, 0.0]; 3]);
+    assert_eq!(
+        nonmanifold.parts[0].corner_normals[2],
+        [[0.0, 0.0, -1.0]; 3]
+    );
+}
+
+#[test]
+fn generated_smooth_normals_use_inverse_transpose_under_scene_scaling() {
+    let input = scene(
+        "Transform { children [ Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 0 0,0 1 0,0 0 1] } coordIndex [0 1 2 -1,1 0 3 -1] creaseAngle 2.0 } } ] scale 1 2 1 }",
+    );
+    let mesh = parse(&input).unwrap();
+    let expected = [0.0, 1.0 / 5.0f64.sqrt(), 2.0 / 5.0f64.sqrt()];
+    assert_point(mesh.parts[0].corner_normals[0][0], expected);
+    assert_point(mesh.parts[0].corner_normals[1][1], expected);
+}
+
+#[test]
 fn polygon_vrml_faces_reject_nonplanar_self_intersection_and_over_budget_geometry() {
     reject(
         &scene(
@@ -256,6 +295,7 @@ fn authentic_pinned_kicad_resistor_has_verified_mesh_and_materials() {
         assert!(part.material.is_some());
         assert_eq!(part.source_crease_angle_radians, 0.5);
         assert_eq!(part.triangles.len(), part.flat_normals.len());
+        assert_eq!(part.triangles.len(), part.corner_normals.len());
         for normal in &part.flat_normals {
             let length = normal[0].hypot(normal[1]).hypot(normal[2]);
             assert!((length - 1.0).abs() < 1e-12);
@@ -283,8 +323,18 @@ fn authentic_pinned_kicad_resistor_has_verified_mesh_and_materials() {
     assert!(
         mesh.diagnostics
             .iter()
-            .any(|d| d.contains("smooth shading"))
+            .any(|d| d.contains("honor VRML97 creaseAngle"))
     );
+    assert!(mesh.parts.iter().any(|part| {
+        part.corner_normals
+            .iter()
+            .zip(&part.flat_normals)
+            .any(|(corners, flat)| {
+                corners
+                    .iter()
+                    .any(|normal| normal.iter().zip(flat).any(|(a, b)| (a - b).abs() > 1e-6))
+            })
+    }));
 }
 #[test]
 fn explicit_units_control_conversion_without_filename_or_size_heuristics() {

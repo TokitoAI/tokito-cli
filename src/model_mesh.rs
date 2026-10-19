@@ -84,6 +84,9 @@ pub struct ModelMeshPart {
     pub triangles: Vec<[u32; 3]>,
     /// One derived unit normal per triangle; these are not smoothed vertex normals.
     pub flat_normals: Vec<[f64; 3]>,
+    /// One generated normal per triangle corner, honoring VRML97 `creaseAngle`.
+    /// The arrays follow `triangles` corner order and are transformed with the mesh.
+    pub corner_normals: Vec<[[f64; 3]; 3]>,
     pub material: Option<MeshMaterial>,
     pub source_crease_angle_radians: f64,
     pub solid: bool,
@@ -110,7 +113,7 @@ fn valid_def_identifier(name: &str) -> bool {
 
 /// Parse only the declared bounded VRML97 profile. Group, Transform, DEF and
 /// USE scene nodes may contain triangle or planar polygon Shape geometry; unsupported
-/// fields/nodes (including Inline, normal, and texture data)
+/// fields/nodes (including Inline, explicit Normal nodes, and texture data)
 /// are errors. This API performs no filesystem or network access.
 pub fn parse_vrml_mesh(
     input: &[u8],
@@ -169,7 +172,7 @@ fn parse_mesh_internal(
     }
     let diagnostics = vec![
         "Bounded VRML triangle/polygon profile with Group/Transform/DEF/USE scene support; local model geometry is not PCB placement or a complete CAD solid.".into(),
-        "Flat triangle normals derived; creaseAngle is retained but smooth shading is not reproduced.".into(),
+        "Generated normals honor VRML97 creaseAngle across manifold shared edges; explicit Normal nodes and textures remain unsupported.".into(),
     ];
     Ok(ModelMesh {
         source_units: units,
@@ -1010,11 +1013,21 @@ impl<'a> Parser<'a> {
                 )?
             });
         }
+        let corner_normals = if self.topology_only {
+            triangles
+                .iter()
+                .zip(&normals)
+                .map(|(_, normal)| [*normal; 3])
+                .collect()
+        } else {
+            generate_corner_normals(&positions, &triangles, &normals, crease_angle)?
+        };
         Ok(ModelMeshPart {
             source_shape_ordinal: ordinal,
             positions_mm: positions,
             triangles,
             flat_normals: normals,
+            corner_normals,
             material: None,
             source_crease_angle_radians: crease_angle,
             solid,
@@ -1326,6 +1339,14 @@ fn transform_part(
         for triangle in &mut part.triangles {
             triangle.swap(1, 2);
         }
+        for normals in &mut part.corner_normals {
+            normals.swap(1, 2);
+        }
+    }
+    for normals in &mut part.corner_normals {
+        for value in normals {
+            *value = transform_normal(transform.linear, *value)?;
+        }
     }
     part.flat_normals.clear();
     for triangle in &part.triangles {
@@ -1341,6 +1362,255 @@ fn transform_part(
     }
     Ok(())
 }
+
+/// Generate VRML97 default normals. Adjacent triangle corners are joined only
+/// through a two-use, oppositely oriented edge whose geometric-normal angle is
+/// strictly below `crease_angle`. Corner-angle weighting avoids making the
+/// result depend on how an otherwise planar polygon was triangulated.
+fn generate_corner_normals(
+    positions: &[[f64; 3]],
+    triangles: &[[u32; 3]],
+    flat_normals: &[[f64; 3]],
+    crease_angle: f64,
+) -> Result<Vec<[[f64; 3]; 3]>, EngineError> {
+    const MAX_NORMAL_CORNERS: usize = 600_000;
+    if triangles.len() != flat_normals.len() {
+        return Err(fail(
+            "normal generation received inconsistent triangle geometry",
+        ));
+    }
+    let corner_count = triangles
+        .len()
+        .checked_mul(3)
+        .filter(|count| *count <= MAX_NORMAL_CORNERS)
+        .ok_or_else(|| fail("normal generation corner budget exceeded"))?;
+    if !crease_angle.is_finite() || crease_angle < 0.0 {
+        return Err(fail("invalid IndexedFaceSet creaseAngle"));
+    }
+    let mut corner_normals = triangles
+        .iter()
+        .zip(flat_normals)
+        .map(|(_, normal)| [*normal; 3])
+        .collect::<Vec<_>>();
+    if crease_angle == 0.0 || triangles.len() < 2 {
+        return Ok(corner_normals);
+    }
+
+    #[derive(Clone, Copy)]
+    struct EdgeUse {
+        low: u32,
+        high: u32,
+        triangle: usize,
+        low_corner: usize,
+        high_corner: usize,
+        forward: bool,
+    }
+    let edge_count = triangles
+        .len()
+        .checked_mul(3)
+        .ok_or_else(|| fail("normal edge count overflow"))?;
+    let mut edges = Vec::with_capacity(edge_count);
+    for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for corner in 0..3 {
+            let next = (corner + 1) % 3;
+            let start = triangle[corner];
+            let end = triangle[next];
+            if start as usize >= positions.len() || end as usize >= positions.len() {
+                return Err(fail("normal generation coordinate index is out of range"));
+            }
+            let forward = start < end;
+            edges.push(EdgeUse {
+                low: start.min(end),
+                high: start.max(end),
+                triangle: triangle_index,
+                low_corner: triangle_index * 3 + if forward { corner } else { next },
+                high_corner: triangle_index * 3 + if forward { next } else { corner },
+                forward,
+            });
+        }
+    }
+    edges.sort_unstable_by_key(|edge| (edge.low, edge.high, edge.triangle));
+
+    let mut parent = (0..corner_count).collect::<Vec<_>>();
+    let mut rank = vec![0u8; corner_count];
+    let mut begin = 0;
+    while begin < edges.len() {
+        let mut end = begin + 1;
+        while end < edges.len()
+            && (edges[end].low, edges[end].high) == (edges[begin].low, edges[begin].high)
+        {
+            end += 1;
+        }
+        if end - begin == 2 {
+            let a = edges[begin];
+            let b = edges[begin + 1];
+            if a.triangle != b.triangle && a.forward != b.forward {
+                let dot = flat_normals[a.triangle]
+                    .iter()
+                    .zip(flat_normals[b.triangle])
+                    .map(|(left, right)| left * right)
+                    .sum::<f64>()
+                    .clamp(-1.0, 1.0);
+                if dot.acos() < crease_angle {
+                    disjoint_join(&mut parent, &mut rank, a.low_corner, b.low_corner);
+                    disjoint_join(&mut parent, &mut rank, a.high_corner, b.high_corner);
+                }
+            }
+        }
+        // Non-manifold edges are intentionally left hard; they do not provide
+        // an unambiguous pair of adjacent faces for generated smooth normals.
+        begin = end;
+    }
+
+    let mut sums = vec![[0.0f64; 3]; corner_count];
+    for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for corner in 0..3 {
+            let previous = positions[triangle[(corner + 2) % 3] as usize];
+            let current = positions[triangle[corner] as usize];
+            let next = positions[triangle[(corner + 1) % 3] as usize];
+            let weight = corner_angle(previous, current, next)?;
+            let root = disjoint_root(&mut parent, triangle_index * 3 + corner);
+            for axis in 0..3 {
+                sums[root][axis] += flat_normals[triangle_index][axis] * weight;
+            }
+        }
+    }
+    let mut generated = vec![[0.0; 3]; corner_count];
+    for (index, normal) in generated.iter_mut().enumerate() {
+        let root = disjoint_root(&mut parent, index);
+        *normal = normalize_vector(sums[root])?;
+    }
+    for (triangle_index, normals) in corner_normals.iter_mut().enumerate() {
+        for (corner, normal) in normals.iter_mut().enumerate() {
+            *normal = generated[triangle_index * 3 + corner];
+        }
+    }
+    Ok(corner_normals)
+}
+
+fn disjoint_root(parent: &mut [usize], index: usize) -> usize {
+    if parent[index] != index {
+        parent[index] = disjoint_root(parent, parent[index]);
+    }
+    parent[index]
+}
+
+fn disjoint_join(parent: &mut [usize], rank: &mut [u8], left: usize, right: usize) {
+    let left = disjoint_root(parent, left);
+    let right = disjoint_root(parent, right);
+    if left == right {
+        return;
+    }
+    if rank[left] < rank[right] {
+        parent[left] = right;
+    } else if rank[left] > rank[right] {
+        parent[right] = left;
+    } else {
+        parent[right] = left;
+        rank[left] = rank[left].saturating_add(1);
+    }
+}
+
+fn corner_angle(previous: [f64; 3], current: [f64; 3], next: [f64; 3]) -> Result<f64, EngineError> {
+    let mut left: [f64; 3] = std::array::from_fn(|axis| previous[axis] - current[axis]);
+    let mut right: [f64; 3] = std::array::from_fn(|axis| next[axis] - current[axis]);
+    if left.iter().chain(&right).any(|value| !value.is_finite()) {
+        return Err(fail("normal generation coordinate difference overflow"));
+    }
+    let scale = left
+        .iter()
+        .chain(&right)
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if scale == 0.0 || !scale.is_finite() {
+        return Err(fail("normal generation encountered a zero-length edge"));
+    }
+    for axis in 0..3 {
+        left[axis] /= scale;
+        right[axis] /= scale;
+    }
+    let cross = [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ];
+    let cross_length = cross[0].hypot(cross[1]).hypot(cross[2]);
+    let dot = left
+        .iter()
+        .zip(right)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    let angle = cross_length.atan2(dot);
+    if !angle.is_finite() || angle <= 0.0 {
+        return Err(fail(
+            "normal generation encountered an invalid corner angle",
+        ));
+    }
+    Ok(angle)
+}
+
+fn normalize_vector(vector: [f64; 3]) -> Result<[f64; 3], EngineError> {
+    if vector.iter().any(|value| !value.is_finite()) {
+        return Err(fail("generated normal contains a non-finite value"));
+    }
+    let scale = vector
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if scale == 0.0 {
+        return Err(fail("generated normal is degenerate"));
+    }
+    let scaled = vector.map(|value| value / scale);
+    let length = scaled[0].hypot(scaled[1]).hypot(scaled[2]);
+    if !length.is_finite() || length == 0.0 {
+        return Err(fail("generated normal is degenerate"));
+    }
+    Ok(scaled.map(|value| value / length))
+}
+
+/// Apply the inverse-transpose affine linear transform required for normals.
+fn transform_normal(matrix: [[f64; 3]; 3], vector: [f64; 3]) -> Result<[f64; 3], EngineError> {
+    let scale = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if !scale.is_finite() || scale == 0.0 || vector.iter().any(|value| !value.is_finite()) {
+        return Err(fail("normal transform is invalid"));
+    }
+    let m = matrix.map(|row| row.map(|value| value / scale));
+    let cofactor = [
+        [
+            m[1][1] * m[2][2] - m[1][2] * m[2][1],
+            m[1][2] * m[2][0] - m[1][0] * m[2][2],
+            m[1][0] * m[2][1] - m[1][1] * m[2][0],
+        ],
+        [
+            m[0][2] * m[2][1] - m[0][1] * m[2][2],
+            m[0][0] * m[2][2] - m[0][2] * m[2][0],
+            m[0][1] * m[2][0] - m[0][0] * m[2][1],
+        ],
+        [
+            m[0][1] * m[1][2] - m[0][2] * m[1][1],
+            m[0][2] * m[1][0] - m[0][0] * m[1][2],
+            m[0][0] * m[1][1] - m[0][1] * m[1][0],
+        ],
+    ];
+    let det = m[0][0] * cofactor[0][0] + m[0][1] * cofactor[0][1] + m[0][2] * cofactor[0][2];
+    if !det.is_finite() || det == 0.0 {
+        return Err(fail("normal transform matrix is singular"));
+    }
+    let transformed = std::array::from_fn(|row| {
+        cofactor[row]
+            .iter()
+            .zip(vector)
+            .map(|(cofactor, value)| cofactor * value)
+            .sum::<f64>()
+            / det
+    });
+    normalize_vector(transformed)
+}
+
 fn normal(a: [f64; 3], b: [f64; 3], c: [f64; 3]) -> Result<[f64; 3], EngineError> {
     let mut u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     let mut v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];

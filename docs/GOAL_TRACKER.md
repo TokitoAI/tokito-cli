@@ -1548,3 +1548,26 @@ Static PE imports confirm VCRUNTIME140.dll/UCRT runtime dependencies. This
 is not clean-machine certification. Full parity, qualified STEP bodies,
 additional environment views and imported simulation adapters remain open
 in CLI issue #47 and the v1 plan. AR/YOLO remain excluded.
+
+## VRML component-shading checkpoint — 2026-10-20
+
+- [x] Parse supported VRML97 `creaseAngle` and create angle-weighted per-corner
+  normals across two-use, oppositely oriented manifold edges; keep non-manifold
+  edges hard.
+- [x] Carry normals through scene and component poses using inverse-transpose
+  transforms, including reflections and GLB basis changes; serialize distinct
+  corner normals into selectable component GLB meshes.
+- [x] Exercise synthetic smooth/sharp/non-manifold boundaries, nonuniform pose
+  transforms and a pinned KiCad R0603 model through unit/API and CLI E2E checks.
+- [x] Refresh only Tokito's default GLB regression digest for the intentional
+  normal-attribute change; the pinned KiCad output capture rows are unchanged.
+- [x] The full local Windows verifier passed 48/48 gates after the baseline
+  refresh. A documentation-inclusive repeat is required after this checkpoint;
+  its receipt path and digest are recorded in the PR/issue update.
+
+This improves shading, not model shape or completeness. Explicit VRML `Normal`
+nodes/textures, STEP production export, complete component bodies and physical
+fit remain unsupported or unqualified. KiCad CLI and footprint/library parity,
+independent Windows install/upgrade, and simulation/view gates remain open.
+Tokito CLI V1 is still not production-ready; no Action, merge or release is
+claimed by this checkpoint.

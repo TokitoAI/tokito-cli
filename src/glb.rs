@@ -743,16 +743,26 @@ fn component_meshes(
 fn mesh_from_component_part(
     part: &crate::component_pose::PlacedModelMeshPart,
 ) -> Result<Mesh, EngineError> {
+    if part.corner_normals.len() != part.triangles.len() {
+        return Err(EngineError::new(
+            "placed component mesh has inconsistent corner normals",
+        ));
+    }
     let mut positions = Vec::with_capacity(part.triangles.len() * 9);
     let mut normals = Vec::with_capacity(part.triangles.len() * 9);
-    for (triangle, normal) in part.triangles.iter().zip(&part.flat_normals) {
+    for (triangle_index, triangle) in part.triangles.iter().enumerate() {
+        let face_normal = part
+            .flat_normals
+            .get(triangle_index)
+            .copied()
+            .ok_or_else(|| EngineError::new("placed component mesh has inconsistent normals"))?;
         let point = |index: u32| {
             part.positions_m
                 .get(index as usize)
                 .copied()
                 .ok_or_else(|| EngineError::new("placed component triangle index is out of range"))
         };
-        push_face(
+        push_face_with_corner_normals(
             &mut positions,
             &mut normals,
             [
@@ -760,10 +770,83 @@ fn mesh_from_component_part(
                 point(triangle[1])?,
                 point(triangle[2])?,
             ],
-            *normal,
+            part.corner_normals[triangle_index],
+            face_normal,
         )?;
     }
     mesh_from_vectors(positions, normals)
+}
+
+fn push_face_with_corner_normals(
+    positions: &mut Vec<f32>,
+    normals: &mut Vec<f32>,
+    points: [[f64; 3]; 3],
+    mut corner_normals: [[f64; 3]; 3],
+    expected_face_normal: [f64; 3],
+) -> Result<(), EngineError> {
+    if positions.len() / 3 + 3 > MAX_GLTF_VERTICES {
+        return Err(EngineError::new("mesh exceeds vertex budget"));
+    }
+    let cross = cross3(sub3(points[1], points[0]), sub3(points[2], points[0]));
+    let face_dot = cross
+        .iter()
+        .zip(expected_face_normal)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    if !face_dot.is_finite() || face_dot <= 0.0 {
+        return Err(EngineError::new(
+            "mesh contains a degenerate or misoriented face",
+        ));
+    }
+    let mut quantized = [[0.0f64; 3]; 3];
+    for (corner, point) in points.iter().enumerate() {
+        for axis in 0..3 {
+            let value = point[axis] as f32;
+            if !value.is_finite() || (value as f64 - point[axis]).abs() > MAX_FLOAT_POSITION_ERROR_M
+            {
+                return Err(EngineError::new(
+                    "position cannot meet the GLB f32 quantization error budget",
+                ));
+            }
+            quantized[corner][axis] = value as f64;
+        }
+    }
+    let emitted_cross = cross3(
+        sub3(quantized[1], quantized[0]),
+        sub3(quantized[2], quantized[0]),
+    );
+    let emitted_dot = emitted_cross
+        .iter()
+        .zip(expected_face_normal)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    if !emitted_dot.is_finite() || emitted_dot <= 0.0 {
+        return Err(EngineError::new(
+            "f32 position quantization collapsed or inverted a mesh face",
+        ));
+    }
+    for normal in &mut corner_normals {
+        let length = normal[0].hypot(normal[1]).hypot(normal[2]);
+        if !length.is_finite() || length <= 0.0 {
+            return Err(EngineError::new("mesh contains an invalid corner normal"));
+        }
+        *normal = normal.map(|value| value / length);
+        if normal
+            .iter()
+            .any(|value| !value.is_finite() || (*value as f32).is_infinite())
+        {
+            return Err(EngineError::new(
+                "corner normal cannot be represented as f32",
+            ));
+        }
+    }
+    for corner_position in &quantized {
+        positions.extend(corner_position.iter().map(|value| *value as f32));
+    }
+    for corner_normal in corner_normals {
+        normals.extend(corner_normal.map(|value| value as f32));
+    }
+    Ok(())
 }
 
 fn mesh_from_vectors(positions: Vec<f32>, normals: Vec<f32>) -> Result<Mesh, EngineError> {
@@ -2269,6 +2352,43 @@ mod tests {
     fn extras(bytes: &[u8]) -> Value {
         let glb = Glb::from_slice(bytes).expect("GLB framing");
         serde_json::from_slice(&glb.json).expect("GLB JSON")
+    }
+
+    #[test]
+    fn component_glb_serialization_preserves_three_distinct_corner_normals() {
+        let part = crate::component_pose::PlacedModelMeshPart {
+            source_shape_ordinal: 0,
+            positions_m: vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            triangles: vec![[0, 1, 2]],
+            flat_normals: vec![[0.0, 0.0, 1.0]],
+            corner_normals: vec![[
+                [0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 2.0f64.sqrt().recip(), 2.0f64.sqrt().recip()],
+            ]],
+            material: None,
+            source_crease_angle_radians: 0.5,
+            solid: true,
+        };
+        let mesh = mesh_from_component_part(&part).expect("smoothed triangle mesh");
+        assert_eq!(
+            mesh.positions,
+            vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        );
+        assert_eq!(
+            mesh.normals,
+            vec![
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                2.0f32.sqrt().recip(),
+                2.0f32.sqrt().recip(),
+            ]
+        );
     }
 
     #[test]

@@ -4,6 +4,30 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## 2026-10-20 supported VRML shading slice
+
+The Rust VRML adapter now generates per-corner normals using VRML97
+`creaseAngle` on two-use, oppositely oriented manifold edges. It angle-weights
+smooth vertex fans, leaves non-manifold edges hard, and transforms normals with
+inverse-transpose matrices through VRML scene transforms and component placement.
+The GLB writer retains these distinct corner normals rather than flattening each
+triangle. Focused Windows tests passed 228 unit/API cases, and the full CLI
+subprocess E2E passed across four pinned boards plus a real KiCad R0603 model;
+the E2E checks that the emitted component GLB contains smoothed corner normals.
+The Tokito-only default-GLB regression digest was refreshed for the intentional
+normal-attribute change; all pinned KiCad output captures remain unchanged. The
+six-case KiCad type-filter E2E passes with the refreshed Tokito baseline.
+
+This only improves shading of supported VRML meshes. It does not change mesh
+vertices, qualify a component's dimensions or physical fit, generate missing
+bodies, add explicit VRML `Normal`/texture support, or enable STEP import/export.
+This is a bounded shading improvement only. The full local Windows verifier
+passed 48/48 gates with Rust/Cargo 1.94.1 and Python 3.11.5, using the isolated
+Cargo target recorded by the verifier. The final documentation-inclusive
+receipt is stored under `target/delivery/local` and its exact path and digest
+are recorded in the PR/issue checkpoint. All other V1 blockers in this
+document remain open.
+
 ## Canonical patch research status
 
 The experimental Rust evaluator now constructs a two-face mesh using shared

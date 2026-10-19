@@ -213,14 +213,17 @@ with material DEF/USE. Scene references must point to an earlier supported node;
 reused geometry is expanded under its new parent transform and counts against
 shape, vertex and triangle budgets. Nested translation, axis-angle rotation,
 nonzero scale and center are composed in source order. It preserves local
-source-shape identity, material parameters, source crease angle and solid flags;
-face normals are derived as flat normals. It does not smooth normals.
+source-shape identity, material parameters, source crease angle and solid flags.
+When VRML supplies no explicit Normal node, it derives per-corner normals from
+`creaseAngle` across two-use, oppositely oriented manifold edges. It angle-weights
+the connected smooth fan and leaves non-manifold edges hard. Normals use
+inverse-transpose matrices through scene and component transforms.
 `Transform.scaleOrientation` follows the VRML97 matrix order
 `T * C * R * SR * S * -SR * -C`.
 Unit profiles are explicit: millimetres or ordinary legacy KiCad WRL coordinates
 (0.1 inch = 2.54 mm per unit). No automatic unit inference is performed.
 
-Unknown nodes/fields, `Inline`, textures, supplied normals,
+Unknown nodes/fields, `Inline`, textures, explicit supplied normals,
 non-planar or degenerate polygons, duplicate fields/definitions, invalid indices,
 nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle budgets
 are rejected. Planar polygons are triangulated only when the result preserves

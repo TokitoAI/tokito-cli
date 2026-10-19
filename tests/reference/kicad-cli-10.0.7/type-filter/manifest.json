@@ -224,9 +224,9 @@
     "stderr": "Failed to load board: Expecting through_hole, smd, virtual, board_only, exclude_from_pos_files, exclude_from_bom or allow_solder_mask_bridges. Got ''quoted string'' in '<capture-root>\\quoted-type.kicad_pcb', line 11, offset 58.\n"
   },
   "tokitoDefaultBaseline": {
-    "binarySha256": "c8e96deec6409ae2ecf48d53f942722da2c56514cad66b45596ee8a91abfae60",
-    "glbSha256": "7ccf0ff084b38dad65d469ce1c29450eb2ef120e9494da4a40890f326fa46238",
+    "binarySha256": "810b99add24ab2fcd0befa1238f157cf7eeaffff5e26f88ae04b56ecfca1ae3e",
+    "glbSha256": "52399897269ce0aaeca1557204c8dad6ca95f4db2bdb2419dff01bf8bbf271c8",
     "reportSha256": "734be42448944e3cb78e37c9f4900d3f07a743313ff2f362c414752be4449c40",
-    "scope": "Previously delivered Tokito executable, run now against this deterministic fixture; default output only."
+    "scope": "Tokito current-release baseline refreshed 2026-10-20 after intentional VRML creaseAngle corner-normal support; default output only. This is not a KiCad geometry comparison."
   }
 }

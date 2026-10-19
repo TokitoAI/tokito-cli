@@ -248,6 +248,26 @@ def glb_check(path, expected_selectors=("ref:R1",)):
             assert max(point[axis] for point in component_positions) > min(point[axis] for point in component_positions)
     return document
 
+def component_triangle_normals(path, selector):
+    data = path.read_bytes()
+    json_length, = struct.unpack_from("<I", data, 12)
+    document = json.loads(data[20:20 + json_length].decode("utf-8").rstrip(" \0"))
+    bin_header = 20 + json_length
+    bin_length, = struct.unpack_from("<I", data, bin_header)
+    binary = data[bin_header + 8:bin_header + 8 + bin_length]
+    node = next(node for node in document["nodes"] if node.get("name") == selector)
+    mesh = document["meshes"][node["mesh"]]
+    triangles = []
+    for primitive in mesh["primitives"]:
+        accessor = document["accessors"][primitive["attributes"]["NORMAL"]]
+        view = document["bufferViews"][accessor["bufferView"]]
+        start = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+        values = list(struct.iter_unpack(
+            "<3f", binary[start:start + accessor["count"] * 12]))
+        assert len(values) % 3 == 0
+        triangles.extend([values[index:index + 3] for index in range(0, len(values), 3)])
+    return triangles
+
 
 def component_position_bounds(document, selector):
     node = next(node for node in document["nodes"]
@@ -508,6 +528,11 @@ def main():
         assert coverage["unresolvedModelsTotal"] == 0 and coverage["unresolvedModels"] == []
         assembly_document = glb_check(assembly_glb)
         assert assembly_document["asset"]["extras"]["tokito"]["coverage"]["componentModelsEmitted"] == 1
+        emitted_normals = component_triangle_normals(assembly_glb, "ref:R1")
+        assert any(
+            len({tuple(round(axis, 6) for axis in normal) for normal in triangle}) > 1
+            for triangle in emitted_normals
+        ), "pinned KiCad resistor should retain source creaseAngle smoothing in the GLB"
         assert json.loads(invoke(
             binary, "export", "glb", assembly_fixture, "--output", output / "empty-filter.glb",
             "--assemble-wrl", "--project-root", model_root, "--component-filter", "",
