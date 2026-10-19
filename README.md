@@ -29,6 +29,14 @@ records the versioned settings. See [the standard and precision
 gates](docs/THREED_PRESENTATION_STANDARD.md); visual polish does not qualify
 missing bodies, source geometry or physical fit.
 
+For CLI-assembled VRML parts, GLB output now preserves authored diffuse,
+transparency, emissive and specular colour data. VRML shininess is mapped to a
+display roughness estimate, and specular colour is carried in the optional
+`KHR_materials_specular` extension. The raw VRML values and conversion are
+retained in GLB metadata. This improves material response for compatible
+viewers; it is not a measured material or an exact Phong-to-PBR conversion.
+Texture nodes and STEP models remain unsupported by the product assembly path.
+
 | Board | References | Selectable bodies/groups | Current boundary |
 |---|---:|---:|---|
 | [ESP32 natural-material reference](demo/esp32-natural/) | 26 | 23 | Full source baseline with central module, passives, USB and switches; CP2102 U3 remains missing; photographed variant unqualified |

@@ -9,6 +9,25 @@ retains known failures; the opt-in model-14 repair has independent
 sampled-comparison evidence. The model-16 rational-spline candidate remains
 rejected, and general STEP admission is blocked.
 
+## VRML source-material projection checkpoint (2026-10-20)
+
+- [x] Preserve supported VRML diffuse colour/alpha, emissive colour, and
+  specular colour in assembly GLB materials.
+- [x] Project VRML shininess to an explicitly approximate display roughness,
+  record original material inputs and method in GLB metadata, and declare
+  `KHR_materials_specular` optional for renderers without extension support.
+- [x] Pass focused GLB unit tests and the release-binary CLI E2E across four
+  board fixtures, including the pinned KiCad R0603 assembly fixture.
+- [x] Refresh only the Tokito default assembly regression digest; pinned KiCad
+  exporter reference captures remain unchanged.
+- [x] Pass all 48 gates in the documentation-inclusive local Windows verifier;
+  keep the source-matched receipt beneath `target/delivery/local/`.
+
+This improves supported component material rendering only. Geometry, physical
+fit and STEP are unchanged; this does not complete KiCad/library parity, full
+component coverage, missing-model resolution, installation qualification or
+Tokito CLI v1. No release is claimed.
+
 ## Reusable VRML geometry-node checkpoint (2026-10-20)
 
 - [x] Accept earlier same-file `Coordinate` and `Normal` `DEF`/`USE` nodes in

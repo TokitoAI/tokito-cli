@@ -4,6 +4,26 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## 2026-10-20 VRML source-material projection
+
+The bounded VRML-to-GLB adapter now retains authored diffuse colour and
+transparency, emissive colour, and specular colour. VRML `shininess` is mapped
+to glTF perceptual roughness with a documented display-only approximation;
+`KHR_materials_specular` is optional, and the original source values and mapping
+are retained in GLB metadata. The focused GLB unit tests and the release-binary
+four-board CLI E2E, including a pinned KiCad R0603 component assembly, passed.
+The Tokito-only default assembly regression digest was refreshed for this
+intentional material change; pinned KiCad exporter reference captures remain
+unchanged. The documentation-inclusive full local Windows verifier passed all
+48 gates for this checkpoint; the source-matched receipt is saved beneath
+`target/delivery/local/`. This is local verification only and is not an
+independent Windows installation or hosted CI test.
+
+This improves material appearance only. It does not alter or qualify component
+geometry, prove renderer equivalence, import textures or STEP, or close V1.
+KiCad/library parity, full qualified component coverage, missing-model
+resolution, and independent Windows installation testing remain open.
+
 ## 2026-10-20 reusable VRML geometry nodes
 
 The bounded reader now accepts earlier same-file `DEF`/`USE` references for

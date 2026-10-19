@@ -527,6 +527,24 @@ def main():
         assert coverage["componentModelsEmitted"] == 1 and coverage["modelReferencesEmitted"] == 1
         assert coverage["unresolvedModelsTotal"] == 0 and coverage["unresolvedModels"] == []
         assembly_document = glb_check(assembly_glb)
+        assert "KHR_materials_specular" in assembly_document["extensionsUsed"]
+        assert "KHR_materials_specular" not in assembly_document.get("extensionsRequired", [])
+        authored_materials = [
+            material for material in assembly_document["materials"]
+            if material.get("extras", {}).get("tokito", {}).get("authoredMaterialPresent") is True
+        ]
+        assert len(authored_materials) == 3, "pinned resistor model should preserve all three authored VRML materials"
+        for material in authored_materials:
+            tokito = material["extras"]["tokito"]
+            source_material = tokito["sourceVrmlMaterial"]
+            exponent = source_material["shininess"] * 128.0
+            expected_roughness = math.sqrt(2.0 / (exponent + 2.0))
+            assert math.isclose(
+                material["pbrMetallicRoughness"]["roughnessFactor"], expected_roughness,
+                rel_tol=0.0, abs_tol=1e-12,
+            ), "GLB roughness must preserve the bounded shininess projection"
+            assert material["extensions"]["KHR_materials_specular"]["specularColorFactor"] == source_material["specularColor"]
+            assert material["pbrMetallicRoughness"]["metallicFactor"] == 0.0
         assert assembly_document["asset"]["extras"]["tokito"]["coverage"]["componentModelsEmitted"] == 1
         emitted_normals = component_triangle_normals(assembly_glb, "ref:R1")
         assert any(

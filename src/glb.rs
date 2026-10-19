@@ -1852,16 +1852,27 @@ fn gltf_document(
     Ok(document)
 }
 
+/// Approximate the exponent of the VRML97 Phong highlight with glTF perceptual
+/// roughness. VRML defines its exponent as `shininess * 128`; the mapping below
+/// is a display-oriented lobe-width approximation, not a physical material fit.
+fn vrml_shininess_to_roughness(shininess: f64) -> f64 {
+    let phong_exponent = shininess.clamp(0.0, 1.0) * 128.0;
+    (2.0 / (phong_exponent + 2.0)).sqrt()
+}
+
 fn projected_vrml_material(source: Option<&crate::model_mesh::MeshMaterial>, solid: bool) -> Value {
     let fallback = crate::model_mesh::MeshMaterial::default();
     let m = source.unwrap_or(&fallback);
-    json!({"name":"VRML diffuse/opacity projection",
+    json!({"name":"VRML Phong display projection",
         "pbrMetallicRoughness":{"baseColorFactor":[m.diffuse_color[0],m.diffuse_color[1],m.diffuse_color[2],1.0-m.transparency],
-            "metallicFactor":0.0,"roughnessFactor":1.0},
+            "metallicFactor":0.0,"roughnessFactor":vrml_shininess_to_roughness(m.shininess)},
+        "extensions":{"KHR_materials_specular":{"specularFactor":1.0,"specularColorFactor":m.specular_color}},
         "emissiveFactor":m.emissive_color,
         "alphaMode":if m.transparency > 0.0 {"BLEND"} else {"OPAQUE"},
         "doubleSided":!solid,
-        "extras":{"tokito":{"materialProjection":"diffuse-alpha-emissive; neutral PBR factors; not Phong/PBR equivalence",
+        "extras":{"tokito":{"materialProjection":"diffuse-alpha-emissive plus optional specular color; approximate Phong-exponent-to-perceptual-roughness; not lighting or physical-material equivalence",
+            "roughnessProjection":{"source":"VRML97 Material.shininess","sourcePhongExponent":m.shininess*128.0,
+                "formula":"sqrt(2 / (sourcePhongExponent + 2))","approximation":"display lobe-width mapping; not a recovered physical roughness"},
             "authoredMaterialPresent":source.is_some(),"sourceVrmlMaterial":{"diffuseColor":m.diffuse_color,
                 "specularColor":m.specular_color,"emissiveColor":m.emissive_color,"ambientIntensity":m.ambient_intensity,
                 "shininess":m.shininess,"transparency":m.transparency},"sourceSolid":solid}}})
@@ -2024,6 +2035,7 @@ fn gltf_assembly_document(
             }}
         },
         "scene": 0,
+        "extensionsUsed": ["KHR_materials_specular"],
         "scenes": [{ "name": "Tokito board assembly", "nodes": scene_nodes }],
         "nodes": nodes,
         "meshes": meshes,
@@ -2202,6 +2214,24 @@ mod tests {
         assert_eq!(projected["emissiveFactor"], json!([0.02, 0.03, 0.04]));
         assert_eq!(projected["alphaMode"], "BLEND");
         assert_eq!(projected["doubleSided"], true);
+        let exponent = 0.8_f64 * 128.0;
+        let expected_roughness = (2.0 / (exponent + 2.0)).sqrt();
+        assert!(
+            (projected["pbrMetallicRoughness"]["roughnessFactor"]
+                .as_f64()
+                .unwrap()
+                - expected_roughness)
+                .abs()
+                < 1e-15
+        );
+        assert_eq!(
+            projected["extensions"]["KHR_materials_specular"]["specularColorFactor"],
+            json!([0.7, 0.6, 0.5])
+        );
+        assert_eq!(
+            projected["extras"]["tokito"]["roughnessProjection"]["sourcePhongExponent"],
+            json!(102.4)
+        );
         assert_eq!(
             projected["extras"]["tokito"]["sourceVrmlMaterial"]["shininess"],
             0.8
@@ -2220,6 +2250,25 @@ mod tests {
             false
         );
         assert_eq!(fallback["doubleSided"], false);
+        assert_eq!(
+            fallback["extensions"]["KHR_materials_specular"]["specularColorFactor"],
+            json!([0.0, 0.0, 0.0])
+        );
+        assert_eq!(
+            fallback["pbrMetallicRoughness"]["roughnessFactor"],
+            json!(vrml_shininess_to_roughness(
+                crate::model_mesh::MeshMaterial::default().shininess
+            ))
+        );
+    }
+
+    #[test]
+    fn vrml_shininess_maps_to_bounded_monotonic_display_roughness() {
+        let levels = [0.0, 0.25, 0.7, 1.0].map(vrml_shininess_to_roughness);
+        assert_eq!(levels[0], 1.0);
+        assert!(levels.iter().all(|value| (0.0..=1.0).contains(value)));
+        assert!(levels.windows(2).all(|pair| pair[0] > pair[1]));
+        assert!((levels[3] - (2.0_f64 / 130.0).sqrt()).abs() < 1e-15);
     }
 
     #[test]
