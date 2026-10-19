@@ -1565,9 +1565,30 @@ in CLI issue #47 and the v1 plan. AR/YOLO remain excluded.
   refresh. A documentation-inclusive repeat is required after this checkpoint;
   its receipt path and digest are recorded in the PR/issue update.
 
-This improves shading, not model shape or completeness. Explicit VRML `Normal`
-nodes/textures, STEP production export, complete component bodies and physical
-fit remain unsupported or unqualified. KiCad CLI and footprint/library parity,
-independent Windows install/upgrade, and simulation/view gates remain open.
+This improved crease-angle shading only. At that checkpoint explicit VRML
+`Normal` nodes and textures were unsupported; see the later normal-support
+checkpoint below. STEP production export, complete component bodies and
+physical fit remain unsupported or unqualified. KiCad CLI and footprint/library
+parity, independent Windows install/upgrade, and simulation/view gates remain
+open.
 Tokito CLI V1 is still not production-ready; no Action, merge or release is
 claimed by this checkpoint.
+
+## Explicit VRML authored-normal checkpoint — 2026-10-20
+
+- [x] Parse inline `Normal { vector [...] }` with per-vertex and per-face
+  mapping; preserve defaults and `normalIndex` after source polygons tessellate.
+- [x] Enforce bounded vector counts, finite near-unit vectors, exact per-vertex
+  marker layouts and one per-face normal index per source face.
+- [x] Verify `ccw` mapping and inverse-transpose placement under non-uniform
+  scale; preserve the existing crease-angle fallback when `normal NULL`.
+- [x] Test malformed index/vector refusal and a real CLI-to-selectable-GLB
+  tetrahedral fixture with `creaseAngle 0`.
+- [x] Focused Windows tests passed: 8 explicit-normal, 12 component-pose and
+  24 VRML parser/API cases. The four-board CLI E2E also passed.
+- [x] Full current-source Windows verification passed 48/48 gates after all
+  implementation and documentation changes; the receipt is linked in the PR #45 update.
+
+This is a shading/importer compatibility improvement. It does not qualify
+component dimensions, physical fit, complete bodies, STEP geometry or full
+VRML97/KiCad parity. V1 remains open.

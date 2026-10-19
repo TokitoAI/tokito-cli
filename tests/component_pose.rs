@@ -252,6 +252,36 @@ fn placed_smooth_normals_use_inverse_transpose_for_component_scale_and_glb_basis
 }
 
 #[test]
+fn placed_explicit_vrml_normals_use_inverse_transpose_for_component_scale() {
+    let authored_normal = 1.0 / 2.0_f64.sqrt();
+    let source = format!(
+        "#VRML V2.0 utf8\nShape {{ geometry IndexedFaceSet {{ coord Coordinate {{ point [0 0 0,1 0 0,0 1 0,0 0 1] }} coordIndex [0 1 2 -1,1 0 3 -1] normalPerVertex TRUE normal Normal {{ vector [0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal}] }} }} }}"
+    );
+    let mesh = parse_vrml_mesh(
+        source.as_bytes(),
+        ModelUnits::Millimetres,
+        MeshLimits::default(),
+    )
+    .unwrap();
+    let placement = KicadStepPlacement {
+        model: ModelTransformMm {
+            scale: [1.0, 2.0, 1.0],
+            ..identity_model()
+        },
+        ..placement(BoardSide::Front)
+    };
+    let placed = place_model_mesh_in_glb_m(&mesh, placement).unwrap();
+    let expected = [0.0, 2.0 / 5.0_f64.sqrt(), 1.0 / 5.0_f64.sqrt()];
+    for part in &placed.parts {
+        for triangle in &part.corner_normals {
+            for normal in triangle {
+                assert_point(*normal, expected);
+            }
+        }
+    }
+}
+
+#[test]
 fn mesh_placement_rejects_invalid_triangle_indices_and_degenerate_results() {
     let mut mesh = triangle_mesh();
     mesh.parts[0].triangles[0][2] = 3;

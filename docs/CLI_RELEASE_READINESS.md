@@ -4,6 +4,33 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## 2026-10-20 explicit VRML normal support
+
+The bounded pure-Rust VRML97 reader now supports inline `Normal { vector [...] }`
+for `IndexedFaceSet` data, with per-vertex and per-face modes, default
+coordinate/face-order mapping, and explicit `normalIndex`. It carries source
+face ordinals through checked polygon triangulation so authored shading remains
+bound to the original face/corner. Per-vertex index separators/counts must
+match source faces; per-face mapping accepts exactly one index per source face.
+Input normals must be finite and unit length within a 1e-3 decimal-rounding
+tolerance, then are normalized and transformed with the inverse-transpose
+matrix. Unsupported `Normal` DEF/USE and textures still fail closed.
+
+Current-source focused Windows checks passed: 8 explicit-normal tests, 12
+component-pose tests (including non-uniform scale), and 24 VRML parser/API
+tests. The CLI subprocess E2E also passed for four pinned board journeys, the
+pinned KiCad R0603 model, and a synthetic tetrahedral component that proves
+authored per-corner normals reach a selectable GLB even with `creaseAngle 0`.
+These tests validate parsing, indexing, placement and serialization, not a
+renderer image comparison or component physical-fit certification. The full
+Windows verifier passed 48/48 gates after this section and the goal-tracker
+update; the exact current-source receipt is linked in the PR #45 update. This
+validates local repository gates, not complete STEP or component-model quality.
+
+This closes one bounded VRML shading gap only. It does not complete KiCad CLI
+parity, STEP geometry, complete per-component bodies, missing-model resolution,
+schematic-to-layout generation, independent installation testing or V1.
+
 ## 2026-10-20 supported VRML shading slice
 
 The Rust VRML adapter now generates per-corner normals using VRML97

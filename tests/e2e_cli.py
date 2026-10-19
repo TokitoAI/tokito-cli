@@ -533,6 +533,39 @@ def main():
             len({tuple(round(axis, 6) for axis in normal) for normal in triangle}) > 1
             for triangle in emitted_normals
         ), "pinned KiCad resistor should retain source creaseAngle smoothing in the GLB"
+        explicit_model_root = output / "explicit-normal-models"
+        explicit_model_root.mkdir()
+        (explicit_model_root / "explicit-normal.wrl").write_text(
+            """#VRML V2.0 utf8
+Shape { geometry IndexedFaceSet {
+  coord Coordinate { point [0 0 0, 1 0 0, 0 1 0, 0 0 1] }
+  coordIndex [0 1 2 -1, 1 0 3 -1, 0 2 3 -1, 2 1 3 -1]
+  normalPerVertex TRUE
+  normal Normal { vector [0 0 1, 0 1 0, 1 0 0, 0.577350269 0.577350269 0.577350269] }
+  creaseAngle 0
+} }
+""",
+            encoding="utf-8",
+        )
+        explicit_board = output / "explicit-normal-board.kicad_pcb"
+        explicit_board.write_text(
+            assembly_fixture.read_text(encoding="utf-8").replace(
+                "Resistor_SMD.3dshapes/R_0603_1608Metric.wrl", "explicit-normal.wrl"
+            ),
+            encoding="utf-8",
+        )
+        explicit_glb = output / "explicit-normal-assembly.glb"
+        explicit_report = json.loads(invoke(
+            binary, "export", "glb", explicit_board, "--output", explicit_glb,
+            "--assemble-wrl", "--project-root", explicit_model_root, "--json-report",
+        ).stdout)
+        assert not explicit_report["partialExport"]
+        explicit_document = glb_check(explicit_glb)
+        explicit_normals = component_triangle_normals(explicit_glb, "ref:R1")
+        assert any(
+            len({tuple(round(axis, 6) for axis in normal) for normal in triangle}) > 1
+            for triangle in explicit_normals
+        ), "authored per-vertex VRML Normal values must remain distinct in GLB with creaseAngle 0"
         assert json.loads(invoke(
             binary, "export", "glb", assembly_fixture, "--output", output / "empty-filter.glb",
             "--assemble-wrl", "--project-root", model_root, "--component-filter", "",
@@ -1070,7 +1103,7 @@ def main():
         glb_check(partial_glb, expected_selectors=())
         invoke(binary, "export", "svg", fixture_root / FIXTURES[0][0], "--output", output / "bad.svg",
                "--layers", "not-a-board-layer", succeeds=False)
-    print("PASS CLI E2E journeys, including DNP Fab filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, wildcard/edge-case component and DNP filters, STEP-skip accounting, drill-origin handling, package input, no overwrite and parsed VRML assembly GLB; no STEP export or device/desktop CAD conformance claimed")
+    print("PASS CLI E2E journeys, including DNP Fab filtering, 14 hash-pinned KiCad 10.0.5 POS CSV comparisons, wildcard/edge-case component and DNP filters, STEP-skip accounting, drill-origin handling, package input, no overwrite and parsed VRML assembly GLB with generated crease-angle and explicit-normal fixtures; no STEP export or device/desktop CAD conformance claimed")
 
 if __name__ == "__main__":
     main()

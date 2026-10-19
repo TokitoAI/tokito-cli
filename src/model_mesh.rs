@@ -1,6 +1,7 @@
 //! Bounded, original VRML97 reader for Group/Transform/DEF/USE/Shape triangle
-//! and planar polygon IndexedFaceSet meshes. External resources, STEP,
-//! textures, and general VRML evaluation are unsupported.
+//! and planar polygon IndexedFaceSet meshes, including explicit vertex/face
+//! normals. External resources, STEP, textures, and general VRML evaluation
+//! are unsupported.
 //! Source coordinates require an explicit unit declaration; output is local millimetres.
 use crate::EngineError;
 use earcut::Earcut;
@@ -9,6 +10,8 @@ mod zero_area;
 pub use zero_area::derive_without_zero_area_faces;
 
 const MAX_FACE_VERTICES: usize = 4096;
+const MAX_NORMAL_VECTORS: usize = 200_000;
+const MAX_NORMAL_CORNERS: usize = 600_000;
 /// Deterministic aggregate proxy for quadratic polygon validation/Earcut work.
 const MAX_POLYGON_TRIANGULATION_WORK: usize = 8_000_000;
 const POLYGON_PLANAR_REL_TOLERANCE: f64 = 1e-8;
@@ -84,8 +87,8 @@ pub struct ModelMeshPart {
     pub triangles: Vec<[u32; 3]>,
     /// One derived unit normal per triangle; these are not smoothed vertex normals.
     pub flat_normals: Vec<[f64; 3]>,
-    /// One generated normal per triangle corner, honoring VRML97 `creaseAngle`.
-    /// The arrays follow `triangles` corner order and are transformed with the mesh.
+    /// One normal per triangle corner, from explicit VRML97 `Normal` data or
+    /// generated using `creaseAngle`. Arrays follow triangle corner order.
     pub corner_normals: Vec<[[f64; 3]; 3]>,
     pub material: Option<MeshMaterial>,
     pub source_crease_angle_radians: f64,
@@ -112,9 +115,10 @@ fn valid_def_identifier(name: &str) -> bool {
 }
 
 /// Parse only the declared bounded VRML97 profile. Group, Transform, DEF and
-/// USE scene nodes may contain triangle or planar polygon Shape geometry; unsupported
-/// fields/nodes (including Inline, explicit Normal nodes, and texture data)
-/// are errors. This API performs no filesystem or network access.
+/// USE scene nodes may contain triangle or planar polygon Shape geometry.
+/// Explicit inline Normal vectors are supported for IndexedFaceSet vertices
+/// and faces; unsupported fields/nodes (including Inline, Normal DEF/USE, and
+/// texture data) are errors. This API performs no filesystem or network access.
 pub fn parse_vrml_mesh(
     input: &[u8],
     units: ModelUnits,
@@ -158,6 +162,7 @@ fn parse_mesh_internal(
         scene_definitions: BTreeMap::new(),
         scene_definition_count: 0,
         vertices: 0,
+        normal_vectors: 0,
         triangles: 0,
         remaining_polygon_work: MAX_POLYGON_TRIANGULATION_WORK,
         topology_only,
@@ -172,7 +177,7 @@ fn parse_mesh_internal(
     }
     let diagnostics = vec![
         "Bounded VRML triangle/polygon profile with Group/Transform/DEF/USE scene support; local model geometry is not PCB placement or a complete CAD solid.".into(),
-        "Generated normals honor VRML97 creaseAngle across manifold shared edges; explicit Normal nodes and textures remain unsupported.".into(),
+        "Explicit inline VRML97 Normal vectors and normalIndex mappings are preserved; generated normals honor VRML97 creaseAngle across manifold shared edges when authored normals are absent. Normal DEF/USE and textures remain unsupported.".into(),
     ];
     Ok(ModelMesh {
         source_units: units,
@@ -385,6 +390,7 @@ struct Parser<'a> {
     scene_definitions: BTreeMap<String, SceneDefinition>,
     scene_definition_count: usize,
     vertices: usize,
+    normal_vectors: usize,
     triangles: usize,
     remaining_polygon_work: usize,
     topology_only: bool,
@@ -947,12 +953,69 @@ impl<'a> Parser<'a> {
         }
         Ok(faces)
     }
+    fn integer_values(&mut self, field: &str) -> Result<Vec<i64>, EngineError> {
+        self.expect("[")?;
+        let mut values = Vec::new();
+        while !self.closing("]") {
+            let token = self.take()?;
+            values.push(
+                token
+                    .parse()
+                    .map_err(|_| fail(format!("{field} must contain integers")))?,
+            );
+        }
+        Ok(values)
+    }
+    fn normal_node(&mut self) -> Result<Option<Vec<[f64; 3]>>, EngineError> {
+        let node = self.take()?;
+        if node == "NULL" {
+            return Ok(None);
+        }
+        if node != "Normal" {
+            return Err(fail("normal must be NULL or an inline Normal node"));
+        }
+        self.expect("{")?;
+        let mut seen = BTreeSet::new();
+        let mut vectors = None;
+        while !self.closing("}") {
+            match self.field(&mut seen)? {
+                "vector" => {
+                    self.expect("[")?;
+                    let mut values = Vec::new();
+                    while !self.closing("]") {
+                        if self.normal_vectors >= MAX_NORMAL_VECTORS {
+                            return Err(fail("normal vector budget exceeded"));
+                        }
+                        let source = [self.number()?, self.number()?, self.number()?];
+                        let length = source[0].hypot(source[1]).hypot(source[2]);
+                        // VRML97 requires unit normals. A small tolerance admits
+                        // decimal rounding while refusing silently repaired data.
+                        if !length.is_finite() || (length - 1.0).abs() > 1e-3 {
+                            return Err(fail("Normal vector must have unit length"));
+                        }
+                        values.push(normalize_vector(source)?);
+                        self.normal_vectors += 1;
+                    }
+                    vectors = Some(values);
+                }
+                _ => return Err(fail("unsupported Normal field")),
+            }
+        }
+        let vectors = vectors.ok_or_else(|| fail("missing Normal vector field"))?;
+        if vectors.is_empty() {
+            return Err(fail("Normal vector field is empty"));
+        }
+        Ok(Some(vectors))
+    }
     fn geometry(&mut self, ordinal: usize) -> Result<ModelMeshPart, EngineError> {
         self.expect("IndexedFaceSet")?;
         self.expect("{")?;
         let mut seen = BTreeSet::new();
         let mut positions = None;
         let mut faces = None;
+        let mut normal_vectors = None;
+        let mut normal_indices = None;
+        let mut normal_per_vertex = true;
         let mut crease_angle = 0.0;
         let mut ccw = true;
         let mut solid = true;
@@ -960,6 +1023,9 @@ impl<'a> Parser<'a> {
             match self.field(&mut seen)? {
                 "coord" => positions = Some(self.coordinates()?),
                 "coordIndex" => faces = Some(self.indices()?),
+                "normal" => normal_vectors = self.normal_node()?,
+                "normalIndex" => normal_indices = Some(self.integer_values("normalIndex")?),
+                "normalPerVertex" => normal_per_vertex = self.boolean()?,
                 "creaseAngle" => {
                     crease_angle = self.number()?;
                     if crease_angle < 0.0 {
@@ -978,12 +1044,13 @@ impl<'a> Parser<'a> {
             .max_triangles
             .checked_sub(self.triangles)
             .ok_or_else(|| fail("triangle budget exceeded"))?;
-        let mut triangles = triangulate_indexed_faces(
+        let triangulated = triangulate_indexed_faces(
             &faces,
             &positions,
             triangle_budget,
             &mut self.remaining_polygon_work,
         )?;
+        let mut triangles = triangulated.triangles;
         self.triangles = self
             .triangles
             .checked_add(triangles.len())
@@ -1013,7 +1080,21 @@ impl<'a> Parser<'a> {
                 )?
             });
         }
-        let corner_normals = if self.topology_only {
+        let corner_normals = if let Some(normal_vectors) = normal_vectors {
+            explicit_corner_normals(
+                &normal_vectors,
+                normal_per_vertex,
+                normal_indices.as_deref(),
+                &faces,
+                &triangles,
+                &triangulated.source_faces,
+            )?
+        } else if normal_indices
+            .as_ref()
+            .is_some_and(|indices| !indices.is_empty())
+        {
+            return Err(fail("normalIndex requires a Normal node"));
+        } else if self.topology_only {
             triangles
                 .iter()
                 .zip(&normals)
@@ -1038,14 +1119,131 @@ impl<'a> Parser<'a> {
 /// Triangulate each VRML IndexedFaceSet polygon independently. The earcut
 /// output is admitted only when it preserves the projected source area and
 /// every source polygon is planar within a scale-relative bound.
+struct TriangulatedFaces {
+    triangles: Vec<[u32; 3]>,
+    source_faces: Vec<usize>,
+}
+
+fn explicit_corner_normals(
+    normals: &[[f64; 3]],
+    per_vertex: bool,
+    indices: Option<&[i64]>,
+    faces: &[Vec<u32>],
+    triangles: &[[u32; 3]],
+    triangle_faces: &[usize],
+) -> Result<Vec<[[f64; 3]; 3]>, EngineError> {
+    if triangles.len() != triangle_faces.len() {
+        return Err(fail(
+            "explicit normal mapping received inconsistent triangle faces",
+        ));
+    }
+    let corner_count = triangles
+        .len()
+        .checked_mul(3)
+        .filter(|count| *count <= MAX_NORMAL_CORNERS)
+        .ok_or_else(|| fail("explicit normal corner budget exceeded"))?;
+    if normals.is_empty() {
+        return Err(fail("Normal vector field is empty"));
+    }
+
+    let supplied = indices.unwrap_or_default();
+    let (normal_faces_per_vertex, normal_faces_per_face) = if per_vertex {
+        if supplied.is_empty() {
+            (Some(faces.to_vec()), None)
+        } else {
+            let mut result = Vec::with_capacity(faces.len());
+            let mut cursor = 0usize;
+            for face in faces {
+                let end = cursor
+                    .checked_add(face.len())
+                    .ok_or_else(|| fail("normalIndex length overflow"))?;
+                let raw = supplied
+                    .get(cursor..end)
+                    .ok_or_else(|| fail("normalIndex has fewer vertex entries than coordIndex"))?;
+                let mapped = raw
+                    .iter()
+                    .map(|index| {
+                        u32::try_from(*index).map_err(|_| fail("invalid normalIndex entry"))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                if supplied.get(end) != Some(&-1) {
+                    return Err(fail(
+                        "normalIndex face markers must match coordIndex exactly",
+                    ));
+                }
+                cursor = end + 1;
+                result.push(mapped);
+            }
+            if cursor != supplied.len() {
+                return Err(fail("normalIndex face count does not match coordIndex"));
+            }
+            (Some(result), None)
+        }
+    } else if supplied.is_empty() {
+        let values = (0..faces.len())
+            .map(|face| {
+                u32::try_from(face).map_err(|_| fail("normal face index exceeds u32 range"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        (None, Some(values))
+    } else {
+        if supplied.len() != faces.len() {
+            return Err(fail(
+                "normalIndex must contain exactly one entry per source face",
+            ));
+        }
+        let values = supplied
+            .iter()
+            .map(|index| u32::try_from(*index).map_err(|_| fail("invalid normalIndex entry")))
+            .collect::<Result<Vec<_>, _>>()?;
+        if values.iter().any(|index| *index as usize >= normals.len()) {
+            return Err(fail("normalIndex is out of range"));
+        }
+        (None, Some(values))
+    };
+
+    let mut output = Vec::with_capacity(corner_count / 3);
+    for (triangle, &face_ordinal) in triangles.iter().zip(triangle_faces) {
+        let face = faces
+            .get(face_ordinal)
+            .ok_or_else(|| fail("triangle references an absent source face"))?;
+        let mut triangle_normals = [[0.0; 3]; 3];
+        for (corner, &coordinate_index) in triangle.iter().enumerate() {
+            let normal_index = if per_vertex {
+                let vertex_ordinal = face
+                    .iter()
+                    .position(|&index| index == coordinate_index)
+                    .ok_or_else(|| fail("triangle corner is absent from its source face"))?;
+                *normal_faces_per_vertex
+                    .as_ref()
+                    .ok_or_else(|| fail("missing per-vertex normal mapping"))?[face_ordinal]
+                    .get(vertex_ordinal)
+                    .ok_or_else(|| fail("normalIndex face has too few entries"))?
+            } else {
+                *normal_faces_per_face
+                    .as_ref()
+                    .ok_or_else(|| fail("missing per-face normal mapping"))?
+                    .get(face_ordinal)
+                    .ok_or_else(|| fail("missing per-face normal mapping"))?
+            };
+            triangle_normals[corner] = *normals
+                .get(normal_index as usize)
+                .ok_or_else(|| fail("normalIndex is out of range"))?;
+        }
+        output.push(triangle_normals);
+    }
+    Ok(output)
+}
+
 fn triangulate_indexed_faces(
     faces: &[Vec<u32>],
     positions: &[[f64; 3]],
     max_triangles: usize,
     remaining_polygon_work: &mut usize,
-) -> Result<Vec<[u32; 3]>, EngineError> {
+) -> Result<TriangulatedFaces, EngineError> {
     let mut triangles = Vec::new();
-    for face in faces {
+    let mut source_faces = Vec::new();
+    for (face_ordinal, face) in faces.iter().enumerate() {
         if face.len() < 3 || face.len() > MAX_FACE_VERTICES {
             return Err(fail("polygon face vertex budget exceeded"));
         }
@@ -1077,6 +1275,7 @@ fn triangulate_indexed_faces(
                 return Err(fail("coordinate index out of range"));
             }
             triangles.push(triangle);
+            source_faces.push(face_ordinal);
             continue;
         }
         // Account for both the non-adjacent edge intersection scan and the
@@ -1193,6 +1392,7 @@ fn triangulate_indexed_faces(
                 triangle.swap(1, 2);
             }
             triangles.push([face[indices[0]], face[indices[1]], face[indices[2]]]);
+            source_faces.push(face_ordinal);
         }
         let area_tolerance = (signed_area.abs() * POLYGON_AREA_REL_TOLERANCE).max(1e-12);
         if (triangulated_area - signed_area.abs()).abs() > area_tolerance {
@@ -1201,7 +1401,10 @@ fn triangulate_indexed_faces(
             ));
         }
     }
-    Ok(triangles)
+    Ok(TriangulatedFaces {
+        triangles,
+        source_faces,
+    })
 }
 
 /// Refuse non-simple polygon rings before tessellation. Non-adjacent edges may
@@ -1656,7 +1859,7 @@ mod derivation_tests {
         let mut remaining_work = 63;
 
         let first = triangulate_indexed_faces(&face, &positions, 2, &mut remaining_work).unwrap();
-        assert_eq!(first.len(), 2);
+        assert_eq!(first.triangles.len(), 2);
         assert_eq!(remaining_work, 31);
 
         // A second individually affordable face set is rejected because both

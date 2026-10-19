@@ -410,8 +410,11 @@ fn unsupported_vrml_nodes_fields_and_external_resources_are_rejected() {
         assert!(parse(input).is_err());
     }
     reject(
-        &TRIANGLE.replace("coordIndex", "normal Normal { vector [0 0 1] } coordIndex"),
-        "unsupported",
+        &TRIANGLE.replace(
+            "coordIndex",
+            "normal DEF N Normal { vector [0 0 1] } coordIndex",
+        ),
+        "inline Normal",
     );
     reject(
         &TRIANGLE.replace(
