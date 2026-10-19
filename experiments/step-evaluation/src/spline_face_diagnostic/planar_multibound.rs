@@ -1073,6 +1073,44 @@ mod tests {
     }
 
     #[test]
+    fn orientation_filter_matches_exact_i128_oracle_for_bounded_integer_samples() {
+        fn coordinate(state: &mut u64) -> i64 {
+            *state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            ((*state >> 32) % 2_000_001) as i64 - 1_000_000
+        }
+
+        fn point(state: &mut u64) -> [i64; 2] {
+            [coordinate(state), coordinate(state)]
+        }
+
+        let mut state = 0x746f_6b69_746f_7374;
+        for _ in 0..10_000 {
+            let a = point(&mut state);
+            let b = point(&mut state);
+            let c = point(&mut state);
+            let determinant = i128::from(a[0] - c[0]) * i128::from(b[1] - c[1])
+                - i128::from(a[1] - c[1]) * i128::from(b[0] - c[0]);
+            let input = [
+                [a[0] as f64, a[1] as f64],
+                [b[0] as f64, b[1] as f64],
+                [c[0] as f64, c[1] as f64],
+            ];
+            let actual = orientation_sign(input[0], input[1], input[2]);
+            if determinant == 0 {
+                assert_eq!(actual, Err("planar_face_ambiguous_orientation"));
+            } else {
+                assert_eq!(
+                    actual,
+                    Ok(determinant.cmp(&0)),
+                    "bounded integer predicate mismatch for {a:?}, {b:?}, {c:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn sampled_face_triangulation_preserves_hole_area_and_boundary_incidence() {
         let outer = [[0., 0.], [8., 0.], [8., 8.], [0., 8.]];
         let hole = [[2., 2.], [2., 6.], [6., 6.], [6., 2.]];

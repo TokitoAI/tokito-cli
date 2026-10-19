@@ -65,20 +65,21 @@ synthetic mixed-pad footprint does not qualify its semantics or manufacturer
 land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
 The most recent full Windows verifier run passed **48/48 gates** on 2026-10-19
-at 16:53:58 UTC. Its local receipt is
-`target/delivery/local/20261019T165358Z-d942057c748e4301b874e370f89dbbb7/verification.json`
-(SHA-256 `95101c772954286c3a7af7dfd051cdbdef91dcb3ec15acb1742b7ab0634bbcc3`).
-The evidence file records the receipt and the input fingerprint captured by
-that run before its receipt metadata was updated. It reused the isolated D:
-Cargo target and did not receive optional live dataset board profiles, so it is
-not a clean-cache, independent-machine, installation, cross-platform or all-
-dataset-board test.
+at 17:05:43 UTC. Its local receipt is
+`target/delivery/local/20261019T170543Z-7dcd46e3d80c4205a35f2cfb0c73d133/verification.json`
+(SHA-256 `6e26a4b2717e0678eb5a6431f1ce94dbf62f56c6571d718bb073e6831e8843d3`).
+The evidence file records the receipt and the evidence-file fingerprint
+captured by that run before its receipt metadata was updated. It reused the
+isolated D: Cargo target and did not receive optional live dataset board
+profiles, so it is not a clean-cache, independent-machine, installation,
+cross-platform or all-dataset-board test.
 
-The updated face-bound and fail-closed orientation-predicate result was separately
+The updated face-bound, fail-closed orientation-predicate, and bounded integer
+oracle result was separately
 rerun against the pinned STEP source with the release evaluator and FreeCAD 1.1.4 /
 OCCT 7.8.1: **5/5** focused checks passed. Receipt:
-`D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v15/receipt.json`
-(SHA-256 `cabdbd8b25211cdf08efa5fafb67ad94acde41748b838a968e4ab90d3158c4bf`).
+`D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v16/receipt.json`
+(SHA-256 `d655c2531646ba343d30f0a678c757f3d60c6d3e6fb3baa7daa99a8ab0836492`).
 The candidate still reports `geometryQualified=false`, `completeSolidVerified=false`,
 `admitted=false`, and no production exports. This establishes only sampled
 correspondence for one planar face, not continuous curve equivalence, a complete

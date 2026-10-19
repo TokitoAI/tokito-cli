@@ -714,12 +714,13 @@ conservative filter rather than an exact predicate: it may refuse valid but
 ill-conditioned input and does not certify the mesh or source curves. Unit
 regressions cover nearly-collinear points, near-crossing segments, near-boundary
 containment, a subnormal determinant from normal products, an underflowed error
-bound and product underflow. Reference: [Shewchuk, *Adaptive Precision
+bound, product underflow, and 10,000 bounded integer triples compared with an
+exact `i128` determinant oracle. Reference: [Shewchuk, *Adaptive Precision
 Floating-Point Arithmetic and Fast Robust Geometric Predicates*](https://people.eecs.berkeley.edu/~jrs/papers/robustr.pdf).
 
 The [five-check local E2E evidence](evidence/planar-multibound-face-20261019.json)
 records the pinned source, current release binary, Rust/Python inputs, FreeCAD audit
-and v15 receipt hashes. It tests source/wire/edge binding, triangle overlap,
+and v16 receipt hashes. It tests source/wire/edge binding, triangle overlap,
 wrong-owner/source refusal and FreeCAD output no-overwrite behavior. This
 candidate does not repair or mutate the STEP file and is not a production
 export. It verifies one face only; the complete component still has
