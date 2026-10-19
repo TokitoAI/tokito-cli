@@ -1,4 +1,4 @@
-# CLI release readiness — 2026-10-19
+# CLI release readiness — 2026-10-20
 
 Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
@@ -247,15 +247,26 @@ for every advertised feature. General STEP support requires its own geometry
 qualification; AR and YOLO do not block this CLI-only release.
 
 No reliable calendar date is established yet. Report gate completion rather than
-inventing a deadline. The latest model-16 face candidate has 12,801 source-curve
-mesh vertices inside the trimmed face, while 200 of 12,801 support-surface
-evaluations lie outside the trim. Its 24,064 triangles include 3,995 with
-nonpositive centroid-normal alignment (minimum `-0.9999979635`), independently
-confirmed by FreeCAD. The candidate remains unqualified and no export is
-produced. The next STEP task is continuity-aware UV branch selection per
-ordered source edge, followed by adaptive angular as well as chordal refinement
-and independent trim, orientation, closure and convergence gates. This
-face-level investigation does not qualify the full STEP solid or assembly.
+inventing a deadline. The `12,801`-vertex / `3,995`-normal-failure model-16
+result above is historical and has been superseded by later face-level
+experiments. The pinned face now meets the documented sampled chord and normal
+targets after physical-space refinement; the subsequent two-face patch has
+32,454 vertices and 63,884 triangles and passed its native source-binding and
+refusal checks. That patch is an open surface with two boundary cycles, not a
+closed component. Full trim coverage, self-intersection, whole-solid comparison,
+all other faces and board placement remain unverified. The next STEP gate is to
+complete face/trim coverage and qualify a complete solid, not to treat the
+earlier projection branch as the latest blocker. See the [current geometry
+record](GEOMETRY_RECOVERY_PLAN.md#canonical-two-face-patch-2026-10-19).
+
+The model-14 planar-repair E2E now also proves that every one of the 14 emitted
+reader shape definitions has complete source-face-ID provenance: 1,223 source
+face memberships, no omitted/unexpected/unassigned IDs, and unchanged face
+inventory across the pinned repair. Its independent FreeCAD comparison remains
+within the recorded sampled-distance limit. This is provenance coverage for
+emitted shape definitions only; it does not enumerate every source
+representation, qualify tessellation, or enable production STEP export. See
+the [model-14 provenance evidence](evidence/model14-source-face-provenance-20261020.json).
 
 ## V1 contract and filesystem requirements
 

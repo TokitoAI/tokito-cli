@@ -70,6 +70,36 @@ The independent distance stage used 17,393,370 triangle evaluations, below
 the unchanged 50,000,000 cap. This is sampled agreement, not a continuous
 surface-error guarantee, material qualification or physical-board equivalence.
 
+## Emitted-shape source-face provenance gate (2026-10-20)
+
+The evaluator now reports a separate `emittedShapeFaceProvenanceAudit` instead
+of leaving the per-shape results buried in diagnostic details. On the pinned
+model-14 input, the reference E2E audited all 14 emitted reader shape
+definitions, covering 1,223 distinct source-face memberships. Each source
+topology traversal completed; emitted and expected face-ID inventories matched;
+triangle/provenance lengths matched; and no face ID was omitted, unexpected,
+or unassigned. The repair kept the same inventory and replaced the 146 triangles
+at item `46427`, face `51071`, while reusing all 148 source-boundary vertices.
+
+The independent FreeCAD reference comparison still passes at a maximum sampled
+bidirectional distance of `0.0014101133940020597 mm` against the pinned
+`0.02 mm` threshold. The receipt records the exact source, reference, evaluator
+and harness digests in
+`F:\kannan\projects\tokito-cli-verification\step14-source-face-provenance-20261020b\receipt.json`;
+its SHA-256 is
+`e59421f3ceb48e0da76820d7b112d11b59e4ecaee600925800f722a4010b03aa`.
+The compact checked-in summary is
+[`model14-source-face-provenance-20261020.json`](evidence/model14-source-face-provenance-20261020.json).
+
+This gate is deliberately narrow: it checks source-face provenance for every
+shape definition emitted by this reader run. It does **not** enumerate every
+source representation item, prove that the reader emitted every source shape,
+verify per-face tessellation fidelity, certify continuous surface error, or
+prove component/PCB identity and placement. The report therefore keeps
+`allSourceRepresentationItemsEnumerated`, `allSourceShapesCovered`,
+`geometryQualified`, and `admitted` false. Production STEP support remains
+disabled.
+
 Run e evidence is
 `F:\kannan\projects\tokito-cli-verification\step14-repair-reference-20261016e/receipt.json`.
 The final checker adds explicit independently audited unit-conversion assertions;

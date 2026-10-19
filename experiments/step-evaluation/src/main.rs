@@ -247,6 +247,7 @@ fn probe(
         .take(MAX_WARNING_DETAILS)
         .map(|s| s.chars().take(512).collect())
         .collect();
+    let emitted_shape_face_provenance_complete = shapes > 0 && unmatched_shape_face_sets == 0;
     Ok(json!({
         "probeSchema": "tokito.step-evaluation.v1", "reader": "oxideav-step=0.0.1/default-features=false",
         "negativeTorusCompatibility": compatibility, "baselineBeforeCompatibility": baseline,
@@ -267,9 +268,19 @@ fn probe(
         "missingTriangleProvenanceEntries": missing_triangle_provenance_entries,
         "excessProvenanceEntries": excess_provenance_entries,
         "sourceFaceCompletenessVerified": false,
+        "emittedShapeFaceProvenanceAudit": {
+            "schema":"tokito.step-emitted-shape-face-provenance.v1",
+            "shapeDefinitionsInspected":shapes,
+            "shapeDefinitionsWithUnmatchedFaceSets":unmatched_shape_face_sets,
+            "everyEmittedShapeDefinitionHasCompleteFaceProvenance":emitted_shape_face_provenance_complete,
+            "allSourceRepresentationItemsEnumerated":false,
+            "allSourceShapesCovered":false,
+            "geometryQualified":false,
+            "scope":"every emitted reader shape definition was traversed against the source faces reachable from its representation item; this does not prove that all source representation items were emitted or that their face geometry is correctly tessellated"
+        },
         "experimentalPlanarRepair":repair_report,
         "experimentalFaceDiagnostics":triangle_diagnostic,
-        "sourceFaceCoverage": {"shapeDetails":face_coverage_details,"shapeDetailsTruncated":shapes>MAX_SHAPE_PROVENANCE_SUMMARIES,"shapesInspected":shapes,"unmatchedShapeFaceSets":unmatched_shape_face_sets,"allEmittedShapeFaceSetsMatch":shapes>0&&unmatched_shape_face_sets==0,"allSourceShapesCovered":false,"geometryQualified":false},
+        "sourceFaceCoverage": {"shapeDetails":face_coverage_details,"shapeDetailsTruncated":shapes>MAX_SHAPE_PROVENANCE_SUMMARIES,"shapesInspected":shapes,"unmatchedShapeFaceSets":unmatched_shape_face_sets,"allEmittedShapeFaceSetsMatch":shapes>0&&unmatched_shape_face_sets==0,"allSourceRepresentationItemsEnumerated":false,"allSourceShapesCovered":false,"geometryQualified":false},
         "occurrenceColourOverrides": model.occurrence_colours.len(),
         "localBounds": if positions > nonfinite { json!({"min": bounds, "max": upper}) } else { Value::Null },
         "boundsFrame": "union_of_part_local_frames_not_assembly_world", "boundsUnits": "reader_reported_model_length_units",

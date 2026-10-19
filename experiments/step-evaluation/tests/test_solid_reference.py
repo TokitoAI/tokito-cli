@@ -34,6 +34,60 @@ def adjacent_tetrahedra():
 
 
 class SolidReferenceTests(unittest.TestCase):
+    def test_emitted_shape_face_provenance_gate_rejects_partial_or_promoted_evidence(self):
+        row = {"representationItemId": 10, "sourceTraversalComplete": True,
+               "expectedSourceFaces": 2, "emittedDistinctSourceFaces": 2,
+               "missingSourceFaceCount": 0, "unexpectedSourceFaceCount": 0,
+               "unassignedTriangleEntries": 0, "triangleProvenanceCountMatches": True,
+               "sourceFacePresenceMatches": True,
+               "expectedSourceFaceIdsSha256": "a" * 64}
+        report = {"sourceFaceCompletenessVerified": False,
+                  "sourceFaceCoverage": {"shapeDetails": [row], "shapeDetailsTruncated": False,
+                      "shapesInspected": 1, "unmatchedShapeFaceSets": 0,
+                      "allEmittedShapeFaceSetsMatch": True,
+                      "allSourceRepresentationItemsEnumerated": False,
+                      "allSourceShapesCovered": False, "geometryQualified": False},
+                  "emittedShapeFaceProvenanceAudit": {
+                      "schema": "tokito.step-emitted-shape-face-provenance.v1",
+                      "shapeDefinitionsInspected": 1,
+                      "shapeDefinitionsWithUnmatchedFaceSets": 0,
+                      "everyEmittedShapeDefinitionHasCompleteFaceProvenance": True,
+                      "allSourceRepresentationItemsEnumerated": False,
+                      "allSourceShapesCovered": False, "geometryQualified": False}}
+        accepted = planar_reference.audit_emitted_shape_face_provenance(report)
+        self.assertTrue(accepted["everyEmittedShapeDefinitionHasCompleteFaceProvenance"])
+        self.assertFalse(accepted["allSourceShapesCovered"])
+        self.assertFalse(accepted["geometryQualified"])
+
+        mutations = [
+            lambda value: value["sourceFaceCoverage"].update(shapeDetails=[]),
+            lambda value: value["sourceFaceCoverage"].update(shapeDetailsTruncated=True),
+            lambda value: value["sourceFaceCoverage"].update(unmatchedShapeFaceSets=1),
+            lambda value: value["sourceFaceCoverage"].update(unmatchedShapeFaceSets=False),
+            lambda value: value["sourceFaceCoverage"].update(allSourceRepresentationItemsEnumerated=True),
+            lambda value: value["sourceFaceCoverage"].update(allSourceShapesCovered=True),
+            lambda value: value["sourceFaceCoverage"].update(geometryQualified=True),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(missingSourceFaceCount=1),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(missingSourceFaceCount=False),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(unexpectedSourceFaceCount=1),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(unassignedTriangleEntries=1),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(triangleProvenanceCountMatches=False),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(emittedDistinctSourceFaces=1),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(expectedSourceFaces=True),
+            lambda value: value["sourceFaceCoverage"]["shapeDetails"][0].update(expectedSourceFaceIdsSha256="not-a-digest"),
+            lambda value: value.update(sourceFaceCompletenessVerified=True),
+            lambda value: value["emittedShapeFaceProvenanceAudit"].update(allSourceShapesCovered=True),
+            lambda value: value["emittedShapeFaceProvenanceAudit"].update(allSourceRepresentationItemsEnumerated=True),
+            lambda value: value["emittedShapeFaceProvenanceAudit"].update(geometryQualified=True),
+            lambda value: value["emittedShapeFaceProvenanceAudit"].update(shapeDefinitionsInspected=True),
+            lambda value: value["emittedShapeFaceProvenanceAudit"].update(shapeDefinitionsWithUnmatchedFaceSets=False),
+        ]
+        for mutate in mutations:
+            candidate = copy.deepcopy(report)
+            mutate(candidate)
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                planar_reference.audit_emitted_shape_face_provenance(candidate)
+
     def test_planar_comparison_missing_input_keeps_failed_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)

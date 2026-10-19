@@ -1,0 +1,75 @@
+{
+  "schema": "tokito.step-emitted-shape-face-provenance.e2e.v1",
+  "capturedAt": "2026-10-20",
+  "status": "passed",
+  "scope": "pinned ESP8266 model-14 experimental planar repair, emitted-shape source-face provenance, and sampled FreeCAD reference comparison",
+  "source": {
+    "file": "14.step",
+    "datasetCommit": "5283bc059e30e51f4d3a81a674425936fc213214",
+    "sha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b"
+  },
+  "independentReference": {
+    "schema": "tokito.freecad-reference-mesh.v2",
+    "fileSha256": "3b0e0d92cbe30f5b44d118befd66794a114bf41a072a442ef04d8edc62953838",
+    "freecadVersion": "1.1.4",
+    "occtVersion": null,
+    "tessellationDeflectionMm": 0.01,
+    "datasetCommit": "5283bc059e30e51f4d3a81a674425936fc213214",
+    "referenceSolids": 41,
+    "sourceFaces": 2303
+  },
+  "evaluator": {
+    "sha256": "bb9866d79d9cf34ddab308a4e7fdf941c75ac64bf62c27e697b8fcba458bd67c",
+    "harnessSha256": "2707387807d16ecc71937fe3dc8ad0e83710152888917d963c787d2327905155",
+    "distanceBinarySha256": "ee3b80601e602e09ef7892de44ee7a96007747acfbef138cd6cb95498007037c"
+  },
+  "emittedShapeFaceProvenance": {
+    "shapeDefinitionsInspected": 14,
+    "sourceFaceMemberships": 1223,
+    "allEmittedShapeDefinitionsHaveCompleteFaceProvenance": true,
+    "faceInventoryUnchangedAcrossRepair": true,
+    "allSourceRepresentationItemsEnumeratedInCoverageReport": false,
+    "allSourceRepresentationItemsEnumerated": false,
+    "allSourceShapesCovered": false,
+    "geometryQualified": false
+  },
+  "repair": {
+    "representationItemId": 46427,
+    "faceId": 51071,
+    "oldFaceTriangles": 146,
+    "newFaceTriangles": 146,
+    "reusedSourceBoundaryVertices": 148,
+    "maximumBoundaryMatchDistanceModelUnits": 0.0,
+    "sourceToModelFrameVerified": false
+  },
+  "referenceComparison": {
+    "candidateShapeOccurrences": 41,
+    "candidateOccurrenceCount": 36,
+    "allCandidateShapeMeshesClosed": true,
+    "allCandidateShapeMeshesConsistentlyOriented": true,
+    "allCandidateShapeMeshesPositiveVolume": true,
+    "readerToReferenceSampleCount": 300000,
+    "referenceToReaderSampleCount": 300000,
+    "readerToReferenceMaximumDistanceMm": 0.001315621010023705,
+    "referenceToReaderMaximumDistanceMm": 0.0014101133940020597,
+    "maximumSampledBidirectionalDistanceMm": 0.0014101133940020597,
+    "acceptanceThresholdMm": 0.02,
+    "candidateSignedVolumeMm3": 640.7857035362048,
+    "referenceSignedVolumeMm3": 640.8057861573081,
+    "triangleDistanceEvaluations": 17385289
+  },
+  "receipt": {
+    "localPath": "F:\\kannan\\projects\\tokito-cli-verification\\step14-source-face-provenance-20261020b\\receipt.json",
+    "sha256": "e59421f3ceb48e0da76820d7b112d11b59e4ecaee600925800f722a4010b03aa"
+  },
+  "admitted": false,
+  "productionStepExport": false,
+  "componentAssociationVerified": false,
+  "pcbPlacementVerified": false,
+  "notes": [
+    "Face provenance is checked for every shape definition emitted by this reader run, not for every source representation item in the STEP file.",
+    "A source face appearing in provenance does not prove its tessellation accurately follows the trimmed surface.",
+    "The FreeCAD comparison is finite bidirectional sampling, not a continuous Hausdorff error bound or manufacturing certification.",
+    "The candidate is experimental; this result does not enable production STEP export."
+  ]
+}

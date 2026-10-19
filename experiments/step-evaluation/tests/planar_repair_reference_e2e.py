@@ -6,6 +6,7 @@ Does not admit STEP or establish component/PCB identity. Keeps failed receipts.
 import argparse
 import math
 import json
+import re
 from pathlib import Path
 
 import multi_surface_reference_e2e as multi
@@ -13,6 +14,79 @@ import surface_reference_e2e as surface
 from bounded_fingerprint import fingerprint
 
 SOURCE_SHA = "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b"
+TARGET_ITEM = 46427
+TARGET_FACE = 51071
+
+
+def audit_emitted_shape_face_provenance(report):
+    """Require complete source-face provenance for every emitted shape definition.
+
+    This deliberately does not claim that the source contains no un-emitted
+    representation items, nor that every source face was tessellated accurately.
+    """
+    coverage = report.get("sourceFaceCoverage")
+    audit = report.get("emittedShapeFaceProvenanceAudit")
+    if not isinstance(coverage, dict) or not isinstance(audit, dict):
+        raise ValueError("emitted shape source-face provenance report missing")
+    details = coverage.get("shapeDetails")
+    count = coverage.get("shapesInspected")
+    unmatched = coverage.get("unmatchedShapeFaceSets")
+    if (type(count) is not int or count <= 0
+            or not isinstance(details, list) or len(details) != count
+            or coverage.get("shapeDetailsTruncated") is not False
+            or type(unmatched) is not int or unmatched != 0
+            or coverage.get("allEmittedShapeFaceSetsMatch") is not True
+            or coverage.get("allSourceRepresentationItemsEnumerated") is not False
+            or coverage.get("allSourceShapesCovered") is not False
+            or coverage.get("geometryQualified") is not False):
+        raise ValueError("emitted shape face inventory is incomplete or mismatched")
+    face_memberships = 0
+    for row in details:
+        if not isinstance(row, dict):
+            raise ValueError("invalid emitted shape face audit row")
+        item_id = row.get("representationItemId")
+        expected = row.get("expectedSourceFaces")
+        emitted = row.get("emittedDistinctSourceFaces")
+        missing = row.get("missingSourceFaceCount")
+        unexpected = row.get("unexpectedSourceFaceCount")
+        unassigned = row.get("unassignedTriangleEntries")
+        face_digest = row.get("expectedSourceFaceIdsSha256")
+        if (row.get("sourceTraversalComplete") is not True
+                or row.get("sourceFacePresenceMatches") is not True
+                or row.get("triangleProvenanceCountMatches") is not True
+                or type(item_id) is not int or item_id <= 0
+                or type(expected) is not int or expected <= 0
+                or type(emitted) is not int or emitted != expected
+                or type(missing) is not int or missing != 0
+                or type(unexpected) is not int or unexpected != 0
+                or type(unassigned) is not int or unassigned != 0
+                or not isinstance(face_digest, str)
+                or re.fullmatch(r"[0-9a-f]{64}", face_digest) is None):
+            raise ValueError("emitted shape has missing, unexpected, unassigned, or count-mismatched face provenance")
+        face_memberships += expected
+    audit_shapes = audit.get("shapeDefinitionsInspected")
+    audit_unmatched = audit.get("shapeDefinitionsWithUnmatchedFaceSets")
+    if (audit.get("schema") != "tokito.step-emitted-shape-face-provenance.v1"
+            or type(audit_shapes) is not int or audit_shapes != count
+            or type(audit_unmatched) is not int or audit_unmatched != 0
+            or audit.get("everyEmittedShapeDefinitionHasCompleteFaceProvenance") is not True
+            or audit.get("allSourceRepresentationItemsEnumerated") is not False
+            or audit.get("allSourceShapesCovered") is not False
+            or audit.get("geometryQualified") is not False
+            or report.get("sourceFaceCompletenessVerified") is not False):
+        raise ValueError("emitted-shape coverage was promoted beyond its declared scope")
+    return {"shapeDefinitionsInspected": count,
+            "sourceFaceMemberships": face_memberships,
+            "everyEmittedShapeDefinitionHasCompleteFaceProvenance": True,
+            "allSourceRepresentationItemsEnumerated": False,
+            "allSourceShapesCovered": False,
+            "geometryQualified": False}
+
+
+def _shape_face_inventory(report):
+    rows = report["sourceFaceCoverage"]["shapeDetails"]
+    return [(row["representationItemId"], row["expectedSourceFaces"],
+             row["expectedSourceFaceIdsSha256"]) for row in rows]
 
 
 def native_compare(binary, a, b, path):
@@ -78,8 +152,13 @@ def run(binary, source, reference, reference_sha, output, distance_binary=None):
             world=report.get("assemblyOccurrenceWorld",{})
             if mesh.get("lengthUnit")!="mm" or world.get("independentRepresentationUnitsResolved") is not True or world.get("readerScaleAgreesWithIndependentUnits") is not True:
                 raise ValueError(f"{name} independently checked unit/frame conversion missing")
+            report["checkedEmittedShapeFaceProvenance"] = audit_emitted_shape_face_provenance(report)
             outputs.append(report)
         baseline,repaired=outputs
+        if _shape_face_inventory(baseline) != _shape_face_inventory(repaired):
+            raise ValueError("planar repair changed the emitted source-face inventory")
+        receipt["emittedShapeFaceProvenanceAudit"] = repaired["checkedEmittedShapeFaceProvenance"]
+        receipt["faceProvenanceInventoryUnchangedAcrossRepair"] = True
         old=baseline["candidateMeshData"]["occurrences"]
         new=repaired["candidateMeshData"]["occurrences"]
         if len(old)!=len(new):
@@ -102,6 +181,18 @@ def run(binary, source, reference, reference_sha, output, distance_binary=None):
                     raise ValueError("target metadata changed")
         if changed!=1:
             raise ValueError("expected exactly one changed shape occurrence")
+        target_shapes = [shape for occurrence in new for shape in occurrence["shapes"]
+                         if shape.get("sourceItemId") == TARGET_ITEM]
+        if (len(target_shapes) != 1
+                or target_shapes[0].get("sourceTriangleFaceIds", []).count(TARGET_FACE) != 146):
+            raise ValueError("repaired target face provenance/count does not match the pinned fixture")
+        receipt["targetFaceProvenance"] = {
+            "representationItemId": TARGET_ITEM,
+            "sourceFaceId": TARGET_FACE,
+            "repairedTriangles": 146,
+            "reusedBoundaryVertices": repaired["experimentalPlanarRepair"]["reusedBoundaryVertices"],
+            "sourceToModelFrameVerified": False,
+        }
         receipt["unrelatedOccurrencesAndGeometryUnchanged"]=True
         mesh=repaired["candidateMeshData"]
         candidate_points,candidate_triangles,occurrences,shapes=multi.combine_occurrence_mesh(mesh)
