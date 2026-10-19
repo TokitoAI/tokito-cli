@@ -65,22 +65,24 @@ synthetic mixed-pad footprint does not qualify its semantics or manufacturer
 land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
 The most recent full Windows verifier run passed **48/48 gates** on 2026-10-19
-at 16:29:19 UTC. Its local receipt is
-`target/delivery/local/20261019T162919Z-8432f67c6b324ff0a67d34c9d89a69ad/verification.json`
-(SHA-256 `ea91a61156f6b83566570ff864c6259d8f04f091724c8367e95e54b66f56f021`).
+at 16:53:58 UTC. Its local receipt is
+`target/delivery/local/20261019T165358Z-d942057c748e4301b874e370f89dbbb7/verification.json`
+(SHA-256 `95101c772954286c3a7af7dfd051cdbdef91dcb3ec15acb1742b7ab0634bbcc3`).
 The evidence file records the receipt and the input fingerprint captured by
-that run before its receipt metadata was added. It reused the isolated D: Cargo
-target and did not receive optional live dataset board profiles, so it is not a
-clean-cache, independent-machine, installation, cross-platform or all-dataset-
-board test.
+that run before its receipt metadata was updated. It reused the isolated D:
+Cargo target and did not receive optional live dataset board profiles, so it is
+not a clean-cache, independent-machine, installation, cross-platform or all-
+dataset-board test.
 
-The updated face-bound semantic result was separately rerun against the pinned
-STEP source with the release evaluator and FreeCAD 1.1.4 / OCCT 7.8.1: **5/5**
-focused checks passed. Receipt:
-`D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v12/receipt.json`
-(SHA-256 `02b201470910100638b7e9ac9c78358ca6fea088d14f6966d7292b423ee5c8de`).
-This still establishes only sampled correspondence for one planar face, not
-continuous curve equivalence, a complete solid, or production STEP admission.
+The updated face-bound and fail-closed orientation-predicate result was separately
+rerun against the pinned STEP source with the release evaluator and FreeCAD 1.1.4 /
+OCCT 7.8.1: **5/5** focused checks passed. Receipt:
+`D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v15/receipt.json`
+(SHA-256 `cabdbd8b25211cdf08efa5fafb67ad94acde41748b838a968e4ab90d3158c4bf`).
+The candidate still reports `geometryQualified=false`, `completeSolidVerified=false`,
+`admitted=false`, and no production exports. This establishes only sampled
+correspondence for one planar face, not continuous curve equivalence, a complete
+solid, or production STEP admission.
 No GitHub Actions ran; PR #45 remains open with no hosted checks or independent
 PR approval.
 

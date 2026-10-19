@@ -705,9 +705,21 @@ identifies the second loop as an inner boundary for this planar face, but this
 does not qualify the complete trimmed surface, any non-planar face, or the
 solid.
 
+The ring-crossing and point-containment checks now use the first-stage
+binary64 `orient2d` determinant error filter described by Shewchuk. The code
+accepts a sign only when it lies outside the calculated error bound; ambiguous
+signs, non-finite arithmetic, and subnormal/underflow cases fail closed. It
+does not implement Shewchuk's adaptive exact-arithmetic fallback, so this is a
+conservative filter rather than an exact predicate: it may refuse valid but
+ill-conditioned input and does not certify the mesh or source curves. Unit
+regressions cover nearly-collinear points, near-crossing segments, near-boundary
+containment, a subnormal determinant from normal products, an underflowed error
+bound and product underflow. Reference: [Shewchuk, *Adaptive Precision
+Floating-Point Arithmetic and Fast Robust Geometric Predicates*](https://people.eecs.berkeley.edu/~jrs/papers/robustr.pdf).
+
 The [five-check local E2E evidence](evidence/planar-multibound-face-20261019.json)
-records the pinned source, release binary, Rust/Python inputs, FreeCAD audit and
-receipt hashes. It tests source/wire/edge binding, triangle overlap,
+records the pinned source, current release binary, Rust/Python inputs, FreeCAD audit
+and v15 receipt hashes. It tests source/wire/edge binding, triangle overlap,
 wrong-owner/source refusal and FreeCAD output no-overwrite behavior. This
 candidate does not repair or mutate the STEP file and is not a production
 export. It verifies one face only; the complete component still has

@@ -414,48 +414,131 @@ fn orient(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
     (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
 }
 
-fn on_segment(a: [f64; 2], b: [f64; 2], p: [f64; 2]) -> bool {
-    orient(a, b, p) == 0.0
-        && p[0] >= a[0].min(b[0])
-        && p[0] <= a[0].max(b[0])
-        && p[1] >= a[1].min(b[1])
-        && p[1] <= a[1].max(b[1])
-}
-
-fn segments_intersect(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
-    let (o1, o2, o3, o4) = (
-        orient(a, b, c),
-        orient(a, b, d),
-        orient(c, d, a),
-        orient(c, d, b),
-    );
-    if (o1 > 0.0 && o2 < 0.0 || o1 < 0.0 && o2 > 0.0)
-        && (o3 > 0.0 && o4 < 0.0 || o3 < 0.0 && o4 > 0.0)
-    {
-        return true;
+fn orientation_sign(
+    a: [f64; 2],
+    b: [f64; 2],
+    c: [f64; 2],
+) -> Result<std::cmp::Ordering, &'static str> {
+    if !a.into_iter().chain(b).chain(c).all(f64::is_finite) {
+        return Err("planar_face_nonfinite_predicate_input");
     }
-    (o1 == 0.0 && on_segment(a, b, c))
-        || (o2 == 0.0 && on_segment(a, b, d))
-        || (o3 == 0.0 && on_segment(c, d, a))
-        || (o4 == 0.0 && on_segment(c, d, b))
+    // Keep the operand ordering used by the published orient2d filter:
+    // translate both a and b relative to c before taking the determinant.
+    let acx = a[0] - c[0];
+    let bcx = b[0] - c[0];
+    let acy = a[1] - c[1];
+    let bcy = b[1] - c[1];
+    let left = acx * bcy;
+    let right = acy * bcx;
+    let determinant = left - right;
+    let determinant_sum = left.abs() + right.abs();
+    if !acx.is_finite()
+        || !bcx.is_finite()
+        || !acy.is_finite()
+        || !bcy.is_finite()
+        || !determinant.is_finite()
+        || !determinant_sum.is_finite()
+    {
+        return Err("planar_face_nonfinite_predicate_result");
+    }
+
+    // Shewchuk's first-stage orient2d error bound. Values inside the bound
+    // (including exact collinearity) are deliberately rejected: this
+    // diagnostic has no exact-arithmetic fallback and must not guess a loop
+    // crossing or containment result from an unstable sign.
+    let epsilon = f64::EPSILON * 0.5;
+    let error_bound = (3.0 + 16.0 * epsilon) * epsilon * determinant_sum;
+    if !error_bound.is_finite() {
+        return Err("planar_face_nonfinite_predicate_result");
+    }
+
+    let underflowed_product =
+        (acx != 0.0 && bcy != 0.0 && left == 0.0) || (acy != 0.0 && bcx != 0.0 && right == 0.0);
+    let subnormal = [
+        acx,
+        bcx,
+        acy,
+        bcy,
+        left,
+        right,
+        determinant,
+        determinant_sum,
+        error_bound,
+    ]
+    .into_iter()
+    .any(|value| value != 0.0 && value.abs() < f64::MIN_POSITIVE);
+    let error_bound_underflowed = determinant_sum != 0.0 && error_bound == 0.0;
+    if underflowed_product || subnormal || error_bound_underflowed {
+        return Err("planar_face_ambiguous_orientation");
+    }
+    if determinant.abs() <= error_bound {
+        return Err("planar_face_ambiguous_orientation");
+    }
+    Ok(determinant.total_cmp(&0.0))
 }
 
-fn point_in_ring(point: [f64; 2], ring: &[[f64; 2]]) -> Option<bool> {
+fn segments_intersect(
+    a: [f64; 2],
+    b: [f64; 2],
+    c: [f64; 2],
+    d: [f64; 2],
+) -> Result<bool, &'static str> {
+    if !a.into_iter().chain(b).chain(c).chain(d).all(f64::is_finite) {
+        return Err("planar_face_nonfinite_predicate_input");
+    }
+    // This exact-coordinate broad phase avoids asking an orientation
+    // predicate about line segments whose axis-aligned bounds are disjoint.
+    if a[0].max(b[0]) < c[0].min(d[0])
+        || c[0].max(d[0]) < a[0].min(b[0])
+        || a[1].max(b[1]) < c[1].min(d[1])
+        || c[1].max(d[1]) < a[1].min(b[1])
+    {
+        return Ok(false);
+    }
+    let (o1, o2, o3, o4) = (
+        orientation_sign(a, b, c)?,
+        orientation_sign(a, b, d)?,
+        orientation_sign(c, d, a)?,
+        orientation_sign(c, d, b)?,
+    );
+    Ok(o1 != o2 && o3 != o4)
+}
+
+fn point_in_ring(point: [f64; 2], ring: &[[f64; 2]]) -> Result<bool, &'static str> {
+    if ring.len() < 3
+        || !point
+            .into_iter()
+            .chain(ring.iter().flatten().copied())
+            .all(f64::is_finite)
+    {
+        return Err("planar_face_invalid_point_in_ring_input");
+    }
     let mut inside = false;
     for i in 0..ring.len() {
         let a = ring[i];
         let b = ring[(i + 1) % ring.len()];
-        if on_segment(a, b, point) {
-            return None;
+        if point[0] >= a[0].min(b[0])
+            && point[0] <= a[0].max(b[0])
+            && point[1] >= a[1].min(b[1])
+            && point[1] <= a[1].max(b[1])
+        {
+            // Boundary points and numerically near-boundary points are not
+            // classified as inside/outside by this sampled diagnostic.
+            orientation_sign(a, b, point)?;
         }
         if (a[1] > point[1]) != (b[1] > point[1]) {
-            let x = (b[0] - a[0]) * (point[1] - a[1]) / (b[1] - a[1]) + a[0];
-            if point[0] < x {
+            let side = orientation_sign(a, b, point)?;
+            let crossing_is_to_the_right = if b[1] > a[1] {
+                side == std::cmp::Ordering::Greater
+            } else {
+                side == std::cmp::Ordering::Less
+            };
+            if crossing_is_to_the_right {
                 inside = !inside;
             }
         }
     }
-    Some(inside)
+    Ok(inside)
 }
 
 fn validate_ring_intersections(ring: &[[f64; 2]], work: &mut usize) -> Result<(), String> {
@@ -473,7 +556,7 @@ fn validate_ring_intersections(ring: &[[f64; 2]], work: &mut usize) -> Result<()
                 ring[(a + 1) % ring.len()],
                 ring[b],
                 ring[(b + 1) % ring.len()],
-            ) {
+            )? {
                 return Err("planar_face_ring_self_intersection_or_touch".into());
             }
         }
@@ -488,7 +571,7 @@ fn validate_ring_pair(a: &[[f64; 2]], b: &[[f64; 2]], work: &mut usize) -> Resul
                 .checked_add(1)
                 .filter(|n| *n <= MAX_INTERSECTION_TESTS)
                 .ok_or("planar_face_intersection_work_budget")?;
-            if segments_intersect(a[i], a[(i + 1) % a.len()], b[j], b[(j + 1) % b.len()]) {
+            if segments_intersect(a[i], a[(i + 1) % a.len()], b[j], b[(j + 1) % b.len()])? {
                 return Err("planar_face_rings_cross_or_touch".into());
             }
         }
@@ -714,13 +797,13 @@ fn triangulate(rings: &[Ring], same_sense: bool) -> Result<TriangulatedFace, Str
             (points[tri[0] as usize][1] + points[tri[1] as usize][1] + points[tri[2] as usize][1])
                 / 3.0,
         ];
-        if point_in_ring(center, &rings[0].points) != Some(true)
-            || rings
-                .iter()
-                .skip(1)
-                .any(|hole| point_in_ring(center, &hole.points) != Some(false))
-        {
+        if !point_in_ring(center, &rings[0].points)? {
             return Err("planar_face_triangulator_emitted_triangle_outside_material".into());
+        }
+        for hole in rings.iter().skip(1) {
+            if point_in_ring(center, &hole.points)? {
+                return Err("planar_face_triangulator_emitted_triangle_outside_material".into());
+            }
         }
         triangles.push(tri);
     }
@@ -847,18 +930,18 @@ pub(crate) fn inspect(step: &StepFile, face_id: u64, target: f64) -> Result<Json
         }
     }
     for hole in rings.iter().skip(1) {
-        if hole
-            .points
-            .iter()
-            .any(|&p| point_in_ring(p, &rings[0].points) != Some(true))
-        {
-            return Err("planar_face_non_outer_bound_not_strictly_inside_outer_candidate".into());
+        for &point in &hole.points {
+            if !point_in_ring(point, &rings[0].points)? {
+                return Err(
+                    "planar_face_non_outer_bound_not_strictly_inside_outer_candidate".into(),
+                );
+            }
         }
     }
     for i in 1..rings.len() {
         for j in i + 1..rings.len() {
-            if point_in_ring(rings[i].points[0], &rings[j].points) != Some(false)
-                || point_in_ring(rings[j].points[0], &rings[i].points) != Some(false)
+            if point_in_ring(rings[i].points[0], &rings[j].points)?
+                || point_in_ring(rings[j].points[0], &rings[i].points)?
             {
                 return Err(
                     "planar_face_nested_or_overlapping_inner_bound_candidates_unsupported".into(),
@@ -939,11 +1022,53 @@ mod tests {
         );
         assert_eq!(
             point_in_ring([1., 1.], &[[0., 0.], [2., 0.], [2., 2.], [0., 2.]]),
-            Some(true)
+            Ok(true)
         );
         assert_eq!(
             point_in_ring([0., 1.], &[[0., 0.], [2., 0.], [2., 2.], [0., 2.]]),
-            None
+            Err("planar_face_ambiguous_orientation")
+        );
+    }
+
+    #[test]
+    fn loop_predicates_refuse_near_degenerate_orientation_and_boundary_cases() {
+        assert_eq!(
+            orientation_sign([0., 0.], [1., 1.], [2., 2. + 2. * f64::EPSILON]),
+            Err("planar_face_ambiguous_orientation")
+        );
+        assert_eq!(
+            orientation_sign([0., 0.], [1., 0.], [0., 1.]),
+            Ok(std::cmp::Ordering::Greater)
+        );
+        assert_eq!(
+            orientation_sign([0., 0.], [1e-200, 0.], [0., 1e-200]),
+            Err("planar_face_ambiguous_orientation")
+        );
+        let bcy = 2.0 * f64::MIN_POSITIVE;
+        let bcx = f64::from_bits(bcy.to_bits() - 1);
+        assert!(bcx >= f64::MIN_POSITIVE);
+        assert_eq!(
+            orientation_sign([1., 1.], [bcx, bcy], [0., 0.]),
+            Err("planar_face_ambiguous_orientation")
+        );
+        assert_eq!(
+            orientation_sign([1., 0.], [0., f64::MIN_POSITIVE], [0., 0.]),
+            Err("planar_face_ambiguous_orientation")
+        );
+        assert_eq!(
+            segments_intersect([0., 0.], [1., 1.], [2., 2.], [3., 3.]),
+            Ok(false)
+        );
+        assert_eq!(
+            segments_intersect([0., 0.], [2., 2.], [1., 1. + f64::EPSILON], [1., 3.]),
+            Err("planar_face_ambiguous_orientation")
+        );
+        assert_eq!(
+            point_in_ring(
+                [1., 1. + f64::EPSILON],
+                &[[0., 0.], [2., 2.], [4., 0.], [2., -2.]]
+            ),
+            Err("planar_face_ambiguous_orientation")
         );
     }
 
@@ -1040,7 +1165,7 @@ mod tests {
         let outside = [[5., 5.], [6., 5.], [6., 6.], [5., 6.]];
         let mut work = 0;
         assert!(validate_ring_pair(&outer, &outside, &mut work).is_ok());
-        assert_eq!(point_in_ring(outside[0], &outer), Some(false));
+        assert_eq!(point_in_ring(outside[0], &outer), Ok(false));
         let crossing = [[3., 3.], [5., 3.], [5., 5.], [3., 5.]];
         assert!(validate_ring_pair(&outer, &crossing, &mut work).is_err());
     }

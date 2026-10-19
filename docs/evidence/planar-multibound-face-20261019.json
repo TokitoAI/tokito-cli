@@ -1,6 +1,6 @@
 {
   "schema": "tokito.step.planar-multibound-evidence.v1",
-  "recordedAtUtc": "2026-10-19T16:27:06Z",
+  "recordedAtUtc": "2026-10-19T16:54:07Z",
   "result": "passed-diagnostic-only-with-source-inner-loop-semantics",
   "scope": "One pinned sampled planar face from one ESP8266 STEP component. The source explicitly identifies one FACE_OUTER_BOUND; the other FACE_BOUND loop is an inner boundary under ISO 10303-42. This evidence does not qualify the complete face, component, solid, or production export.",
   "source": {
@@ -34,6 +34,21 @@
     "maximumObservedQuarterMidpointChordDeviationSourceUnits": 4.622137559049465E-06,
     "continuousCurveDeviationCertified": false,
     "innerLoopTreatment": "Source-defined inner loop; triangulated as a hole after strict containment and non-intersection checks."
+  },
+  "loopPredicatePolicy": {
+    "orientationMethod": "binary64 orient2d determinant using the published first-stage error filter",
+    "adaptiveExactFallback": false,
+    "ambiguousOrientation": "refuse rather than classify crossings, touches, or containment; non-finite, subnormal and detected underflow cases also refuse",
+    "nearDegenerateRegressionCases": [
+      "nearly collinear orientation",
+      "near-crossing segments with overlapping bounds",
+      "near-boundary point containment",
+      "subnormal or underflowed determinant",
+      "subnormal error bound",
+      "normal products whose difference is subnormal"
+    ],
+    "planarMultiboundUnitTestsPassed": 7,
+    "reference": "https://people.eecs.berkeley.edu/~jrs/papers/robustr.pdf"
   },
   "independentCadComparison": {
     "software": "FreeCAD 1.1.4",
@@ -100,8 +115,8 @@
     "completeSolidVerified": false
   },
   "e2e": {
-    "receipt": "D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v12/receipt.json",
-    "receiptSha256": "02b201470910100638b7e9ac9c78358ca6fea088d14f6966d7292b423ee5c8de",
+    "receipt": "D:/tokito-cli-v1-verify-20261019/20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757/research/planar-multibound-face-20261019-v15/receipt.json",
+    "receiptSha256": "cabdbd8b25211cdf08efa5fafb67ad94acde41748b838a968e4ab90d3158c4bf",
     "checksPassed": 5,
     "checks": [
       "pinned-face-sampled-rings-mesh-incidence-and-area",
@@ -112,7 +127,7 @@
     ],
     "diagnosticSha256": "65f5b95ea257486813f4fee911dab29d6b435ad54b24d3ea2dd39ca53d86c816",
     "freecadAuditSha256": "72a474514d9b9bc7597b7fe7caf222c26333b3dd94b8c6f88fe784e38163e3c9",
-    "releaseBinarySha256": "4654917b2e527d92be2285a07d71f04dc82f80c9f4eb58993f1408684be16028"
+    "releaseBinarySha256": "77824306b1c3b7f992cac0f6ccd742d96ea18c56dda238cc5fda786a7e98e8e9"
   },
   "localCliVerification": {
     "result": "passed",
@@ -120,14 +135,14 @@
     "gatesFailed": 0,
     "platform": "Microsoft Windows 10.0.26200",
     "architecture": "X64",
-    "verifiedAtUtc": "2026-10-19T16:29:19.4354744Z",
+    "verifiedAtUtc": "2026-10-19T16:53:58.1480104Z",
     "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
     "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
     "python": "Python 3.11.5",
     "releaseBinarySha256": "77e9cffb058d844ad2534569a82780873d7854acc3622252bc7447daf6148e85",
-    "receipt": "target/delivery/local/20261019T162919Z-8432f67c6b324ff0a67d34c9d89a69ad/verification.json",
-    "receiptSha256": "ea91a61156f6b83566570ff864c6259d8f04f091724c8367e95e54b66f56f021",
-    "evidenceInputSha256AtVerification": "e0333b19746bfbd08f79cd32d3fa3aa5c5d77f3ca9b99f9e8645d4c431f384a7",
+    "receipt": "target/delivery/local/20261019T165358Z-d942057c748e4301b874e370f89dbbb7/verification.json",
+    "receiptSha256": "95101c772954286c3a7af7dfd051cdbdef91dcb3ec15acb1742b7ab0634bbcc3",
+    "evidenceInputSha256AtVerification": "3977fccec83dff61049d10c969bbd187f31b92edd09f3120557f68f5d0848043",
     "limitations": [
       "Local platform/toolchain only.",
       "The release CLI acceptance receipt exercises one bounded local VRML component assembly; the full subprocess suite additionally checks one- and two-component GLBs, exact-refdes selection behavior, unsupported-side diagnostics, and coverage truncation. These CLI tests do not exercise the App importer or Android renderer.",
@@ -139,7 +154,7 @@
     "independentInstallPassed": false
   },
   "integrity": {
-    "experiments/step-evaluation/src/spline_face_diagnostic/planar_multibound.rs": "336c0a67d592a38cf3d1c9c8747b38016095b0ae498663cb91fb667f8c1be450",
+    "experiments/step-evaluation/src/spline_face_diagnostic/planar_multibound.rs": "24c46f70e50a7c99400b62d76e62e775506668853a8a39683b046d06ccc9dde0",
     "experiments/step-evaluation/src/shared_edge_topology.rs": "5283a0cd64359ae2fbfb4d5ba0aa73a917750df6c85c010314741d71a025afea",
     "experiments/step-evaluation/src/main.rs": "b3570f787822892dee23485bd689faa27bd7f779e7b646484213e8731cd8354f",
     "experiments/step-evaluation/tests/planar_multibound_e2e.py": "9ff10ec0c2a4a2f68c3969db18d83e0fb81b04f0f8fd57580176152b068efaac",
@@ -153,6 +168,7 @@
     "completeSolidVerified": false,
     "productionExports": [],
     "remaining": [
+      "The conservative floating-point orientation filter refuses ambiguous cases but has no adaptive exact-arithmetic fallback; it is not an exact predicate implementation.",
       "Prove continuous source-curve and surface deviation under a documented physical tolerance policy; sampled points and endpoints are not a continuous error certificate.",
       "Handle general curved and multi-bound STEP faces, periodic seams, shell orientation, self-intersection, volume, and complete component solids.",
       "Integrate only qualified component geometry into the production selectable GLB path."
