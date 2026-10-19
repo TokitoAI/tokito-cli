@@ -98,6 +98,33 @@ fn physical_research_mode_refuses_invalid_parameters_and_unpinned_source() {
         (vec!["--research-grid-source-face"], "usage:"),
         (vec!["--research-shared-edges"], "usage:"),
         (vec!["--research-shared-patch"], "usage:"),
+        (vec!["--research-planar-multibound-face"], "usage:"),
+        (
+            vec![
+                "--research-planar-multibound-face",
+                "8127",
+                "--chord-tolerance",
+                "nan",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "invalid_planar_face_chord_target",
+        ),
+        (
+            vec![
+                "--research-planar-multibound-face",
+                "8127",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "planar_multibound_research_requires_pinned_source_face_representation_owner",
+        ),
         (
             vec![
                 "--research-shared-patch",

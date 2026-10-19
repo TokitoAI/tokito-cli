@@ -32,6 +32,51 @@ def validate(report):
     if {e["edgeCurveId"]: e["curveGeometryId"] for e in sources} != expected or len(rows) != 4:
         raise ValueError("source edge identity inventory mismatch")
     faces = {f["faceId"]: f for f in topology["faces"]}
+    if (topology["faceCount"], topology["sourceEdgeCurveCount"], topology["orientedEdgeUseCount"]) != (9, 18, 36):
+        raise ValueError("complete source shell inventory changed")
+    shell = topology["shellTopologyPreflight"]
+    if (shell.get("loopCount") != 10 or shell.get("allLoopsCloseBySourceVertexIdentity") is not True
+            or shell.get("allSourceEdgesHaveExactlyTwoOppositelyOrientedUses") is not True
+            or shell.get("eachFaceHasExactlyOneFaceOuterBound") is not True
+            or shell.get("sourceTopologicalClosedShellCandidateVerified") is not True
+            or report.get("completeSolidVerified") is not False):
+        raise ValueError("source topological preflight scope or complete-solid refusal changed")
+    loop_uses = {}
+    loop_count = 0
+    for face in faces.values():
+        bounds = face["bounds"]
+        if sum(bound["boundRole"] == "outer" for bound in bounds) != 1:
+            raise ValueError("each source face must expose exactly one outer bound")
+        for bound in bounds:
+            loop_count += 1
+            uses = bound["uses"]
+            if not uses or bound.get("closedBySourceVertexIdentity") is not True:
+                raise ValueError("source edge loop did not close")
+            for current, following in zip(uses, uses[1:]):
+                if current["traversalEndVertexId"] != following["traversalStartVertexId"]:
+                    raise ValueError("consecutive loop vertices do not match")
+            if uses[-1]["traversalEndVertexId"] != uses[0]["traversalStartVertexId"]:
+                raise ValueError("source loop wraparound vertex does not match")
+            loop_uses[bound["loopId"]] = uses
+    if loop_count != 10:
+        raise ValueError("source bound inventory incomplete")
+    all_edge_rows = topology["allEdgeIncidence"]
+    if len(all_edge_rows) != 18 or len({edge["edgeCurveId"] for edge in all_edge_rows}) != 18:
+        raise ValueError("global source edge inventory incomplete or duplicated")
+    enumerated_uses = {}
+    for edge in all_edge_rows:
+        uses = edge["uses"]
+        if (edge.get("useCount") != 2 or edge.get("exactlyTwoUses") is not True
+                or edge.get("usesHaveOppositeOrientation") is not True or len(uses) != 2):
+            raise ValueError("source edge does not have two opposite oriented uses")
+        for use in uses:
+            enumerated_uses[use["orientedEdgeId"]] = edge["edgeCurveId"]
+    for uses in loop_uses.values():
+        for use in uses:
+            if enumerated_uses.get(use["orientedEdgeId"]) != use["edgeCurveId"]:
+                raise ValueError("loop and global edge incidence disagree")
+    if len(enumerated_uses) != 36:
+        raise ValueError("global oriented edge uses are incomplete")
     if faces[8445]["surfaceId"] != 42 or faces[8445]["sourceSurfaceFlags"]["self_intersect"]["value"] is not True:
         raise ValueError("source self-intersection warning missing")
     if len(faces[8127]["bounds"]) != 2 or {b["boundRole"] for b in faces[8127]["bounds"]} != {"outer", "inner_or_unspecified"}:
@@ -114,7 +159,7 @@ def validate(report):
             or not 0 <= work["actualExplicitNurbsEvaluationCalls"] <= work["surfaceEvaluationCalls"]
             or work["analyticPlaneProjectionCount"] != 33):
         raise ValueError("preparation accounting or separate analytic plane observations missing")
-    return {"sourceEdgeCount": len(rows), "canonicalSamples": sample_count, "work": work,
+    return {"sourceEdgeCount": len(rows), "canonicalSamples": sample_count, "sourceShell":{"faces":len(faces),"bounds":loop_count,"edges":len(all_edge_rows),"orientedUses":len(enumerated_uses),"loopClosureAndEdgeIncidenceVerified":True}, "work": work,
             "sourceWarning": {"surfaceId": 42, "self_intersect": True}, "innerBoundFaceId": 8127}
 
 

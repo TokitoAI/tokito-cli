@@ -137,6 +137,7 @@ pub(crate) fn inspect(
     let mut bounds_seen = BTreeSet::new();
     let mut loops_seen = BTreeSet::new();
     let mut uses_seen = BTreeSet::new();
+    let mut loop_reports = Vec::new();
     for &face_id in &faces {
         let f = src.entity(face_id, "ADVANCED_FACE")?;
         if f.inst.keyword != "ADVANCED_FACE" {
@@ -167,10 +168,7 @@ pub(crate) fn inspect(
             }
             let lp = src.entity(loop_id, "EDGE_LOOP")?;
             let oriented_ids = refs(lp, "edge_list", MAX_LOOP_USES)?;
-            bound_reports.push(
-                json!({"boundId":bound_id,"boundRole":role,"boundOrientation":bound_sense,
-                "loopId":loop_id,"orientedEdgeUseCount":oriented_ids.len()}),
-            );
+            let mut loop_uses = Vec::with_capacity(oriented_ids.len());
             for oriented_id in oriented_ids {
                 if !uses_seen.insert(oriented_id) {
                     return Err("duplicate_oriented_edge_use_across_shell".into());
@@ -217,7 +215,62 @@ pub(crate) fn inspect(
                 entry.uses.push(json!({"faceId":face_id,"surfaceId":surface_id,"surfaceType":surface_type,
                     "faceSameSense":sense,"boundId":bound_id,"boundRole":role,"boundOrientation":bound_sense,
                     "loopId":loop_id,"orientedEdgeId":oriented_id,"orientation":orientation}));
+                loop_uses.push(json!({
+                    "orientedEdgeId":oriented_id,
+                    "edgeCurveId":edge_id,
+                    "orientation":orientation,
+                    "traversalStartVertexId":if orientation { start } else { end },
+                    "traversalEndVertexId":if orientation { end } else { start }
+                }));
             }
+            let loop_uses = loop_uses;
+            let links = loop_uses
+                .windows(2)
+                .map(|pair| {
+                    json!({
+                        "fromOrientedEdgeId":pair[0]["orientedEdgeId"],
+                        "toOrientedEdgeId":pair[1]["orientedEdgeId"],
+                        "fromEndVertexId":pair[0]["traversalEndVertexId"],
+                        "toStartVertexId":pair[1]["traversalStartVertexId"],
+                        "matchesBySourceVertexIdentity":pair[0]["traversalEndVertexId"] == pair[1]["traversalStartVertexId"]
+                    })
+                })
+                .collect::<Vec<_>>();
+            let wraparound = loop_uses
+                .first()
+                .zip(loop_uses.last())
+                .map(|(first, last)| {
+                    json!({
+                        "fromOrientedEdgeId":last["orientedEdgeId"],
+                        "toOrientedEdgeId":first["orientedEdgeId"],
+                        "fromEndVertexId":last["traversalEndVertexId"],
+                        "toStartVertexId":first["traversalStartVertexId"],
+                        "matchesBySourceVertexIdentity":last["traversalEndVertexId"] == first["traversalStartVertexId"]
+                    })
+                });
+            let closed = !loop_uses.is_empty()
+                && links
+                    .iter()
+                    .all(|link| link["matchesBySourceVertexIdentity"] == true)
+                && wraparound
+                    .as_ref()
+                    .is_some_and(|link| link["matchesBySourceVertexIdentity"] == true);
+            let loop_report = json!({
+                "faceId":face_id,
+                "boundId":bound_id,
+                "boundRole":role,
+                "boundOrientation":bound_sense,
+                "loopId":loop_id,
+                "orientedEdgeUseCount":loop_uses.len(),
+                "uses":loop_uses,
+                "consecutiveLinks":links,
+                "wraparoundLink":wraparound,
+                "closedBySourceVertexIdentity":closed,
+                "boundOrientationAppliedToSurfaceNormal":false,
+                "scope":"ordered source vertex incidence only; no curve continuity, trim geometry, surface normal or solid validity verified"
+            });
+            loop_reports.push(loop_report.clone());
+            bound_reports.push(loop_report);
         }
         face_reports.push(
             json!({"faceId":face_id,"surfaceId":surface_id,"surfaceType":surface_type,
@@ -232,6 +285,44 @@ pub(crate) fn inspect(
             "twoUsesHaveOppositeOrientation":opposite,"uses":e.uses,
             "edgeCurveTolerance":{"provided":false,"reason":"EDGE_CURVE_schema_has_no_tolerance_attribute"}})
     }).collect();
+    let all_edge_incidence: Vec<_> = edges
+        .iter()
+        .map(|(&edge_id, edge)| {
+            let exactly_two_uses = edge.uses.len() == 2;
+            let opposite_orientations =
+                exactly_two_uses && edge.uses[0]["orientation"] != edge.uses[1]["orientation"];
+            json!({
+                "edgeCurveId":edge_id,
+                "curveGeometryId":edge.curve,
+                "startVertexId":edge.start,
+                "endVertexId":edge.end,
+                "edgeSameSense":edge.sense,
+                "useCount":edge.uses.len(),
+                "exactlyTwoUses":exactly_two_uses,
+                "usesHaveOppositeOrientation":opposite_orientations,
+                "uses":edge.uses
+            })
+        })
+        .collect();
+    let every_loop_closes = !loop_reports.is_empty()
+        && loop_reports
+            .iter()
+            .all(|row| row["closedBySourceVertexIdentity"] == true);
+    let every_edge_has_two_opposite_uses = !all_edge_incidence.is_empty()
+        && all_edge_incidence
+            .iter()
+            .all(|row| row["exactlyTwoUses"] == true && row["usesHaveOppositeOrientation"] == true);
+    let one_outer_bound_per_face = face_reports.iter().all(|face| {
+        face["bounds"].as_array().is_some_and(|bounds| {
+            bounds
+                .iter()
+                .filter(|bound| bound["boundRole"] == "outer")
+                .count()
+                == 1
+        })
+    });
+    let source_topological_shell_candidate_verified =
+        every_loop_closes && every_edge_has_two_opposite_uses && one_outer_bound_per_face;
     let mut inventory = BTreeMap::new();
     for kind in ["PCURVE", "SURFACE_CURVE", "SEAM_CURVE"] {
         let mut ids = Vec::new();
@@ -254,7 +345,12 @@ pub(crate) fn inspect(
     Ok(
         json!({"status":"source_topology_enumerated","selectedFaceId":face,"representationId":representation,
         "ownerId":owner,"shellId":shell_id,"faceCount":faces.len(),"sourceEdgeCurveCount":edges.len(),
-        "orientedEdgeUseCount":uses_seen.len(),"selectedEdges":selected_edges,"faces":face_reports,
+        "orientedEdgeUseCount":uses_seen.len(),"selectedEdges":selected_edges,"allEdgeIncidence":all_edge_incidence,"faces":face_reports,
+        "shellTopologyPreflight":{"allLoopsCloseBySourceVertexIdentity":every_loop_closes,
+            "allSourceEdgesHaveExactlyTwoOppositelyOrientedUses":every_edge_has_two_opposite_uses,
+            "eachFaceHasExactlyOneFaceOuterBound":one_outer_bound_per_face,
+            "sourceTopologicalClosedShellCandidateVerified":source_topological_shell_candidate_verified,
+            "loopCount":loop_reports.len(),"scope":"source topological incidence only; geometric edge continuity, trim coverage, manifold geometry, orientation, self-intersection, volume and solid validity are not established"},
         "ownership":ownership,"curveTypeInventory":inventory,"inventoryEntityCount":step.instances.len(),
         "workSteps":src.work,"maxWorkSteps":MAX_WORK,"maxEntities":MAX_ENTITIES,
         "maxFaces":MAX_FACES,"maxBoundsPerFace":MAX_BOUNDS,"maxUsesPerLoop":MAX_LOOP_USES,
@@ -307,6 +403,52 @@ mod tests {
         assert_ne!(edges[0]["edgeCurveId"], edges[1]["edgeCurveId"]);
         assert_eq!(r["geometryQualified"], false);
         assert_eq!(r["admitted"], false);
+        assert_eq!(
+            r["shellTopologyPreflight"]["allLoopsCloseBySourceVertexIdentity"],
+            true
+        );
+        assert_eq!(
+            r["shellTopologyPreflight"]["allSourceEdgesHaveExactlyTwoOppositelyOrientedUses"],
+            true
+        );
+        assert_eq!(
+            r["shellTopologyPreflight"]["sourceTopologicalClosedShellCandidateVerified"],
+            true
+        );
+        assert_eq!(r["closedSolidVerified"], false);
+    }
+    #[test]
+    fn broken_loop_identity_and_same_direction_shared_use_are_reported_without_admission() {
+        let input = modified("11", "#11=ORIENTED_EDGE('',*,*,#20,.F.);");
+        let r = inspect(&input, 40, 1, 3).unwrap();
+        assert_eq!(
+            r["shellTopologyPreflight"]["allLoopsCloseBySourceVertexIdentity"],
+            false
+        );
+        assert_eq!(
+            r["shellTopologyPreflight"]["allSourceEdgesHaveExactlyTwoOppositelyOrientedUses"],
+            false
+        );
+        assert_eq!(
+            r["shellTopologyPreflight"]["sourceTopologicalClosedShellCandidateVerified"],
+            false
+        );
+        assert_eq!(r["geometryQualified"], false);
+        assert_eq!(r["admitted"], false);
+    }
+    #[test]
+    fn a_missing_edge_use_is_reported_as_open_topological_evidence() {
+        let input = modified("7", "#7=EDGE_LOOP('',(#11));");
+        let r = inspect(&input, 40, 1, 3).unwrap();
+        assert_eq!(
+            r["shellTopologyPreflight"]["allLoopsCloseBySourceVertexIdentity"],
+            false
+        );
+        assert_eq!(
+            r["shellTopologyPreflight"]["allSourceEdgesHaveExactlyTwoOppositelyOrientedUses"],
+            false
+        );
+        assert_eq!(r["closedSolidVerified"], false);
     }
     #[test]
     fn retains_inner_bound_and_source_logical_unknown() {

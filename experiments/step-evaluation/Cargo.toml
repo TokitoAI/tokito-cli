@@ -13,3 +13,4 @@ serde_json = { version = "=1.0.151", features = ["float_roundtrip"] }
 sha2 = "=0.10.9"
 oxideav-ifc = { version = "=0.0.3", default-features = false }
 spade = "=2.15.1"
+earcut = "=0.4.11"

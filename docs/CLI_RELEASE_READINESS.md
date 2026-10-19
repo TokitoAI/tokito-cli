@@ -27,6 +27,26 @@ bodies and local tolerance-policy validation remain release blockers. See
 [the selected geometry solution](GEOMETRY_RECOVERY_PLAN.md#selected-solution-and-next-implementation-gates)
 and [checkpoint evidence](evidence/shared-edges-20261019.json).
 
+## Multi-bound planar face research status
+
+The original Rust research evaluator now creates a diagnostic triangulation for
+one pinned planar ESP8266 STEP face with one outer loop and an additional
+generic `FACE_BOUND`. A local FreeCAD 1.1.4 / OCCT 7.8.1 comparison uniquely
+maps both sampled loops to distinct imported wires and finds a unique sampled
+geometric correspondence from each of the six STEP `EDGE_CURVE` IDs to an
+imported edge, checking source samples and both endpoints. The maximum measured
+source-edge sample gap is `1.9984e-15` source units. This does not prove exact
+topological identity or continuous curve agreement. The comparison also checks
+sampled area, all 516 triangle centroids and triangle winding. Rust and an
+independent Python check examine 132,870 triangle pairs for interior overlap.
+The sampled chord target is met, but continuous curve error is not certified
+and the result is not admitted to the product exporter. This remains one-face
+diagnostic evidence: the generic bound's engineering meaning, complete STEP
+component and solid qualification, and the product adapter remain open. It
+does not close issue #19. See the
+[geometry evidence](GEOMETRY_RECOVERY_PLAN.md#pinned-planar-face-with-an-additional-bound-2026-10-19)
+and [captured receipt](evidence/planar-multibound-face-20261019.json).
+
 ## Latest code and verification checkpoint
 
 PR #45 contains mixed per-pad SMD/plated-THT/NPTH footprint generation as a
@@ -40,13 +60,15 @@ control/bidi-format rejection. Local KiCad 10.0.5 loading/plotting of the
 synthetic mixed-pad footprint does not qualify its semantics or manufacturer
 land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
-The most recent full Windows verifier run passed **48/48 gates** after the POS
-ASCII implementation. Its authoritative result is the newest per-run receipt
-at `target/delivery/local/<run-id>/verification.json`; the receipt binds the
-source hashes, executed gates, toolchain and outcome. The run reused the isolated
-D: Cargo target, so it is not a clean-cache, independent-machine, installation
-or cross-platform test. No GitHub Actions ran; PR #45 remains open with no hosted
-checks or independent PR approval.
+The most recent full Windows verifier run passed **48/48 gates** on 2026-10-19
+at 16:17:20 UTC. Its local receipt is
+`target/delivery/local/20261019T161720Z-fd473781f83146bfa5d8f0979701fd0e/verification.json`
+(SHA-256 `967bc405b91a1e6322c13f609a3bea64da23abbdffb8d8048d9a6c371f4a2a65`).
+The evidence file records the receipt and its input fingerprint. The run reused
+the isolated D: Cargo target and did not receive optional live dataset board
+profiles, so it is not a clean-cache, independent-machine, installation,
+cross-platform or all-dataset-board test. No GitHub Actions ran; PR #45 remains
+open with no hosted checks or independent PR approval.
 
 This verifies the currently implemented local command suite; it does not close
 production gates below. Tokito CLI V1 remains not production-ready.

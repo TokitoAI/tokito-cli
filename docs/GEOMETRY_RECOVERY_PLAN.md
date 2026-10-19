@@ -650,6 +650,63 @@ See [captured evidence](evidence/shared-edges-20261019.json), the
 and [native comparison](../experiments/step-evaluation/tests/shared_edges_e2e.py).
 All admission/qualification flags remain false; no geometry is exported.
 
+## Pinned planar face with an additional bound (2026-10-19)
+
+The next bounded Rust experiment handles only source face `8127` in the pinned
+ESP8266 `16.step` model (`representation 5957`, owner `6218`, SHA-256
+`7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`). The
+face uses plane `6835`, an outer loop with four line edges, and a second loop
+carried by a generic `FACE_BOUND`. The generic bound is preserved as
+`inner_or_unspecified` in source provenance; it is treated as a hole only for
+this one mesh attempt after strict containment and non-intersection checks.
+
+The research command evaluates full clamped B-spline edge domains at an
+explicit quarter/midpoint chord target, validates line endpoints against their
+STEP line, preserves source edge and vertex identities, projects samples into
+the plane frame, checks the sampled rings for crossings/touches, and meshes
+the outer loop plus the candidate hole. It checks triangulated area and mesh
+edge incidence and emits the vertices and triangles only in a diagnostic JSON
+report:
+
+```powershell
+tokito-step-evaluation --research-planar-multibound-face 8127 `
+  --chord-tolerance 0.00001 `
+  --source-representation 5957 --source-owner 6218 `
+  '<materialized-dataset>/embedded-models/16.step'
+```
+
+The real source run produced 516 boundary vertices and 516 triangles. Rust and
+the Python oracle check all 132,870 triangle pairs with a bounded 2D
+separating-axis test, in addition to mesh-edge incidence, area and sampled
+material checks. Its sampled material area is
+`24.61191117813682` source-units²; the independent FreeCAD 1.1.4 / OCCT 7.8.1
+trimmed face measures `24.611904380234375` source-units². FreeCAD binds the two
+sampled loops to distinct source wires (four and two edges) with maximum point
+gaps of `0` and `1.9984e-15` source units. All 516 triangle centroids are inside
+the uniquely matched native face, minimum triangle/native-face-normal
+alignment is `1.0`, and the maximum sampled quarter/midpoint deviation is
+`4.6221e-6` source units against a requested `1e-5` target. The FreeCAD oracle
+uniquely assigns the two source rings to two imported wires and finds a unique
+sampled geometric correspondence from each of the six ordered STEP
+`EDGE_CURVE` IDs to an imported edge, checking source samples and both
+endpoints. The largest retained source-edge sample-to-imported-edge gap is
+`1.9984e-15` source units (the explicit acceptance ceiling is `1e-7`). This
+does not prove exact topological identity or continuous curve agreement, nor is
+it a certified maximum curve error or tolerance policy. The generic
+`FACE_BOUND` role remains ambiguous at the source-format level, so the
+candidate's hole interpretation remains diagnostic only.
+
+The [five-check local E2E evidence](evidence/planar-multibound-face-20261019.json)
+records the pinned source, release binary, Rust/Python inputs, FreeCAD audit and
+receipt hashes. It tests source/wire/edge binding, triangle overlap,
+wrong-owner/source refusal and FreeCAD output no-overwrite behavior. This
+candidate does not repair or mutate the STEP file and is not a production
+export. It verifies one face only; the complete component still has
+unqualified non-planar faces, shell validity, self-intersection, volume,
+occurrence frame, and component-placement obligations. The source shell's
+topological closure preflight remains distinct from a geometric closed-solid
+proof.
+
 ## Canonical two-face patch (2026-10-19)
 
 The next Rust experiment constructs an actual open mesh for source faces

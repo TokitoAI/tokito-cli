@@ -1,0 +1,153 @@
+{
+  "schema": "tokito.step.planar-multibound-evidence.v1",
+  "recordedAtUtc": "2026-10-19T16:17:39Z",
+  "result": "passed-diagnostic-only",
+  "scope": "One pinned sampled planar face from one ESP8266 STEP component. This evidence does not qualify a face, component, complete solid, or production export.",
+  "source": {
+    "datasetCandidate": "ESP8266 PR #6 materialized source candidate",
+    "file": "structured-source/embedded-models/16.step",
+    "sha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+    "faceId": 8127,
+    "surfaceId": 6835,
+    "representationId": 5957,
+    "ownerId": 6218,
+    "sourceBoundaryRoles": [
+      "outer",
+      "inner_or_unspecified"
+    ]
+  },
+  "candidate": {
+    "boundaryVertices": 516,
+    "triangles": 516,
+    "trianglePairTests": 132870,
+    "triangleOverlapTest": "2D separating-axis test with projection tolerance 128 * f64::EPSILON * scale^2",
+    "sampledMaterialAreaSourceUnitsSquared": 24.61191117813682,
+    "independentTriangleAreaSourceUnitsSquared": 24.61191117813683,
+    "freecadTrimmedFaceAreaSourceUnitsSquared": 24.611904380234375,
+    "areaAllowanceSourceUnitsSquared": 0.0004291811176911955,
+    "requestedQuarterMidpointChordTargetSourceUnits": 1e-05,
+    "maximumObservedQuarterMidpointChordDeviationSourceUnits": 4.622137559049465e-06,
+    "continuousCurveDeviationCertified": false
+  },
+  "independentCadComparison": {
+    "software": "FreeCAD 1.1.4",
+    "geometryKernel": "OCCT 7.8.1",
+    "boundSourceFaceOrdinal": 237,
+    "sourceWireBindings": [
+      {
+        "ringIndex": 0,
+        "wireIndex": 0,
+        "sourceEdgeCount": 4,
+        "maximumSampleToWireGapSourceUnits": 0.0,
+        "sourceEdgeBindings": [
+          {
+            "sourceEdgeCurveId": 3686,
+            "freecadEdgeIndex": 0,
+            "maximumSampleToEdgeGapSourceUnits": 0.0,
+            "maximumEndpointGapSourceUnits": 0.0
+          },
+          {
+            "sourceEdgeCurveId": 370,
+            "freecadEdgeIndex": 1,
+            "maximumSampleToEdgeGapSourceUnits": 0.0,
+            "maximumEndpointGapSourceUnits": 0.0
+          },
+          {
+            "sourceEdgeCurveId": 10058,
+            "freecadEdgeIndex": 2,
+            "maximumSampleToEdgeGapSourceUnits": 0.0,
+            "maximumEndpointGapSourceUnits": 0.0
+          },
+          {
+            "sourceEdgeCurveId": 1789,
+            "freecadEdgeIndex": 3,
+            "maximumSampleToEdgeGapSourceUnits": 0.0,
+            "maximumEndpointGapSourceUnits": 0.0
+          }
+        ]
+      },
+      {
+        "ringIndex": 1,
+        "wireIndex": 1,
+        "sourceEdgeCount": 2,
+        "maximumSampleToWireGapSourceUnits": 1.9984014443252818e-15,
+        "sourceEdgeBindings": [
+          {
+            "sourceEdgeCurveId": 3400,
+            "freecadEdgeIndex": 0,
+            "maximumSampleToEdgeGapSourceUnits": 1.9984014443252818e-15,
+            "maximumEndpointGapSourceUnits": 0.0
+          },
+          {
+            "sourceEdgeCurveId": 7239,
+            "freecadEdgeIndex": 1,
+            "maximumSampleToEdgeGapSourceUnits": 8.881784197001252e-16,
+            "maximumEndpointGapSourceUnits": 0.0
+          }
+        ]
+      }
+    ],
+    "maximumSourceEdgeSampleToImportedEdgeGapSourceUnits": 1.9984014443252818e-15,
+    "maximumSampleToTrimmedFaceGapSourceUnits": 1.9984014443252818e-15,
+    "triangleCentroidsInsideTrimmedFace": 516,
+    "minimumTriangleNormalAlignment": 1.0,
+    "completeSolidVerified": false
+  },
+  "e2e": {
+    "receipt": "D:\\tokito-cli-v1-verify-20261019\\20261019T154055Z-fae0f3f0ef6c443f8bf26d4e2f3b4757\\research\\planar-multibound-face-20261019-v11\\receipt.json",
+    "receiptSha256": "618d2478a585de6ec2372d767b71f61a91da7d57eaab09a0e15388e1903e9df0",
+    "checksPassed": 5,
+    "checks": [
+      "pinned-face-sampled-rings-mesh-incidence-and-area",
+      "wrong-owner-refusal",
+      "wrong-source-refusal",
+      "independent-freecad-source-edge-wire-and-trimmed-face-binding-area-centroid-test",
+      "freecad-oracle-no-overwrite-refusal"
+    ],
+    "diagnosticSha256": "1931251665ede15cc64fc759c1764eeab760f24cdc493900898f4ad6526fefd5",
+    "freecadAuditSha256": "3fd0dc4d53cc5f7b24be79b3dcb8ac0181942d3ee2d12bc3c8e45480a2387a8b",
+    "releaseBinarySha256": "c37ba57a8202217d241e5bef04535dfad7211e6e6fd73bf284d0757387cd0397"
+  },
+  "localCliVerification": {
+    "result": "passed",
+    "gatesPassed": 48,
+    "gatesFailed": 0,
+    "platform": "Microsoft Windows 10.0.26200",
+    "architecture": "X64",
+    "verifiedAtUtc": "2026-10-19T16:17:20.3832313Z",
+    "cargo": "cargo 1.94.1 (29ea6fb6a 2026-03-24)",
+    "rustc": "rustc 1.94.1 (e408947bf 2026-03-25)",
+    "python": "Python 3.11.5",
+    "releaseBinarySha256": "77e9cffb058d844ad2534569a82780873d7854acc3622252bc7447daf6148e85",
+    "receipt": "target/delivery/local/20261019T161720Z-fd473781f83146bfa5d8f0979701fd0e/verification.json",
+    "receiptSha256": "967bc405b91a1e6322c13f609a3bea64da23abbdffb8d8048d9a6c371f4a2a65",
+    "evidenceInputSha256AtVerification": "24f7da7b444f0231df8eb80233b46218fb5b1679cabd5a6a0f2c44b2170adadf",
+    "limitations": [
+      "Local platform/toolchain only.",
+      "The release CLI acceptance receipt exercises one bounded local VRML component assembly; the full subprocess suite additionally checks one- and two-component GLBs, exact-refdes selection behavior, unsupported-side diagnostics, and coverage truncation. These CLI tests do not exercise the App importer or Android renderer.",
+      "General VRML, STEP, glTF and GLB model import, KiCad-export equivalence, physical fit, phone/AR and Desktop acceptance remain unverified.",
+      "The focused FreeCAD face E2E is a separate evidence run; it is not a full STEP/component export acceptance test."
+    ]
+  },
+  "integrity": {
+    "experiments/step-evaluation/src/spline_face_diagnostic/planar_multibound.rs": "e75157faef2c0e2048f9e758fe5f26db2584672a541da2678270d968e641ffba",
+    "experiments/step-evaluation/src/shared_edge_topology.rs": "5283a0cd64359ae2fbfb4d5ba0aa73a917750df6c85c010314741d71a025afea",
+    "experiments/step-evaluation/src/main.rs": "b3570f787822892dee23485bd689faa27bd7f779e7b646484213e8731cd8354f",
+    "experiments/step-evaluation/tests/planar_multibound_e2e.py": "016a42f028900158594532e18088aeedaaaa4e02a93470e83a625674b97d51a1",
+    "experiments/step-evaluation/references/audit_model16_planar_multibound.FCMacro": "76e02ff70102a662fda542995d341ffe5521c6ce8078db44f1b8a962e5b5b06a",
+    "experiments/step-evaluation/Cargo.toml": "c3068ce841523a484c1a0b54b414220767c0b63d9d21dd475bbd9e148338e2c8",
+    "experiments/step-evaluation/Cargo.lock": "64b02753ebe0ea7698cffd9c06f9ec15699e066d47e07901abfe32a50ecb8846"
+  },
+  "qualification": {
+    "geometryQualified": false,
+    "admitted": false,
+    "completeSolidVerified": false,
+    "productionExports": [],
+    "remaining": [
+      "Prove continuous source-curve and surface deviation under a documented physical tolerance policy; sampled points and endpoints are not a continuous error certificate.",
+      "Resolve the semantic role of generic FACE_BOUND before treating it as a physical hole in production.",
+      "Handle general curved and multi-bound STEP faces, shell orientation, self-intersection, volume, and complete component solids.",
+      "Integrate only qualified component geometry into the production selectable GLB path."
+    ]
+  }
+}

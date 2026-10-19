@@ -424,6 +424,71 @@ fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
     if raw
         .first()
+        .is_some_and(|arg| arg == "--research-planar-multibound-face")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 9
+                || raw[2] != "--chord-tolerance"
+                || raw[4] != "--source-representation"
+                || raw[6] != "--source-owner"
+            {
+                return Err("usage: tokito-step-evaluation --research-planar-multibound-face 8127 --chord-tolerance POSITIVE_SOURCE_UNITS --source-representation 5957 --source-owner 6218 STEP_PATH".into());
+            }
+            let positive_u64 = |i: usize| {
+                raw[i]
+                    .to_str()
+                    .and_then(|s| s.parse::<u64>().ok())
+                    .filter(|n| *n > 0)
+                    .ok_or("invalid_planar_face_source_id")
+            };
+            let face = positive_u64(1)?;
+            let representation = positive_u64(5)?;
+            let owner = positive_u64(7)?;
+            let tolerance = raw[3]
+                .to_str()
+                .and_then(|s| s.parse::<f64>().ok())
+                .filter(|v| v.is_finite() && *v > 0. && *v <= 1.)
+                .ok_or("invalid_planar_face_chord_target")?;
+            let bytes = read_bounded(File::open(Path::new(&raw[8])).map_err(|e| e.to_string())?)?;
+            let digest = format!("{:x}", Sha256::digest(&bytes));
+            if face != 8127
+                || representation != 5957
+                || owner != 6218
+                || digest != "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+            {
+                return Err(
+                    "planar_multibound_research_requires_pinned_source_face_representation_owner"
+                        .into(),
+                );
+            }
+            let limits = oxideav_ifc::StepLimits {
+                max_input_len: MAX_BYTES,
+                max_instances: 250_000,
+                max_depth: 48,
+                max_string_len: 1_048_576,
+            };
+            let step = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
+                .map_err(|e| format!("reader_error: {e}"))?;
+            let topology = shared_edge_topology::inspect(&step, representation, owner, face)?;
+            if topology["shellTopologyPreflight"]["sourceTopologicalClosedShellCandidateVerified"]
+                != true
+            {
+                return Err("planar_multibound_source_shell_preflight_failed".into());
+            }
+            let mut report =
+                spline_face_diagnostic::inspect_planar_multibound_face(&step, face, tolerance)?;
+            report["sourceRepresentationId"] = json!(representation);
+            report["sourceOwnerId"] = json!(owner);
+            report["sourceSha256"] = json!(digest);
+            report["sourceBytes"] = json!(bytes.len());
+            report["sourceTopologicalShellPreflight"] = topology["shellTopologyPreflight"].clone();
+            Ok(report)
+        })();
+        println!("{}", result.unwrap_or_else(|error| json!({"schema":"tokito.planar-multibound-face-candidate.v1","error":error,"geometryQualified":false,"completeSolidVerified":false,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
+    if raw
+        .first()
         .is_some_and(|arg| arg == "--research-shared-patch")
     {
         let result = (|| -> Result<Value, String> {

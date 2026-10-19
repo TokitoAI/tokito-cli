@@ -4,7 +4,9 @@
 //! data with oxideav-ifc's shared geometry kernel and measures projection
 //! residuals; it does not repair, export, or qualify the source model.
 
+mod planar_multibound;
 mod shared_edges;
+pub(crate) use planar_multibound::inspect as inspect_planar_multibound_face;
 pub(crate) use shared_edges::inspect as inspect_shared_edges;
 pub(crate) use shared_edges::inspect_patch as inspect_shared_patch;
 
