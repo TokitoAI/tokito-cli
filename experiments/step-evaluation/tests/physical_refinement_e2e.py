@@ -9,13 +9,77 @@ from pathlib import Path
 from surface_reference_e2e import bounded_read, capture_bounded
 
 SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+NEAR_ZERO_AREA_RELATIVE_SQUARED = 1e-24
 
 
 def digest(path, maximum):
     return hashlib.sha256(bounded_read(path, maximum)).hexdigest()
 
 
-def validate_mesh(report, metric=False, retriangulate=False, adaptive=False):
+def count_3d_near_zero_area_triangles(points, triangles):
+    """Apply the STEP reader's scale-relative 3D area threshold to a mesh."""
+    if not isinstance(points, list) or not isinstance(triangles, list):
+        raise ValueError("3D area audit requires point and triangle arrays")
+    if not points or not triangles or len(points) > 500_000 or len(triangles) > 1_000_000:
+        raise ValueError("3D area audit inventory exceeds its bounded input limits")
+    checked_points = []
+    for point in points:
+        if (not isinstance(point, list) or len(point) != 3
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       or abs(value) > 1e12 for value in point)):
+            raise ValueError("3D area audit encountered an invalid point")
+        checked_points.append(tuple(float(value) for value in point))
+
+    near_zero = 0
+    for triangle in triangles:
+        if (not isinstance(triangle, list) or len(triangle) != 3
+                or any(type(index) is not int or index < 0 or index >= len(checked_points)
+                       for index in triangle)):
+            raise ValueError("3D area audit encountered an invalid triangle")
+        a, b, c = (checked_points[index] for index in triangle)
+        ab = [b[axis] - a[axis] for axis in range(3)]
+        ac = [c[axis] - a[axis] for axis in range(3)]
+        bc = [c[axis] - b[axis] for axis in range(3)]
+        scale = max(abs(value) for vector in (ab, ac, bc) for value in vector)
+        if scale > 0.0:
+            ab = [value / scale for value in ab]
+            ac = [value / scale for value in ac]
+            bc = [value / scale for value in bc]
+        cross = [
+            ab[1] * ac[2] - ab[2] * ac[1],
+            ab[2] * ac[0] - ab[0] * ac[2],
+            ab[0] * ac[1] - ab[1] * ac[0],
+        ]
+        cross_squared = sum(value * value for value in cross)
+        longest_edge_squared = max(
+            sum(value * value for value in vector) for vector in (ab, ac, bc)
+        )
+        if cross_squared <= longest_edge_squared * longest_edge_squared * NEAR_ZERO_AREA_RELATIVE_SQUARED:
+            near_zero += 1
+    return near_zero
+
+
+def self_test_3d_area_classifier():
+    cases = [
+        ("unit right triangle", [[0, 0, 0], [1, 0, 0], [0, 1, 0]], [0, 1, 2], 0),
+        ("exactly collinear", [[0, 0, 0], [1, 0, 0], [2, 0, 0]], [0, 1, 2], 1),
+        ("repeated mesh index", [[0, 0, 0], [1, 0, 0]], [0, 1, 0], 1),
+        ("coincident positions with distinct indices", [[0, 0, 0], [1, 0, 0], [0, 0, 0]], [0, 1, 2], 1),
+        ("tiny right triangle", [[0, 0, 0], [1e-20, 0, 0], [0, 1e-20, 0]], [0, 1, 2], 0),
+        ("large right triangle", [[0, 0, 0], [1e12, 0, 0], [0, 1e12, 0]], [0, 1, 2], 0),
+        ("translated triangle", [[1e9, -1e9, 5e8], [1e9 + 1, -1e9, 5e8], [1e9, -1e9 + 1, 5e8]], [0, 1, 2], 0),
+        ("tilted 3D triangle", [[3, 4, 5], [4, 4, 6], [3, 5, 6]], [0, 1, 2], 0),
+        ("below relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-13, 0]], [0, 1, 2], 1),
+        ("at relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-12, 0]], [0, 1, 2], 1),
+        ("above relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-11, 0]], [0, 1, 2], 0),
+    ]
+    for name, points, triangle, expected in cases:
+        actual = count_3d_near_zero_area_triangles(points, [triangle])
+        if actual != expected:
+            raise AssertionError(f"{name}: expected {expected} near-zero triangles, got {actual}")
+
+
+def validate_mesh(report, metric=False, retriangulate=False, adaptive=False, grid=False):
     p = report["physicalRefinementCandidate"]
     if p.get("admitted") is not False or p.get("geometryQualified") is not False or p.get("exportsProduced") != []:
         raise ValueError("research mesh must stay unqualified")
@@ -60,6 +124,9 @@ def validate_mesh(report, metric=False, retriangulate=False, adaptive=False):
     uv = p["uvVertices"]
     points = p["surfacePointsSourceUnits"]
     triangles = p["triangles"]
+    near_zero_area_count = count_3d_near_zero_area_triangles(points, triangles)
+    if grid and near_zero_area_count != 0:
+        raise ValueError(f"directional-grid candidate contains {near_zero_area_count} scale-relative 3D near-zero-area triangles")
     count = p["boundaryVertexCount"]
     if len(uv) != len(points) or len(uv) != p["vertexCount"] or len(triangles) != p["triangleCount"]:
         raise ValueError("mesh inventory mismatch")
@@ -95,6 +162,8 @@ def validate_mesh(report, metric=False, retriangulate=False, adaptive=False):
         raise ValueError("pinned remaining quality blockers changed")
     return {"vertices": len(uv), "triangles": len(triangles), "edges": len(edges), "eulerCharacteristic": 1,
             "fixedBoundaryEdges": len(boundary), "nonconformingEdges": 0,
+            "threeDimensionalNearZeroAreaTriangleCount": near_zero_area_count,
+            "threeDimensionalAreaThreshold": "crossSquared <= longestEdgeSquared^2 * 1e-24 after uniform edge normalization",
             "firstQuality": p["history"][0]["quality"], "lastQuality": quality,
             "interiorRetriangulation":p.get("interiorRetriangulation")}
 
@@ -308,7 +377,15 @@ def run(args):
         receipt["adaptiveSourceBoundary"]=adaptive
         receipt["prioritizedInterior"]=args.prioritized or args.grid
         receipt["directionalSurfaceGrid"]=args.grid
-        receipt["mesh"] = validate_mesh(report,args.metric or args.retriangulate or adaptive,args.retriangulate or adaptive,adaptive)
+        receipt["mesh"] = validate_mesh(
+            report,
+            args.metric or args.retriangulate or adaptive,
+            args.retriangulate or adaptive,
+            adaptive,
+            args.grid,
+        )
+        if args.grid:
+            receipt["checks"].append({"name": "three-dimensional-near-zero-area-triangle-gate", "passed": True})
         if adaptive:
             validate_adaptive_boundary(report)
             baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
@@ -424,6 +501,7 @@ def run(args):
 
 
 if __name__ == "__main__":
+    self_test_3d_area_classifier()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--freecad", type=Path, required=True)

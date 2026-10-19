@@ -553,3 +553,26 @@ records compared equal, and a fresh independent oracle audit passed. This is
 local finite-difference evidence; knots/seams and boundary constraints remain
 explicit limitations. No reversed triangles, complete solids or production STEP
 exports are qualified by this change.
+
+## Directional-grid area-gate follow-up (2026-10-20)
+
+The pinned model-16 directional-grid replay now counts three-dimensional
+near-zero-area facets with the same scale-relative threshold used by the Rust
+STEP triangle diagnostic. Its Python gate exercises large, tiny, translated,
+tilted, repeated-index, coincident-position, collinear, and threshold-boundary
+fixtures. The grid replay passes with zero near-zero-area facets in its
+31,942-triangle research patch.
+
+The independent FreeCAD 1.1.4 / OCCT 7.8.1 audit still identifies only face
+231 for source face #2875. All 256 sampled trim-containment points are inside;
+the maximum sampled interior chord error is `8.74915e-6 mm`, and the minimum
+analytic normal alignment is `0.9998499`. These are sampled patch measurements,
+not a certified surface-deviation bound. The source-curve/support-surface gap
+remains unresolved (`1.08084e-6 mm` maximum observed), and the output remains
+an open face patch rather than a complete component or solid. The diagnostic
+still marks geometry unqualified, admission false, and exports empty.
+
+The regression gate and local replay evidence are recorded in
+[`model16-grid-face-20261020.json`](evidence/model16-grid-face-20261020.json).
+This test hardens the diagnostic against one mesh defect; it does not repair the
+production STEP reader or establish STEP-to-GLB product support.
