@@ -86,15 +86,18 @@ control/bidi-format rejection. Local KiCad 10.0.5 loading/plotting of the
 synthetic mixed-pad footprint does not qualify its semantics or manufacturer
 land pattern; see the [readback receipt](evidence/mixed-pad-kicad-10.0.5.json).
 
-The most recent full Windows verifier run passed **48/48 gates** on 2026-10-19
-at 17:05:43 UTC. Its local receipt is
-`target/delivery/local/20261019T170543Z-7dcd46e3d80c4205a35f2cfb0c73d133/verification.json`
-(SHA-256 `6e26a4b2717e0678eb5a6431f1ce94dbf62f56c6571d718bb073e6831e8843d3`).
-The evidence file records the receipt and the evidence-file fingerprint
-captured by that run before its receipt metadata was updated. It reused the
-isolated D: Cargo target and did not receive optional live dataset board
-profiles, so it is not a clean-cache, independent-machine, installation,
-cross-platform or all-dataset-board test.
+The latest full Windows verifier run passed **48/48 gates** on 2026-10-19 at
+18:48:36 UTC. Its local receipt is
+`target/delivery/local/20261019T184836Z-39d0ba8086ef46efb1a67757005962dc/verification.json`
+(SHA-256 `0d73d3da1e35170d9b376d2d1198a716a69d856219c3a7d507a8d97a4943fc9d`).
+The run used a new isolated Cargo target and tested the executable/test sources
+committed in PR #45 commit `ada2a8b`; this readiness paragraph was added after
+that run and is documentation-only. Optional live dataset-board profiles were
+not supplied. The pinned ESP8266 model-16 diagnostic GLB E2E was run separately
+and is recorded in
+[`step-diagnostic-glb-20261019.json`](evidence/step-diagnostic-glb-20261019.json).
+These results are not an independent-machine, installation, cross-platform or
+all-dataset-board test.
 
 The updated face-bound, fail-closed orientation-predicate, and bounded integer
 oracle result was separately
