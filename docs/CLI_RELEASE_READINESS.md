@@ -419,3 +419,24 @@ and five-degree normal targets; independent FreeCAD checks agree. This is one
 unqualified supporting-surface face, not complete component or STEP admission.
 Source-curve discrepancy, complete trims, cross-face seams and whole-solid
 checks remain open. See [the evidence-backed contract](GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19).
+
+## Model-14 repaired STEP diagnostic GLB checkpoint — 2026-10-20
+
+- [x] Add a research-only command pinned to one ESP8266 model-14 STEP source.
+  It applies one planar mesh repair and exports STEP-occurrence selectors.
+- [x] Real-source E2E decoded 36 occurrence selectors, 61 primitives,
+  137,652 triangles, zero degenerate triangles, and all 146 target-face
+  triangles with provenance retained.
+- [x] A separate pinned FreeCAD comparison sampled 300,000 points per
+  direction; the maximum observed distance was 0.001411 mm. This is sampled
+  evidence, not a continuous surface-error bound.
+- [x] Current-source local Windows verification passed 48/48 gates. Receipt
+  digests and exact scope are recorded in
+  [`model14-repaired-diagnostic-glb-20261020.json`](evidence/model14-repaired-diagnostic-glb-20261020.json).
+
+This does **not** complete 3D generation or make V1 production-ready. The
+command refuses all other STEP inputs. Its selectors are STEP occurrences,
+not PCB reference designators or footprint UUIDs. General STEP import/export,
+complete solid semantics, PCB placement, all-board geometry qualification,
+full KiCad CLI/library parity, imported simulation data, additional views,
+and independent Windows installation/upgrade testing remain open.

@@ -1628,3 +1628,25 @@ claimed by this checkpoint.
 This is a shading/importer compatibility improvement. It does not qualify
 component dimensions, physical fit, complete bodies, STEP geometry or full
 VRML97/KiCad parity. V1 remains open.
+
+## Model-14 repaired STEP diagnostic GLB checkpoint — 2026-10-20
+
+- [x] Implement a research-only command pinned to one ESP8266 model-14 STEP
+  source (dataset commit `5283bc059e30e51f4d3a81a674425936fc213214`, SHA-256
+  `78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b`).
+- [x] Keep repair parameters, target-face identity and per-triangle provenance
+  explicit in the diagnostic occurrence GLB.
+- [x] Real-source E2E passed: 36 occurrence selectors, 61 primitives,
+  137,652 triangles, zero degenerate triangles and 146 target-face triangles.
+- [x] Independent FreeCAD sampled comparison passed for 300,000 samples in
+  each direction, with 0.001411 mm maximum observed distance.
+- [x] Current-source local Windows verification passed 48/48 gates. See the
+  evidence receipt and qualification limits in
+  [`model14-repaired-diagnostic-glb-20261020.json`](evidence/model14-repaired-diagnostic-glb-20261020.json).
+
+Remaining V1/3D gates include general STEP handling, complete-solid
+reconstruction and qualification, evidence-bound PCB reference/UUID placement,
+qualified coverage of every component, missing-model resolution, full agreed
+KiCad CLI and footprint/library parity, simulation-result import and additional
+views, and clean-machine Windows install/upgrade verification. This is
+experimental progress, not V1 completion.

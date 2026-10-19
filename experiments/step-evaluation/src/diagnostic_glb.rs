@@ -23,6 +23,8 @@ const MAX_PRIMITIVES: usize = 100_000;
 const MAX_MATERIALS: usize = 4_096;
 const MAX_POSITION_ERROR_METRES: f64 = 1e-6;
 const DEFAULT_COLOR: [f32; 4] = [0.56, 0.58, 0.62, 1.0];
+pub const MODEL14_SOURCE_SHA256: &str =
+    "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b";
 static NEXT_TEMP_FILE: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Default)]
@@ -337,7 +339,64 @@ fn path_text(value: &Value) -> Result<(Vec<usize>, String), String> {
     Ok((path, text))
 }
 
-fn build(candidate: &Value, source_sha256: &str) -> Result<Output, String> {
+fn validate_pinned_repair_candidate(
+    candidate: &Value,
+    source_sha256: &str,
+    repair: &Value,
+) -> Result<(), String> {
+    if candidate["sourceSha256"] != source_sha256
+        || candidate["experimentalPlanarRepair"] != *repair
+    {
+        return Err(err("diagnostic_glb_repair_candidate_provenance_mismatch"));
+    }
+    let occurrences = candidate["occurrences"]
+        .as_array()
+        .ok_or_else(|| err("diagnostic_glb_repair_candidate_occurrences_missing"))?;
+    let item_id = repair["itemId"]
+        .as_u64()
+        .ok_or_else(|| err("diagnostic_glb_invalid_experimental_planar_repair_context"))?;
+    let face_id = repair["faceId"]
+        .as_u64()
+        .ok_or_else(|| err("diagnostic_glb_invalid_experimental_planar_repair_context"))?;
+    let repaired_triangles = repair["newFaceTriangles"]
+        .as_u64()
+        .and_then(|count| usize::try_from(count).ok())
+        .ok_or_else(|| err("diagnostic_glb_invalid_experimental_planar_repair_context"))?;
+    let mut target_shapes = occurrences
+        .iter()
+        .flat_map(|occurrence| occurrence["shapes"].as_array().into_iter().flatten())
+        .filter(|shape| shape["sourceItemId"].as_u64() == Some(item_id));
+    let shape = target_shapes
+        .next()
+        .ok_or_else(|| err("diagnostic_glb_repair_target_shape_missing"))?;
+    if target_shapes.next().is_some() {
+        return Err(err("diagnostic_glb_repair_target_shape_ambiguous"));
+    }
+    let triangles = shape["triangles"]
+        .as_array()
+        .ok_or_else(|| err("diagnostic_glb_repair_target_triangles_missing"))?;
+    let face_ids = shape["sourceTriangleFaceIds"]
+        .as_array()
+        .filter(|ids| ids.len() == triangles.len())
+        .ok_or_else(|| err("diagnostic_glb_repair_target_face_provenance_mismatch"))?;
+    if face_ids
+        .iter()
+        .filter(|id| id.as_u64() == Some(face_id))
+        .count()
+        != repaired_triangles
+    {
+        return Err(err(
+            "diagnostic_glb_repair_target_face_triangle_count_mismatch",
+        ));
+    }
+    Ok(())
+}
+
+fn build(
+    candidate: &Value,
+    source_sha256: &str,
+    experimental_planar_repair: Option<&Value>,
+) -> Result<Output, String> {
     if candidate["schema"] != "tokito.step-positioned-candidate-mesh.v1"
         || candidate["lengthUnit"] != "mm"
         || candidate["geometryQualified"] != false
@@ -539,18 +598,45 @@ fn build(candidate: &Value, source_sha256: &str) -> Result<Output, String> {
     if roots.is_empty() || triangle_count == 0 || binary.is_empty() {
         return Err(err("diagnostic_glb_no_occurrence_triangles"));
     }
+    let mut asset_tokito = json!({"format":"tokito.step-unqualified-occurrence-glb.v1","experimental":true,
+        "sourceSha256":source_sha256,"sourceFormat":"STEP","sourceLengthUnit":"mm",
+        "sourceModelUnitsToMmScale":model_units_to_mm,"unitsIndependentlyPreflighted":true,
+        "sourceAxesPreserved":true,"sourceUpAxisResolved":false,"geometryQualified":false,
+        "surfaceCompletenessVerified":false,"completeSolidVerified":false,"pcbPlacementQualified":false,
+        "componentReferenceMappingAvailable":false,"componentUuidMappingAvailable":false,"occurrenceColorsApplied":false,
+        "selectionScope":"STEP assembly occurrence only","normalGeneration":"flat per triangle from reader tessellation; degenerate triangles use +Y display fallback",
+        "degenerateTriangleCount":degenerate_triangle_count,
+        "materialSemantics":"source STEP reader color observations projected to neutral PBR; physical materials unverified",
+        "admission":{"admitted":false,"productionExport":false,"reason":"diagnostic candidate only; reader-derived surface tessellation, source-face completeness, exact solid geometry, and PCB component placement are unverified"}});
+    if let Some(repair) = experimental_planar_repair {
+        if repair["schema"] != "tokito.step-planar-repair.v1"
+            || repair["faceId"] != 51_071
+            || repair["representationId"] != 58_073
+            || repair["itemId"] != 46_427
+            || repair["oldFaceTriangles"] != 146
+            || repair["newFaceTriangles"] != 146
+            || repair["reusedBoundaryVertices"] != 148
+            || repair["callerToleranceSourceUnits"] != 0.000_001
+            || repair["sourceToModelLengthScale"] != 1.0
+            || repair["maximumBoundaryMatchDistanceModelUnits"] != 0.0
+            || repair["geometryQualified"] != false
+            || repair["pcbPlacementQualified"] != false
+            || repair["admitted"] != false
+            || repair["productionExport"] != false
+            || repair["positionsChanged"] != false
+            || repair["occurrenceTransformsChanged"] != false
+            || repair["unrelatedTrianglesChanged"] != false
+        {
+            return Err(err(
+                "diagnostic_glb_invalid_experimental_planar_repair_context",
+            ));
+        }
+        validate_pinned_repair_candidate(candidate, source_sha256, repair)?;
+        asset_tokito["experimentalPlanarRepair"] = repair.clone();
+    }
     let document = json!({
         "asset":{"version":"2.0","generator":"Tokito STEP experimental diagnostic exporter",
-            "extras":{"tokito":{"format":"tokito.step-unqualified-occurrence-glb.v1","experimental":true,
-                "sourceSha256":source_sha256,"sourceFormat":"STEP","sourceLengthUnit":"mm",
-                "sourceModelUnitsToMmScale":model_units_to_mm,"unitsIndependentlyPreflighted":true,
-                "sourceAxesPreserved":true,"sourceUpAxisResolved":false,"geometryQualified":false,
-                "surfaceCompletenessVerified":false,"completeSolidVerified":false,"pcbPlacementQualified":false,
-                "componentReferenceMappingAvailable":false,"componentUuidMappingAvailable":false,"occurrenceColorsApplied":false,
-                "selectionScope":"STEP assembly occurrence only","normalGeneration":"flat per triangle from reader tessellation; degenerate triangles use +Y display fallback",
-                "degenerateTriangleCount":degenerate_triangle_count,
-                "materialSemantics":"source STEP reader color observations projected to neutral PBR; physical materials unverified",
-                "admission":{"admitted":false,"productionExport":false,"reason":"diagnostic candidate only; reader-derived surface tessellation, source-face completeness, exact solid geometry, and PCB component placement are unverified"}}}},
+            "extras":{"tokito":asset_tokito}},
         "scene":0,"scenes":[{"name":"Unqualified STEP occurrence candidate","nodes":roots}],
         "nodes":nodes,"meshes":meshes,"materials":materials,
         "buffers":[{"byteLength":binary.len()}],"bufferViews":buffer_views,"accessors":accessors
@@ -614,7 +700,42 @@ pub fn write(
     {
         return Err(err("diagnostic_glb_output_extension_must_be_glb"));
     }
-    let output = build(candidate, source_sha256)?;
+    write_inner(candidate, source_sha256, output_path, None)
+}
+
+/// Write one reviewed research repair context beside the occurrence GLB.
+/// This entry point intentionally accepts only the pinned model-14 repair.
+pub fn write_repaired_candidate(
+    candidate: &Value,
+    source_sha256: &str,
+    output_path: &Path,
+    repair: &Value,
+) -> Result<Value, String> {
+    if source_sha256 != MODEL14_SOURCE_SHA256 {
+        return Err(err(
+            "diagnostic_glb_repaired_candidate_requires_pinned_model14_source",
+        ));
+    }
+    write_inner(candidate, source_sha256, output_path, Some(repair))
+}
+
+fn write_inner(
+    candidate: &Value,
+    source_sha256: &str,
+    output_path: &Path,
+    experimental_planar_repair: Option<&Value>,
+) -> Result<Value, String> {
+    if source_sha256.len() != 64 || !source_sha256.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(err("diagnostic_glb_invalid_source_digest"));
+    }
+    if output_path
+        .extension()
+        .and_then(|extension| extension.to_str())
+        .is_none_or(|extension| !extension.eq_ignore_ascii_case("glb"))
+    {
+        return Err(err("diagnostic_glb_output_extension_must_be_glb"));
+    }
+    let output = build(candidate, source_sha256, experimental_planar_repair)?;
     let bytes = output.bytes;
     let (temporary_path, mut file) = create_temp_file(output_path)?;
     use std::io::Write;
@@ -641,7 +762,7 @@ pub fn write(
         "degenerateTriangleCount":output.degenerate_triangle_count,"temporaryFileCleanupCompleted":temporary_file_cleanup_completed,
         "selectorScope":"step_occurrence","componentReferenceMappingAvailable":false,"componentUuidMappingAvailable":false,
         "geometryQualified":false,"pcbPlacementQualified":false,"admitted":false,"productionExport":false,
-        "normalGeneration":"flat per triangle; +Y fallback only for explicitly reported zero-area source triangles","glbReadbackValidated":true}),
+        "normalGeneration":"flat per triangle; +Y fallback only for explicitly reported zero-area source triangles","experimentalPlanarRepairIncluded":experimental_planar_repair.is_some(),"glbReadbackValidated":true}),
     )
 }
 
@@ -660,9 +781,34 @@ mod tests {
         ]})
     }
 
+    fn model14_repair() -> Value {
+        json!({"schema":"tokito.step-planar-repair.v1","faceId":51071,
+            "representationId":58073,"itemId":46427,"oldFaceTriangles":146,
+            "newFaceTriangles":146,"reusedBoundaryVertices":148,
+            "callerToleranceSourceUnits":0.000001,"sourceToModelLengthScale":1.0,
+            "maximumBoundaryMatchDistanceModelUnits":0.0,
+            "positionsChanged":false,"occurrenceTransformsChanged":false,
+            "unrelatedTrianglesChanged":false,"geometryQualified":false,
+            "pcbPlacementQualified":false,"admitted":false,"productionExport":false})
+    }
+
+    fn model14_repaired_candidate() -> (Value, Value) {
+        let repair = model14_repair();
+        let mut candidate = candidate();
+        candidate["occurrences"][1]["shapes"][0]["sourceItemId"] = json!(46_427);
+        candidate["occurrences"][1]["shapes"][0]["triangles"] = json!(vec![[0, 1, 2]; 146]);
+        candidate["occurrences"][1]["shapes"][0]["sourceTriangleFaceIds"] =
+            json!(vec![51_071; 146]);
+        candidate["occurrences"][1]["shapes"][0]["sourceTriangleRgba"] =
+            json!(vec![Value::Null; 146]);
+        candidate["sourceSha256"] = json!(MODEL14_SOURCE_SHA256);
+        candidate["experimentalPlanarRepair"] = repair.clone();
+        (candidate, repair)
+    }
+
     #[test]
     fn diagnostic_glb_preserves_selectable_occurrences_and_refuses_component_claims() {
-        let output = build(&candidate(), &"a".repeat(64)).unwrap();
+        let output = build(&candidate(), &"a".repeat(64), None).unwrap();
         let document = document_json(&output.bytes);
         assert_eq!(document["scene"], 0);
         assert_eq!(document["scenes"][0]["nodes"], json!([0]));
@@ -693,13 +839,13 @@ mod tests {
         let mut bad_index = candidate();
         bad_index["occurrences"][1]["shapes"][0]["triangles"][0] = json!([0, 1, 99]);
         assert_eq!(
-            build(&bad_index, &"a".repeat(64)).unwrap_err(),
+            build(&bad_index, &"a".repeat(64), None).unwrap_err(),
             "diagnostic_glb_triangle_index_out_of_range"
         );
         let mut qualified = candidate();
         qualified["geometryQualified"] = json!(true);
         assert_eq!(
-            build(&qualified, &"a".repeat(64)).unwrap_err(),
+            build(&qualified, &"a".repeat(64), None).unwrap_err(),
             "diagnostic_glb_requires_unqualified_positioned_candidate_mesh_v1"
         );
     }
@@ -712,7 +858,7 @@ mod tests {
             .unwrap()
             .remove("sourceItemId");
         assert_eq!(
-            build(&candidate, &"a".repeat(64)).unwrap_err(),
+            build(&candidate, &"a".repeat(64), None).unwrap_err(),
             "diagnostic_glb_missing_shape_source_item_id"
         );
     }
@@ -732,7 +878,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .push(Value::Null);
-        let output = build(&candidate, &"a".repeat(64)).unwrap();
+        let output = build(&candidate, &"a".repeat(64), None).unwrap();
         assert_eq!(output.triangle_count, 3);
         assert_eq!(output.degenerate_triangle_count, 1);
         let document = document_json(&output.bytes);
@@ -740,5 +886,56 @@ mod tests {
         assert!(primitives.iter().any(|primitive| {
             primitive["extras"]["tokito"]["degenerateTriangleOrdinals"] == json!([2])
         }));
+    }
+
+    #[test]
+    fn repaired_candidate_glb_carries_only_the_pinned_unqualified_repair_context() {
+        let (candidate, repair) = model14_repaired_candidate();
+        let output = build(&candidate, MODEL14_SOURCE_SHA256, Some(&repair)).unwrap();
+        let document = document_json(&output.bytes);
+        let claim = &document["asset"]["extras"]["tokito"];
+        assert_eq!(claim["sourceSha256"], MODEL14_SOURCE_SHA256);
+        assert_eq!(claim["geometryQualified"], false);
+        assert_eq!(claim["completeSolidVerified"], false);
+        assert_eq!(claim["pcbPlacementQualified"], false);
+        assert_eq!(claim["admission"]["admitted"], false);
+        assert_eq!(claim["experimentalPlanarRepair"]["faceId"], 51_071);
+        assert_eq!(claim["experimentalPlanarRepair"]["newFaceTriangles"], 146);
+
+        let mut unsafe_repair = repair.clone();
+        unsafe_repair["positionsChanged"] = json!(true);
+        assert_eq!(
+            build(&candidate, MODEL14_SOURCE_SHA256, Some(&unsafe_repair)).unwrap_err(),
+            "diagnostic_glb_invalid_experimental_planar_repair_context"
+        );
+        let mut wrong_repair_count = repair.clone();
+        wrong_repair_count["newFaceTriangles"] = json!(145);
+        assert_eq!(
+            build(&candidate, MODEL14_SOURCE_SHA256, Some(&wrong_repair_count)).unwrap_err(),
+            "diagnostic_glb_invalid_experimental_planar_repair_context"
+        );
+        let mut mismatched_candidate = candidate.clone();
+        mismatched_candidate["occurrences"][1]["shapes"][0]["sourceTriangleFaceIds"] =
+            json!(vec![101; 146]);
+        assert_eq!(
+            build(&mismatched_candidate, MODEL14_SOURCE_SHA256, Some(&repair)).unwrap_err(),
+            "diagnostic_glb_repair_target_face_triangle_count_mismatch"
+        );
+        let mut mismatched_digest = candidate.clone();
+        mismatched_digest["sourceSha256"] = json!("a".repeat(64));
+        assert_eq!(
+            build(&mismatched_digest, MODEL14_SOURCE_SHA256, Some(&repair)).unwrap_err(),
+            "diagnostic_glb_repair_candidate_provenance_mismatch"
+        );
+        assert_eq!(
+            write_repaired_candidate(
+                &candidate,
+                &"a".repeat(64),
+                Path::new("must-not-be-written.glb"),
+                &repair,
+            )
+            .unwrap_err(),
+            "diagnostic_glb_repaired_candidate_requires_pinned_model14_source"
+        );
     }
 }

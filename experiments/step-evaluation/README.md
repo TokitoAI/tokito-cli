@@ -48,6 +48,29 @@ python experiments/step-evaluation/tests/diagnostic_glb_e2e.py `
   --output target/research/step-diagnostic-glb-e2e-unique-run
 ```
 
+For the pinned ESP8266 `14.step` sample, a second research command applies only
+the existing planar repair (`#51071`, representation `#58073`, tolerance
+`0.000001`) before writing the occurrence GLB:
+
+```powershell
+experiments\step-evaluation\target\debug\tokito-step-evaluation.exe `
+  --research-export-model14-repaired-diagnostic-glb `
+  '<materialized-board>\embedded-models\14.step' `
+  target\research\esp8266-model-14-repaired.glb
+
+python experiments/step-evaluation/tests/repaired_diagnostic_glb_e2e.py `
+  --binary experiments/step-evaluation/target/debug/tokito-step-evaluation.exe `
+  --source '<materialized-board>\embedded-models\14.step' `
+  --output target/research/model-14-repaired-glb-e2e-unique-run
+```
+
+This mode refuses any other source digest and marks the repair in GLB asset
+extras. Its node selectors remain STEP occurrence paths, not PCB designators or
+footprint UUIDs. The E2E compares the decoded artifact to a fresh candidate
+from the same reader and separately checks admission stays false. It does not
+rerun the external FreeCAD comparison, qualify complete solids, or enable the
+production CLI's STEP export path. See the [repair contract and evidence](../../docs/STEP_PLANAR_REPAIR.md#repaired-model-14-diagnostic-glb).
+
 The output directory must be new. The production `tokito-cli` STEP resolver
 and board GLB exporter are unchanged by this experiment; production STEP-to-
 selectable-component export remains open.

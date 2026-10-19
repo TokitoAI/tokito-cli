@@ -436,6 +436,108 @@ fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
     if raw
         .first()
+        .is_some_and(|arg| arg == "--research-export-model14-repaired-diagnostic-glb")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 3 {
+                return Err("usage: tokito-step-evaluation --research-export-model14-repaired-diagnostic-glb INPUT.step OUTPUT.glb".into());
+            }
+            let input = Path::new(&raw[1]);
+            let output = Path::new(&raw[2]);
+            let bytes = read_bounded(File::open(input).map_err(|e| e.to_string())?)?;
+            let source_sha256 = format!("{:x}", Sha256::digest(&bytes));
+            if source_sha256 != diagnostic_glb::MODEL14_SOURCE_SHA256 {
+                return Err("pinned_model14_step_source_sha256_mismatch".into());
+            }
+            let options = ReadOptions {
+                parse_limits: oxideav_step::StepLimits {
+                    max_input_len: MAX_BYTES,
+                    max_instances: 250_000,
+                    max_depth: 48,
+                    max_string_len: 1_048_576,
+                },
+                geometry_limits: GeometryLimits {
+                    max_triangles: PROBE_MAX_TRIANGLES,
+                    max_curve_samples: 16_384,
+                },
+                tolerance: Tolerance {
+                    absolute: Some(PROBE_ABSOLUTE_TOLERANCE_METRES),
+                    ..Tolerance::default()
+                },
+                keep_invisible: false,
+            };
+            let parsed = oxideav_ifc::parse_step_with_limits(&bytes, &options.parse_limits)
+                .map_err(|error| format!("reader_error: STEP parse error: {error}"))?;
+            let model = oxideav_step::model_from_file(&parsed, &options)
+                .map_err(|error| format!("reader_error: {error}"))?;
+            let declared_units = unit_preflight::inspect(&parsed);
+            let occurrence_world = occurrence_world_report(&model, &declared_units);
+            if occurrence_world["independentRepresentationUnitsResolved"] != true
+                || occurrence_world["readerScaleAgreesWithIndependentUnits"] != true
+                || occurrence_world["transformCompositionResolved"] != true
+            {
+                return Err("independent_units_and_occurrence_transforms_required".into());
+            }
+            let (repaired, repair_details) =
+                planar_repair::apply(&parsed, &model, 51_071, 58_073, 0.000_001)?;
+            let repair_report = json!({
+                "schema":"tokito.step-planar-repair.v1",
+                "faceId":repair_details["faceId"],
+                "representationId":repair_details["representationId"],
+                "itemId":repair_details["itemId"],
+                "oldFaceTriangles":repair_details["oldFaceTriangles"],
+                "newFaceTriangles":repair_details["newFaceTriangles"],
+                "reusedBoundaryVertices":repair_details["reusedBoundaryVertices"],
+                "sourceToModelLengthScale":repair_details["sourceToModelLengthScale"],
+                "maximumBoundaryMatchDistanceModelUnits":repair_details["maximumBoundaryMatchDistanceModelUnits"],
+                "callerToleranceSourceUnits":repair_details["callerToleranceSourceUnits"],
+                "positionsChanged":repair_details["positionsChanged"],
+                "occurrenceTransformsChanged":repair_details["occurrenceTransformsChanged"],
+                "unrelatedTrianglesChanged":repair_details["unrelatedTrianglesChanged"],
+                "geometryQualified":false,"pcbPlacementQualified":false,
+                "admitted":false,"productionExport":false,
+                "scope":"pinned single-face reader-mesh repair; complete solid and PCB component placement remain unqualified"
+            });
+            let scale_to_mm = occurrence_world["lengthScaleModelUnitsToMm"]
+                .as_f64()
+                .ok_or_else(|| "independently_resolved_occurrence_units_required".to_string())?;
+            let mut candidate = candidate_mesh::inspect(&repaired, scale_to_mm)?;
+            candidate["sourceSha256"] = json!(source_sha256);
+            candidate["readerWarningsTotal"] = json!(repaired.warnings.len());
+            candidate["experimentalPlanarRepair"] = repair_report.clone();
+            let diagnostic = diagnostic_glb::write_repaired_candidate(
+                &candidate,
+                &source_sha256,
+                output,
+                &repair_report,
+            )?;
+            Ok(
+                json!({"schema":"tokito.step-model14-repaired-diagnostic-glb-command.v1",
+                "commandCompleted":true,"sourceSha256":source_sha256,"sourceBytes":bytes.len(),
+                "sourceDatasetCommit":"5283bc059e30e51f4d3a81a674425936fc213214",
+                "occurrenceWorld":occurrence_world,
+                "experimentalPlanarRepair":repair_report,
+                "candidateMesh":{"schema":candidate["schema"],"occurrenceCount":candidate["occurrenceCount"],
+                    "positionedVertexCount":candidate["positionedVertexCount"],"positionedTriangleCount":candidate["positionedTriangleCount"],
+                    "geometryQualified":candidate["geometryQualified"],"surfaceCompletenessVerified":candidate["surfaceCompletenessVerified"],
+                    "pcbPlacementQualified":candidate["pcbPlacementQualified"]},
+                "diagnosticGlb":diagnostic,"admitted":false,"productionExport":false,
+                "independentGeometryComparisonPerformedByCommand":false,
+                "limitations":["This command is pinned to one dataset STEP source and one explicit planar-face repair.",
+                    "The GLB remains an occurrence-selectable diagnostic, not a PCB component-selector model.",
+                    "Solid completeness, surface fidelity, external geometry equivalence, and PCB placement are not qualified.",
+                    "This experiment does not provide general STEP import/export or product CLI support."]}),
+            )
+        })();
+        let exit_code = if result.is_ok() { 0 } else { 2 };
+        println!("{}", result.unwrap_or_else(|error| json!({
+            "schema":"tokito.step-model14-repaired-diagnostic-glb-command.v1",
+            "commandCompleted":false,"error":error,"admitted":false,"productionExport":false,"exportsProduced":[]
+        })));
+        std::process::exit(exit_code);
+    }
+    if raw
+        .first()
         .is_some_and(|arg| arg == "--research-export-diagnostic-glb")
     {
         let result = (|| -> Result<Value, String> {

@@ -70,6 +70,47 @@ The independent distance stage used 17,393,370 triangle evaluations, below
 the unchanged 50,000,000 cap. This is sampled agreement, not a continuous
 surface-error guarantee, material qualification or physical-board equivalence.
 
+## Repaired model-14 diagnostic GLB
+
+The research evaluator has a separate command that connects this one pinned
+repair to the occurrence GLB writer:
+
+```powershell
+tokito-step-evaluation --research-export-model14-repaired-diagnostic-glb `
+  C:\path\to\materialized\14.step `
+  target\research\esp8266-model-14-repaired.glb
+```
+
+It accepts only dataset commit
+`5283bc059e30e51f4d3a81a674425936fc213214`'s model-14 payload with SHA-256
+`78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b`;
+the repair IDs and source tolerance are fixed to face `51071`, representation
+`58073`, and `0.000001` source units. It independently preflights the source
+length-unit declarations and occurrence transforms, repairs only the cloned
+reader model, and writes a no-overwrite GLB with STEP-occurrence selectors. The
+asset metadata carries the repair report and keeps every admission, solid,
+component-mapping, and PCB-placement claim false.
+
+Run the serialization and refusal journey with the freshly built binary:
+
+```powershell
+python experiments/step-evaluation/tests/repaired_diagnostic_glb_e2e.py `
+  --binary experiments/step-evaluation/target/debug/tokito-step-evaluation.exe `
+  --source C:\path\to\materialized\14.step `
+  --output target\research\model-14-repaired-glb-e2e-unique
+```
+
+The E2E decodes every GLB accessor and checks positions, normals, materials,
+occurrence identity and target-face provenance against a fresh repaired
+candidate produced by the same Rust reader. It also checks the pinned-source
+gate, 146 repaired face triangles, output no-overwrite, and occurrence-only
+selection semantics. This is a serialization consistency test, not an
+independent geometry comparison. The separate
+`planar_repair_reference_e2e.py` journey performs the pinned FreeCAD sampled
+comparison; its sampled distance is not a continuous surface-error guarantee.
+This output is useful for a prototype viewer, but not a PCB-reference-selectable
+asset or production STEP exporter.
+
 ## Emitted-shape source-face provenance gate (2026-10-20)
 
 The evaluator now reports a separate `emittedShapeFaceProvenanceAudit` instead
