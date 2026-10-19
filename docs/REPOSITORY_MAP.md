@@ -6,7 +6,7 @@ it includes tracked and new non-ignored project files, including hidden entry
 files. Ignored build outputs, research source snapshots, local datasets and
 `.git/` are excluded. Regenerate after versioned paths change.
 
-486 project files are listed.
+490 project files are listed.
 
 ```text
 tokito_cli/
@@ -120,6 +120,7 @@ tokito_cli/
 │   │   ├── priority-refinement-20261019.json
 │   │   ├── projection-solver-status-20261019.json
 │   │   ├── shared-edges-20261019.json
+│   │   ├── shared-patch-20261019.json
 │   │   ├── surface-grid-20261019.json
 │   │   └── ultimaker-presentation-browser-20261016.json
 │   ├── quality/
@@ -233,6 +234,7 @@ tokito_cli/
 │   │   │   ├── audit_model16_physical_refinement.FCMacro
 │   │   │   ├── audit_model16_projection.FCMacro
 │   │   │   ├── audit_model16_shared_edges.FCMacro
+│   │   │   ├── audit_model16_shared_patch.FCMacro
 │   │   │   ├── compare_model16_trim_face.FCMacro
 │   │   │   ├── esp8266-model-15-freecad-1.1.4.json
 │   │   │   ├── esp8266-multi-model-freecad-manifest.json
@@ -242,6 +244,8 @@ tokito_cli/
 │   │   │   ├── bin/
 │   │   │   │   └── model16_spade_candidate.rs
 │   │   │   ├── spline_face_diagnostic/
+│   │   │   │   ├── shared_edges/
+│   │   │   │   │   └── patch.rs
 │   │   │   │   └── shared_edges.rs
 │   │   │   ├── adaptive_boundary.rs
 │   │   │   ├── candidate_mesh.rs
@@ -278,6 +282,7 @@ tokito_cli/
 │   │   │   ├── planar_repair_reference_e2e.py
 │   │   │   ├── projection_audit_e2e.py
 │   │   │   ├── shared_edges_e2e.py
+│   │   │   ├── shared_patch_e2e.py
 │   │   │   ├── surface_reference_e2e.py
 │   │   │   ├── test_solid_reference.py
 │   │   │   └── units_cli.rs

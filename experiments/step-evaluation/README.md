@@ -363,3 +363,29 @@ qualification. It requires a fresh output path, bounded process output and
 unchanged source/tool fingerprints. No repair, geometry export, trim-coverage
 or global-nearest-point proof is supplied. See
 [the exact contract and next gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#shared-edge-support-audit-2026-10-19).
+
+## Canonical shared-boundary patch
+
+```powershell
+./target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --research-shared-patch --chord-tolerance 0.00001 --boundary-allowance 0.000005 `
+  --source-representation 5957 --source-owner 6218 `
+  '<materialized-dataset>/embedded-models/16.step'
+
+python experiments/step-evaluation/tests/shared_patch_e2e.py `
+  --binary target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --freecad 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe' `
+  --source '<materialized-dataset>/embedded-models/16.step' `
+  --output target/research/new-shared-patch-audit
+```
+
+This mode is pinned to faces 2875 / 10475 in the same model16 source. It emits
+an actual two-face research mesh in JSON, always exits 2 and never exports or
+admits a production model. Canonical XYZ is applied before triangle quality is
+measured; surface evaluations remain independent. Separate UV charts preserve
+the complementary trims of identical closed supports. The boundary allowance
+is explicit, positive and limited to half the chord target; it is not inferred
+from source uncertainty. The E2E harness requires a fresh output directory and
+independent native comparisons plus refusal controls. Even a passing open
+patch retains false full-trim, self-intersection and complete-solid flags.
+See [the mathematical contract and limitations](../../docs/GEOMETRY_RECOVERY_PLAN.md#canonical-two-face-patch-2026-10-19).

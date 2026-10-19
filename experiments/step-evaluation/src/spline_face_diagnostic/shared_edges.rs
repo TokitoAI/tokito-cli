@@ -3,6 +3,9 @@ use super::*;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+mod patch;
+pub(crate) use patch::inspect as inspect_patch;
+
 const MAX_SUPPORTS: usize = 16;
 const MAX_GRID_POINTS: usize = 8192;
 const MAX_PROBES: usize = 8192;

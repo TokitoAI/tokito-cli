@@ -9,6 +9,21 @@ retains known failures; the opt-in model-14 repair has independent
 sampled-comparison evidence. The model-16 rational-spline candidate remains
 rejected, and general STEP admission is blocked.
 
+## Canonical shared-boundary patch (2026-10-19)
+
+Implemented a source-pinned two-face open mesh with canonical physical boundary
+vertices and separate complementary periodic UV loops. Actual final triangle
+quality includes boundary anchoring before measurement. The initial strict
+`1e-5 mm` run produces 32,454 shared vertices / 63,884 triangles, Euler zero,
+two open boundary cycles and 64 opposite shared seam segments. Both faces meet
+sampled chord/normal targets; their maximum sampled support-to-boundary offset
+is about `1.08084e-6 mm`, within the explicit experimental `5e-6 mm` allowance.
+This does not qualify a complete solid or alter source surfaces. Native results
+and current-source regressions are recorded in
+[checkpoint evidence](evidence/shared-patch-20261019.json). Next: extend reviewed
+canonical boundaries to all source faces, including holes and seams, and
+independently qualify whole components. The full objective remains active.
+
 ## Shared-edge geometry checkpoint (2026-10-19)
 
 The original Rust research evaluator now inventories source adjacency and

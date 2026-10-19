@@ -650,6 +650,93 @@ See [captured evidence](evidence/shared-edges-20261019.json), the
 and [native comparison](../experiments/step-evaluation/tests/shared_edges_e2e.py).
 All admission/qualification flags remain false; no geometry is exported.
 
+## Canonical two-face patch (2026-10-19)
+
+The next Rust experiment constructs an actual open mesh for source faces
+`2875` / `10475`, with one physical vertex inventory shared by their source
+edges. Their supports `10410` / `7558` have identical control data but their
+face loops trim complementary halves of a V-closed surface. Reusing one face's
+UV polygon for both would mesh the same half twice. Each face therefore builds
+and unwraps its own ordered loop, retaining distinct UV views of shared XYZ.
+
+All six curves require clamped full native parameter intervals with endpoints
+exactly matching their referenced source vertices. The experiment refuses
+closed-edge interval ambiguity and endpoint mismatch. Adaptive source-parameter
+sampling preserves knot breaks and measures quarter/midpoint chord error;
+one canonical sequence is then used by both incident faces. This is sampled
+evidence, not a continuous curve-deviation certificate or general STEP trim
+support. The second face contributes curves `9005` / `4186` on edges
+`7239` / `4818`; it does not borrow the first face's unrelated boundary.
+
+The canonical registry keys endpoints by `VERTEX_POINT` identity, edge interiors
+by edge identity plus exact parameter bits, and interior mesh points by face
+and local vertex identity. Coincident but distinct source IDs are not welded.
+Both shared edges (`3478`, `9149`) retain identical physical vertex sequences
+with opposite use. Both faces are disks; their union is an annulus-like open
+patch with Euler characteristic **0 and two open boundary cycles**. It is not
+a closed component body.
+
+`refine_canonical_seeded` takes fixed boundary XYZ separately from the support
+evaluator. It applies those coordinates before the first quality evaluation;
+surface probes and derivative queries continue evaluating the original surface.
+Interior refinement therefore measures actual triangles with canonical
+boundaries, rather than overwriting vertices after checking a different mesh.
+Regression tests use an offset analytic boundary to demonstrate that measured
+error changes, while ordinary support-only behavior remains unchanged.
+
+The opt-in research command requires an explicit positive boundary displacement
+allowance no larger than half the chord target. This is an experimental mesh
+policy, not automatic acceptance of STEP uncertainty or modification of source
+surfaces. Source coordinates are unchanged; mesh boundary displacement from
+each support is measured separately and over-allowance points refuse. The
+current pair's maximum sampled boundary displacement is approximately
+`1.08083727943e-6 mm`, below its explicit `5e-6 mm` allowance. The original
+source-curve/support discrepancy is not repaired or erased.
+
+The first strict-target source run has **32,454 global vertices / 63,884
+triangles**, 1,086 unique canonical boundary vertices and 64 shared seam
+segments. Each face has 16,260 local vertices / 31,942 triangles. The separate
+lifted V intervals are approximately `[-0.70248046153044,0]` and
+`[0,0.70248046153420]`. Sampled interior chord errors are approximately
+`8.7491458e-6 mm` and `8.7488717e-6 mm`; boundary errors are approximately
+`4.732543e-6 mm` and `4.764120e-6 mm`. Both remain below `1e-5 mm`, with no
+sampled nonpositive normals or five-degree normal failures.
+
+One aggregate limit covers both surfaces' preparation, projection, grid
+sampling, quality and refinement: four million surface calls and 50 million
+control-work units. The observed run uses 880,980 call units / 47,572,920
+control-work units, including 442 preparation-call estimates / 23,868
+preparation-control estimates. Curve sampling uses its separate 32,768-probe /
+20-million-control-work limits and bounded retained curve controls. Mesh caps
+are 50,000 global vertices and 100,000 triangles. Exhaustion refuses rather
+than approving a partial unmeasured patch.
+
+The native acceptance journey must bind both faces independently from their
+respective four curve signatures, replay all six edge intervals, compare
+canonical/source and interior/support points, and recompute triangle chord and
+analytic-normal measurements from final mesh coordinates. Native trim probes
+must identify the complementary regions explicitly; finite probes do not prove
+complete trim coverage or exclude every self-intersection. See
+[checkpoint evidence](evidence/shared-patch-20261019.json). Full trim coverage,
+geometric self-intersection, whole-solid qualification and production STEP
+admission remain false even when sampled patch checks pass.
+
+The executed native journey passes **14 checks**. Its unique four-curve-per-face
+bindings independently select native faces 231 and 238. All six curves, 1,086
+canonical vertices, 3,264 leaf-quarter probes, all 32,454 global mesh vertices
+and all 63,884 triangles are audited. Source-curve point disagreement is at most
+`2.817430187029739e-15 mm`; interior support-point disagreement is at most
+`3.750188105401294e-15 mm`. Native chord/analytic-normal measurements agree
+with the producer; all 512 sampled trim centroids (256 per face) are inside
+their corresponding native faces. These 512 probes are not full trim coverage.
+All six ascending native topological edge parameter ranges exactly match the
+reported source domains and retained sample endpoints. Native edge traversal
+orientation is recorded separately. A deliberately changed domain is rejected
+by this independent range gate; evaluating the untrimmed curve alone would not
+have established topological interval correspondence.
+Wrong inputs, invalid/excess/insufficient boundary allowances, overwrite,
+altered physical points, seam identities and UV mapping are rejected.
+
 ## Selected solution and next implementation gates
 
 The upstream checks were refreshed on 2026-10-19. The official footprint
@@ -675,7 +762,7 @@ Implement two complementary routes, with the existing source/identity contract:
    Preserve the complete drawing, terminal and material evidence. A footprint
    pad pattern alone is insufficient to generate a qualified package body.
 
-The immediate STEP design gate is a **local boundary reconciliation policy**:
+The implemented patch begins a **local boundary reconciliation policy**:
 record source uncertainty, requested mesh error, measured curve/support gaps,
 any actual boundary displacement and the affected source IDs separately. A
 sampled discrepancy below a mesh target does not itself approve a repair.
@@ -684,7 +771,9 @@ boundaries conform to the same samples while staying within the reviewed
 physical error allowance. Preserve the source unchanged and record every
 correction. Refuse ambiguous projection, excess error, unknown trims or budget
 exhaustion; do not silently weld nearby vertices or globally inflate tolerance.
-This policy is specified as the next task, not implemented by the audit.
+The preceding shared-edge audit only measures these quantities; the new patch
+implements opt-in canonical boundary anchoring for the pinned two-face case.
+General profiles, ambiguous intervals and full-shell adoption remain unqualified.
 
 Then qualify each complete component: all faces accounted for, trimmed holes
 preserved, closed consistently oriented shell when a solid is claimed,
@@ -703,8 +792,8 @@ count repairs a bad source or supplies missing physical dimensions.
 
 | Owner | Dependency | State / evidence | Next action |
 | --- | --- | --- | --- |
-| Main / read-only reviewer | Failed source-curve probe | Solver-status separation and shared-edge support audit implemented; native nine-check comparison passes | Define local boundary reconciliation policy; preserve refusal until physical geometry qualifies |
-| Main | Current Spade experiment | Directional interior seeding and reserved splits meet this face's sampled chord/normal targets; whole-solid qualification remains open | Reviewed shared-edge discrepancy handling, full trims/solid comparison and general chart support |
+| Main / read-only reviewer | Failed source-curve probe | Solver-status/shared-edge audits and explicit canonical anchoring for the pinned two-face patch implemented; native patch journey passes 14 checks | Generalize reviewed boundary reconciliation to complete trims and source faces; preserve production refusal until physical geometry qualifies |
+| Main | Current Spade experiment | Directional seeding and canonical-boundary refinement meet both complementary faces' sampled targets; open-patch seam topology checked | Full trims/solid comparison, holes and general chart support |
 | Main | Pinned Truck candidate | Source capability review only | Isolated original-Rust corpus adapter; fail on every conversion omission or missing face; audit selected dependency graph and budgets |
 | Main | Exact source/package inventory | Existing assets/candidates only | Source-qualified resistor/IC/header family specs and full body/terminal generation; issue #24 |
 | Main / independent oracle | Candidate faces and shared edges | Whole-solid acceptance open | Bidirectional sampled deviation, trim membership, seams, closed-shell topology, orientation and per-component placement |

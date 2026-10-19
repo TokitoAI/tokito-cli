@@ -233,6 +233,7 @@ where
             metric,
             priority: false,
             seed: None,
+            canonical_boundary: None,
         },
         evaluate,
         orientation,
@@ -262,6 +263,7 @@ where
             metric,
             priority: true,
             seed: None,
+            canonical_boundary: None,
         },
         evaluate,
         orientation,
@@ -296,6 +298,54 @@ where
             metric,
             priority: true,
             seed: Some(input.grid),
+            canonical_boundary: None,
+        },
+        evaluate,
+        orientation,
+        remaining_surface,
+    )
+}
+
+/// Fixed physical boundary input is independent of the supporting-surface
+/// evaluator. All subsequent quality probes see the actual mesh coordinates.
+pub(crate) struct CanonicalInput<'a> {
+    pub seeded: SeededInput<'a>,
+    pub points: &'a [P3],
+}
+
+pub(crate) fn refine_canonical_seeded<F, O, R>(
+    input: CanonicalInput<'_>,
+    tolerance: f64,
+    minimum_normal_alignment: f64,
+    metric: Option<ChartMetric>,
+    evaluate: F,
+    orientation: O,
+    remaining_surface: R,
+) -> Result<Value, String>
+where
+    F: FnMut(Uv) -> Result<P3, String>,
+    O: FnMut([Uv; 3], [P3; 3]) -> Result<f64, String>,
+    R: FnMut() -> Result<usize, String>,
+{
+    let CanonicalInput {
+        seeded: input,
+        points: boundary_points,
+    } = input;
+    if input.boundary.len() > 4096
+        || boundary_points.len() != input.boundary.len()
+        || boundary_points.iter().flatten().any(|p| !p.is_finite())
+    {
+        return Err("canonical_refinement_invalid_boundary_points".into());
+    }
+    refine_impl(
+        input.boundary,
+        Settings {
+            tolerance,
+            minimum_normal_alignment,
+            metric,
+            priority: true,
+            seed: Some(input.grid),
+            canonical_boundary: Some(boundary_points.to_vec()),
         },
         evaluate,
         orientation,
@@ -309,6 +359,7 @@ struct Settings {
     metric: Option<ChartMetric>,
     priority: bool,
     seed: Option<crate::surface_grid::Grid>,
+    canonical_boundary: Option<Vec<P3>>,
 }
 
 fn refine_impl<F, O, R>(
@@ -329,6 +380,7 @@ where
         metric,
         priority,
         seed,
+        canonical_boundary,
     } = settings;
     if !(tolerance.is_finite()
         && tolerance > 0.
@@ -393,6 +445,21 @@ where
         .iter()
         .map(|p| sample(*p))
         .collect::<Result<Vec<_>, _>>()?;
+    if let Some(canonical) = &canonical_boundary {
+        let mut assigned = BTreeMap::new();
+        for (&index, &point) in input_mapping.iter().zip(canonical) {
+            if assigned
+                .insert(index, point)
+                .is_some_and(|old| old != point)
+            {
+                return Err("canonical_refinement_conflicting_duplicate_boundary_point".into());
+            }
+            points[index] = point;
+        }
+        if assigned.len() != boundary_count {
+            return Err("canonical_refinement_incomplete_boundary_mapping".into());
+        }
+    }
     let mut history = Vec::new();
     let mut priority_decisions = Vec::new();
     let mut last_quality;
@@ -638,7 +705,7 @@ where
         "sampleEvaluationCount":sample_count.get(),"sampleEvaluationLimit":MAX_SAMPLE_EVALUATIONS,
         "vertexCount":uv.len(),"triangleCount":triangles.len(),"quality":last_quality,"history":history,
         "uvVertices":uv,"surfacePointsSourceUnits":points,"triangles":triangles,
-        "sourceCurveBoundaryGeometryUsedForMeshPoints":false,
+        "sourceCurveBoundaryGeometryUsedForMeshPoints":canonical_boundary.is_some(),
         "certifiedSurfaceDeviationBound":false,"completeSolidVerified":false,
         "geometryQualified":false,"admitted":false,"exportsProduced":[]});
     if let Some(metadata) = seed_metadata {
@@ -659,6 +726,108 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn canonical_boundary_changes_actual_quality_without_changing_surface_queries() {
+        let boundary = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
+        let fixed = boundary.map(|uv| [uv[0], uv[1], 0.25]);
+        let grid = crate::surface_grid::Grid {
+            points: vec![],
+            report: json!({}),
+        };
+        let mesh = refine_canonical_seeded(
+            CanonicalInput {
+                seeded: SeededInput {
+                    boundary: &boundary,
+                    grid,
+                },
+                points: &fixed,
+            },
+            1.,
+            0.9,
+            None,
+            |uv| Ok([uv[0], uv[1], 0.]),
+            |_, _| Ok(1.),
+            || Ok(usize::MAX),
+        )
+        .unwrap();
+        assert_eq!(mesh["sourceCurveBoundaryGeometryUsedForMeshPoints"], true);
+        assert_eq!(
+            mesh["quality"]["maximumSampledInteriorChordErrorSourceUnits"],
+            0.25
+        );
+        assert_eq!(
+            mesh["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"],
+            0.25
+        );
+        let xyz: Vec<P3> =
+            serde_json::from_value(mesh["surfacePointsSourceUnits"].clone()).unwrap();
+        assert!(xyz.iter().all(|p| p[2] == 0.25));
+        let original = refine(
+            &boundary,
+            1.,
+            0.9,
+            None,
+            |uv| Ok([uv[0], uv[1], 0.]),
+            |_, _| Ok(1.),
+        )
+        .unwrap();
+        assert_eq!(
+            original["quality"]["maximumSampledInteriorChordErrorSourceUnits"],
+            0.
+        );
+        assert_eq!(
+            original["sourceCurveBoundaryGeometryUsedForMeshPoints"],
+            false
+        );
+    }
+
+    #[test]
+    fn canonical_duplicate_uv_requires_identical_physical_identity() {
+        let boundary = [[0., 0.], [1., 0.], [1., 1.], [0., 1.], [0., 0.]];
+        let mut fixed = boundary.map(|uv| [uv[0], uv[1], 0.]);
+        fixed[4][2] = 0.25;
+        let error = refine_canonical_seeded(
+            CanonicalInput {
+                seeded: SeededInput {
+                    boundary: &boundary,
+                    grid: crate::surface_grid::Grid {
+                        points: vec![],
+                        report: json!({}),
+                    },
+                },
+                points: &fixed,
+            },
+            1.,
+            0.9,
+            None,
+            |uv| Ok([uv[0], uv[1], 0.]),
+            |_, _| Ok(1.),
+            || Ok(usize::MAX),
+        )
+        .unwrap_err();
+        assert!(error.contains("conflicting_duplicate_boundary"));
+        fixed[4][2] = f64::NAN;
+        let error = refine_canonical_seeded(
+            CanonicalInput {
+                seeded: SeededInput {
+                    boundary: &boundary,
+                    grid: crate::surface_grid::Grid {
+                        points: vec![],
+                        report: json!({}),
+                    },
+                },
+                points: &fixed,
+            },
+            1.,
+            0.9,
+            None,
+            |_| panic!("must reject nonfinite boundary before evaluating"),
+            |_, _| Ok(1.),
+            || Ok(usize::MAX),
+        )
+        .unwrap_err();
+        assert!(error.contains("invalid_boundary_points"));
+    }
     const LOOP: [Uv; 4] = [[0., 0.], [1., 0.], [1., 1.], [0., 1.]];
     #[test]
     fn seeded_chart_keeps_boundary_and_uses_every_interior_point() {

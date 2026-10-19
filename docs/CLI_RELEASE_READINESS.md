@@ -4,6 +4,18 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## Canonical patch research status
+
+The experimental Rust evaluator now constructs a two-face mesh using shared
+source-curve boundary vertices before quality measurement. It preserves separate
+complementary UV regions, measures an explicit boundary displacement allowance
+and checks the expected open-patch topology. Passing sampled patch checks does
+not qualify a component solid, complete trims or production STEP export. General
+surface/trim coverage, full-solid validation and complete component generation
+remain release blockers. See
+[the patch contract](GEOMETRY_RECOVERY_PLAN.md#canonical-two-face-patch-2026-10-19)
+and [checkpoint evidence](evidence/shared-patch-20261019.json).
+
 ## Shared-edge research status
 
 The experimental Rust shared-edge audit passed nine actual source/native/

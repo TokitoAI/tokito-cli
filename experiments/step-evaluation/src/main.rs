@@ -424,6 +424,58 @@ fn main() {
     let raw = std::env::args_os().skip(1).collect::<Vec<_>>();
     if raw
         .first()
+        .is_some_and(|arg| arg == "--research-shared-patch")
+    {
+        let result = (|| -> Result<Value, String> {
+            if raw.len() != 10
+                || raw[1] != "--chord-tolerance"
+                || raw[3] != "--boundary-allowance"
+                || raw[5] != "--source-representation"
+                || raw[7] != "--source-owner"
+            {
+                return Err("usage: tokito-step-evaluation --research-shared-patch --chord-tolerance POSITIVE --boundary-allowance POSITIVE --source-representation 5957 --source-owner 6218 STEP_PATH".into());
+            }
+            let positive = |i: usize| {
+                raw[i]
+                    .to_str()
+                    .and_then(|s| s.parse::<f64>().ok())
+                    .filter(|v| v.is_finite() && *v > 0.)
+                    .ok_or("invalid_shared_patch_tolerance")
+            };
+            let tolerance = positive(2)?;
+            let allowance = positive(4)?;
+            if allowance > tolerance * 0.5 {
+                return Err("patch_boundary_allowance_exceeds_half_chord_target".into());
+            }
+            let bytes = read_bounded(File::open(Path::new(&raw[9])).map_err(|e| e.to_string())?)?;
+            let digest = format!("{:x}", Sha256::digest(&bytes));
+            if raw[6] != "5957"
+                || raw[8] != "6218"
+                || digest != "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+            {
+                return Err("shared_patch_requires_pinned_source_representation_owner".into());
+            }
+            let limits = oxideav_ifc::StepLimits {
+                max_input_len: MAX_BYTES,
+                max_instances: 250_000,
+                max_depth: 48,
+                max_string_len: 1_048_576,
+            };
+            let step = oxideav_ifc::parse_step_with_limits(&bytes, &limits)
+                .map_err(|e| format!("reader_error: {e}"))?;
+            let topology = shared_edge_topology::inspect(&step, 5957, 6218, 2875)?;
+            let mut report = spline_face_diagnostic::inspect_shared_patch(
+                &step, topology, tolerance, allowance,
+            )?;
+            report["sourceSha256"] = json!(digest);
+            report["sourceBytes"] = json!(bytes.len());
+            Ok(report)
+        })();
+        println!("{}",result.unwrap_or_else(|error|json!({"schema":"tokito.canonical-shared-patch.v1","error":error,"geometryQualified":false,"admitted":false,"exportsProduced":[]})));
+        std::process::exit(2);
+    }
+    if raw
+        .first()
         .is_some_and(|arg| arg == "--research-shared-edges")
     {
         let result = (|| -> Result<Value, String> {

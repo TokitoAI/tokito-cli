@@ -6,6 +6,7 @@
 
 mod shared_edges;
 pub(crate) use shared_edges::inspect as inspect_shared_edges;
+pub(crate) use shared_edges::inspect_patch as inspect_shared_patch;
 
 use crate::trim_polygon_candidate::{BoundaryCurveSegment, BoundaryVertexPoint, RefinementOptions};
 use oxideav_ifc::{kernel, StepFile, Value};
