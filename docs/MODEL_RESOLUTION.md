@@ -209,9 +209,13 @@ Example (PowerShell):
 
 The original bounded parser accepts `Group`, `Transform`, scene `DEF`/`USE`,
 `Shape`, planar polygon `IndexedFaceSet`/`Coordinate` data, and Material fields
-with material DEF/USE. Scene references must point to an earlier supported node;
-reused geometry is expanded under its new parent transform and counts against
-shape, vertex and triangle budgets. Nested translation, axis-angle rotation,
+with material DEF/USE. Coordinate and Normal nodes may also use earlier same-file
+`DEF`/`USE` references; forward or unresolved references and cross-kind duplicate
+identifiers are rejected. Reused coordinates/normals are expanded for each shape
+within vertex/vector budgets and receive that shape's parent transform. Scene
+references must point to an earlier supported node; reused geometry is expanded
+under its new parent transform and counts against shape, vertex and triangle
+budgets. Nested translation, axis-angle rotation,
 nonzero scale and center are composed in source order. It preserves local
 source-shape identity, material parameters, source crease angle and solid flags.
 When VRML supplies no explicit Normal node, it derives per-corner normals from
@@ -223,12 +227,12 @@ inverse-transpose matrices through scene and component transforms.
 Unit profiles are explicit: millimetres or ordinary legacy KiCad WRL coordinates
 (0.1 inch = 2.54 mm per unit). No automatic unit inference is performed.
 
-Unknown nodes/fields, `Inline`, textures, explicit supplied normals,
+Unknown nodes/fields, `Inline`, textures, malformed supplied normals,
 non-planar or degenerate polygons, duplicate fields/definitions, invalid indices,
-nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle budgets
-are rejected. Planar polygons are triangulated only when the result preserves
-source winding and projected area. It is a bounded VRML profile, not complete
-VRML97, STEP, or STEP-export support.
+nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle/normal
+budgets are rejected. Planar polygons are triangulated only when the result
+preserves source winding and projected area. It is a bounded VRML profile, not
+complete VRML97, STEP, or STEP-export support.
 The [pinned official resistor](../tests/fixtures/open-source/kicad-resistor-models/README.md)
 is the positive fixture; mathematical negative cases are explicitly synthetic.
 

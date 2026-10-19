@@ -27,7 +27,7 @@ fn explicit_per_vertex_defaults_to_coordinate_indices_independent_of_field_order
     assert_vec(corners[0], [0.0, 0.0, 1.0]);
     assert_vec(corners[1], [0.0, 1.0, 0.0]);
     assert_vec(corners[2], [1.0, 0.0, 0.0]);
-    assert!(mesh.diagnostics[1].contains("Explicit inline VRML97 Normal vectors"));
+    assert!(mesh.diagnostics[1].contains("Coordinate and Normal DEF/USE"));
 }
 
 #[test]

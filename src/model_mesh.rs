@@ -1,7 +1,7 @@
 //! Bounded, original VRML97 reader for Group/Transform/DEF/USE/Shape triangle
-//! and planar polygon IndexedFaceSet meshes, including explicit vertex/face
-//! normals. External resources, STEP, textures, and general VRML evaluation
-//! are unsupported.
+//! and planar polygon IndexedFaceSet meshes, including reusable Coordinate and
+//! Normal nodes and explicit vertex/face normals. External resources, STEP,
+//! textures, and general VRML evaluation are unsupported.
 //! Source coordinates require an explicit unit declaration; output is local millimetres.
 use crate::EngineError;
 use earcut::Earcut;
@@ -116,9 +116,11 @@ fn valid_def_identifier(name: &str) -> bool {
 
 /// Parse only the declared bounded VRML97 profile. Group, Transform, DEF and
 /// USE scene nodes may contain triangle or planar polygon Shape geometry.
-/// Explicit inline Normal vectors are supported for IndexedFaceSet vertices
-/// and faces; unsupported fields/nodes (including Inline, Normal DEF/USE, and
-/// texture data) are errors. This API performs no filesystem or network access.
+/// Explicit Normal vectors are supported for IndexedFaceSet vertices and
+/// faces, including bounded `DEF`/`USE` references. Coordinate and Normal
+/// nodes may be reused by later geometry in the same file. Unsupported
+/// fields/nodes (including Inline and texture data) are errors. This API
+/// performs no filesystem or network access.
 pub fn parse_vrml_mesh(
     input: &[u8],
     units: ModelUnits,
@@ -158,6 +160,8 @@ fn parse_mesh_internal(
         units,
         limits,
         materials: BTreeMap::new(),
+        coordinate_nodes: BTreeMap::new(),
+        normal_nodes: BTreeMap::new(),
         reserved_definition_names: BTreeSet::new(),
         scene_definitions: BTreeMap::new(),
         scene_definition_count: 0,
@@ -177,7 +181,7 @@ fn parse_mesh_internal(
     }
     let diagnostics = vec![
         "Bounded VRML triangle/polygon profile with Group/Transform/DEF/USE scene support; local model geometry is not PCB placement or a complete CAD solid.".into(),
-        "Explicit inline VRML97 Normal vectors and normalIndex mappings are preserved; generated normals honor VRML97 creaseAngle across manifold shared edges when authored normals are absent. Normal DEF/USE and textures remain unsupported.".into(),
+        "VRML97 Coordinate and Normal DEF/USE nodes are expanded within vertex/vector budgets; authored normalIndex mappings are preserved. Generated normals honor creaseAngle across manifold shared edges when authored normals are absent. Textures and external resources remain unsupported.".into(),
     ];
     Ok(ModelMesh {
         source_units: units,
@@ -386,6 +390,8 @@ struct Parser<'a> {
     units: ModelUnits,
     limits: MeshLimits,
     materials: BTreeMap<String, MeshMaterial>,
+    coordinate_nodes: BTreeMap<String, Vec<[f64; 3]>>,
+    normal_nodes: BTreeMap<String, Vec<[f64; 3]>>,
     reserved_definition_names: BTreeSet<String>,
     scene_definitions: BTreeMap<String, SceneDefinition>,
     scene_definition_count: usize,
@@ -899,7 +905,31 @@ impl<'a> Parser<'a> {
         Ok(material)
     }
     fn coordinates(&mut self) -> Result<Vec<[f64; 3]>, EngineError> {
-        self.expect("Coordinate")?;
+        let node = self.take()?;
+        if node == "USE" {
+            let name = self.take()?;
+            let points = self
+                .coordinate_nodes
+                .get(name)
+                .cloned()
+                .ok_or_else(|| fail("undefined Coordinate USE"))?;
+            self.vertices = self
+                .vertices
+                .checked_add(points.len())
+                .filter(|total| *total <= self.limits.max_vertices)
+                .ok_or_else(|| fail("vertex budget exceeded by Coordinate USE"))?;
+            return Ok(points);
+        }
+        let definition = if node == "DEF" {
+            let name = self.take()?.to_owned();
+            self.reserve_geometry_definition(&name)?;
+            self.expect("Coordinate")?;
+            Some(name)
+        } else if node == "Coordinate" {
+            None
+        } else {
+            return Err(fail("coord must be Coordinate, DEF Coordinate, or USE"));
+        };
         self.expect("{")?;
         self.expect("point")?;
         self.expect("[")?;
@@ -920,6 +950,9 @@ impl<'a> Parser<'a> {
             self.vertices += 1;
         }
         self.expect("}")?;
+        if let Some(name) = definition {
+            self.coordinate_nodes.insert(name, positions.clone());
+        }
         Ok(positions)
     }
     fn indices(&mut self) -> Result<Vec<Vec<u32>>, EngineError> {
@@ -971,9 +1004,30 @@ impl<'a> Parser<'a> {
         if node == "NULL" {
             return Ok(None);
         }
-        if node != "Normal" {
-            return Err(fail("normal must be NULL or an inline Normal node"));
+        if node == "USE" {
+            let name = self.take()?;
+            let vectors = self
+                .normal_nodes
+                .get(name)
+                .cloned()
+                .ok_or_else(|| fail("undefined Normal USE"))?;
+            self.normal_vectors = self
+                .normal_vectors
+                .checked_add(vectors.len())
+                .filter(|total| *total <= MAX_NORMAL_VECTORS)
+                .ok_or_else(|| fail("normal vector budget exceeded by Normal USE"))?;
+            return Ok(Some(vectors));
         }
+        let definition = if node == "DEF" {
+            let name = self.take()?.to_owned();
+            self.reserve_geometry_definition(&name)?;
+            self.expect("Normal")?;
+            Some(name)
+        } else if node == "Normal" {
+            None
+        } else {
+            return Err(fail("normal must be NULL, Normal, DEF Normal, or USE"));
+        };
         self.expect("{")?;
         let mut seen = BTreeSet::new();
         let mut vectors = None;
@@ -1005,7 +1059,28 @@ impl<'a> Parser<'a> {
         if vectors.is_empty() {
             return Err(fail("Normal vector field is empty"));
         }
+        if let Some(name) = definition {
+            self.normal_nodes.insert(name, vectors.clone());
+        }
         Ok(Some(vectors))
+    }
+    fn reserve_geometry_definition(&mut self, name: &str) -> Result<(), EngineError> {
+        if !valid_def_identifier(name) {
+            return Err(fail("unsupported geometry DEF identifier"));
+        }
+        if self.reserved_definition_names.contains(name) {
+            return Err(fail("duplicate VRML DEF identifier"));
+        }
+        if self
+            .coordinate_nodes
+            .len()
+            .checked_add(self.normal_nodes.len())
+            .is_none_or(|count| count >= self.limits.max_shapes)
+        {
+            return Err(fail("geometry node definition budget exceeded"));
+        }
+        self.reserved_definition_names.insert(name.to_owned());
+        Ok(())
     }
     fn geometry(&mut self, ordinal: usize) -> Result<ModelMeshPart, EngineError> {
         self.expect("IndexedFaceSet")?;

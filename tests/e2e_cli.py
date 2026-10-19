@@ -538,10 +538,17 @@ def main():
         (explicit_model_root / "explicit-normal.wrl").write_text(
             """#VRML V2.0 utf8
 Shape { geometry IndexedFaceSet {
-  coord Coordinate { point [0 0 0, 1 0 0, 0 1 0, 0 0 1] }
-  coordIndex [0 1 2 -1, 1 0 3 -1, 0 2 3 -1, 2 1 3 -1]
+  coord DEF C Coordinate { point [0 0 0, 1 0 0, 0 1 0, 0 0 1] }
+  coordIndex [0 1 2 -1]
   normalPerVertex TRUE
-  normal Normal { vector [0 0 1, 0 1 0, 1 0 0, 0.577350269 0.577350269 0.577350269] }
+  normal DEF N Normal { vector [0 0 1, 0 1 0, 1 0 0, 0.577350269 0.577350269 0.577350269] }
+  creaseAngle 0
+} }
+Shape { geometry IndexedFaceSet {
+  coord USE C
+  coordIndex [1 0 3 -1]
+  normalPerVertex TRUE
+  normal USE N
   creaseAngle 0
 } }
 """,
@@ -562,10 +569,11 @@ Shape { geometry IndexedFaceSet {
         assert not explicit_report["partialExport"]
         explicit_document = glb_check(explicit_glb)
         explicit_normals = component_triangle_normals(explicit_glb, "ref:R1")
+        assert len(explicit_normals) == 2, "Coordinate/Normal USE must expand both source shapes"
         assert any(
             len({tuple(round(axis, 6) for axis in normal) for normal in triangle}) > 1
             for triangle in explicit_normals
-        ), "authored per-vertex VRML Normal values must remain distinct in GLB with creaseAngle 0"
+        ), "authored Coordinate/Normal DEF/USE values must remain distinct in GLB with creaseAngle 0"
         assert json.loads(invoke(
             binary, "export", "glb", assembly_fixture, "--output", output / "empty-filter.glb",
             "--assemble-wrl", "--project-root", model_root, "--component-filter", "",

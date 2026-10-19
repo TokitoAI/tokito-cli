@@ -4,6 +4,26 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## 2026-10-20 reusable VRML geometry nodes
+
+The bounded reader now accepts earlier same-file `DEF`/`USE` references for
+`Coordinate` and `Normal` nodes. Reused arrays are expanded per consuming shape,
+transformed by that shape's parent transform, and charged against vertex and
+normal-vector limits. Forward/unresolved references, duplicate DEF identifiers
+across node kinds, and budget overflow fail closed. Focused Windows tests cover
+reuse, transforms, identity collisions, unresolved references and expansion
+limits; the subprocess E2E emits a GLB with two selectable component triangles
+from reused geometry and authored normals. An independent code review found no
+parser defect and identified a non-discriminating normal-transform test, which
+has been strengthened to use a normal with both scaled and unscaled axes.
+
+The full local Windows verifier passed all 48 gates with this implementation
+and documentation, using an existing Cargo build cache. This expands one bounded
+VRML input profile. It does not implement all VRML97, STEP tessellation/export,
+independently verified component-to-model identity, complete component geometry,
+or V1 parity. A final receipt for the documentation-inclusive rerun is recorded
+in the current PR and issue checkpoint.
+
 ## 2026-10-20 explicit VRML normal support
 
 The bounded pure-Rust VRML97 reader now supports inline `Normal { vector [...] }`
@@ -14,7 +34,9 @@ bound to the original face/corner. Per-vertex index separators/counts must
 match source faces; per-face mapping accepts exactly one index per source face.
 Input normals must be finite and unit length within a 1e-3 decimal-rounding
 tolerance, then are normalized and transformed with the inverse-transpose
-matrix. Unsupported `Normal` DEF/USE and textures still fail closed.
+matrix. At this checkpoint reusable `Normal` DEF/USE and textures still failed
+closed; reusable coordinate and normal nodes are covered in the newer checkpoint
+above.
 
 Current-source focused Windows checks passed: 8 explicit-normal tests, 12
 component-pose tests (including non-uniform scale), and 24 VRML parser/API

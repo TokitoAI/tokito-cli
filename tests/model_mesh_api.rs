@@ -323,7 +323,7 @@ fn authentic_pinned_kicad_resistor_has_verified_mesh_and_materials() {
     assert!(
         mesh.diagnostics
             .iter()
-            .any(|d| d.contains("honor VRML97 creaseAngle"))
+            .any(|d| d.contains("honor creaseAngle"))
     );
     assert!(mesh.parts.iter().any(|part| {
         part.corner_normals
@@ -412,21 +412,18 @@ fn unsupported_vrml_nodes_fields_and_external_resources_are_rejected() {
     reject(
         &TRIANGLE.replace(
             "coordIndex",
-            "normal DEF N Normal { vector [0 0 1] } coordIndex",
-        ),
-        "inline Normal",
-    );
-    reject(
-        &TRIANGLE.replace(
-            "coordIndex",
             "texCoord TextureCoordinate { point [0 0] } coordIndex",
         ),
         "unsupported",
     );
     reject(&TRIANGLE.replace("IndexedFaceSet", "Box"), "IndexedFaceSet");
     reject(
-        &TRIANGLE.replace("coord Coordinate", "coord DEF C Coordinate"),
-        "Coordinate",
+        &TRIANGLE.replace("coord Coordinate", "coord USE UNKNOWN"),
+        "Coordinate USE",
+    );
+    reject(
+        &TRIANGLE.replace("coordIndex", "normal USE UNKNOWN coordIndex"),
+        "Normal USE",
     );
     reject(
         "#VRML V2.0 utf8\nShape { appearance Appearance { texture ImageTexture {} } }",

@@ -231,8 +231,10 @@ checks. It derives per-corner normals from `creaseAngle` across manifold shared
 edges and transforms them with the required inverse-transpose normal matrix.
 Inline `Normal { vector [...] }` data is also preserved for per-vertex and
 per-face `IndexedFaceSet` shading, including `normalIndex`; vectors must be
-unit length within a bounded input-rounding tolerance. `Normal` DEF/USE and
-textures remain unsupported. `--component-filter` accepts case-sensitive
+unit length within a bounded input-rounding tolerance. `Coordinate` and
+`Normal` DEF/USE references to earlier same-file nodes are supported;
+expansion is charged against the existing geometry budgets.
+Textures remain unsupported. `--component-filter` accepts case-sensitive
 comma-separated reference patterns with `*` and `?`; empty list items are
 ignored and a no-match pattern produces a board-only export. Filter selection
 has a board-wide work budget and happens before model paths are resolved. Tokito

@@ -9,6 +9,23 @@ retains known failures; the opt-in model-14 repair has independent
 sampled-comparison evidence. The model-16 rational-spline candidate remains
 rejected, and general STEP admission is blocked.
 
+## Reusable VRML geometry-node checkpoint (2026-10-20)
+
+- [x] Accept earlier same-file `Coordinate` and `Normal` `DEF`/`USE` nodes in
+  the bounded VRML reader, expanding each reference with the consuming shape's
+  transform and charging it against vertex/vector budgets.
+- [x] Reject forward/unresolved references, duplicate names across node kinds,
+  and reuse that exceeds limits.
+- [x] Add focused parser tests and exercise the reused nodes through actual
+  selectable component GLB output in the CLI subprocess E2E.
+- [x] Run the documentation-inclusive full Windows verifier: all 48 gates pass
+  on Windows using the existing Cargo cache. The current-source receipt is
+  recorded in the PR/issue checkpoint.
+
+This fills one reusable-node gap in the VRML profile. STEP import/export,
+complete and physically qualified component models, KiCad CLI and library
+parity, installation qualification, and V1 remain open. No release is claimed.
+
 ## Canonical shared-boundary patch (2026-10-19)
 
 Implemented a source-pinned two-face open mesh with canonical physical boundary
