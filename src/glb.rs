@@ -596,6 +596,8 @@ pub(crate) fn export_assigned_board_assembly(
                 source_ordinal: item.component_source.ordinal,
                 source_asset_sha256: item.source_asset_sha256.clone(),
                 source_asset_format: item.source_asset_format.clone(),
+                translation_m: item.translation_m,
+                step_precision_dropped_triangle_count: item.step_precision_dropped_triangle_count,
                 geometry_diagnostics: item.mesh.diagnostics.clone(),
                 model_source_ordinal: item.manifest_entry_index,
                 assignment_origin: Some((
@@ -712,6 +714,8 @@ struct ComponentMesh {
     source_ordinal: usize,
     source_asset_sha256: String,
     source_asset_format: String,
+    translation_m: Option<[f64; 3]>,
+    step_precision_dropped_triangle_count: usize,
     geometry_diagnostics: Vec<String>,
     model_source_ordinal: usize,
     assignment_origin: Option<(String, usize)>,
@@ -734,6 +738,8 @@ fn component_meshes(
                 source_ordinal: emitted.component_source.ordinal,
                 source_asset_sha256: emitted.source_asset_sha256.clone(),
                 source_asset_format: "wrl".to_owned(),
+                translation_m: None,
+                step_precision_dropped_triangle_count: 0,
                 geometry_diagnostics: Vec::new(),
                 model_source_ordinal: emitted.model_source.ordinal,
                 assignment_origin: None,
@@ -787,7 +793,13 @@ fn mesh_from_component_part(
             ],
             part.corner_normals[triangle_index],
             face_normal,
-        )?;
+        )
+        .map_err(|error| {
+            EngineError::new(format!(
+                "shape {} triangle {triangle_index}: {error}",
+                part.source_shape_ordinal
+            ))
+        })?;
     }
     mesh_from_vectors(positions, normals)
 }
@@ -817,11 +829,12 @@ fn push_face_with_corner_normals(
     for (corner, point) in points.iter().enumerate() {
         for axis in 0..3 {
             let value = point[axis] as f32;
-            if !value.is_finite() || (value as f64 - point[axis]).abs() > MAX_FLOAT_POSITION_ERROR_M
-            {
-                return Err(EngineError::new(
-                    "position cannot meet the GLB f32 quantization error budget",
-                ));
+            let delta = (value as f64 - point[axis]).abs();
+            if !value.is_finite() || delta > MAX_FLOAT_POSITION_ERROR_M {
+                return Err(EngineError::new(format!(
+                    "f32 position error {delta:.9e} m exceeds {:.9e} m at corner {corner} axis {axis}",
+                    MAX_FLOAT_POSITION_ERROR_M
+                )));
             }
             quantized[corner][axis] = value as f64;
         }
@@ -836,9 +849,10 @@ fn push_face_with_corner_normals(
         .map(|(left, right)| left * right)
         .sum::<f64>();
     if !emitted_dot.is_finite() || emitted_dot <= 0.0 {
-        return Err(EngineError::new(
-            "f32 position quantization collapsed or inverted a mesh face",
-        ));
+        return Err(EngineError::new(format!(
+            "f32 quantization collapsed or inverted a face (source dot {:.9e}, emitted dot {:.9e})",
+            face_dot, emitted_dot
+        )));
     }
     for normal in &mut corner_normals {
         let length = normal[0].hypot(normal[1]).hypot(normal[2]);
@@ -1690,6 +1704,140 @@ pub(crate) fn validate_component_mesh_for_glb(
     Ok(())
 }
 
+/// Drop only STEP tessellation faces that become degenerate in GLB float32
+/// after component-local vertices and node translation are quantized and
+/// composed. Only faces whose minimum altitude is at most twice the declared
+/// per-axis position-error budget may be omitted; larger collapsed faces fail
+/// closed. The caller records the returned count in export provenance.
+pub(crate) fn filter_step_faces_below_glb_precision(
+    mesh: &mut crate::component_pose::PlacedModelMesh,
+    node_translation_m: [f64; 3],
+) -> Result<usize, EngineError> {
+    let node_translation_f32 = node_translation_m.map(|value| value as f32);
+    for axis in 0..3 {
+        let source = node_translation_m[axis];
+        let emitted = node_translation_f32[axis];
+        let error = (emitted as f64 - source).abs();
+        if !source.is_finite() || !emitted.is_finite() || error > MAX_FLOAT_POSITION_ERROR_M {
+            return Err(EngineError::new(format!(
+                "STEP node translation error {error:.9e} m exceeds the GLB f32 budget on axis {axis}"
+            )));
+        }
+    }
+    let mut dropped_total = 0usize;
+    for part in &mut mesh.parts {
+        if part.corner_normals.len() != part.triangles.len()
+            || part.flat_normals.len() != part.triangles.len()
+        {
+            return Err(EngineError::new(
+                "STEP mesh has inconsistent per-triangle normal data",
+            ));
+        }
+        let mut triangles = Vec::with_capacity(part.triangles.len());
+        let mut flat_normals = Vec::with_capacity(part.flat_normals.len());
+        let mut corner_normals = Vec::with_capacity(part.corner_normals.len());
+        for (triangle_index, triangle) in part.triangles.iter().copied().enumerate() {
+            let point = |index: u32| {
+                part.positions_m
+                    .get(index as usize)
+                    .copied()
+                    .ok_or_else(|| {
+                        EngineError::new("STEP mesh triangle index is outside its vertex array")
+                    })
+            };
+            let points = [
+                point(triangle[0])?,
+                point(triangle[1])?,
+                point(triangle[2])?,
+            ];
+            let source_cross = cross3(sub3(points[1], points[0]), sub3(points[2], points[0]));
+            let expected = part.flat_normals[triangle_index];
+            let source_dot = source_cross
+                .iter()
+                .zip(expected)
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            if !source_dot.is_finite() || source_dot <= 0.0 {
+                return Err(EngineError::new(format!(
+                    "STEP shape {} triangle {triangle_index} is degenerate or misoriented before GLB quantization",
+                    part.source_shape_ordinal
+                )));
+            }
+            let mut quantized_world = [[0.0f64; 3]; 3];
+            for (corner, point) in points.iter().enumerate() {
+                for axis in 0..3 {
+                    let value = point[axis] as f32;
+                    let delta = (value as f64 - point[axis]).abs();
+                    if !value.is_finite() || delta > MAX_FLOAT_POSITION_ERROR_M {
+                        return Err(EngineError::new(format!(
+                            "STEP shape {} triangle {triangle_index} f32 position error {delta:.9e} m exceeds the GLB budget",
+                            part.source_shape_ordinal
+                        )));
+                    }
+                    let world_emitted = value + node_translation_f32[axis];
+                    quantized_world[corner][axis] = world_emitted as f64;
+                    let world_source = point[axis] + node_translation_m[axis];
+                    let world_error = (world_emitted as f64 - world_source).abs();
+                    if !world_error.is_finite() || world_error > MAX_FLOAT_POSITION_ERROR_M {
+                        return Err(EngineError::new(format!(
+                            "STEP composed world-space f32 error {world_error:.9e} m exceeds {:.9e} m at triangle {triangle_index} corner {corner} axis {axis}",
+                            MAX_FLOAT_POSITION_ERROR_M
+                        )));
+                    }
+                }
+            }
+            let quantized_cross = cross3(
+                sub3(quantized_world[1], quantized_world[0]),
+                sub3(quantized_world[2], quantized_world[0]),
+            );
+            let quantized_dot = quantized_cross
+                .iter()
+                .zip(expected)
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            if !quantized_dot.is_finite() || quantized_dot <= 0.0 {
+                let edge_lengths = [
+                    distance3(points[0], points[1]),
+                    distance3(points[1], points[2]),
+                    distance3(points[2], points[0]),
+                ];
+                let longest_edge = edge_lengths.into_iter().fold(0.0, f64::max);
+                let cross_length = source_cross
+                    .iter()
+                    .map(|value| value * value)
+                    .sum::<f64>()
+                    .sqrt();
+                let minimum_altitude = cross_length / longest_edge;
+                if !minimum_altitude.is_finite()
+                    || minimum_altitude > 2.0 * MAX_FLOAT_POSITION_ERROR_M
+                {
+                    return Err(EngineError::new(format!(
+                        "STEP shape {} triangle {triangle_index} collapses in GLB float32 but its minimum altitude {minimum_altitude:.9e} m exceeds the bounded omission threshold",
+                        part.source_shape_ordinal
+                    )));
+                }
+                dropped_total = dropped_total
+                    .checked_add(1)
+                    .ok_or_else(|| EngineError::new("STEP dropped-face counter overflow"))?;
+                continue;
+            }
+            triangles.push(triangle);
+            flat_normals.push(expected);
+            corner_normals.push(part.corner_normals[triangle_index]);
+        }
+        if triangles.is_empty() {
+            return Err(EngineError::new(format!(
+                "STEP shape {} has no faces representable in GLB float32",
+                part.source_shape_ordinal
+            )));
+        }
+        part.triangles = triangles;
+        part.flat_normals = flat_normals;
+        part.corner_normals = corner_normals;
+    }
+    Ok(dropped_total)
+}
+
 fn push_face(
     positions: &mut Vec<f32>,
     normals: &mut Vec<f32>,
@@ -1759,6 +1907,10 @@ fn cross3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
 }
 fn sub3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
+}
+fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
+    let delta = sub3(a, b);
+    delta[0].hypot(delta[1]).hypot(delta[2])
 }
 
 fn gltf_document(
@@ -1982,6 +2134,12 @@ fn gltf_assembly_document(
                 "component mesh group contains conflicting source identities",
             ));
         }
+        let translation_m = first.translation_m;
+        if parts.iter().any(|part| part.translation_m != translation_m) {
+            return Err(EngineError::new(
+                "component mesh parts have conflicting node translations",
+            ));
+        }
         let mut primitives = Vec::with_capacity(parts.len());
         for component in parts.iter().copied() {
             let material = projected_source_material(
@@ -2017,7 +2175,7 @@ fn gltf_assembly_document(
             "primitives": primitives
         }));
         let selector_node = nodes.len();
-        nodes.push(json!({
+        let mut selector = json!({
             "name": format!("ref:{reference}"),
             "mesh": mesh_index,
             "extras": { "tokito": {
@@ -2027,7 +2185,19 @@ fn gltf_assembly_document(
                 "componentSourceOrdinal": source_ordinal,
                 "selectable": true
             }}
-        }));
+        });
+        if let Some(translation) = translation_m {
+            let quantized = translation.map(|value| value as f32);
+            if translation.iter().zip(quantized).any(|(source, output)| {
+                !output.is_finite() || (output as f64 - source).abs() > MAX_FLOAT_POSITION_ERROR_M
+            }) {
+                return Err(EngineError::new(
+                    "component node translation exceeds the GLB f32 error budget",
+                ));
+            }
+            selector["translation"] = json!(quantized);
+        }
+        nodes.push(selector);
         scene_nodes.push(selector_node);
     }
     let bin_len = byte_offset;
@@ -2122,6 +2292,13 @@ fn component_primitive_provenance(component: &ComponentMesh) -> Value {
     if component.source_asset_format != "wrl" {
         value["tokito"]["sourceAssetFormat"] = json!(component.source_asset_format);
         value["tokito"]["geometryDiagnostics"] = json!(component.geometry_diagnostics);
+    }
+    if component.translation_m.is_some() {
+        value["tokito"]["meshCoordinateFrame"] = json!("component_local_glb_metres");
+    }
+    if component.step_precision_dropped_triangle_count > 0 {
+        value["tokito"]["stepPrecisionDroppedTriangleCount"] =
+            json!(component.step_precision_dropped_triangle_count);
     }
     if let Some((manifest, index)) = &component.assignment_origin {
         value["tokito"]["manifestSha256"] = json!(manifest);
@@ -2565,6 +2742,125 @@ mod tests {
         let error =
             export_board_shell(&b, true).expect_err("large coordinates lose mesh precision");
         assert!(error.to_string().contains("f32 position-error budget"));
+    }
+
+    #[test]
+    fn step_precision_filter_omits_only_subresolution_collapsed_faces() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 3,
+                positions_m: vec![
+                    [0.0, 0.0, 0.0],
+                    [0.001, 0.0, 0.0],
+                    [0.0, 0.001, 0.0],
+                    [0.001, 0.001, 0.0],
+                    [0.001 + 1e-12, 0.001, 0.0],
+                    [0.001, 0.001 + 1e-12, 0.0],
+                ],
+                triangles: vec![[0, 1, 2], [3, 4, 5]],
+                flat_normals: vec![[0.0, 0.0, 1.0]; 2],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]; 2],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: true,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        assert_eq!(
+            filter_step_faces_below_glb_precision(&mut mesh, [0.0; 3])
+                .expect("only the collapsed micro-face is omitted"),
+            1
+        );
+        assert_eq!(mesh.parts[0].triangles, vec![[0, 1, 2]]);
+        assert_eq!(mesh.parts[0].flat_normals.len(), 1);
+        assert_eq!(mesh.parts[0].corner_normals.len(), 1);
+        validate_component_mesh_for_glb(&mesh)
+            .expect("remaining STEP faces meet GLB float32 checks");
+    }
+
+    #[test]
+    fn step_precision_filter_rejects_faces_outside_position_error_budget() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 8,
+                positions_m: vec![
+                    [1000.0, 0.0, 0.0],
+                    [1000.001, 0.0, 0.0],
+                    [1000.0, 0.001, 0.0],
+                ],
+                triangles: vec![[0, 1, 2]],
+                flat_normals: vec![[0.0, 0.0, 1.0]],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: true,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        let error = filter_step_faces_below_glb_precision(&mut mesh, [0.0; 3])
+            .expect_err("a measurable f32 position loss must fail closed");
+        assert!(error.to_string().contains("f32 position error"));
+        assert_eq!(mesh.parts[0].triangles.len(), 1);
+    }
+
+    #[test]
+    fn step_precision_filter_bounds_composed_world_space_error() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 9,
+                positions_m: vec![
+                    [16.0000008, 0.0, 0.0],
+                    [16.002, 0.0, 0.0],
+                    [16.0000008, 0.002, 0.0],
+                ],
+                triangles: vec![[0, 1, 2]],
+                flat_normals: vec![[0.0, 0.0, 1.0]],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: false,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        let error = filter_step_faces_below_glb_precision(&mut mesh, [16.0000008, 0.0, 0.0])
+            .expect_err(
+                "combined local-position and node rounding must stay within the world budget",
+            );
+        assert!(error.to_string().contains("composed world-space f32 error"));
+    }
+
+    #[test]
+    fn step_precision_filter_omits_faces_that_collapse_after_node_translation() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 10,
+                positions_m: vec![
+                    [0.0, 0.0, 0.0],
+                    [0.0000005, 0.0, 0.0],
+                    [0.0, 0.001, 0.0],
+                    [0.002, 0.002, 0.0],
+                    [0.003, 0.002, 0.0],
+                    [0.002, 0.003, 0.0],
+                ],
+                triangles: vec![[0, 1, 2], [3, 4, 5]],
+                flat_normals: vec![[0.0, 0.0, 1.0]; 2],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]; 2],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: false,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        assert_eq!(
+            filter_step_faces_below_glb_precision(&mut mesh, [16.0000002, 0.0, 0.0])
+                .expect("only the face collapsed by the composed node transform is omitted"),
+            1
+        );
+        assert_eq!(mesh.parts[0].triangles, vec![[3, 4, 5]]);
     }
 
     #[test]

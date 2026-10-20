@@ -103,15 +103,21 @@ def main(binary: Path) -> None:
         assert set(selectors) == {"ref:R1", "ref:R2"}
         for entry_index, reference in enumerate(("R1", "R2")):
             assert selectors[f"ref:{reference}"]["extras"]["tokito"]["componentUuid"] == identities[reference]
+            assert selectors[f"ref:{reference}"]["extras"]["tokito"]["selectable"] is True
+            translation = selectors[f"ref:{reference}"].get("translation", [0.0, 0.0, 0.0])
             primitive = document["meshes"][selectors[f"ref:{reference}"]["mesh"]]["primitives"][0]
             provenance = primitive["extras"]["tokito"]
+            assert provenance["meshCoordinateFrame"] == "component_local_glb_metres"
             assert provenance["sourceAssetSha256"] == sha256(step_path)
             assert provenance["sourceAssetFormat"] == "step"
             assert provenance["manifestSha256"] == sha256(manifest_path)
             assert provenance["manifestEntryIndex"] == entry_index
             assert any("unverified" in item for item in provenance["geometryDiagnostics"])
             values = accessor_floats(document, payload, primitive["attributes"]["POSITION"])
-            points = list(zip(*[iter(values)] * 3))
+            points = [
+                tuple(values[index + axis] + translation[axis] for axis in range(3))
+                for index in range(0, len(values), 3)
+            ]
             actual_min, actual_max = bounds(points)
             if reference == "R1":
                 expected_min = (-0.002, 0.00085, 0.0)
@@ -170,6 +176,7 @@ def main(binary: Path) -> None:
         }
         assert set(wrl_selectors) == {"ref:R1", "ref:R2"}
         for selector in wrl_selectors.values():
+            assert "translation" not in selector
             primitive = wrl_document["meshes"][selector["mesh"]]["primitives"][0]
             provenance = primitive["extras"]["tokito"]
             assert provenance["selectable"] is False

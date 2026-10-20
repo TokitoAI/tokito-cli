@@ -67,6 +67,19 @@ component remains selectable by its actual PCB reference and UUID; STEP internal
 occurrence names do not replace those board identities. Candidate geometry is
 available only through the explicit `--allow-partial` export path.
 
+STEP meshes are stored in component-local GLB metres, with the source board
+pose carried by the ref:<reference> node translation. This avoids baking a
+large board translation into every float32 vertex. The serialized local
+vertices and node translation are checked together so their composed
+world-space coordinates remain within the 1 micrometre GLB f32 error budget.
+If quantization collapses or reverses a STEP tessellation face, Tokito omits
+that face only when its minimum altitude is at most 2 micrometres; larger
+losses reject the entire component. Omitted-face counts and the rendering
+limitation are recorded in the assignment report and primitive provenance,
+and the affected mesh is rendered two-sided. This is a bounded display repair,
+not topology repair: sub-resolution gaps may remain and physical qualification
+stays false.
+
 Explicit `not-fitted` and `no-part-to-order` claims exclude bodies but remain in
 the per-component report. Claims are not verified population evidence. Unassigned,
 anonymous, placeholder and unresolved records remain visible. Reports are bounded
@@ -85,11 +98,16 @@ The subprocess tests independently decode GLB positions, check hand-calculated
 front/back poses and manifest provenance, exercise a real pinned KiCad resistor
 body, and verify population exclusions and hash/board refusal paths. STEP
 fixtures check declared-unit conversion, top/back placement, exact reference/UUID
-selectors, a single planar OPEN_SHELL B-rep face, missing-unit refusal, and
-preservation of the established WRL verification-report fields. The OPEN_SHELL
+selectors, local-space node transforms, bounded omission of float32-collapsed
+micro-faces, a single planar OPEN_SHELL B-rep face, missing-unit refusal, and
+preservation of the established WRL verification-report fields. The optional
+tests/step_dataset_e2e.py additionally runs one explicitly unqualified STEP
+candidate from a hash-matched dataset checkout, then decodes its GLB selector,
+UUID, asset digest, world bounds, float32-composed triangle nondegeneracy and
+incomplete-status receipt. The OPEN_SHELL
 fixture proves only that this planar face can be tessellated; it is not a closed
-solid. Neither fixture is evidence that any dataset component matches its
-assigned model or that the imported geometry is physically complete.
+solid. Dataset evidence does not prove native source-model equivalence or
+physical fit.
 Existing component-pose tests cover nonzero local transforms and signed-scale
 winding. Actual dataset templates are inventory evidence only until real model
 assignments and independent engineering comparisons are provided.
