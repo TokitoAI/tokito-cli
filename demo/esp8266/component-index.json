@@ -10,7 +10,17 @@
   "componentCount": 34,
   "components": [
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 1,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -20,10 +30,21 @@
         1
       ],
       "selector": "ref:C2",
-      "selectorNodeIndex": 1
+      "selectorNodeIndex": 1,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -33,10 +54,21 @@
         2
       ],
       "selector": "ref:C4",
-      "selectorNodeIndex": 2
+      "selectorNodeIndex": 2,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -46,10 +78,21 @@
         3
       ],
       "selector": "ref:C5",
-      "selectorNodeIndex": 3
+      "selectorNodeIndex": 3,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -59,10 +102,21 @@
         4
       ],
       "selector": "ref:C6",
-      "selectorNodeIndex": 4
+      "selectorNodeIndex": 4,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "diode_or_led",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 4,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -72,10 +126,21 @@
         5
       ],
       "selector": "ref:D1",
-      "selectorNodeIndex": 5
+      "selectorNodeIndex": 5,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "connector",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -85,10 +150,21 @@
         6
       ],
       "selector": "ref:J1",
-      "selectorNodeIndex": 6
+      "selectorNodeIndex": 6,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "connector",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -98,10 +174,21 @@
         7
       ],
       "selector": "ref:J2",
-      "selectorNodeIndex": 7
+      "selectorNodeIndex": 7,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "diode_or_led",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -111,10 +198,21 @@
         8
       ],
       "selector": "ref:LED1",
-      "selectorNodeIndex": 8
+      "selectorNodeIndex": 8,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -124,10 +222,21 @@
         9
       ],
       "selector": "ref:R9",
-      "selectorNodeIndex": 9
+      "selectorNodeIndex": 9,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -137,10 +246,21 @@
         10
       ],
       "selector": "ref:R3",
-      "selectorNodeIndex": 10
+      "selectorNodeIndex": 10,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -150,10 +270,21 @@
         11
       ],
       "selector": "ref:R11",
-      "selectorNodeIndex": 11
+      "selectorNodeIndex": 11,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -163,10 +294,21 @@
         12
       ],
       "selector": "ref:R1",
-      "selectorNodeIndex": 12
+      "selectorNodeIndex": 12,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -176,10 +318,21 @@
         13
       ],
       "selector": "ref:R2",
-      "selectorNodeIndex": 13
+      "selectorNodeIndex": 13,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -189,10 +342,21 @@
         14
       ],
       "selector": "ref:R5",
-      "selectorNodeIndex": 14
+      "selectorNodeIndex": 14,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -202,10 +366,21 @@
         15
       ],
       "selector": "ref:R12",
-      "selectorNodeIndex": 15
+      "selectorNodeIndex": 15,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -215,10 +390,21 @@
         16
       ],
       "selector": "ref:R13",
-      "selectorNodeIndex": 16
+      "selectorNodeIndex": 16,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -228,10 +414,21 @@
         17
       ],
       "selector": "ref:C3",
-      "selectorNodeIndex": 17
+      "selectorNodeIndex": 17,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -241,10 +438,21 @@
         18
       ],
       "selector": "ref:R14",
-      "selectorNodeIndex": 18
+      "selectorNodeIndex": 18,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -254,10 +462,21 @@
         19
       ],
       "selector": "ref:R6",
-      "selectorNodeIndex": 19
+      "selectorNodeIndex": 19,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "switch",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 1,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -267,10 +486,21 @@
         20
       ],
       "selector": "ref:S1",
-      "selectorNodeIndex": 20
+      "selectorNodeIndex": 20,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "switch",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 1,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -280,10 +510,21 @@
         21
       ],
       "selector": "ref:S2",
-      "selectorNodeIndex": 21
+      "selectorNodeIndex": 21,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "integrated_circuit",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -293,10 +534,21 @@
         22
       ],
       "selector": "ref:U1",
-      "selectorNodeIndex": 22
+      "selectorNodeIndex": 22,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "integrated_circuit",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 8,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -306,10 +558,21 @@
         23
       ],
       "selector": "ref:U3",
-      "selectorNodeIndex": 23
+      "selectorNodeIndex": 23,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -319,10 +582,21 @@
         24
       ],
       "selector": "ref:R7",
-      "selectorNodeIndex": 24
+      "selectorNodeIndex": 24,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -332,10 +606,15 @@
         25
       ],
       "selector": "ref:R8",
-      "selectorNodeIndex": 25
+      "selectorNodeIndex": 25,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": null,
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -345,10 +624,15 @@
         26
       ],
       "selector": "ref:VT1",
-      "selectorNodeIndex": 26
+      "selectorNodeIndex": 26,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": null,
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -358,10 +642,21 @@
         27
       ],
       "selector": "ref:VT2",
-      "selectorNodeIndex": 27
+      "selectorNodeIndex": 27,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -371,10 +666,21 @@
         28
       ],
       "selector": "ref:R10",
-      "selectorNodeIndex": 28
+      "selectorNodeIndex": 28,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -384,10 +690,21 @@
         29
       ],
       "selector": "ref:C1",
-      "selectorNodeIndex": 29
+      "selectorNodeIndex": 29,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "resistor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -397,10 +714,21 @@
         30
       ],
       "selector": "ref:R4",
-      "selectorNodeIndex": 30
+      "selectorNodeIndex": 30,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "integrated_circuit",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 1277,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -410,10 +738,21 @@
         31
       ],
       "selector": "ref:U2",
-      "selectorNodeIndex": 31
+      "selectorNodeIndex": 31,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -423,10 +762,21 @@
         32
       ],
       "selector": "ref:C7",
-      "selectorNodeIndex": 32
+      "selectorNodeIndex": 32,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "capacitor",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -436,10 +786,21 @@
         33
       ],
       "selector": "ref:C8",
-      "selectorNodeIndex": 33
+      "selectorNodeIndex": 33,
+      "sourceDesignClaims": null
     },
     {
+      "assemblyStateClaim": null,
+      "categoryClaim": null,
       "componentClassClaim": null,
+      "componentClassHint": {
+        "basis": "reference_designator_prefix",
+        "selectionEligible": false,
+        "sourceFields": [],
+        "value": "integrated_circuit",
+        "verified": false
+      },
+      "degenerateTrianglesOmitted": 0,
       "modelAvailable": true,
       "modelQualityClaim": "source_step_candidate_pose_surface_unqualified",
       "needs3dBody": true,
@@ -449,7 +810,8 @@
         34
       ],
       "selector": "ref:U4",
-      "selectorNodeIndex": 34
+      "selectorNodeIndex": 34,
+      "sourceDesignClaims": null
     }
   ],
   "directRenderableSelectors": 34,

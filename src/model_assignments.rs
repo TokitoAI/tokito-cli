@@ -18,11 +18,27 @@ pub const MAX_FIELD_BYTES: usize = 4096;
 const MAX_AGGREGATE_ASSET_BYTES: usize = 128 * 1024 * 1024;
 const SCHEMA: &str = "tokito.model-assignments.v1";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AssignedModelUnits {
+    Millimetres,
+    KiCadLegacyWrlDeciinch,
+    StepDeclared,
+}
+impl AssignedModelUnits {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Millimetres => "millimetres",
+            Self::KiCadLegacyWrlDeciinch => "kicad-wrl",
+            Self::StepDeclared => "step-declared",
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct AssignedModel {
     path: String,
     asset_sha256: String,
-    units: ModelUnits,
+    units: AssignedModelUnits,
     transform: ModelTransformMm,
 }
 impl AssignedModel {
@@ -32,7 +48,7 @@ impl AssignedModel {
     pub fn asset_sha256(&self) -> &str {
         &self.asset_sha256
     }
-    pub fn units(&self) -> ModelUnits {
+    pub fn units(&self) -> AssignedModelUnits {
         self.units
     }
     pub fn transform(&self) -> ModelTransformMm {
@@ -101,6 +117,8 @@ pub struct ValidatedAssignment {
     asset: Option<Arc<ResolvedModelAsset>>,
     status: String,
     supported_geometry: bool,
+    source_unit_metres: Option<f64>,
+    geometry_diagnostics: Vec<String>,
 }
 impl ValidatedAssignment {
     pub fn assignment(&self) -> &ModelAssignment {
@@ -112,9 +130,16 @@ impl ValidatedAssignment {
     pub fn status(&self) -> &str {
         &self.status
     }
-    /// Means the bounded WRL parser accepted the asset, never physical equivalence.
+    /// Means the format-specific bounded reader produced candidate geometry,
+    /// never physical equivalence or engineering qualification.
     pub fn supported_geometry(&self) -> bool {
         self.supported_geometry
+    }
+    pub fn source_unit_metres(&self) -> Option<f64> {
+        self.source_unit_metres
+    }
+    pub fn geometry_diagnostics(&self) -> &[String] {
+        &self.geometry_diagnostics
     }
 }
 #[derive(Clone, Debug)]
@@ -136,19 +161,22 @@ impl ValidatedModelAssignments {
     pub fn report(&self) -> Value {
         let rows:Vec<_>=self.assignments.iter().map(|row|{
             let entry=&row.assignment;let model=entry.model();let asset=row.asset();
-            json!({"sourceComponentOrdinal":entry.component_ordinal(),"componentUuid":entry.component_uuid(),"reference":entry.reference(),"populationClaim":entry.population(),"populationVerified":false,"evidenceClaim":entry.evidence(),"status":row.status(),"assetResolved":asset.is_some(),"assetSha256":asset.map(ResolvedModelAsset::sha256),"assetFormat":asset.map(|a|a.format().as_str()),"supportedGeometry":row.supported_geometry(),"modelUnitsClaim":model.map(|m|units_name(m.units())),"localTransformClaim":model.map(|m|json!({"scale":m.transform().scale,"rotationDeg":m.transform().rotation_deg,"offsetMm":m.transform().offset_mm})),"modelPhysicalMatchVerified":false,"placementVerified":false,"boardRevisionMatchVerified":false})
+            let mut result = json!({"sourceComponentOrdinal":entry.component_ordinal(),"componentUuid":entry.component_uuid(),"reference":entry.reference(),"populationClaim":entry.population(),"populationVerified":false,"evidenceClaim":entry.evidence(),"status":row.status(),"assetResolved":asset.is_some(),"assetSha256":asset.map(ResolvedModelAsset::sha256),"assetFormat":asset.map(|a|a.format().as_str()),"supportedGeometry":row.supported_geometry(),"modelUnitsClaim":model.map(|m|m.units().as_str()),"localTransformClaim":model.map(|m|json!({"scale":m.transform().scale,"rotationDeg":m.transform().rotation_deg,"offsetMm":m.transform().offset_mm})),"modelPhysicalMatchVerified":false,"placementVerified":false,"boardRevisionMatchVerified":false});
+            // Keep the established WRL verification schema stable. These
+            // diagnostics describe the new STEP reader only and are additive
+            // exclusively for STEP assets.
+            if asset.is_some_and(|asset| asset.format() == ModelAssetFormat::Step) {
+                let object = result.as_object_mut().expect("json! creates an object");
+                object.insert("sourceUnitMetres".into(), json!(row.source_unit_metres()));
+                object.insert("geometryDiagnostics".into(), json!(row.geometry_diagnostics()));
+            }
+            result
         }).collect();
         json!({"schema":"tokito.model-assignment-validation.v1","sourceBoardSha256":self.source_board_sha256,"manifestSha256":self.manifest_sha256,"entryCount":rows.len(),"assignedModelCount":self.assignments.iter().filter(|a|a.assignment.model.is_some()).count(),"resolvedAssetCount":self.assignments.iter().filter(|a|a.asset.is_some()).count(),"supportedGeometryCount":self.assignments.iter().filter(|a|a.supported_geometry).count(),"assignments":rows,"sourceIdentityBound":true,"physicalQualificationVerified":false,"modelPhysicalMatchVerified":false,"placementVerified":false,"boardRevisionMatchVerified":false,"maxAggregateAssetBytes":MAX_AGGREGATE_ASSET_BYTES})
     }
 }
 fn fail(message: impl Into<String>) -> EngineError {
     EngineError::new(message)
-}
-fn units_name(units: ModelUnits) -> &'static str {
-    match units {
-        ModelUnits::Millimetres => "millimetres",
-        ModelUnits::KiCadLegacyWrlDeciinch => "kicad-wrl",
-    }
 }
 fn keys(value: &Value, expected: &[&str]) -> Result<(), EngineError> {
     let object = value
@@ -293,8 +321,9 @@ pub fn parse_model_assignments(bytes: &[u8]) -> Result<ModelAssignmentsDocument,
             }
             let asset_sha256 = hash(&row["model"]["sha256"])?;
             let units = match row["model"]["units"].as_str() {
-                Some("millimetres") => ModelUnits::Millimetres,
-                Some("kicad-wrl") => ModelUnits::KiCadLegacyWrlDeciinch,
+                Some("millimetres") => AssignedModelUnits::Millimetres,
+                Some("kicad-wrl") => AssignedModelUnits::KiCadLegacyWrlDeciinch,
+                Some("step-declared") => AssignedModelUnits::StepDeclared,
                 _ => return Err(fail("assigned model units must be explicitly supported")),
             };
             let transform = ModelTransformMm {
@@ -437,6 +466,8 @@ pub fn validate_model_assignments(
                 asset: None,
                 status: "unassigned".into(),
                 supported_geometry: false,
+                source_unit_metres: None,
+                geometry_diagnostics: Vec::new(),
             });
             continue;
         };
@@ -453,6 +484,8 @@ pub fn validate_model_assignments(
                     asset: None,
                     status: "asset_resolution_failed".into(),
                     supported_geometry: false,
+                    source_unit_metres: None,
+                    geometry_diagnostics: Vec::new(),
                 });
                 continue;
             }
@@ -460,27 +493,89 @@ pub fn validate_model_assignments(
         if asset.sha256() != model.asset_sha256() {
             return Err(fail("assigned asset SHA256 conflicts with captured bytes"));
         }
-        if asset.bytes().len() > MeshLimits::default().max_bytes {
+        let asset_cap = match asset.format() {
+            ModelAssetFormat::Step => crate::step_geometry::MAX_STEP_BYTES,
+            ModelAssetFormat::Wrl | ModelAssetFormat::Glb | ModelAssetFormat::Gltf => {
+                MeshLimits::default().max_bytes
+            }
+        };
+        if asset.bytes().len() > asset_cap {
             return Err(fail("assigned asset exceeds supported bounded capture cap"));
         }
         aggregate = aggregate
             .checked_add(asset.bytes().len())
             .filter(|v| *v <= MAX_AGGREGATE_ASSET_BYTES)
             .ok_or_else(|| fail("aggregate assignment asset byte cap exceeded"))?;
-        let (supported_geometry, status) = if asset.format() == ModelAssetFormat::Wrl {
-            if parse_vrml_mesh(asset.bytes(), model.units(), MeshLimits::default()).is_ok() {
-                (true, "resolved_supported_wrl")
-            } else {
-                (false, "resolved_geometry_rejected")
-            }
-        } else {
-            (false, "resolved_unsupported_production_geometry")
-        };
+        let (supported_geometry, status, source_unit_metres, geometry_diagnostics) =
+            match (asset.format(), model.units()) {
+                (ModelAssetFormat::Wrl, AssignedModelUnits::Millimetres) => {
+                    let parsed = parse_vrml_mesh(
+                        asset.bytes(),
+                        ModelUnits::Millimetres,
+                        MeshLimits::default(),
+                    );
+                    (
+                        parsed.is_ok(),
+                        if parsed.is_ok() {
+                            "resolved_supported_wrl"
+                        } else {
+                            "resolved_geometry_rejected"
+                        },
+                        Some(0.001),
+                        Vec::new(),
+                    )
+                }
+                (ModelAssetFormat::Wrl, AssignedModelUnits::KiCadLegacyWrlDeciinch) => {
+                    let parsed = parse_vrml_mesh(
+                        asset.bytes(),
+                        ModelUnits::KiCadLegacyWrlDeciinch,
+                        MeshLimits::default(),
+                    );
+                    (
+                        parsed.is_ok(),
+                        if parsed.is_ok() {
+                            "resolved_supported_wrl"
+                        } else {
+                            "resolved_geometry_rejected"
+                        },
+                        Some(0.00254),
+                        Vec::new(),
+                    )
+                }
+                (ModelAssetFormat::Step, AssignedModelUnits::StepDeclared) => {
+                    match crate::step_geometry::parse_step_mesh(asset.bytes()) {
+                        Ok(parsed) => (
+                            true,
+                            "resolved_supported_step_candidate",
+                            Some(parsed.source_unit_metres),
+                            parsed.diagnostics,
+                        ),
+                        Err(error) => (
+                            false,
+                            "resolved_geometry_rejected",
+                            None,
+                            vec![error.to_string()],
+                        ),
+                    }
+                }
+                (ModelAssetFormat::Step, _)
+                | (ModelAssetFormat::Wrl, AssignedModelUnits::StepDeclared) => {
+                    (false, "resolved_unit_format_mismatch", None, Vec::new())
+                }
+                _ => (
+                    false,
+                    "resolved_unsupported_production_geometry",
+                    None,
+                    Vec::new(),
+                ),
+            };
         validated.push(ValidatedAssignment {
             assignment: entry.clone(),
             asset: Some(Arc::new(asset)),
             status: status.into(),
             supported_geometry,
+            source_unit_metres,
+            geometry_diagnostics,
         });
     }
     Ok(ValidatedModelAssignments {

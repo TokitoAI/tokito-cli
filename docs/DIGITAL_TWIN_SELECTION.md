@@ -23,6 +23,24 @@ tokito-cli twin select new-candidate-folder/active.digital-twin.glb --component-
 
 The exact authored class label is required. A class query can return multiple candidates; it does not choose a diode from an ambiguous diode/LED class. Exact reference selection returns a unique candidate only when that reference has geometry. Missing geometry and no match have distinct statuses.
 
+When `component_class` is absent, `twin inspect` may expose a separate
+`componentClassHint`. It is derived from source text such as a
+component description or footprint pattern when one class is unambiguous; the
+reference-designator prefix is a fallback when source text contains no
+recognized class. Conflicting recognized classes suppress the hint instead of
+falling back to a potentially misleading prefix; a source-text class that
+conflicts with a recognized reference prefix also suppresses the hint. The
+hint carries its basis and `verified: false`. It never populates
+`componentClassClaim`, does not qualify the part's identity against a physical
+specimen, and is not eligible for `twin select --class`. The browser preview
+shows these values as unverified hints so a row such as C4 can be described as
+a likely capacitor without presenting that inference as an engineering-verified
+classification.
+
+Altium-backed component maps may also preserve the source design's `SOURCEDESCRIPTION`, `PATTERN`, `SOURCELIBREFERENCE` and `COMMENT` properties under `sourceDesignClaims`. The CLI checks that the sidecar's declared source SHA-256 and board-revision prefix agree internally, and that its declared unique ID/reference matches the component-map row. It does not reopen or rehash the original PCB, authenticate the sidecar, or independently verify those property values against the source design. These are internally consistent, editable map claims—not authenticated or independently verified provenance. The preview can search and display the raw values, but labels them unverified against the photographed specimen. They do not populate `componentClassClaim` or enable `--class` selection; only an explicitly authored class label can do that.
+
+If a source assembly map includes `degenerate_triangles_omitted`, the CLI validates its bounded non-negative integer form and preserves it as `degenerateTrianglesOmitted` in the component index. The viewer includes positive counts in search, the component row and selected-part status, explicitly saying the reported geometry is incomplete. This remains an editable source-map claim, not an authenticated geometry check or a repair of the omitted triangles. In the pinned ESP8266 candidate map, six components report 1,292 omissions total; U2 reports 1,277. Those bodies remain unqualified and must not be treated as complete models.
+
 Preparation outputs a new directory containing:
 
 - active.digital-twin.glb: existing geometry with compatible renderable selector names.

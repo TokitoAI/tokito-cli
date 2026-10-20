@@ -1,0 +1,80 @@
+"""Reproduce the pinned single-solid FreeCAD mesh reference.
+
+Run with FreeCADCmd.exe generate_reference.FCMacro --pass INPUT.step OUTPUT.json.
+This is off-device development/reference tooling, never a Tokito runtime path.
+"""
+import hashlib
+import json
+from pathlib import Path
+import sys
+
+import FreeCAD
+import Part
+
+EXPECTED_FREECAD_VERSION = [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+]
+EXPECTED_SOURCE_SHA256 = "2af97f10d6f1dad4aa9486f40471d2c5b6be941c93b906735515e591b059a7ca"
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_FREECAD_VERSION:
+        raise RuntimeError("FreeCAD build does not match the pinned reference version")
+    if "--pass" not in sys.argv:
+        raise SystemExit("expected --pass INPUT.step OUTPUT.json")
+    index = sys.argv.index("--pass")
+    if len(sys.argv) != index + 3:
+        raise SystemExit("expected exactly INPUT.step and OUTPUT.json after --pass")
+    source = Path(sys.argv[index + 1]).resolve(strict=True)
+    output = Path(sys.argv[index + 2]).resolve()
+    if output.exists():
+        raise FileExistsError("refusing to overwrite reference output")
+
+    with source.open("rb") as stream:
+        source_bytes = stream.read(32 * 1024 * 1024 + 1)
+    if not 1 <= len(source_bytes) <= 32 * 1024 * 1024:
+        raise ValueError("source is empty or exceeds the 32 MiB reference limit")
+    if source_bytes.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise ValueError("source is an unmaterialized Git LFS pointer")
+    if hashlib.sha256(source_bytes).hexdigest() != EXPECTED_SOURCE_SHA256:
+        raise ValueError("source digest does not match the pinned ESP8266 model")
+
+    shape = Part.read(str(source))
+    if shape.isNull() or not shape.isValid() or len(shape.Solids) != 1:
+        raise ValueError("reference profile requires exactly one valid solid")
+    points, triangles = shape.tessellate(0.001)
+    if not points or len(points) > 100_000 or len(triangles) > 200_000:
+        raise ValueError("tessellation exceeds the pinned reference profile")
+
+    vertices_mm = [[float(point.x), float(point.y), float(point.z)] for point in points]
+    triangles = [[int(index) for index in triangle] for triangle in triangles]
+    if any(
+        len(triangle) != 3 or any(index < 0 or index >= len(points) for index in triangle)
+        for triangle in triangles
+    ):
+        raise ValueError("FreeCAD returned an invalid triangle index")
+    result = {
+        "schema": "tokito.freecad-reference-mesh.v1",
+        "freecadVersion": EXPECTED_FREECAD_VERSION,
+        "inputSha256": hashlib.sha256(source_bytes).hexdigest(),
+        "deflectionMm": 0.001,
+        "verticesMm": vertices_mm,
+        "triangles": triangles,
+        "valid": True,
+        "solidCount": 1,
+        "faceCount": len(shape.Faces),
+    }
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8") as stream:
+        json.dump(result, stream, separators=(",", ":"), allow_nan=False)
+    print(f"Wrote FreeCAD {FreeCAD.Version()[0:3]} reference: {output}", flush=True)
+
+
+main()

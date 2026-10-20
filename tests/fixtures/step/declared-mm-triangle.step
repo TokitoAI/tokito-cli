@@ -1,0 +1,15 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('Tokito STEP assignment fixture'),'2;1');
+FILE_NAME('declared-mm-triangle.step','2026-10-20T00:00:00',('Tokito CLI'),('Tokito CLI'),'','Tokito CLI','');
+FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
+ENDSEC;
+DATA;
+#1=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.));
+#2=(PLANE_ANGLE_UNIT() NAMED_UNIT(*) SI_UNIT($,.RADIAN.));
+#3=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#1,#2)) REPRESENTATION_CONTEXT('',''));
+#4=COORDINATES_LIST('plate vertices',3,((0.,0.,0.),(1.,0.,0.),(0.,2.,0.),(1.,2.,0.)));
+#5=TRIANGULATED_SURFACE_SET('plate surface',#4,4,(),(),((1,2,3),(2,4,3)));
+#6=TESSELLATED_SHAPE_REPRESENTATION('plate representation',(#5),#3);
+ENDSEC;
+END-ISO-10303-21;

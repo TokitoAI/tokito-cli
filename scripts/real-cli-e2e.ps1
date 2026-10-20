@@ -25,20 +25,27 @@ if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
     throw "CLI binary does not exist: $binary"
 }
 
-if (-not $OutputRoot) {
+$externalOutput = $PSBoundParameters.ContainsKey('OutputRoot') -and -not [string]::IsNullOrWhiteSpace($OutputRoot)
+if (-not $externalOutput) {
     $OutputRoot = Join-Path $projectRoot 'target/real-cli-e2e'
+}
+if ($externalOutput -and -not [System.IO.Path]::IsPathFullyQualified($OutputRoot)) {
+    throw 'Acceptance output root must be an absolute path.'
 }
 $outputRootFull = [System.IO.Path]::GetFullPath($OutputRoot)
 $projectRootFull = [System.IO.Path]::GetFullPath($projectRoot)
+$allowedOutputRoot = if ($externalOutput) { $outputRootFull } else { $projectRootFull }
 $comparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
-if (-not $outputRootFull.StartsWith($projectRootFull + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
+if (-not $externalOutput -and -not $outputRootFull.StartsWith($projectRootFull + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
     throw 'Acceptance output must remain inside the CLI checkout.'
 }
 
 function Assert-AcceptanceOutputPath([string]$Path) {
     $fullPath = [System.IO.Path]::GetFullPath($Path)
-    if (-not $fullPath.StartsWith($projectRootFull + [System.IO.Path]::DirectorySeparatorChar, $comparison)) {
-        throw 'Acceptance output must remain inside the CLI checkout.'
+    $insideRoot = [string]::Equals($fullPath, $allowedOutputRoot, $comparison) -or
+        $fullPath.StartsWith($allowedOutputRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar, $comparison)
+    if (-not $insideRoot) {
+        throw 'Acceptance output escaped its selected output root.'
     }
     $currentPath = $fullPath
     while ($currentPath) {
@@ -46,13 +53,16 @@ function Assert-AcceptanceOutputPath([string]$Path) {
         if ($item -and ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) {
             throw "Linked acceptance output path is not allowed: $currentPath"
         }
-        if ([string]::Equals($currentPath, $projectRootFull, $comparison)) { break }
-        $currentPath = Split-Path -Parent $currentPath
+        $parentPath = Split-Path -Parent $currentPath
+        if (-not $parentPath -or [string]::Equals($parentPath, $currentPath, $comparison)) { break }
+        $currentPath = $parentPath
     }
 }
 
 $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssZ') + '-' + [Guid]::NewGuid().ToString('N')
 $runDirectory = Join-Path $outputRootFull $runId
+Assert-AcceptanceOutputPath $outputRootFull
+$null = New-Item -ItemType Directory -Path $outputRootFull -Force -ErrorAction Stop
 Assert-AcceptanceOutputPath $outputRootFull
 $null = New-Item -ItemType Directory -Path $runDirectory -ErrorAction Stop
 Assert-AcceptanceOutputPath $runDirectory
@@ -192,7 +202,7 @@ try {
             'Direct local CLI process acceptance only.',
             'No CAD viewer, Android device, AR registration, Desktop integration, or GUI computer-control test was run.',
             'This release-binary acceptance case covers one bounded local VRML model; the full tests/e2e_cli.py suite separately checks one- and two-component selector nodes plus the exact-refdes visibility rule.',
-            'CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; STEP, glTF/GLB model input and general VRML remain unsupported.',
+            'CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; general authored-reference STEP/B-rep import and STEP board export remain unsupported. A separate explicit model-assignment path accepts only bounded, unqualified STEP mesh candidates. glTF/GLB component-mesh import and general VRML remain unsupported.',
             'This does not establish KiCad CLI behavior or artifact parity.'
         )
     }

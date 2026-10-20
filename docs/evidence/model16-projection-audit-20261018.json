@@ -1,0 +1,373 @@
+{
+  "schema": "tokito.freecad-source-projection-audit.v1",
+  "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+  "diagnosticSha256": "2c061da6fb356bbb3e8ccb08fb82be2870f7963604239b1391644c73a93f42d2",
+  "auditScriptSha256": "d2302f39e64486c4fb29b03dc70e888bd5dd7b6ebde1008cdda004052696bb9d",
+  "freecadVersion": [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094"
+  ],
+  "occtVersion": "7.8.1",
+  "sourceFaceId": 2875,
+  "freecadFaceIndex": 231,
+  "freecadFaceToleranceMm": 1e-07,
+  "freecadEdgeTolerancesMm": [
+    1e-07,
+    1.0808480880344237e-06,
+    4.633555258912755e-06,
+    1e-07
+  ],
+  "freecadVertexTolerancesMm": [
+    1e-07,
+    1.0808480880344237e-06,
+    4.633555258912755e-06,
+    4.633555258912755e-06
+  ],
+  "sourceBoundarySignatureCount": 100,
+  "maximumBoundarySignatureDistanceMm": 1.6011864169946884e-15,
+  "probes": [
+    {
+      "qualityProbeIndex": 0,
+      "orientedEdgeId": 2809,
+      "edgeCurveId": 3400,
+      "curveParameter": 0.00024467333626354554,
+      "rustProjectionConverged": true,
+      "rustResidualMm": 0.0,
+      "sourcePointMm": [
+        -1.6450516192798286,
+        1.8903757453751566,
+        1.00000054
+      ],
+      "rustCandidateUv": [
+        8.260089107385037e-15,
+        -0.0003437564763258307
+      ],
+      "occtAtRustUvMm": [
+        -1.6450516192798288,
+        1.8903757453751568,
+        1.00000054
+      ],
+      "occtVsRustSurfaceEvaluatorDistanceMm": 3.1401849173675503e-16,
+      "occtTrimmedFaceDistanceMm": 2.220446049250313e-16,
+      "occtNaturalSupportFaceDistanceMm": 3.1401849173675503e-16,
+      "occtNaturalSupportFaceNearestPointMm": [
+        -1.6450516192798283,
+        1.8903757453751568,
+        1.00000054
+      ],
+      "occtFaceBoundaryDistanceMm": 2.220446049250313e-16,
+      "occtFaceBoundaryObservations": [
+        {
+          "importedFaceEdgeIndex": 1,
+          "distanceMm": 2.220446049250313e-16,
+          "importedEdgeToleranceMm": 1e-07
+        },
+        {
+          "importedFaceEdgeIndex": 2,
+          "distanceMm": 0.45513034775186734,
+          "importedEdgeToleranceMm": 1.0808480880344237e-06
+        },
+        {
+          "importedFaceEdgeIndex": 3,
+          "distanceMm": 0.03779646846731116,
+          "importedEdgeToleranceMm": 4.633555258912755e-06
+        },
+        {
+          "importedFaceEdgeIndex": 4,
+          "distanceMm": 0.0003757453751567219,
+          "importedEdgeToleranceMm": 1e-07
+        }
+      ],
+      "occtNearestPointMm": [
+        -1.6450516192798283,
+        1.8903757453751566,
+        1.00000054
+      ],
+      "occtNearestPointUv": [
+        -2.4399674050584693e-15,
+        1.404617166584635
+      ],
+      "occtNearestPointSurfaceResidualMm": 2.220446049250313e-16,
+      "occtParameterRoundtripDistanceMm": 0.0,
+      "metricAtRustUv": {
+        "method": "bounded finite differences in source parameters, one-sided at U domain endpoints; diagnostic only",
+        "firstFundamentalFormMm2": [
+          [
+            0.0007237257406832216,
+            1.2798337555944983e-07
+          ],
+          [
+            1.2798337555944983e-07,
+            1.19477859746476
+          ]
+        ],
+        "jacobianAnisotropy": 40.63092480430552,
+        "residualAngleObservationFloorMm": 1e-12,
+        "residualTangentCosines": [
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "qualityProbeIndex": 1534,
+      "orientedEdgeId": 470,
+      "edgeCurveId": 3478,
+      "curveParameter": 1.4008448266067197,
+      "rustProjectionConverged": false,
+      "rustResidualMm": 1.0749767218448296e-06,
+      "sourcePointMm": [
+        -2.1000369241293284,
+        1.8904814333255728,
+        0.9857930029438124
+      ],
+      "rustCandidateUv": [
+        1.4008449156668263,
+        -0.7024804615267878
+      ],
+      "occtAtRustUvMm": [
+        -2.1000376747463605,
+        1.8904814350495238,
+        0.9857922334335445
+      ],
+      "occtVsRustSurfaceEvaluatorDistanceMm": 4.577566798522237e-16,
+      "occtTrimmedFaceDistanceMm": 4.965068306494546e-16,
+      "occtNaturalSupportFaceDistanceMm": 1.0749767222677508e-06,
+      "occtNaturalSupportFaceNearestPointMm": [
+        -2.100037674746363,
+        1.8904814350495243,
+        0.985792233433547
+      ],
+      "occtFaceBoundaryDistanceMm": 4.965068306494546e-16,
+      "occtFaceBoundaryObservations": [
+        {
+          "importedFaceEdgeIndex": 1,
+          "distanceMm": 0.03769478837171543,
+          "importedEdgeToleranceMm": 1e-07
+        },
+        {
+          "importedFaceEdgeIndex": 2,
+          "distanceMm": 4.965068306494546e-16,
+          "importedEdgeToleranceMm": 1.0808480880344237e-06
+        },
+        {
+          "importedFaceEdgeIndex": 3,
+          "distanceMm": 0.0001107566827462535,
+          "importedEdgeToleranceMm": 4.633555258912755e-06
+        },
+        {
+          "importedFaceEdgeIndex": 4,
+          "distanceMm": 0.41999314857314435,
+          "importedEdgeToleranceMm": 1e-07
+        }
+      ],
+      "occtNearestPointMm": [
+        -2.100036924129329,
+        1.8904814333255728,
+        0.9857930029438122
+      ],
+      "occtNearestPointUv": [
+        1.4008449156666536,
+        0.702480461534173
+      ],
+      "occtNearestPointSurfaceResidualMm": 1.0749767222517845e-06,
+      "occtParameterRoundtripDistanceMm": 1.074976721782745e-06,
+      "metricAtRustUv": {
+        "method": "bounded finite differences in source parameters, one-sided at U domain endpoints; diagnostic only",
+        "firstFundamentalFormMm2": [
+          [
+            0.0007243642379365582,
+            8.28505549560737e-08
+          ],
+          [
+            8.28505549560737e-08,
+            0.8837997326589915
+          ]
+        ],
+        "jacobianAnisotropy": 34.92998768038629,
+        "residualAngleObservationFloorMm": 1e-12,
+        "residualTangentCosines": [
+          1.8288535045665484e-09,
+          -3.3866331754776755e-10
+        ]
+      }
+    },
+    {
+      "qualityProbeIndex": 1535,
+      "orientedEdgeId": 470,
+      "edgeCurveId": 3478,
+      "curveParameter": 1.4035888909095733,
+      "rustProjectionConverged": false,
+      "rustResidualMm": 1.07888315327835e-06,
+      "sourcePointMm": [
+        -2.099984099830868,
+        1.8904813122450634,
+        0.9857414046167052
+      ],
+      "rustCandidateUv": [
+        1.403588921101601,
+        -0.7024804615267688
+      ],
+      "occtAtRustUvMm": [
+        -2.099984854315353,
+        1.8904813139778969,
+        0.9857406334234624
+      ],
+      "occtVsRustSurfaceEvaluatorDistanceMm": 6.661338147750939e-16,
+      "occtTrimmedFaceDistanceMm": 5.087681048627601e-16,
+      "occtNaturalSupportFaceDistanceMm": 1.0788831531073023e-06,
+      "occtNaturalSupportFaceNearestPointMm": [
+        -2.0999848543153536,
+        1.8904813139778973,
+        0.9857406334234633
+      ],
+      "occtFaceBoundaryDistanceMm": 5.087681048627601e-16,
+      "occtFaceBoundaryObservations": [
+        {
+          "importedFaceEdgeIndex": 1,
+          "distanceMm": 0.03776317521550344,
+          "importedEdgeToleranceMm": 1e-07
+        },
+        {
+          "importedFaceEdgeIndex": 2,
+          "distanceMm": 5.087681048627601e-16,
+          "importedEdgeToleranceMm": 1.0808480880344237e-06
+        },
+        {
+          "importedFaceEdgeIndex": 3,
+          "distanceMm": 3.69135632325506e-05,
+          "importedEdgeToleranceMm": 4.633555258912755e-06
+        },
+        {
+          "importedFaceEdgeIndex": 4,
+          "distanceMm": 0.4199403177338345,
+          "importedEdgeToleranceMm": 1e-07
+        }
+      ],
+      "occtNearestPointMm": [
+        -2.0999840998308685,
+        1.8904813122450637,
+        0.9857414046167051
+      ],
+      "occtNearestPointUv": [
+        1.4035889211015562,
+        0.7024804615341927
+      ],
+      "occtNearestPointSurfaceResidualMm": 1.0788831531069457e-06,
+      "occtParameterRoundtripDistanceMm": 1.078883152716669e-06,
+      "metricAtRustUv": {
+        "method": "bounded finite differences in source parameters, one-sided at U domain endpoints; diagnostic only",
+        "firstFundamentalFormMm2": [
+          [
+            0.0007239460604895047,
+            8.270360822048482e-08
+          ],
+          [
+            8.270360822048482e-08,
+            0.8833552715690898
+          ]
+        ],
+        "jacobianAnisotropy": 34.93128788539723,
+        "residualAngleObservationFloorMm": 1e-12,
+        "residualTangentCosines": [
+          5.0732073191664575e-11,
+          -2.763167972636922e-10
+        ]
+      }
+    },
+    {
+      "qualityProbeIndex": 1536,
+      "orientedEdgeId": 7109,
+      "edgeCurveId": 5409,
+      "curveParameter": 0.5002436079137365,
+      "rustProjectionConverged": false,
+      "rustResidualMm": 1.0713741370539803e-06,
+      "sourcePointMm": [
+        -2.0999567434798307,
+        1.890802889467412,
+        0.9857155750578284
+      ],
+      "rustCandidateUv": [
+        1.404960923061,
+        -0.7021382007048497
+      ],
+      "occtAtRustUvMm": [
+        -2.0999574932855607,
+        1.8908028923384368,
+        0.9857148097959999
+      ],
+      "occtVsRustSurfaceEvaluatorDistanceMm": 0.0,
+      "occtTrimmedFaceDistanceMm": 6.280369834735101e-16,
+      "occtNaturalSupportFaceDistanceMm": 1.0713741373647778e-06,
+      "occtNaturalSupportFaceNearestPointMm": [
+        -2.099957493285561,
+        1.8908028923384368,
+        0.9857148097959999
+      ],
+      "occtFaceBoundaryDistanceMm": 6.280369834735101e-16,
+      "occtFaceBoundaryObservations": [
+        {
+          "importedFaceEdgeIndex": 1,
+          "distanceMm": 0.0377973496919032,
+          "importedEdgeToleranceMm": 1e-07
+        },
+        {
+          "importedFaceEdgeIndex": 2,
+          "distanceMm": 0.0003216391724793727,
+          "importedEdgeToleranceMm": 1.0808480880344237e-06
+        },
+        {
+          "importedFaceEdgeIndex": 3,
+          "distanceMm": 6.280369834735101e-16,
+          "importedEdgeToleranceMm": 4.633555258912755e-06
+        },
+        {
+          "importedFaceEdgeIndex": 4,
+          "distanceMm": 0.4199134522919319,
+          "importedEdgeToleranceMm": 1e-07
+        }
+      ],
+      "occtNearestPointMm": [
+        -2.099956743479831,
+        1.890802889467412,
+        0.9857155750578279
+      ],
+      "occtNearestPointUv": [
+        1.404960923623034,
+        0.7028227223561112
+      ],
+      "occtNearestPointSurfaceResidualMm": 1.0713741371058451e-06,
+      "occtParameterRoundtripDistanceMm": 1.0713741364778433e-06,
+      "metricAtRustUv": {
+        "method": "bounded finite differences in source parameters, one-sided at U domain endpoints; diagnostic only",
+        "firstFundamentalFormMm2": [
+          [
+            0.0007237366026634046,
+            8.929450389242905e-08
+          ],
+          [
+            8.929450389242905e-08,
+            0.8831349960861703
+          ]
+        ],
+        "jacobianAnisotropy": 34.93198610657762,
+        "residualAngleObservationFloorMm": 1e-12,
+        "residualTangentCosines": [
+          -1.4495425769882615e-05,
+          -4.1191085261452424e-10
+        ]
+      }
+    }
+  ],
+  "globalClosestPointProven": false,
+  "geometryQualified": false,
+  "admitted": false,
+  "exportsProduced": [],
+  "scope": "independent numerical source-point/trimmed-face and local metric audit only; not a repair, global minimization proof, or whole-solid qualification"
+}

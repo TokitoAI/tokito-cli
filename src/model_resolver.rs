@@ -3,7 +3,7 @@
 //! Standard filesystem checks reduce accidental escapes and mutation, but are
 //! not an adversarial race-proof filesystem sandbox.
 use crate::document::{ModelReference, SourceLocator};
-use crate::{EngineError, sha256_hex};
+use crate::{EngineError, PhysicalBoardDocument, embedded, sha256_hex};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{self, File, Metadata};
 use std::io::Read;
@@ -67,6 +67,20 @@ pub enum ModelResolutionStatus {
     Ambiguous,
     OutsideApprovedRoots,
     ChangedDuringRead,
+    EmbeddedContextRequired,
+    EmbeddedInvalidUri,
+    EmbeddedMissing,
+    EmbeddedAmbiguous,
+    EmbeddedMetadataConflict,
+    EmbeddedUnsupportedType,
+    EmbeddedMissingData,
+    EmbeddedMalformedData,
+    EmbeddedTooLarge,
+    EmbeddedDecompressionFailed,
+    EmbeddedChecksumMissing,
+    EmbeddedChecksumMismatch,
+    EmbeddedUnsupportedFormat,
+    BatchBudgetExceeded,
 }
 impl ModelResolutionStatus {
     pub fn as_str(self) -> &'static str {
@@ -83,13 +97,35 @@ impl ModelResolutionStatus {
             Self::Ambiguous => "ambiguous",
             Self::OutsideApprovedRoots => "outside_approved_roots",
             Self::ChangedDuringRead => "changed_during_read",
+            Self::EmbeddedContextRequired => "embedded_context_required",
+            Self::EmbeddedInvalidUri => "embedded_invalid_uri",
+            Self::EmbeddedMissing => "embedded_missing",
+            Self::EmbeddedAmbiguous => "embedded_ambiguous",
+            Self::EmbeddedMetadataConflict => "embedded_metadata_conflict",
+            Self::EmbeddedUnsupportedType => "embedded_unsupported_type",
+            Self::EmbeddedMissingData => "embedded_missing_data",
+            Self::EmbeddedMalformedData => "embedded_malformed_data",
+            Self::EmbeddedTooLarge => "embedded_too_large",
+            Self::EmbeddedDecompressionFailed => "embedded_decompression_failed",
+            Self::EmbeddedChecksumMissing => "embedded_checksum_missing",
+            Self::EmbeddedChecksumMismatch => "embedded_checksum_mismatch",
+            Self::EmbeddedUnsupportedFormat => "embedded_unsupported_format",
+            Self::BatchBudgetExceeded => "batch_budget_exceeded",
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModelAssetOrigin {
+    LocalFile,
+    EmbeddedBoard { board_sha256: String, name: String },
+}
+
 #[derive(Debug, Clone)]
 pub struct ResolvedModelAsset {
     format: ModelAssetFormat,
-    canonical_path: PathBuf,
+    canonical_path: Option<PathBuf>,
+    origin: ModelAssetOrigin,
     bytes: Vec<u8>,
     sha256: String,
 }
@@ -98,8 +134,11 @@ impl ResolvedModelAsset {
         self.format
     }
     /// Local API only: this path must not be copied into shared manifests.
-    pub fn local_path(&self) -> &Path {
-        &self.canonical_path
+    pub fn local_path(&self) -> Option<&Path> {
+        self.canonical_path.as_deref()
+    }
+    pub fn origin(&self) -> &ModelAssetOrigin {
+        &self.origin
     }
     pub fn bytes(&self) -> &[u8] {
         &self.bytes
@@ -107,6 +146,17 @@ impl ResolvedModelAsset {
     pub fn sha256(&self) -> &str {
         &self.sha256
     }
+    pub(crate) fn into_bytes(self) -> Vec<u8> {
+        self.bytes
+    }
+}
+
+/// A local glTF buffer/image resource resolved relative to its owning `.gltf`.
+/// The filesystem path stays local to the resolver and is never serialized.
+#[derive(Debug, Clone)]
+pub(crate) struct ResolvedModelDependency {
+    pub(crate) bytes: Vec<u8>,
+    pub(crate) sha256: String,
 }
 #[derive(Debug, Clone)]
 pub struct ModelResolution {
@@ -128,6 +178,14 @@ impl ModelResolution {
                 "component_ordinal": self.source.component_ordinal },
             "status": self.status.as_str(), "diagnostic": self.diagnostic,
             "format": asset.map(|a| a.format.as_str()),
+            "origin": asset.map(|a| match &a.origin {
+                ModelAssetOrigin::LocalFile => "local_file",
+                ModelAssetOrigin::EmbeddedBoard { .. } => "embedded_board",
+            }),
+            "embedded_name": asset.and_then(|a| match &a.origin {
+                ModelAssetOrigin::EmbeddedBoard { name, .. } => Some(name.as_str()),
+                ModelAssetOrigin::LocalFile => None,
+            }),
             "byte_length": asset.map(|a| a.bytes.len()),
             "sha256": asset.map(|a| a.sha256.as_str()),
         })
@@ -140,6 +198,36 @@ pub struct ModelResolver {
     max_file_bytes: u64,
 }
 type LookupError = (ModelResolutionStatus, &'static str);
+
+fn embedded_failure(
+    model: &ModelReference,
+    error: embedded::EmbeddedModelError,
+) -> ModelResolution {
+    use embedded::EmbeddedModelError as Error;
+    let status = match error {
+        Error::InvalidUri => ModelResolutionStatus::EmbeddedInvalidUri,
+        Error::Missing => ModelResolutionStatus::EmbeddedMissing,
+        Error::Ambiguous => ModelResolutionStatus::EmbeddedAmbiguous,
+        Error::MetadataConflict => ModelResolutionStatus::EmbeddedMetadataConflict,
+        Error::UnsupportedType => ModelResolutionStatus::EmbeddedUnsupportedType,
+        Error::MissingData => ModelResolutionStatus::EmbeddedMissingData,
+        Error::MalformedData => ModelResolutionStatus::EmbeddedMalformedData,
+        Error::CompressedPayloadTooLarge | Error::TooLarge => {
+            ModelResolutionStatus::EmbeddedTooLarge
+        }
+        Error::BatchBudgetExceeded => ModelResolutionStatus::BatchBudgetExceeded,
+        Error::DecompressionFailed => ModelResolutionStatus::EmbeddedDecompressionFailed,
+        Error::ChecksumMissing => ModelResolutionStatus::EmbeddedChecksumMissing,
+        Error::ChecksumMismatch => ModelResolutionStatus::EmbeddedChecksumMismatch,
+        Error::UnsupportedFormat => ModelResolutionStatus::EmbeddedUnsupportedFormat,
+    };
+    ModelResolution {
+        source: model.source.clone(),
+        status,
+        asset: None,
+        diagnostic: Some(error.diagnostic()),
+    }
+}
 
 impl ModelResolver {
     pub fn new(config: ModelResolverConfig) -> Result<Self, EngineError> {
@@ -187,9 +275,25 @@ impl ModelResolver {
     pub fn resolve(&self, model: &ModelReference) -> ModelResolution {
         let result = if model.hidden {
             Err((ModelResolutionStatus::Hidden, "Model reference is hidden"))
+        } else if model
+            .path
+            .as_deref()
+            .is_some_and(|path| path.starts_with("kicad-embed://"))
+        {
+            Err((
+                ModelResolutionStatus::EmbeddedContextRequired,
+                "Embedded model lookup requires its board document",
+            ))
         } else {
             self.resolve_asset(model.path.as_deref())
         };
+        Self::from_lookup_result(model, result)
+    }
+
+    fn from_lookup_result(
+        model: &ModelReference,
+        result: Result<ResolvedModelAsset, LookupError>,
+    ) -> ModelResolution {
         match result {
             Ok(asset) => ModelResolution {
                 source: model.source.clone(),
@@ -206,6 +310,117 @@ impl ModelResolver {
         }
     }
 
+    /// Resolve a source reference using its owning board when it is embedded;
+    /// all nonembedded paths retain the same approved-root behavior as `resolve`.
+    pub fn resolve_board_model(
+        &self,
+        board: &PhysicalBoardDocument,
+        model: &ModelReference,
+    ) -> ModelResolution {
+        if model.hidden {
+            return ModelResolution {
+                source: model.source.clone(),
+                status: ModelResolutionStatus::Hidden,
+                asset: None,
+                diagnostic: Some("Model reference is hidden"),
+            };
+        }
+        let Some(path) = model.path.as_deref() else {
+            return self.resolve(model);
+        };
+        if !path.starts_with("kicad-embed://") {
+            return self.resolve(model);
+        }
+        match embedded::resolve_model(board, model, self.max_file_bytes as usize) {
+            Ok(asset) => {
+                let format = match embedded::format_from_name(&asset.name) {
+                    Ok(format) => format,
+                    Err(error) => return embedded_failure(model, error),
+                };
+                ModelResolution {
+                    source: model.source.clone(),
+                    status: ModelResolutionStatus::Resolved,
+                    asset: Some(ResolvedModelAsset {
+                        format,
+                        canonical_path: None,
+                        origin: ModelAssetOrigin::EmbeddedBoard {
+                            board_sha256: board.source().sha256.to_owned(),
+                            name: asset.name,
+                        },
+                        bytes: asset.bytes,
+                        sha256: asset.sha256,
+                    }),
+                    diagnostic: None,
+                }
+            }
+            Err(error) => embedded_failure(model, error),
+        }
+    }
+
+    /// Resolve a board model without capturing more than the caller's
+    /// remaining batch allowance. The allowance applies before local-file
+    /// reads and before embedded payload decompression.
+    pub fn resolve_board_model_with_remaining_batch_bytes(
+        &self,
+        board: &PhysicalBoardDocument,
+        model: &ModelReference,
+        remaining_batch_bytes: usize,
+    ) -> ModelResolution {
+        if model.hidden {
+            return ModelResolution {
+                source: model.source.clone(),
+                status: ModelResolutionStatus::Hidden,
+                asset: None,
+                diagnostic: Some("Model reference is hidden"),
+            };
+        }
+        let Some(path) = model.path.as_deref() else {
+            return self.resolve(model);
+        };
+        let capture_limit = self.max_file_bytes.min(remaining_batch_bytes as u64);
+        if !path.starts_with("kicad-embed://") {
+            let capture_limit_status = if remaining_batch_bytes < self.max_file_bytes as usize {
+                ModelResolutionStatus::BatchBudgetExceeded
+            } else {
+                ModelResolutionStatus::TooLarge
+            };
+            return Self::from_lookup_result(
+                model,
+                self.resolve_asset_with_limit(Some(path), capture_limit, capture_limit_status),
+            );
+        }
+
+        match embedded::resolve_model_with_limits(
+            board,
+            model,
+            self.max_file_bytes as usize,
+            capture_limit as usize,
+        ) {
+            Ok(asset) => {
+                let format = match embedded::format_from_name(&asset.name) {
+                    Ok(format) => format,
+                    Err(error) => return embedded_failure(model, error),
+                };
+                ModelResolution {
+                    source: model.source.clone(),
+                    status: ModelResolutionStatus::Resolved,
+                    asset: Some(ResolvedModelAsset {
+                        format,
+                        canonical_path: None,
+                        origin: ModelAssetOrigin::EmbeddedBoard {
+                            board_sha256: board.source().sha256.to_owned(),
+                            name: asset.name,
+                        },
+                        bytes: asset.bytes,
+                        sha256: asset.sha256,
+                    }),
+                    diagnostic: None,
+                }
+            }
+            Err(error) => embedded_failure(model, error),
+        }
+    }
+
     /// Capture an explicitly selected asset without inventing a PCB source node.
     pub fn resolve_selected_path(&self, path: &str) -> Result<ResolvedModelAsset, EngineError> {
         self.resolve_asset(Some(path))
@@ -214,7 +429,98 @@ impl ModelResolver {
             })
     }
 
+    /// Capture one relative resource referenced by a local `.gltf` document.
+    /// This accepts any regular-file extension, but only under the same
+    /// caller-approved roots as the owning model. URI decoding and traversal
+    /// rejection are performed by the glTF resource parser before this call;
+    /// the path is checked again here as a defense-in-depth boundary.
+    pub(crate) fn resolve_gltf_dependency(
+        &self,
+        base: &ResolvedModelAsset,
+        relative: &Path,
+        remaining_batch_bytes: usize,
+    ) -> Result<ResolvedModelDependency, ModelResolutionStatus> {
+        let invalid = ModelResolutionStatus::InvalidPath;
+        if relative.as_os_str().is_empty()
+            || relative.is_absolute()
+            || relative
+                .components()
+                .any(|component| !matches!(component, Component::Normal(_)))
+        {
+            return Err(invalid);
+        }
+        let source_path = base
+            .local_path()
+            .ok_or(ModelResolutionStatus::EmbeddedContextRequired)?;
+        let parent = source_path
+            .parent()
+            .ok_or(ModelResolutionStatus::InvalidPath)?;
+        let candidate = parent.join(relative);
+        let candidate_text = candidate.to_str().ok_or(invalid)?;
+        validate_text_path(candidate_text).map_err(|error| error.0)?;
+        reject_traversal(&candidate).map_err(|error| error.0)?;
+        if !self.roots.iter().any(|root| within_root(&candidate, root)) {
+            return Err(ModelResolutionStatus::OutsideApprovedRoots);
+        }
+        check_chain(&candidate).map_err(|error| error.0)?;
+        let canonical = canonical_local(&candidate).map_err(|error| io_error(error).0)?;
+        if !self.roots.iter().any(|root| within_root(&canonical, root)) {
+            return Err(ModelResolutionStatus::OutsideApprovedRoots);
+        }
+        let path_metadata = fs::metadata(&canonical).map_err(|error| io_error(error).0)?;
+        if !path_metadata.is_file() {
+            return Err(ModelResolutionStatus::InvalidPath);
+        }
+        let mut file = File::open(&canonical).map_err(|error| io_error(error).0)?;
+        let before = file.metadata().map_err(|error| io_error(error).0)?;
+        if !before.is_file() {
+            return Err(ModelResolutionStatus::InvalidPath);
+        }
+        if before.len() > self.max_file_bytes {
+            return Err(ModelResolutionStatus::TooLarge);
+        }
+        if before.len() > remaining_batch_bytes as u64 {
+            return Err(ModelResolutionStatus::BatchBudgetExceeded);
+        }
+        let capture_limit = self.max_file_bytes.min(remaining_batch_bytes as u64);
+        let mut bytes = Vec::new();
+        (&mut file)
+            .take(capture_limit.saturating_add(1))
+            .read_to_end(&mut bytes)
+            .map_err(|error| io_error(error).0)?;
+        if bytes.is_empty() {
+            return Err(ModelResolutionStatus::InvalidPath);
+        }
+        if bytes.len() as u64 > self.max_file_bytes {
+            return Err(ModelResolutionStatus::TooLarge);
+        }
+        if bytes.len() > remaining_batch_bytes {
+            return Err(ModelResolutionStatus::BatchBudgetExceeded);
+        }
+        let after = file.metadata().map_err(|error| io_error(error).0)?;
+        check_chain(&canonical).map_err(|error| error.0)?;
+        let current = fs::metadata(&canonical).map_err(|error| io_error(error).0)?;
+        if !same_metadata(&before, &after)
+            || !same_metadata(&after, &current)
+            || after.len() != bytes.len() as u64
+            || canonical_local(&canonical).map_err(|error| io_error(error).0)? != canonical
+        {
+            return Err(ModelResolutionStatus::ChangedDuringRead);
+        }
+        let sha256 = sha256_hex(&bytes);
+        Ok(ResolvedModelDependency { bytes, sha256 })
+    }
+
     fn resolve_asset(&self, raw: Option<&str>) -> Result<ResolvedModelAsset, LookupError> {
+        self.resolve_asset_with_limit(raw, self.max_file_bytes, ModelResolutionStatus::TooLarge)
+    }
+
+    fn resolve_asset_with_limit(
+        &self,
+        raw: Option<&str>,
+        capture_limit: u64,
+        capture_limit_status: ModelResolutionStatus,
+    ) -> Result<ResolvedModelAsset, LookupError> {
         let raw = raw.ok_or((ModelResolutionStatus::MissingPath, "Model path is absent"))?;
         validate_text_path(raw)?;
         let expanded = self.expand(raw)?;
@@ -236,7 +542,7 @@ impl ModelResolver {
             .as_deref()
         {
             Some("step" | "stp") => ModelAssetFormat::Step,
-            Some("wrl") => ModelAssetFormat::Wrl,
+            Some("wrl" | "vrml") => ModelAssetFormat::Wrl,
             Some("glb") => ModelAssetFormat::Glb,
             Some("gltf") => ModelAssetFormat::Gltf,
             _ => {
@@ -304,16 +610,22 @@ impl ModelResolver {
                 "Model asset exceeds byte limit",
             ));
         }
+        let capture_limit = capture_limit.min(self.max_file_bytes);
+        let capture_limit_diagnostic = if capture_limit_status == ModelResolutionStatus::TooLarge {
+            "Model asset exceeds byte limit"
+        } else {
+            "Model asset exceeds the remaining batch byte budget"
+        };
+        if before.len() > capture_limit {
+            return Err((capture_limit_status, capture_limit_diagnostic));
+        }
         let mut bytes = Vec::new();
         (&mut file)
-            .take(self.max_file_bytes + 1)
+            .take(capture_limit.saturating_add(1))
             .read_to_end(&mut bytes)
             .map_err(io_error)?;
-        if bytes.len() as u64 > self.max_file_bytes {
-            return Err((
-                ModelResolutionStatus::TooLarge,
-                "Model asset exceeds byte limit",
-            ));
+        if bytes.len() as u64 > capture_limit {
+            return Err((capture_limit_status, capture_limit_diagnostic));
         }
         let after = file.metadata().map_err(io_error)?;
         check_chain(&canonical)?;
@@ -331,7 +643,8 @@ impl ModelResolver {
         let sha256 = sha256_hex(&bytes);
         Ok(ResolvedModelAsset {
             format,
-            canonical_path: canonical,
+            canonical_path: Some(canonical),
+            origin: ModelAssetOrigin::LocalFile,
             bytes,
             sha256,
         })

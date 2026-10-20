@@ -12,6 +12,7 @@ const MAX_MAP: usize = 4 * 1024 * 1024;
 const MAX_MANIFEST: usize = 64 * 1024;
 const MAX_NODES: usize = 100_000;
 const MAX_COMPONENTS: usize = 10_000;
+const MAX_DEGENERATE_TRIANGLE_CLAIM: u64 = 2_000_000;
 
 /// Constructor validates source bytes; selection does not trust an editable index.
 pub struct ValidatedTwin {
@@ -63,6 +64,227 @@ fn text<'a>(value: &'a Value, key: &str, limit: usize) -> Result<&'a str, Engine
         return Err(error(format!("invalid identity/label {key}")));
     }
     Ok(s)
+}
+
+fn reference_designator_class(reference: &str) -> Option<&'static str> {
+    let reference = reference.to_ascii_uppercase();
+    let prefixes = [
+        ("LED", "diode_or_led"),
+        ("FB", "ferrite_bead"),
+        ("JP", "jumper"),
+        ("RN", "resistor_network"),
+        ("TP", "test_point"),
+        ("SW", "switch"),
+        ("CN", "connector"),
+        ("C", "capacitor"),
+        ("D", "diode_or_led"),
+        ("F", "fuse"),
+        ("J", "connector"),
+        ("L", "inductor"),
+        ("P", "connector"),
+        ("Q", "transistor"),
+        ("R", "resistor"),
+        ("S", "switch"),
+        ("U", "integrated_circuit"),
+        ("Y", "crystal_or_oscillator"),
+    ];
+    prefixes.into_iter().find_map(|(prefix, class)| {
+        let suffix = reference.strip_prefix(prefix)?;
+        (!suffix.is_empty()
+            && suffix.bytes().any(|byte| byte.is_ascii_digit())
+            && suffix.bytes().all(|byte| byte.is_ascii_alphanumeric()))
+        .then_some(class)
+    })
+}
+
+fn source_text_classes(text: &str) -> BTreeSet<&'static str> {
+    let words: BTreeSet<String> = text
+        .split(|character: char| !character.is_ascii_alphanumeric())
+        .filter(|word| !word.is_empty())
+        .map(str::to_ascii_lowercase)
+        .collect();
+    let has = |word: &str| words.contains(word);
+    let mut matches = BTreeSet::new();
+    if has("capacitor") {
+        matches.insert("capacitor");
+    }
+    if has("resistor") {
+        matches.insert("resistor");
+    }
+    if has("diode") || has("led") {
+        matches.insert("diode_or_led");
+    }
+    if has("microcontroller")
+        || has("processor")
+        || has("ic")
+        || (has("integrated") && has("circuit"))
+    {
+        matches.insert("integrated_circuit");
+    }
+    if has("connector") || has("receptacle") || has("header") || has("socket") {
+        matches.insert("connector");
+    }
+    if has("jumper") {
+        matches.insert("jumper");
+    }
+    if has("inductor") || has("choke") {
+        matches.insert("inductor");
+    }
+    if has("transistor") || has("mosfet") {
+        matches.insert("transistor");
+    }
+    if has("fuse") {
+        matches.insert("fuse");
+    }
+    if has("switch") || has("pushbutton") {
+        matches.insert("switch");
+    }
+    if has("test") && has("point") {
+        matches.insert("test_point");
+    }
+    if has("ferrite") || has("bead") {
+        matches.insert("ferrite_bead");
+    }
+    if has("crystal") || has("oscillator") {
+        matches.insert("crystal_or_oscillator");
+    }
+    if has("regulator") {
+        matches.insert("voltage_regulator");
+    }
+    matches
+}
+
+fn component_class_hint(reference: &str, class_claim: Option<&str>, claims: &Value) -> Value {
+    if class_claim.is_some() {
+        return Value::Null;
+    }
+    let properties = &claims["properties"];
+    let source_fields = ["SOURCEDESCRIPTION", "PATTERN", "SOURCELIBREFERENCE"];
+    let mut source_matches = Vec::new();
+    for field in source_fields {
+        let Some(text) = properties[field].as_str() else {
+            continue;
+        };
+        let matches = source_text_classes(text);
+        if matches.len() > 1 {
+            return Value::Null;
+        }
+        if let Some(class) = matches.first() {
+            source_matches.push((field, *class));
+        }
+    }
+    let unique_source_classes: BTreeSet<_> =
+        source_matches.iter().map(|(_, class)| *class).collect();
+    if unique_source_classes.len() == 1 {
+        let class = *unique_source_classes
+            .first()
+            .expect("one source class match");
+        if reference_designator_class(reference).is_some_and(|prefix_class| prefix_class != class) {
+            return Value::Null;
+        }
+        let fields: Vec<_> = source_matches
+            .iter()
+            .filter(|(_, candidate)| *candidate == class)
+            .map(|(field, _)| *field)
+            .collect();
+        return json!({
+            "value": class,
+            "basis": "unverified_source_text",
+            "sourceFields": fields,
+            "verified": false,
+            "selectionEligible": false
+        });
+    }
+    if source_matches.is_empty() {
+        if let Some(class) = reference_designator_class(reference) {
+            return json!({
+                "value": class,
+                "basis": "reference_designator_prefix",
+                "sourceFields": [],
+                "verified": false,
+                "selectionEligible": false
+            });
+        }
+    }
+    Value::Null
+}
+
+fn source_claim_property(claims: &Value, key: &str) -> Result<Value, EngineError> {
+    match claims.get(key) {
+        None | Some(Value::Null) => Ok(Value::Null),
+        Some(Value::String(value))
+            if value.len() <= 2048 && !value.chars().any(char::is_control) =>
+        {
+            if value.trim().is_empty() {
+                Ok(Value::Null)
+            } else {
+                Ok(json!(value))
+            }
+        }
+        _ => Err(error(format!("invalid source design claim property {key}"))),
+    }
+}
+
+fn validate_source_design_claims(
+    row: &Value,
+    map: &Value,
+    reference: &str,
+) -> Result<Value, EngineError> {
+    let Some(claims) = row.get("sourceDesignClaims").filter(|v| !v.is_null()) else {
+        return Ok(Value::Null);
+    };
+    if claims["status"] != "unverified_source_design_claim"
+        || claims["sourceFormat"] != "altium_pcb"
+        || map["sourceEvidence"]["format"] != "altium_pcb"
+    {
+        return Err(error(
+            "unsupported or overstated source design claim status",
+        ));
+    }
+    let source_sha = text(&map["sourceEvidence"], "sha256", 64)?;
+    if source_sha.len() != 64
+        || !source_sha
+            .bytes()
+            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+        || text(claims, "sourceSha256", 64)? != source_sha
+        || text(map, "board_revision", 128)? != &source_sha[..12]
+    {
+        return Err(error(
+            "source design claim digest does not bind to map evidence",
+        ));
+    }
+    let source_identity = &claims["sourceIdentity"];
+    let component_id = text(row, "component_id", 256)?;
+    if text(source_identity, "namespace", 64)? != "altium-pcb-uniqueid"
+        || text(source_identity, "uniqueId", 256)? != component_id
+        || text(source_identity, "reference", 256)? != reference
+    {
+        return Err(error(
+            "source design claim identity differs from component map",
+        ));
+    }
+    let properties = &claims["properties"];
+    let properties = json!({
+        "SOURCEDESCRIPTION":source_claim_property(properties, "SOURCEDESCRIPTION")?,
+        "PATTERN":source_claim_property(properties, "PATTERN")?,
+        "SOURCELIBREFERENCE":source_claim_property(properties, "SOURCELIBREFERENCE")?,
+        "COMMENT":source_claim_property(properties, "COMMENT")?
+    });
+    if properties
+        .as_object()
+        .is_none_or(|values| values.values().all(Value::is_null))
+    {
+        return Err(error(
+            "source design claim has no displayable source properties",
+        ));
+    }
+    Ok(json!({
+        "status":"unverified_source_design_claim",
+        "sourceFormat":"altium_pcb",
+        "sourceSha256":source_sha,
+        "sourceIdentity":source_identity,
+        "properties":properties
+    }))
 }
 
 fn vector(value: &Value) -> Result<[f64; 3], EngineError> {
@@ -275,6 +497,20 @@ impl ValidatedTwin {
             } else {
                 Some(text(row, "component_class", 256)?.to_owned())
             };
+            let source_design_claims = validate_source_design_claims(row, &map, &reference)?;
+            let class_hint =
+                component_class_hint(&reference, class.as_deref(), &source_design_claims);
+            let degenerate_triangles_omitted = match row.get("degenerate_triangles_omitted") {
+                None | Some(Value::Null) => None,
+                Some(value) => Some(
+                    value
+                        .as_u64()
+                        .filter(|count| *count <= MAX_DEGENERATE_TRIANGLE_CLAIM)
+                        .ok_or_else(|| {
+                            error("invalid source assembly degenerate-triangle count")
+                        })?,
+                ),
+            };
             let needs_model = row["needs_3d_body"]
                 .as_bool()
                 .ok_or_else(|| error("missing needs_3d_body state"))?;
@@ -334,6 +570,9 @@ impl ValidatedTwin {
             }
             components.push(json!({
                 "reference": reference, "componentClassClaim": class,
+                "componentClassHint": class_hint,
+                "sourceDesignClaims": source_design_claims,
+                "degenerateTrianglesOmitted": degenerate_triangles_omitted,
                 "selector": row["glb_selector"], "selectorNodeIndex": selector_root,
                 "renderableNodeIndex": renderable, "modelQualityClaim": row["model_quality"],
                 "renderableNodeIndices": renderable_nodes,
@@ -520,13 +759,20 @@ mod tests {
         .to_vec()
         .unwrap();
         let manifest = json!({"schemaVersion":"1.0","assetId":"fixture","boardIdentity":"fixture-board",
-            "boardRevision":"reference","assemblyContextRevision":"fixture-1","units":"METRE",
+            "boardRevision":"aaaaaaaaaaaa","assemblyContextRevision":"fixture-1","units":"METRE",
             "axes":"RIGHT_HANDED_Y_UP","componentNodePrefix":"ref:","glbBytes":glb.len(),
             "glbSha256":sha256_hex(&glb),"boardOriginMetres":{"x":0.,"y":0.,"z":0.},
             "boundsMetres":{"minimum":{"x":-1.,"y":-1.,"z":-1.},"maximum":{"x":2.,"y":2.,"z":2.}},"defaultOpacity":0.5});
-        let map = json!({"board_id":"fixture-board","board_revision":"reference","asset_id":"fixture",
-            "component_count":1,"renderable_count":1,"components":[{"reference":"D1","component_class":"diode",
-                "needs_3d_body":true,"glb_selector":"ref:D1","model_quality":"unverified-source"}]});
+        let source_sha = "a".repeat(64);
+        let map = json!({"board_id":"fixture-board","board_revision":"aaaaaaaaaaaa","asset_id":"fixture",
+            "sourceEvidence":{"format":"altium_pcb","sha256":source_sha},
+            "component_count":1,"renderable_count":1,"components":[{"component_id":"fixture-component-id",
+                "reference":"D1","component_class":null,"needs_3d_body":true,"glb_selector":"ref:D1",
+                "model_quality":"unverified-source","sourceDesignClaims":{
+                    "status":"unverified_source_design_claim","sourceFormat":"altium_pcb","sourceSha256":source_sha,
+                    "sourceIdentity":{"namespace":"altium-pcb-uniqueid","uniqueId":"fixture-component-id","reference":"D1"},
+                    "properties":{"SOURCEDESCRIPTION":"Surface mount schottky diode SOD-323 package",
+                        "PATTERN":"SMT_DIODE_SOD_323","SOURCELIBREFERENCE":"SMT_DIODE_SOD_323","COMMENT":null}}}]});
         ValidatedTwin::from_bytes(
             glb,
             &serde_json::to_vec(&map).unwrap(),
@@ -596,6 +842,185 @@ mod tests {
             json!([1])
         );
         assert_eq!(prepared.report["renamedComponentSubtrees"], 1);
+    }
+
+    #[test]
+    fn source_design_claims_require_internal_digest_and_identity_consistency() {
+        let original = twin(json!([{"name":"ref:D1","mesh":0}]), meshes(1)).unwrap();
+        let component = &original.index_json()["components"][0];
+        assert!(component["componentClassClaim"].is_null());
+        assert_eq!(component["componentClassHint"]["value"], "diode_or_led");
+        assert_eq!(
+            component["componentClassHint"]["basis"],
+            "unverified_source_text"
+        );
+        assert_eq!(component["componentClassHint"]["verified"], false);
+        assert_eq!(component["componentClassHint"]["selectionEligible"], false);
+        assert_eq!(
+            component["sourceDesignClaims"]["status"],
+            "unverified_source_design_claim"
+        );
+        assert_eq!(
+            component["sourceDesignClaims"]["properties"]["PATTERN"],
+            "SMT_DIODE_SOD_323"
+        );
+        assert_eq!(
+            component["sourceDesignClaims"]["sourceIdentity"]["reference"],
+            "D1"
+        );
+
+        let manifest_bytes = serde_json::to_vec(&original.manifest).unwrap();
+        let mut bad_identity = original.map.clone();
+        bad_identity["components"][0]["sourceDesignClaims"]["sourceIdentity"]["reference"] =
+            json!("R1");
+        let result = ValidatedTwin::from_bytes(
+            original.glb.clone(),
+            &serde_json::to_vec(&bad_identity).unwrap(),
+            &manifest_bytes,
+        );
+        let error = match result {
+            Ok(_) => panic!("mismatched source claim identity must be rejected"),
+            Err(error) => error,
+        };
+        assert!(error.to_string().contains("source design claim identity"));
+
+        let mut bad_digest = original.map.clone();
+        bad_digest["sourceEvidence"]["sha256"] = json!("b".repeat(64));
+        let result = ValidatedTwin::from_bytes(
+            original.glb.clone(),
+            &serde_json::to_vec(&bad_digest).unwrap(),
+            &manifest_bytes,
+        );
+        let error = match result {
+            Ok(_) => panic!("mismatched source claim digest must be rejected"),
+            Err(error) => error,
+        };
+        assert!(error.to_string().contains("source design claim digest"));
+
+        let manifest_bytes = serde_json::to_vec(&original.manifest).unwrap();
+        let reject_map = |mutated_map: Value, expected: &str| {
+            let error = match ValidatedTwin::from_bytes(
+                original.glb.clone(),
+                &serde_json::to_vec(&mutated_map).unwrap(),
+                &manifest_bytes,
+            ) {
+                Ok(_) => panic!("malformed source claim map must be rejected"),
+                Err(error) => error,
+            };
+            assert!(error.to_string().contains(expected), "{error}");
+        };
+
+        let mut bad_unique_id = original.map.clone();
+        bad_unique_id["components"][0]["sourceDesignClaims"]["sourceIdentity"]["uniqueId"] =
+            json!("different-component-id");
+        reject_map(bad_unique_id, "source design claim identity");
+
+        let mut bad_status = original.map.clone();
+        bad_status["components"][0]["sourceDesignClaims"]["status"] = json!("verified");
+        reject_map(
+            bad_status,
+            "unsupported or overstated source design claim status",
+        );
+
+        let mut bad_claim_format = original.map.clone();
+        bad_claim_format["components"][0]["sourceDesignClaims"]["sourceFormat"] =
+            json!("kicad_pcb");
+        reject_map(
+            bad_claim_format,
+            "unsupported or overstated source design claim status",
+        );
+
+        let mut oversized_property = original.map.clone();
+        oversized_property["components"][0]["sourceDesignClaims"]["properties"]["SOURCEDESCRIPTION"] =
+            json!("x".repeat(2049));
+        reject_map(oversized_property, "invalid source design claim property");
+
+        let mut control_character_property = original.map.clone();
+        control_character_property["components"][0]["sourceDesignClaims"]["properties"]["SOURCEDESCRIPTION"] =
+            json!("unsafe\u{0001}description");
+        reject_map(
+            control_character_property,
+            "invalid source design claim property",
+        );
+    }
+
+    #[test]
+    fn reference_designator_hints_are_narrow_and_source_text_wins() {
+        for (reference, expected) in [
+            ("C4", Some("capacitor")),
+            ("D12", Some("diode_or_led")),
+            ("U2", Some("integrated_circuit")),
+            ("TP3", Some("test_point")),
+            ("FB1", Some("ferrite_bead")),
+            ("C?", None),
+            ("Cover", None),
+        ] {
+            assert_eq!(
+                reference_designator_class(reference),
+                expected,
+                "{reference}"
+            );
+        }
+        let single = source_text_classes("Surface mount capacitor 0402");
+        assert_eq!(single.len(), 1);
+        assert_eq!(single.first().copied(), Some("capacitor"));
+        assert_eq!(
+            source_text_classes("capacitor and resistor network").len(),
+            2
+        );
+        assert!(source_text_classes("generic component").is_empty());
+        let ambiguous =
+            json!({"properties":{"SOURCEDESCRIPTION":"capacitor and resistor network"}});
+        assert_eq!(component_class_hint("C4", None, &ambiguous), Value::Null);
+        let prefix_conflict = json!({"properties":{"SOURCEDESCRIPTION":"resistor network"}});
+        assert_eq!(
+            component_class_hint("C4", None, &prefix_conflict),
+            Value::Null
+        );
+        let claims = json!({"properties":{"SOURCEDESCRIPTION":"Surface mount capacitor 0402"}});
+        let hint = component_class_hint("C4", None, &claims);
+        assert_eq!(hint["value"], "capacitor");
+        assert_eq!(hint["basis"], "unverified_source_text");
+        assert_eq!(
+            component_class_hint("C4", Some("authored_class"), &claims),
+            Value::Null
+        );
+    }
+
+    #[test]
+    fn preserves_bounded_source_claim_that_degenerate_triangles_were_omitted() {
+        let original = twin(json!([{"name":"ref:D1","mesh":0}]), meshes(1)).unwrap();
+        let manifest_bytes = serde_json::to_vec(&original.manifest).unwrap();
+        let mut map = original.map.clone();
+        map["components"][0]["degenerate_triangles_omitted"] = json!(1277);
+        let validated = ValidatedTwin::from_bytes(
+            original.glb.clone(),
+            &serde_json::to_vec(&map).unwrap(),
+            &manifest_bytes,
+        )
+        .unwrap();
+        assert_eq!(
+            validated.index_json()["components"][0]["degenerateTrianglesOmitted"],
+            1277
+        );
+
+        for invalid in [json!(-1), json!("1277"), json!(2_000_001)] {
+            let mut bad_map = original.map.clone();
+            bad_map["components"][0]["degenerate_triangles_omitted"] = invalid;
+            let error = match ValidatedTwin::from_bytes(
+                original.glb.clone(),
+                &serde_json::to_vec(&bad_map).unwrap(),
+                &manifest_bytes,
+            ) {
+                Ok(_) => panic!("invalid omitted-triangle claim must be rejected"),
+                Err(error) => error,
+            };
+            assert!(
+                error
+                    .to_string()
+                    .contains("invalid source assembly degenerate-triangle count")
+            );
+        }
     }
 
     #[test]

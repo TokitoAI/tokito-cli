@@ -1,0 +1,47 @@
+{
+  "schema": "tokito.footprint-definition.v1",
+  "name": "MountingHole_3mm",
+  "description": "Synthetic explicit round non-plated hole candidate",
+  "tags": ["mechanical", "non-plated-hole"],
+  "side": "front",
+  "reference": {
+    "text": "REF**",
+    "atMm": [0, -2.5, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "value": {
+    "text": "MountingHole_3mm",
+    "atMm": [0, 2.5, 0],
+    "sizeMm": [1, 1],
+    "thicknessMm": 0.15
+  },
+  "pads": [
+    {
+      "number": "",
+      "padType": "np_thru_hole",
+      "shape": "circle",
+      "atMm": [0, 0, 0],
+      "sizeMm": [3, 3],
+      "drillMm": 3,
+      "layers": ["*.Cu", "*.Mask"]
+    }
+  ],
+  "graphics": [
+    {
+      "kind": "circle",
+      "centerMm": [0, 0],
+      "radiusMm": 1.75,
+      "widthMm": 0.1,
+      "layer": "F.Fab"
+    },
+    {
+      "kind": "circle",
+      "centerMm": [0, 0],
+      "radiusMm": 2,
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    }
+  ],
+  "sourceEvidence": []
+}

@@ -89,3 +89,140 @@ fn executable_reports_malformed_step_without_admission_or_export() {
     assert!(error.contains("expected `HEADER`"), "{error}");
     assert!(error.contains("MALFORMED"), "{error}");
 }
+
+#[test]
+fn physical_research_mode_refuses_invalid_parameters_and_unpinned_source() {
+    let input = NegativeFile::new(b"synthetic negative input, not a qualified STEP source");
+    for (arguments, expected) in [
+        (vec!["--research-physical-source-face"], "usage:"),
+        (vec!["--research-grid-source-face"], "usage:"),
+        (vec!["--research-shared-edges"], "usage:"),
+        (vec!["--research-shared-patch"], "usage:"),
+        (vec!["--research-planar-multibound-face"], "usage:"),
+        (
+            vec![
+                "--research-planar-multibound-face",
+                "8127",
+                "--chord-tolerance",
+                "nan",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "invalid_planar_face_chord_target",
+        ),
+        (
+            vec![
+                "--research-planar-multibound-face",
+                "8127",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "planar_multibound_research_requires_pinned_source_face_representation_owner",
+        ),
+        (
+            vec![
+                "--research-shared-patch",
+                "--chord-tolerance",
+                "0.00001",
+                "--boundary-allowance",
+                "0.000005",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "shared_patch_requires_pinned_source_representation_owner",
+        ),
+        (
+            vec![
+                "--research-shared-patch",
+                "--chord-tolerance",
+                "0.00001",
+                "--boundary-allowance",
+                "0.000006",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "patch_boundary_allowance_exceeds_half_chord_target",
+        ),
+        (
+            vec![
+                "--research-shared-patch",
+                "--chord-tolerance",
+                "nan",
+                "--boundary-allowance",
+                "0.000005",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "invalid_shared_patch_tolerance",
+        ),
+        (
+            vec![
+                "--research-shared-edges",
+                "2875",
+                "--source-representation",
+                "5957",
+                "--source-owner",
+                "6218",
+            ],
+            "shared_edge_research_requires_pinned_source_face_representation_owner",
+        ),
+        (
+            vec![
+                "--research-grid-source-face",
+                "2875",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+            ],
+            "physical_research_requires_pinned_model16_face_and_representation",
+        ),
+        (
+            vec![
+                "--research-physical-source-face",
+                "2875",
+                "--chord-tolerance",
+                "nan",
+                "--source-representation",
+                "5957",
+            ],
+            "invalid_physical_chord_tolerance",
+        ),
+        (
+            vec![
+                "--research-physical-source-face",
+                "2875",
+                "--chord-tolerance",
+                "0.00001",
+                "--source-representation",
+                "5957",
+            ],
+            "physical_research_requires_pinned_model16_face_and_representation",
+        ),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_tokito-step-evaluation"))
+            .args(&arguments)
+            .arg(&input.0)
+            .output()
+            .unwrap();
+        assert_eq!(output.status.code(), Some(2));
+        assert!(output.stderr.is_empty());
+        let report: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert!(report["error"].as_str().unwrap().starts_with(expected));
+        assert_eq!(report["admitted"], false);
+        assert_eq!(report["exportsProduced"], serde_json::json!([]));
+        assert!(report.get("physicalRefinementCandidate").is_none());
+    }
+}

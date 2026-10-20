@@ -1,0 +1,67 @@
+{
+  "schema": "tokito.kicad-library-geometry-reference.v1",
+  "source": {
+    "commit": "51f8a59ed7d5f3bab9bb296c7b767bb033f3ba4c",
+    "uri": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/51f8a59ed7d5f3bab9bb296c7b767bb033f3ba4c/Resistor_SMD.pretty/R_0603_1608Metric.kicad_mod",
+    "bytes": 1943,
+    "sha256": "7190ac4a00125b807e54129ef0d87d87f2a658eeb74d025a7028203419b09f23"
+  },
+  "installedComparison": {
+    "kicadVersion": "10.0.5",
+    "bytes": 2055,
+    "sha256": "03fc7902b2661df01b4d828fdb6eab9eddf974e7130ed2b98892607387a50c4b",
+    "lineEndings": "CRLF"
+  },
+  "geometry": {
+    "pads": [
+      {
+        "number": "1",
+        "type": "smd",
+        "shape": "roundrect",
+        "atMm": [-0.825, 0, 0],
+        "sizeMm": [0.8, 0.95],
+        "layers": ["F.Cu", "F.Mask", "F.Paste"],
+        "roundrectRatio": 0.25
+      },
+      {
+        "number": "2",
+        "type": "smd",
+        "shape": "roundrect",
+        "atMm": [0.825, 0, 0],
+        "sizeMm": [0.8, 0.95],
+        "layers": ["F.Cu", "F.Mask", "F.Paste"],
+        "roundrectRatio": 0.25
+      }
+    ],
+    "graphics": [
+      {
+        "kind": "line",
+        "startMm": [-0.237258, -0.5225],
+        "endMm": [0.237258, -0.5225],
+        "widthMm": 0.12,
+        "layer": "F.SilkS"
+      },
+      {
+        "kind": "line",
+        "startMm": [-0.237258, 0.5225],
+        "endMm": [0.237258, 0.5225],
+        "widthMm": 0.12,
+        "layer": "F.SilkS"
+      },
+      {
+        "kind": "rectangle",
+        "startMm": [-1.48, -0.73],
+        "endMm": [1.48, 0.73],
+        "widthMm": 0.05,
+        "layer": "F.CrtYd"
+      },
+      {
+        "kind": "rectangle",
+        "startMm": [-0.8, -0.4125],
+        "endMm": [0.8, 0.4125],
+        "widthMm": 0.1,
+        "layer": "F.Fab"
+      }
+    ]
+  }
+}

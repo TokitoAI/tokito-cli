@@ -1,0 +1,64 @@
+{
+  "schema": "tokito.projection-audit-e2e.v1",
+  "passed": true,
+  "geometryQualified": false,
+  "admitted": false,
+  "exportsProduced": [],
+  "checks": [
+    {
+      "name": "independent-four-probe-comparison",
+      "passed": true
+    },
+    {
+      "name": "no-overwrite",
+      "passed": true
+    },
+    {
+      "name": "duplicate-indices",
+      "passed": true
+    },
+    {
+      "name": "source-mismatch",
+      "passed": true
+    }
+  ],
+  "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+  "diagnosticSha256": "2c061da6fb356bbb3e8ccb08fb82be2870f7963604239b1391644c73a93f42d2",
+  "auditScriptSha256": "d2302f39e64486c4fb29b03dc70e888bd5dd7b6ebde1008cdda004052696bb9d",
+  "freecadExecutableSha256": "1692e54224b48989974e8b91d3ac7a38d1d502d3db4dee1d4cf79ba91356e42d",
+  "reportSha256": "6384fe948475f1fa55aa3c3a0c989b5ad93061a76d41295fc1fb6c56e131fb35",
+  "diagnosticGeneration": {
+    "baseCommit": "ebd44940d6dc165a4833665e6908229d43e52b24",
+    "binarySha256": "2718a9c9719d7c0b911c87504f766a859dddc6cdf5ef060c6109b6ebc45f9018",
+    "exitCode": 2,
+    "inputSha256": {
+      "experiments/step-evaluation/src/bin/model16_spade_candidate.rs": "649c9902a8f48b87c1e350deaedcc0e065da65fcd6d927b506bd82c06160a762",
+      "experiments/step-evaluation/src/candidate_mesh.rs": "be1e6cc8aa8c927b60209412a965a57347f91a746711c68ed176eb6256e9e965",
+      "experiments/step-evaluation/src/exact_predicate.rs": "12b06aa3dfb955131a5d81fe7fce4f19894ee26fc01e7a53ac3f8289dc2bb333",
+      "experiments/step-evaluation/src/face_coverage.rs": "0bd884b2c960580af5d5a43e420dbdb42be577be2188bdd292faa3f40e9e0d1a",
+      "experiments/step-evaluation/src/face_representation.rs": "47106514a9e58355f9492bd86805f77ac975448be182de229e69a14566e2c826",
+      "experiments/step-evaluation/src/main.rs": "40e5a88a98a50c9ff021657d3d43b90f9145fce6b0b612864c86c4633ae92994",
+      "experiments/step-evaluation/src/negative_torus.rs": "1496d56f25c45a2f743356e72cbf4266bcedba7ea9e6a050e524659d8c4524ad",
+      "experiments/step-evaluation/src/occurrence_world.rs": "f1ebe7e54b5a26cb2d375c3b692f848688022a4e11a843b2144814cec9669512",
+      "experiments/step-evaluation/src/planar_face.rs": "fec1761cd632dca0cde1228c17014147213f984ea88eca275e98145ac869d4b0",
+      "experiments/step-evaluation/src/planar_repair.rs": "6bd370fc0c2cf0cf7dff43c08a50baf5729bd6da711c39397258c15d6342acbe",
+      "experiments/step-evaluation/src/source_uncertainty.rs": "b7ea50c44cad9d680487d31553870fa3dab70069fdaa50f18a7d7326c2a86e41",
+      "experiments/step-evaluation/src/spline_face_diagnostic.rs": "5105213b86de3cd82055325608637b9fd78daec9671bf96853c0b406df705464",
+      "experiments/step-evaluation/src/triangle_diagnostics.rs": "9cf8c23a4c95757584b8045f3a18fd92995498e75c2d8dd5ddc8ef21e585c8e9",
+      "experiments/step-evaluation/src/trim_polygon_candidate.rs": "0b6d532facb34444d5091434cc46594a6002d36ccc460e0776d77b001e56b850",
+      "experiments/step-evaluation/src/unit_preflight.rs": "29be2fa1993a2b1e3f55cba10d31343ebe7219fc1dda4f5e6c6f2899fdfbeb88",
+      "experiments/step-evaluation/Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+      "experiments/step-evaluation/Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+    }
+  },
+  "auditE2eRunnerSha256": "d3413ad3b9d25ed9fc529bea911b1b7fa220c4820858d06502540a8999e18d2e",
+  "localRunDirectory": "target/research/projection-20261018-final",
+  "reportFile": "model16-projection-audit-20261018.json",
+  "limitations": [
+    "Four source points from one pinned face only.",
+    "OCCT import/closest-point evidence is numerical, not a proof of a global surface-distance minimum.",
+    "Imported OCCT edge tolerances are importer observations, not raw STEP per-edge acceptance tolerances.",
+    "Units are asserted from the Rust-selected representation and the pinned fixture; this audit does not independently parse STEP units.",
+    "The root verifier does not rerun FreeCAD; the separate E2E run recorded here did."
+  ]
+}

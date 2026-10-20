@@ -1,0 +1,501 @@
+{
+  "schema": "tokito.projection-solver-evidence.v1",
+  "date": "2026-10-19",
+  "baseCommit": "2a0a4ae1fb3cf6f5dbbc04d1a9285cc870738735",
+  "geometryQualified": false,
+  "admitted": false,
+  "exportsProduced": [],
+  "scope": "Experimental diagnostic solver observations and preserved refusal; no STEP repair, full-solid qualification or production capability.",
+  "runs": {
+    "sourceFaceE2e": {
+      "receiptPath": "target/research/projection-status-20261019-e2e-v2/receipt.json",
+      "receiptSha256": "bb01367979b40a0f75078d7b9b61e3043ca9705bef2320dad2bbff857ff57299",
+      "receipt": {
+        "schema": "tokito.step-model16-source-face-trim-e2e.v1",
+        "passed": true,
+        "outcome": "expected_safety_refusal",
+        "researchCandidateProduced": false,
+        "diagnosticTrimMeshIsNotTheResearchSpadeCandidate": true,
+        "admitted": false,
+        "exportsProduced": [],
+        "inputSha256": {
+          "target\\local-verification\\20261018T074247Z-eb899f5d4ffc4d9c95096ffba5db183c\\release\\tokito-step-evaluation.exe": "ec21a81baf6bb98a097c489554627d30b19f9fa9af21e2143770d8bf1ef37ea9",
+          "D:\\kannan\\projects\\tokito ecosystem\\tokito_cli\\target\\dataset-intake\\esp8266-pr6-5283bc0-source-candidate\\data\\board-sources\\esp8266-nodemcu-reference\\structured-source\\embedded-models\\16.step": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\model16_source_face_trim_e2e.py": "da33913fa5dcb3bb75beb9d5528cbbc09e6cda261ae990c0c3feda46390be165",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\bounded_fingerprint.py": "e6d886d3d1c0f1714c4693bde03908ad60bacc8bc5f42ee95de045a243143590",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\tests\\surface_reference_e2e.py": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184",
+          "target\\local-verification\\20261018T074247Z-eb899f5d4ffc4d9c95096ffba5db183c\\release\\model16_spade_candidate.exe": "2813fd6135853fabdf6bb7d36872838f1581980f274fe6c400e0ccfe7e3be564",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\src\\bin\\model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+          "D:\\kannan\\projects\\tokito ecosystem\\worktrees\\pr45-zero-budget-hardening\\experiments\\step-evaluation\\Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3"
+        },
+        "scope": "pinned source B-spline face/trim diagnostics, bounded projection observations, and an isolated research-only Spade candidate; no production repair/export or geometry admission",
+        "solverObservations": {
+          "checkedObservationCount": 6248,
+          "orthogonalButResidualUnmetObservationCount": 720,
+          "probe1535": {
+            "authorizesGeometryAdmission": false,
+            "globalMinimumProven": false,
+            "iterationLimit": 24,
+            "iterations": 2,
+            "normalizedJacobianDeterminant": 0.9999999999893031,
+            "residualToleranceMet": false,
+            "residualToleranceSourceUnits": 8.182579005321623e-11,
+            "stationarityObservation": "interior_tangent_orthogonality_observed",
+            "tangentOrthogonalityObservationThreshold": 1e-08,
+            "tangentResidualCosines": [
+              -3.6181391771528126e-09,
+              -7.444844738102695e-10
+            ],
+            "termination": "no_decreasing_step"
+          },
+          "authorizesGeometryAdmission": false
+        },
+        "malformedSolverObservationControlsPassed": 4,
+        "summary": {
+          "faceId": 2875,
+          "surfaceId": 10410,
+          "boundId": 8995,
+          "loopId": 8007,
+          "orientedEdgeIds": [
+            2809,
+            470,
+            7109,
+            4933
+          ],
+          "faceSameSense": true,
+          "sourceBoundarySampleCount": 100,
+          "readerInverseMaximumResidualSourceUnits": 0.024010970673693524,
+          "multiStartMaximumResidualSourceUnits": 1.0808372790666913e-06,
+          "sharedKernelInverseDistanceChecks": 15300,
+          "sharedKernelInverseGridDimensions": [
+            9,
+            17
+          ],
+          "sharedKernelInverseControlPointEvaluationEstimate": 661662,
+          "sourceEdgeCurveControlPointEvaluationEstimate": 1290,
+          "sourceEdgeCurveControlPointStorageCount": 42,
+          "sourceEdgeCurveControlPointStorageBudget": 65536,
+          "trimCandidateStatus": "candidate_only",
+          "trimCandidateVertexCount": 12801,
+          "trimCandidateTriangleCount": 24064,
+          "trimCandidateChordConverged": true,
+          "trimCandidateOrientationConverged": false,
+          "triangleOrientationCheckCount": 24064,
+          "minimumTriangleNormalAlignment": -0.9999979635374178,
+          "nonpositiveTriangleNormalCount": 3995,
+          "orientationContinuity": {
+            "schema": "tokito.step-trim-candidate-orientation-continuity.v1",
+            "diagnosticOnly": true,
+            "admissionAffecting": false,
+            "finalTriangleCount": 24064,
+            "cachedObservationCountAcrossRefinementLevels": 32054,
+            "observationCacheLimit": 100000,
+            "uvWindingSigns": {
+              "negative": 0,
+              "positive": 24064,
+              "zero": 0
+            },
+            "uBinTriangleAndNonpositiveCounts": [
+              {
+                "uBin": 0,
+                "count": 8981,
+                "nonpositiveCount": 3130
+              },
+              {
+                "uBin": 1,
+                "count": 1277,
+                "nonpositiveCount": 47
+              },
+              {
+                "uBin": 2,
+                "count": 1680,
+                "nonpositiveCount": 81
+              },
+              {
+                "uBin": 3,
+                "count": 1829,
+                "nonpositiveCount": 104
+              },
+              {
+                "uBin": 4,
+                "count": 2080,
+                "nonpositiveCount": 127
+              },
+              {
+                "uBin": 5,
+                "count": 2701,
+                "nonpositiveCount": 219
+              },
+              {
+                "uBin": 6,
+                "count": 2635,
+                "nonpositiveCount": 148
+              },
+              {
+                "uBin": 7,
+                "count": 2881,
+                "nonpositiveCount": 139
+              }
+            ],
+            "edgeAdjacency": {
+              "uniqueEdgeCount": 36864,
+              "boundaryEdgeCount": 1536,
+              "interiorEdgeCount": 35328,
+              "nonmanifoldEdgeCount": 0,
+              "inconsistentInteriorEdgeWindingCount": 0,
+              "adjacentTrianglePairCount": 35328
+            },
+            "adjacentNormalDotSummaries": {
+              "geometricTriangleNormalDot": {
+                "comparedPairCount": 35328,
+                "maximumDot": 1.0,
+                "meanDot": 0.2966933263485951,
+                "minimumDot": -0.9999999954757033,
+                "nonpositiveDotPairCount": 12396,
+                "undefinedPairCount": 0
+              },
+              "parameterNormalDot": {
+                "comparedPairCount": 35328,
+                "maximumDot": 0.9999999999919589,
+                "meanDot": 0.9997113267206206,
+                "minimumDot": 0.9957814186927694,
+                "nonpositiveDotPairCount": 0,
+                "undefinedPairCount": 0
+              }
+            },
+            "adjacentNormalContinuityByU8": [
+              {
+                "uBin": 0,
+                "adjacentTrianglePairCount": 13207,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 13207,
+                  "maximumDot": 1.0,
+                  "meanDot": -0.4198228124652235,
+                  "minimumDot": -0.9999999954757033,
+                  "nonpositiveDotPairCount": 9371,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 13207,
+                  "maximumDot": 0.9999999999919589,
+                  "meanDot": 0.9999956526330321,
+                  "minimumDot": 0.9994816353454872,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 1,
+                "adjacentTrianglePairCount": 1909,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 1909,
+                  "maximumDot": 0.9999993375498463,
+                  "meanDot": 0.8887685914130204,
+                  "minimumDot": -0.9881091890664183,
+                  "nonpositiveDotPairCount": 105,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 1909,
+                  "maximumDot": 0.9999998762458641,
+                  "meanDot": 0.9998463314955086,
+                  "minimumDot": 0.9992685792391807,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 2,
+                "adjacentTrianglePairCount": 2281,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 2281,
+                  "maximumDot": 0.9999979709481204,
+                  "meanDot": 0.81577742708135,
+                  "minimumDot": -0.9597612117340438,
+                  "nonpositiveDotPairCount": 209,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 2281,
+                  "maximumDot": 0.9999996292843468,
+                  "meanDot": 0.9997185361860679,
+                  "minimumDot": 0.9989300087627448,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 3,
+                "adjacentTrianglePairCount": 2653,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 2653,
+                  "maximumDot": 0.9999959512451859,
+                  "meanDot": 0.7683512989896077,
+                  "minimumDot": -0.916100808399246,
+                  "nonpositiveDotPairCount": 317,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 2653,
+                  "maximumDot": 0.999999292912695,
+                  "meanDot": 0.9996105344435293,
+                  "minimumDot": 0.9984145691532915,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 4,
+                "adjacentTrianglePairCount": 3615,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3615,
+                  "maximumDot": 0.9999986475875958,
+                  "meanDot": 0.6936605751490689,
+                  "minimumDot": -0.8614031760605599,
+                  "nonpositiveDotPairCount": 588,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3615,
+                  "maximumDot": 0.9999991693790828,
+                  "meanDot": 0.9995614965534775,
+                  "minimumDot": 0.9977086419927166,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 5,
+                "adjacentTrianglePairCount": 3521,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3521,
+                  "maximumDot": 0.99999541384926,
+                  "meanDot": 0.7012472026194951,
+                  "minimumDot": -0.7945307206951204,
+                  "nonpositiveDotPairCount": 506,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3521,
+                  "maximumDot": 0.9999989424401645,
+                  "meanDot": 0.999466579337712,
+                  "minimumDot": 0.9969820096222091,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 6,
+                "adjacentTrianglePairCount": 3893,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 3893,
+                  "maximumDot": 0.9999999602045482,
+                  "meanDot": 0.6803371160721036,
+                  "minimumDot": -0.7393201385130753,
+                  "nonpositiveDotPairCount": 602,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 3893,
+                  "maximumDot": 0.999998777342376,
+                  "meanDot": 0.9994294033539045,
+                  "minimumDot": 0.9962047877283435,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              },
+              {
+                "uBin": 7,
+                "adjacentTrianglePairCount": 4249,
+                "geometricTriangleNormalDot": {
+                  "comparedPairCount": 4249,
+                  "maximumDot": 1.0,
+                  "meanDot": 0.6601721338235303,
+                  "minimumDot": -0.6904784115198289,
+                  "nonpositiveDotPairCount": 698,
+                  "undefinedPairCount": 0
+                },
+                "parameterNormalDot": {
+                  "comparedPairCount": 4249,
+                  "maximumDot": 0.99999916558501,
+                  "meanDot": 0.9994145651144808,
+                  "minimumDot": 0.9957814186927694,
+                  "nonpositiveDotPairCount": 0,
+                  "undefinedPairCount": 0
+                }
+              }
+            ],
+            "pinnedFreecadReference": {
+              "reportSha256": "3e010ab4ae00395176a433f657095fcf11d8472c0d26ee66659f579a8c8874fc",
+              "matchedPinnedAggregateConstants": true,
+              "referenceFileLoadedByThisTest": false,
+              "comparedPerTriangleAgainstIndependentTriangulation": false,
+              "scope": "E2E compares Rust aggregate counts with pinned constants attributed to this report SHA; it does not open or hash the report file, and FreeCAD evaluated the same Rust candidate"
+            }
+          },
+          "trimCandidateRefinementConverged": false,
+          "trimCandidateRefinementFailureReason": "trim_candidate_normal_orientation_not_reached",
+          "trimCandidateMaxSampledChordErrorSourceUnits": 0.0011816150928133978,
+          "trimCandidateBoundarySampleCount": 100,
+          "trimCandidateBoundaryTrace": {
+            "ambiguousHalfPeriodStepCount": 0,
+            "candidateLoopClosureUv": [
+              0.0,
+              0.0
+            ],
+            "maximumUnwrappedUStep": 0.0878106961777228,
+            "maximumUnwrappedVStep": 0.02200041448737733,
+            "sampleCount": 100,
+            "sourceSampleOrderPreserved": true,
+            "uPeriodicBranchShiftCount": 0,
+            "vPeriodicBranchShiftCount": 61
+          },
+          "sourceDrivenBoundaryRefinementProbeCount": 2976,
+          "retainedBoundaryRefinementProbeCount": 1440,
+          "uvProjectionConvergence": {
+            "sourceBoundarySamplesConverged": 73,
+            "sourceBoundarySamplesNotConverged": 27,
+            "sourceEdgeMidpointProbesConverged": 2167,
+            "sourceEdgeMidpointProbesNotConverged": 809
+          },
+          "declaredSourceUncertainty": {
+            "representationId": 5957,
+            "contextId": 206,
+            "valueInContextUnits": 1e-05,
+            "uncertaintyUnitMetresPerUnit": 0.001,
+            "usedAsAdmissionTolerance": false,
+            "boundaryProjectionResiduals": {
+              "sampleCount": 100,
+              "withinDeclaredSourceUncertainty": 100,
+              "maximumResidualSourceUnits": 1.0808372790666913e-06,
+              "declaredSourceUncertaintySourceUnits": 1e-05,
+              "usedAsAdmissionTolerance": false
+            },
+            "midpointProjectionResiduals": {
+              "sampleCount": 2976,
+              "withinDeclaredSourceUncertainty": 2976,
+              "maximumResidualSourceUnits": 1.0769296318977893e-06,
+              "declaredSourceUncertaintySourceUnits": 1e-05,
+              "usedAsAdmissionTolerance": false
+            }
+          },
+          "candidateMeshTopology": {
+            "vertices": 12801,
+            "edges": 36864,
+            "triangles": 24064,
+            "boundaryEdges": 1536,
+            "boundaryVertices": 1536,
+            "nonManifoldEdges": 0,
+            "inconsistentInteriorEdges": 0,
+            "boundaryVerticesWithDegreeOtherThanTwo": 0,
+            "eulerCharacteristic": 1,
+            "connectedComponents": 1,
+            "boundaryComponents": 1
+          },
+          "researchSpadeCandidateBuildIdentity": {
+            "generatorSourceSha256": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+            "schema": "tokito.model16-spade-candidate-build-identity.v1",
+            "spadeVersion": "2.15.1"
+          },
+          "researchSpadeCandidate": {
+            "status": "refused_nonconverged_selected_projection",
+            "selectedProbe": {
+              "qualityProbeIndex": 1535,
+              "orientedEdgeId": 470,
+              "edgeCurveId": 3478,
+              "curveParameter": 1.4035888909095733,
+              "projectionResidualSourceUnits": 1.07888315327835e-06,
+              "projectionConverged": false
+            },
+            "refusal": "model16_spade_candidate: spade_boundary_split_uses_nonconverged_source_curve_projection:quality_probe_index=1535",
+            "nonconvergedQualityProbeCount": 835,
+            "candidateFileProduced": false,
+            "geometryQualified": false,
+            "admitted": false,
+            "exportsProduced": []
+          }
+        },
+        "diagnosticSha256": "c38327dd4ce562ce492ef1278b886c299d1d654e7542c66f67ad75a318361d79"
+      }
+    },
+    "independentProjectionAudit": {
+      "receiptPath": "target/research/projection-status-20261019-independent-v1/receipt.json",
+      "receiptSha256": "906ed61530b3784e563ed9ce53cd1a10a25eac2636a368cfb696b87e58c9454c",
+      "receipt": {
+        "schema": "tokito.projection-audit-e2e.v1",
+        "passed": true,
+        "geometryQualified": false,
+        "admitted": false,
+        "exportsProduced": [],
+        "checks": [
+          {
+            "name": "independent-four-probe-comparison",
+            "passed": true
+          },
+          {
+            "name": "no-overwrite",
+            "passed": true
+          },
+          {
+            "name": "duplicate-indices",
+            "passed": true
+          },
+          {
+            "name": "source-mismatch",
+            "passed": true
+          }
+        ],
+        "sourceSha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f",
+        "diagnosticSha256": "c38327dd4ce562ce492ef1278b886c299d1d654e7542c66f67ad75a318361d79",
+        "auditScriptSha256": "d2302f39e64486c4fb29b03dc70e888bd5dd7b6ebde1008cdda004052696bb9d",
+        "freecadExecutableSha256": "1692e54224b48989974e8b91d3ac7a38d1d502d3db4dee1d4cf79ba91356e42d",
+        "reportSha256": "6dd49c23d0af8e5e388518061e929006b0add11a368df909060c4d5dd8e44e78"
+      }
+    },
+    "boundsAndLegacyCompatibility": {
+      "receiptPath": "target/research/projection-status-20261019-bounds/receipt.json",
+      "receiptSha256": "cf414a5cc6065037d69acda88c5cb240546bdb4c2768f170d73c514e9aa52611",
+      "receipt": {
+        "passed": true,
+        "legacyProjectionRecordsEquivalent": 6248,
+        "inputByteLimit": 16777216,
+        "actualOversizedInputBytes": 16777217,
+        "oversizedInputRefused": true,
+        "candidateOutputProduced": false,
+        "geometryQualified": false,
+        "admitted": false
+      }
+    }
+  },
+  "producerInputSha256": {
+    "experiments/step-evaluation/src/bin/model16_spade_candidate.rs": "416a2e63944198c17ed953c262c51077938a6d2c3c64a20618ec296cfc315671",
+    "experiments/step-evaluation/src/candidate_mesh.rs": "be1e6cc8aa8c927b60209412a965a57347f91a746711c68ed176eb6256e9e965",
+    "experiments/step-evaluation/src/exact_predicate.rs": "12b06aa3dfb955131a5d81fe7fce4f19894ee26fc01e7a53ac3f8289dc2bb333",
+    "experiments/step-evaluation/src/face_coverage.rs": "0bd884b2c960580af5d5a43e420dbdb42be577be2188bdd292faa3f40e9e0d1a",
+    "experiments/step-evaluation/src/face_representation.rs": "47106514a9e58355f9492bd86805f77ac975448be182de229e69a14566e2c826",
+    "experiments/step-evaluation/src/main.rs": "40e5a88a98a50c9ff021657d3d43b90f9145fce6b0b612864c86c4633ae92994",
+    "experiments/step-evaluation/src/negative_torus.rs": "1496d56f25c45a2f743356e72cbf4266bcedba7ea9e6a050e524659d8c4524ad",
+    "experiments/step-evaluation/src/occurrence_world.rs": "f1ebe7e54b5a26cb2d375c3b692f848688022a4e11a843b2144814cec9669512",
+    "experiments/step-evaluation/src/planar_face.rs": "fec1761cd632dca0cde1228c17014147213f984ea88eca275e98145ac869d4b0",
+    "experiments/step-evaluation/src/planar_repair.rs": "6bd370fc0c2cf0cf7dff43c08a50baf5729bd6da711c39397258c15d6342acbe",
+    "experiments/step-evaluation/src/source_uncertainty.rs": "b7ea50c44cad9d680487d31553870fa3dab70069fdaa50f18a7d7326c2a86e41",
+    "experiments/step-evaluation/src/spline_face_diagnostic.rs": "28778746caeb2a0389dbf53cd64531f08d0411d223831ad9283465b4e6f00faf",
+    "experiments/step-evaluation/src/triangle_diagnostics.rs": "9cf8c23a4c95757584b8045f3a18fd92995498e75c2d8dd5ddc8ef21e585c8e9",
+    "experiments/step-evaluation/src/trim_polygon_candidate.rs": "0b6d532facb34444d5091434cc46594a6002d36ccc460e0776d77b001e56b850",
+    "experiments/step-evaluation/src/unit_preflight.rs": "29be2fa1993a2b1e3f55cba10d31343ebe7219fc1dda4f5e6c6f2899fdfbeb88",
+    "experiments/step-evaluation/Cargo.toml": "ecb2a908893db27096495930e2b7226472d5d86c4cc76543fd3bda8bc5d25b07",
+    "experiments/step-evaluation/Cargo.lock": "97b0b62bcffb480d95764acd00c31168ee676da812f78680300d322ebb76d1e3",
+    "experiments/step-evaluation/tests/model16_source_face_trim_e2e.py": "da33913fa5dcb3bb75beb9d5528cbbc09e6cda261ae990c0c3feda46390be165",
+    "experiments/step-evaluation/tests/projection_audit_e2e.py": "d3413ad3b9d25ed9fc529bea911b1b7fa220c4820858d06502540a8999e18d2e"
+  },
+  "limitations": [
+    "Finite differences observe local secants, including near knots/seams; no exact differentiability, constrained stationarity or global-minimum claim.",
+    "A domain boundary is reported without a KKT stationarity claim.",
+    "Normalized Jacobian determinant observes tangent dependence; it is not a physical anisotropy ratio.",
+    "Legacy convergence and all6248 prior projection records are unchanged; extra final-point evaluations count against existing budgets.",
+    "Independent FreeCAD audit remains development-only; production stays pure Rust.",
+    "Dataset model16 is a digest-pinned historical materialized candidate, not a claim about latest dataset main.",
+    "Local full-suite receipt is separate; these runs are not independent Windows installation or whole-solid acceptance."
+  ]
+}

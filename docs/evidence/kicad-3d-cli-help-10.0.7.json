@@ -1,0 +1,21 @@
+{
+  "version": "10.0.7",
+  "executableSha256": "cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a",
+  "executable": "D:/TokitoKiCadRef107/bin/kicad-cli.exe",
+  "commands": [
+    {
+      "file": "kicad-pcb-export-step-help-10.0.7.txt",
+      "path": "pcb export step --help",
+      "bytes": 3468,
+      "sha256": "750911020c9b5857e66066a921c68a2cc882ee0b073aaabd357220dc9b703bf9"
+    },
+    {
+      "file": "kicad-pcb-export-vrml-help-10.0.7.txt",
+      "path": "pcb export vrml --help",
+      "bytes": 1788,
+      "sha256": "684077aa4816530859e676be2f3dedddcf1579058fbc3692e30c09fb2babc0e9"
+    }
+  ],
+  "schema": "tokito.kicad-cli-help-capture.v1",
+  "capturedAtUtc": "2026-10-14T22:59:55Z"
+}

@@ -1,0 +1,217 @@
+{
+  "schema": "tokito.presentation-browser-qa.v1",
+  "passed": true,
+  "testSha256": "be2b757ff5c91b4e7580d72b5b7fbf250bfd28df0cb029ffc1f8090004bfc990",
+  "boards": [
+    {
+      "passed": true,
+      "board": "esp32",
+      "statistics": {
+        "components": 26,
+        "triangles": 30754,
+        "draws": 60,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 804750,
+        "nonBackground": 907
+      },
+      "selected": "U1",
+      "missingTested": "U3",
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "missing-body disclosure",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "5a5ce86020d9194cc2393c40dae1e8909e1202847d5d6531c7747f35fc611c73",
+      "glbSha256": "6a8d2eeaef65bb28879a94a816b1a50c14e8135e1645b6d984047bf20f32f4ed",
+      "pngSha256": "505e13d01d0f24da5ea78d099bc68c7fc681ef94aa8266d13a1e496d4621239e",
+      "browserVersion": "155.0.4283.45"
+    },
+    {
+      "passed": true,
+      "board": "esp32-natural",
+      "statistics": {
+        "components": 26,
+        "triangles": 30754,
+        "draws": 60,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 794418,
+        "nonBackground": 897
+      },
+      "selected": "U1",
+      "missingTested": "U3",
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "missing-body disclosure",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "a06bcd788a37e68ffeb9f072cd7467dd26aa9e2764e354bcb3fe9b5aec5c29e0",
+      "glbSha256": "c4df5130efafe198106f95b4661651b34eebf6a8bd38d59b4116c15e87525fb7",
+      "pngSha256": "9710625a6e676aee13779926193295409d8b605d95489cc27e4404a1c2966a59",
+      "browserVersion": "155.0.4283.45"
+    },
+    {
+      "passed": true,
+      "board": "esp8266",
+      "statistics": {
+        "components": 34,
+        "triangles": 405594,
+        "draws": 35,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 850170,
+        "nonBackground": 848
+      },
+      "selected": "U1",
+      "missingTested": null,
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "c04f7c4fcf62437e29ea0205d1754637c12d64fde3e979618f286697c8154f37",
+      "glbSha256": "e929f29ff0fdc88e1b31c20e6820ff0925cff63bf51df2851276b4cf858aafc1",
+      "pngSha256": "788f7107bd6a3d14efe0f235719fc3f8f6f076ea8f87f3b5b04e25ad21fa6edf",
+      "browserVersion": "155.0.4283.45"
+    },
+    {
+      "passed": true,
+      "board": "nxp-reference",
+      "statistics": {
+        "components": 391,
+        "triangles": 108920,
+        "draws": 871,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 552354,
+        "nonBackground": 673
+      },
+      "selected": "U1",
+      "missingTested": "BH1",
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "missing-body disclosure",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "d95152e5e8975f392d958906746b2a18f21aff0a049e904022e60da2dac89c26",
+      "glbSha256": "9113e74057ca87f3ed3910b6e8ea5989bdb54f17bbdb98fccdc8d58d71b7be5b",
+      "pngSha256": "73fdcf9688f2e146392dad70c181248caad9a28aa4afc0f94a82f6f8aa0a2a04",
+      "browserVersion": "155.0.4283.45"
+    },
+    {
+      "passed": true,
+      "board": "nxp-refined",
+      "statistics": {
+        "components": 391,
+        "triangles": 274908,
+        "draws": 867,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 529546,
+        "nonBackground": 669
+      },
+      "selected": "U1",
+      "missingTested": "BH1",
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "missing-body disclosure",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "9699c5558fd9f08ec0c90c5f242a076918be36800dfdc969740d248f78e012ed",
+      "glbSha256": "49bac35c3941ebc403cf0faa40fb6fb21d31fdb104083c90eb5964014ca8b43a",
+      "pngSha256": "af5832fd443b6d63997a414a510eae9f16912eb40668a1401aa4040f85d1f555",
+      "browserVersion": "155.0.4283.45"
+    },
+    {
+      "passed": true,
+      "board": "ultimaker",
+      "statistics": {
+        "components": 574,
+        "triangles": 712527,
+        "draws": 841,
+        "error": ""
+      },
+      "png": {
+        "width": 3840,
+        "height": 2160,
+        "bytes": 940554,
+        "nonBackground": 600
+      },
+      "selected": "U8",
+      "missingTested": "TP527",
+      "checks": [
+        "reference default",
+        "selection colour invariance",
+        "actual 4K PNG",
+        "download button",
+        "capture state restoration",
+        "material mode roundtrip",
+        "exact identity",
+        "missing-body disclosure",
+        "fresh offline rendering",
+        "simulated GPU-limit refusal"
+      ],
+      "geometryQualificationChanged": false,
+      "htmlSha256": "32e0644025f999af2731e21f05616f5d33a5d1a5c63ec8cdd678ef34941913af",
+      "glbSha256": "b005375032a454d04fd9bc75071c37c93e1999bf2285f8a189af33db0737b712",
+      "pngSha256": "7b683195ffd2571f1fc9a1af950d40acf0df8d8f829e74dec96a2cdd96a15580",
+      "browserVersion": "155.0.4283.45"
+    }
+  ],
+  "geometryQualified": false
+}

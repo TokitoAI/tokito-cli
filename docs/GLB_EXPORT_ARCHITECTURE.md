@@ -12,26 +12,34 @@ Status: Milestone C is active. A board-shell GLB is available, alongside an evid
 - The physical slab is centered on its mid-plane. The Tokito GLB frame is right-handed, metres, Y-up: source `X` maps to GLB `X`, source `Y` (down) maps to `-Z`, and board height maps to `Y`; the board mid-plane is `Y=0` and its top face is `+Y`.
 - GLB positions are f32. Every emitted coordinate must remain finite and within a 1 µm conversion-error budget after f32 quantization, and quantization may not collapse or invert a face. This bounds supported physical extents independently of the broader source-parser coordinate ceiling.
 - The GLB v2 is self-contained: JSON and geometry bytes are embedded, with no external file paths or required extensions. Its JSON and binary chunks follow the Khronos container ordering and 4-byte alignment rules. glTF uses right-handed coordinates, +Y up, and metres ([Khronos glTF 2.0 specification](https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc)).
+- The bounded VRML assembly material adapter preserves authored diffuse colour/alpha, emissive colour, and specular colour; writes VRML shininess to an explicitly approximate display roughness mapping; and records raw source values and the mapping in GLB metadata. `KHR_materials_specular` is declared as used but remains optional, so renderers without it can use the core PBR fallback. This is not a physical material fit, texture import, STEP support, or geometry qualification.
 - A board-shell-only output is always considered partial, even for a source with no footprints. The default refuses it; `--allow-partial` is the explicit opt-in. Its JSON report identifies unresolved components and source model references, counts, and report truncation. Absolute model paths are reduced to basenames in shared GLB metadata. It never inserts proxy boxes or fabricated models.
 - `export glb --assemble-wrl --project-root <absolute DIR>` may additionally emit supported local VRML model parts. Each uniquely identified component has one renderable scene node named `ref:<reference>`; that node owns one glTF mesh with a separate primitive for each imported model part. The node carries the unique footprint UUID/source ordinal, and each primitive carries the model source ordinal, source asset SHA-256, and part ordinal. This matches the current App's documented `componentNodePrefix + refdes` visibility filter (default prefix `ref:`). Subprocess tests check this node/mesh shape and emulate selecting one component; App package intake and Android selection remain unverified. Missing/duplicate identities, model lookup problems, unsupported formats, old `at` transforms, invalid stackup, and mesh/placement failures are reported as model-specific unresolved coverage.
 
 ## First implementation slice
 
-### Optional source DNP filtering
+### Component and source DNP filtering
 
-`export glb --assemble-wrl --no-dnp` excludes source DNP footprints before
-model resolution. Defaults include them; shell-only and assigned-body exports
-reject this option. Missing, ambiguous or malformed source UUIDs refuse export.
+`export glb --assemble-wrl --component-filter <PATTERNS> --no-dnp` selects
+source references using bounded, case-sensitive `*`/`?` patterns and excludes
+native source DNP footprints before model resolution. Either option may be used
+alone. Defaults include all components; shell-only and assigned-body exports
+reject these options. Missing, ambiguous or malformed DNP source UUIDs refuse
+export.
 
-Source `componentCount`/`modelReferences` remain total counts. Filtered reports
-add `componentsIncluded` and `dnpFilter` with `enabled`, `componentsExcluded`
-and `modelReferencesExcluded`. Deliberate exclusions are not unresolved geometry.
-Strict completeness checks retained supported models; it does not certify a
-complete physical digital twin.
+`componentCount`/`modelReferences` remain total source counts for compatibility.
+`selectedComponentCount`/`selectedModelReferences` and
+`filteredComponentCount`/`filteredModelReferences` report the active selection.
+Filtered JSON also adds `componentsIncluded` and, for native DNP filtering,
+`dnpFilter` with `enabled`, `componentsExcluded` and `modelReferencesExcluded`.
+Deliberate exclusions are not unresolved geometry. Strict completeness checks
+retained selected models; it does not certify a complete physical digital twin.
 
 The additive `export_glb_with_model_options` API takes `GlbModelExportOptions`
-and returns `GlbModelExport`; its `report_json()` includes the filter receipt.
-Existing options/report structs and unfiltered output remain unchanged.
+and returns `GlbModelExport`; `export_glb_with_models_filtered` combines a
+`ModelAssemblyFilter` with the same export pipeline. Its `report_json()` includes
+selection and DNP receipts. Existing unfiltered bytes and DNP coverage behavior
+remain covered by compatibility tests.
 See [REA and independent KiCad comparison](REA_KICAD_CLI_10_0_5.md).
 
 ### Shared geometry pipeline
@@ -47,7 +55,7 @@ See [REA and independent KiCad comparison](REA_KICAD_CLI_10_0_5.md).
 
 ## Implemented component model slice
 
-The pure-Rust assembly path resolves model files only through the caller's explicit approved project/library roots and variables. It accepts only the bounded VRML97 parser profile: triangle `IndexedFaceSet` shapes with declared KiCad legacy WRL units. The parsed triangles are positioned using the canonical component pose and stackup-derived outer-copper planes, converted to the same centred GLB frame as the board shell, and written as non-indexed mesh primitives. One renderable node named `ref:<refdes>` owns all primitives for one component and carries the UUID/source identity; the node name is required by the inspected App visibility filter, while UUID metadata preserves the source join. This is a schema-level alignment only, not proof that App package intake or Android rendering/selection works.
+The pure-Rust assembly path resolves model files only through the caller's explicit approved project/library roots and variables. It accepts a bounded VRML97 profile from `.wrl` and `.vrml` files: triangle or validated planar-polygon `IndexedFaceSet` shapes inside `Group`, `Transform`, scene `DEF`/`USE`, and Material `DEF`/`USE`, with declared KiCad legacy WRL units. Inline `Normal { vector [...] }` values support per-vertex and per-face shading; `normalIndex` is mapped to original source faces before polygon triangulation. Per-vertex indices must match each source face's corner count and separator positions; per-face indices must contain exactly one entry per source face. Source vectors are normalized only within a 1e-3 unit-length rounding tolerance. When no normal node is authored, generated normals honor `creaseAngle` across two-use, oppositely oriented manifold edges. Shared generated corners are angle-weighted; non-manifold edges remain hard. Both authored and generated normals are carried through scene and board transforms with inverse-transpose matrices, while reflected transforms reverse triangle winding so solid-material back-face culling retains the intended faces. The parsed triangles are positioned using the canonical component pose and stackup-derived outer-copper planes, converted to the same centred GLB frame as the board shell, and written as non-indexed mesh primitives with one normal per corner. One renderable node named `ref:<refdes>` owns all primitives for one component and carries the UUID/source identity; the node name is required by the inspected App visibility filter, while UUID metadata preserves the source join. This is a schema-level alignment only, not proof that App package intake or Android rendering/selection works.
 
 The shell thickness and stackup-derived copper separation must agree within 1 nm. This prevents an assembled component from being mounted on a board body whose own physical thickness contradicts the placement plane. All other source model formats, including KiCad STEP, are retained as explicit non-emitted diagnostics. A source can reach complete *supported-model coverage* only when every source model meets these narrow gates; this still does not claim artwork, copper, manufacturing, physical-fit, optical-registration, App, or AR completeness.
 
@@ -66,7 +74,7 @@ Remaining geometry and integration qualification:
 - validate assembled component bounds and placement without changing the authored board placement;
 - validate component vertices again after f32 quantization so rounding cannot collapse or invert a face, matching the board-shell precision guard.
 
-No model download or KiCad invocation occurs in either export. The separate WRL inspection profile operates offline with explicitly supplied units and rejects scene Transform/Inline nodes. STEP and general WRL remain unimplemented. Phone import, mobile rendering, registration, AR picking and Desktop/MCP integration remain later milestones.
+No model download or KiCad invocation occurs in either export. The separate WRL/VRML inspection profile operates offline with explicitly supplied units and supports a bounded Group/Transform/DEF/USE mesh subset, including the standard VRML97 `scaleOrientation` order from [ISO/IEC 14772-1:1997, Transform and IndexedFaceSet](https://www.web3d.org/documents/specifications/14772/V2.0/part1/nodesRef.html). `IndexedFaceSet` faces with three or more vertices are accepted only when planar, non-degenerate, within configured vertex/triangle budgets and triangulated with source winding and area preserved. Inline VRML97 `Normal` vectors, per-vertex/per-face `normalIndex` mapping, and generated default `creaseAngle` normals are supported; explicit normals are associated with their original source faces before polygon triangulation. `Coordinate` and `Normal` nodes may be defined and reused by later same-file nodes; each reuse is expanded for its shape and charged against bounded vertex/vector budgets. Per-face index arrays contain exactly one entry per source face. Normal vectors are checked against unit length with a 1e-3 input-rounding tolerance. Forward or unresolved references, duplicate DEF names, non-planar or malformed faces, `Inline`, textures and other unimplemented VRML nodes are rejected. This does not implement full VRML97. General authored-reference STEP import and STEP board export remain unimplemented. The separate explicit component-assignment path accepts bounded STEP tessellation candidates, but does not establish B-rep/trim completeness, solid closure or physical fit. Phone import, mobile rendering, registration, AR picking and Desktop/MCP integration remain later milestones.
 
 The six current open-source board fixtures contain 206 external model references (120 `.step`, 19 `.stp`, and 67 `.wrl`) but no model files in the fixture corpus. They can exercise missing-model reporting, not successful component coverage. Full selectable export therefore needs a separately pinned, provenance-recorded model corpus before it can pass the complete-coverage gate. The KiCad 9 manual confirms STEP and VRML as footprint model inputs; it notes that a missing model path can be intentional, so a raw reference alone cannot count as resolved ([KiCad 9 PCB Editor manual](https://docs.kicad.org/9.0/en/pcbnew/pcbnew.pdf)).
 

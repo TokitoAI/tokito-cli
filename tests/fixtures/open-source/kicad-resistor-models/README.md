@@ -24,8 +24,9 @@ Shapes and 26 geometry Shapes, with 328 vertices and 276 triangle faces.
 Raw coordinate bounds are X ±0.315, Y ±0.157, Z 0…0.177. With the explicit
 ordinary KiCad legacy WRL unit profile (0.1 inch = 2.54 mm per coordinate unit),
 bounds are X ±0.8001 mm, Y ±0.39878 mm, Z 0…0.44958 mm.
-There are no Transform/Inline nodes in this fixture. The adapter rejects those
-nodes rather than applying an unverified unit heuristic or reading other files.
+There are no scene Transform/Inline nodes in this fixture. The adapter supports
+a bounded Transform subset, but continues to reject Inline/external resources
+rather than applying an unverified unit heuristic or reading other files.
 
 This fixture verifies local asset capture and the declared mesh profile. It
 does not provide independent component world transforms, an asymmetric pose

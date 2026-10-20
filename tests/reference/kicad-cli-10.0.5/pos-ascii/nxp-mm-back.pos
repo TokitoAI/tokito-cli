@@ -1,0 +1,22 @@
+### Footprint positions - created on 2026-10-18T14:13:18 ###
+### Printed by KiCad version 10.0.5
+## Unit = mm, Angle = deg.
+## Side : bottom
+# Ref     Val             Package                 PosX       PosY       Rot  Side
+C1        10uF_35V        C_0805_2012Metric   146.2500  -111.8000  180.0000  bottom
+C2        10uF_35V        C_0805_2012Metric   146.2500  -109.8000  180.0000  bottom
+C3        10uF_35V        C_0805_2012Metric   146.2500  -107.8000  180.0000  bottom
+C4        10uF_35V        C_0805_2012Metric   146.2500  -105.8000  180.0000  bottom
+C5        10uF_35V        C_0805_2012Metric   146.2500  -103.8000  180.0000  bottom
+C6        10uF_35V        C_0805_2012Metric   142.8500  -115.8000    0.0000  bottom
+C7        10uF_35V        C_0805_2012Metric   142.8500  -113.8000    0.0000  bottom
+C8        10uF_35V        C_0805_2012Metric   142.8500  -117.8000    0.0000  bottom
+C9        10uF_35V        C_0805_2012Metric   146.2500  -115.8000  180.0000  bottom
+C10       10uF_35V        C_0805_2012Metric   146.2500  -113.8000  180.0000  bottom
+Q1        PSMN3R3-80YSFX  LFPAK56             165.4650  -106.7191  180.0000  bottom
+Q2        PSMN3R3-80YSFX  LFPAK56             165.4650  -114.4691  180.0000  bottom
+Q3        PSMN3R3-80YSFX  LFPAK56             165.4650  -122.2191  180.0000  bottom
+Q4        PSMN3R3-80YSFX  LFPAK56             171.8550  -106.7191   90.0000  bottom
+Q5        PSMN3R3-80YSFX  LFPAK56             171.8650  -114.4691   90.0000  bottom
+Q6        PSMN3R3-80YSFX  LFPAK56             171.8650  -122.2191   90.0000  bottom
+## End

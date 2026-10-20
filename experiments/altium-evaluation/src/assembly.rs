@@ -437,6 +437,18 @@ pub fn export_with_drills(
         if !ids.insert(id) || !refs.insert(reference) {
             return Err("duplicate_component_identity".into());
         }
+        let source_design_claims = json!({
+            "status":"unverified_source_design_claim",
+            "sourceFormat":"altium_pcb",
+            "sourceSha256":source["sourceSha256"],
+            "sourceIdentity":component["sourceIdentity"],
+            "properties":{
+                "SOURCEDESCRIPTION":component["sourceProperties"]["SOURCEDESCRIPTION"],
+                "PATTERN":component["sourceProperties"]["PATTERN"],
+                "SOURCELIBREFERENCE":component["sourceProperties"]["SOURCELIBREFERENCE"],
+                "COMMENT":component["sourceProperties"]["COMMENT"]
+            }
+        });
         let selector = format!("ref:{reference}");
         let mut mesh = Mesh::default();
         let mut body_reports = Vec::new();
@@ -551,7 +563,7 @@ pub fn export_with_drills(
             return Err("aggregate_assembly_triangle_limit".into());
         }
         let node=glb.mesh(&selector,&mesh,json!({"componentId":id,"reference":reference,"bodyCount":body_reports.len(),"poseVerified":false}))?;
-        rows.push(json!({"component_id":id,"reference":reference,"glb_selector":selector,"glb_node_index":node,"identity_verified":false,"model_quality":"source_step_candidate_pose_surface_unqualified","needs_3d_body":true,"body_count":body_reports.len(),"triangle_count":count,"degenerate_triangles_omitted":mesh.degenerate,"neutral_fallback_color_triangle_count":mesh.fallback_color_triangles,"sourceBodies":body_reports}));
+        rows.push(json!({"component_id":id,"reference":reference,"sourceDesignClaims":source_design_claims,"glb_selector":selector,"glb_node_index":node,"identity_verified":false,"model_quality":"source_step_candidate_pose_surface_unqualified","needs_3d_body":true,"body_count":body_reports.len(),"triangle_count":count,"degenerate_triangles_omitted":mesh.degenerate,"neutral_fallback_color_triangle_count":mesh.fallback_color_triangles,"sourceBodies":body_reports}));
     }
     let bytes = glb.bytes()?;
     let digest = format!("{:x}", Sha256::digest(&bytes));
@@ -571,7 +583,7 @@ pub fn export_with_drills(
     let asset_id = format!("tokito-esp8266-{}", &digest[..32]);
     let revision = "altium-body-source-candidate-v1";
     let manifest = json!({"schemaVersion":"1.0","assetId":asset_id,"boardIdentity":"esp8266-nodemcu-altium-reference","boardRevision":source["sourceSha256"].as_str().map(|s|&s[..12]),"assemblyContextRevision":revision,"units":"METRE","axes":"RIGHT_HANDED_Y_UP","boardOriginMetres":{"x":0,"y":0,"z":0},"boundsMetres":{"minimum":vector(minimum),"maximum":vector(maximum)},"glbBytes":bytes.len(),"glbSha256":format!("sha256:{digest}"),"componentNodePrefix":"ref:","defaultOpacity":0.42,"physicalGeometryVerified":false,"arRegistrationVerified":false,"releaseEligible":false});
-    let map = json!({"schema":"tokito.component-map.v1","asset_id":asset_id,"board_id":"esp8266-nodemcu-altium-reference","board_revision":source["sourceSha256"].as_str().map(|s|&s[..12]),"assemblyContextRevision":revision,"component_node_prefix":"ref:","component_count":rows.len(),"renderable_count":rows.len(),"selectable_component_count":rows.len(),"components":rows,"physical_fit_verified":false,"calibration_eligible":false,"positional_guidance_allowed":false});
+    let map = json!({"schema":"tokito.component-map.v1","asset_id":asset_id,"board_id":"esp8266-nodemcu-altium-reference","board_revision":source["sourceSha256"].as_str().map(|s|&s[..12]),"assemblyContextRevision":revision,"sourceEvidence":{"format":"altium_pcb","sha256":source["sourceSha256"]},"component_node_prefix":"ref:","component_count":rows.len(),"renderable_count":rows.len(),"selectable_component_count":rows.len(),"components":rows,"physical_fit_verified":false,"calibration_eligible":false,"positional_guidance_allowed":false});
     let report = json!({"schema":"tokito.altium-prototype-assembly.v1","sourceSha256":source["sourceSha256"],"glbSha256":digest,"glbBytes":bytes.len(),"componentCount":components.len(),"bodyCount":body_count,"componentTriangles":triangles,"selectedModelCount":cache.len(),"prototypeExported":true,"assemblyAdmitted":false,"geometryQualified":false,"poseVerified":false,"positionalGuidanceAllowed":false,"boardThicknessMm":thickness,"boardOriginMm":origin,"boardTopZMm":thickness,"boardBottomZMm":0,"boardZDatumAssumed":true,"holesAndCutoutsIncluded":false,"modelsTablePoseApplied":false,"transformMethod":"body absolute XY minus board source origin; Rx then Ry then Rz(body.rz-body.angle); bottom z reflection; top copper/core surface or bottom zero candidate datum; glTF [x,z,-y] metres","diagnostics":["source_surface_fidelity_unqualified","source_body_component_index_semantics_unqualified","board_z_datum_and_bottom_projection_unqualified","pcb_pads_drills_silkscreen_not_exported","physical_photo_variant_unverified","independent_evaluated_surface_comparison_pending","step_occurrence_colour_override_application_unresolved"]});
     let mut report = report;
     if !drills.is_empty() {

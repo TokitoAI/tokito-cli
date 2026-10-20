@@ -1,10 +1,22 @@
-//! Bounded, original VRML97 reader for flat Shape/triangle IndexedFaceSet models.
-//! No scene transforms, external resources, STEP, textures, or general VRML evaluation.
+//! Bounded, original VRML97 reader for Group/Transform/DEF/USE/Shape triangle
+//! and planar polygon IndexedFaceSet meshes, including reusable Coordinate and
+//! Normal nodes and explicit vertex/face normals. External resources, STEP,
+//! textures, and general VRML evaluation are unsupported.
 //! Source coordinates require an explicit unit declaration; output is local millimetres.
 use crate::EngineError;
+use earcut::Earcut;
 use std::collections::{BTreeMap, BTreeSet};
 mod zero_area;
 pub use zero_area::derive_without_zero_area_faces;
+
+const MAX_FACE_VERTICES: usize = 4096;
+const MAX_NORMAL_VECTORS: usize = 200_000;
+const MAX_NORMAL_CORNERS: usize = 600_000;
+/// Deterministic aggregate proxy for quadratic polygon validation/Earcut work.
+const MAX_POLYGON_TRIANGULATION_WORK: usize = 8_000_000;
+const POLYGON_PLANAR_REL_TOLERANCE: f64 = 1e-8;
+const POLYGON_AREA_REL_TOLERANCE: f64 = 1e-8;
+const POLYGON_INTERSECTION_EPSILON: f64 = 64.0 * f64::EPSILON;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelUnits {
@@ -21,7 +33,8 @@ impl ModelUnits {
     }
 }
 /// Caller limits may lower the default hard ceilings; increasing them is rejected.
-/// Vertex and triangle budgets accumulate across the entire input.
+/// Vertex, triangle, and quadratic polygon-triangulation work budgets
+/// accumulate across the entire input.
 #[derive(Debug, Clone, Copy)]
 pub struct MeshLimits {
     pub max_bytes: usize,
@@ -74,6 +87,9 @@ pub struct ModelMeshPart {
     pub triangles: Vec<[u32; 3]>,
     /// One derived unit normal per triangle; these are not smoothed vertex normals.
     pub flat_normals: Vec<[f64; 3]>,
+    /// One normal per triangle corner, from explicit VRML97 `Normal` data or
+    /// generated using `creaseAngle`. Arrays follow triangle corner order.
+    pub corner_normals: Vec<[[f64; 3]; 3]>,
     pub material: Option<MeshMaterial>,
     pub source_crease_angle_radians: f64,
     pub solid: bool,
@@ -90,9 +106,21 @@ fn fail(message: impl Into<String>) -> EngineError {
     EngineError::new(format!("VRML mesh: {}", message.into()))
 }
 
-/// Parse only the declared flat, triangle-only VRML97 profile. Any unsupported
-/// field/node is an error, including Transform, Inline, normal and texture data.
-/// This API performs no filesystem or network access.
+fn valid_def_identifier(name: &str) -> bool {
+    !name.is_empty()
+        && name.as_bytes()[0].is_ascii_alphabetic()
+        && name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+}
+
+/// Parse only the declared bounded VRML97 profile. Group, Transform, DEF and
+/// USE scene nodes may contain triangle or planar polygon Shape geometry.
+/// Explicit Normal vectors are supported for IndexedFaceSet vertices and
+/// faces, including bounded `DEF`/`USE` references. Coordinate and Normal
+/// nodes may be reused by later geometry in the same file. Unsupported
+/// fields/nodes (including Inline and texture data) are errors. This API
+/// performs no filesystem or network access.
 pub fn parse_vrml_mesh(
     input: &[u8],
     units: ModelUnits,
@@ -132,28 +160,28 @@ fn parse_mesh_internal(
         units,
         limits,
         materials: BTreeMap::new(),
+        coordinate_nodes: BTreeMap::new(),
+        normal_nodes: BTreeMap::new(),
+        reserved_definition_names: BTreeSet::new(),
+        scene_definitions: BTreeMap::new(),
+        scene_definition_count: 0,
         vertices: 0,
+        normal_vectors: 0,
         triangles: 0,
+        remaining_polygon_work: MAX_POLYGON_TRIANGULATION_WORK,
         topology_only,
     };
     let mut parts = Vec::new();
     let mut shape_count = 0;
     while parser.cursor < parser.tokens.len() {
-        if shape_count >= limits.max_shapes {
-            return Err(fail("shape budget exceeded"));
-        }
-        parser.expect("Shape")?;
-        if let Some(part) = parser.shape(shape_count)? {
-            parts.push(part);
-        }
-        shape_count += 1;
+        parser.scene_node(0, MeshTransform::identity(), &mut parts, &mut shape_count)?;
     }
     if parts.is_empty() {
         return Err(fail("no nonempty triangle geometry"));
     }
     let diagnostics = vec![
-        "Triangle-only flat VRML profile; local model geometry is not PCB placement or a complete CAD solid.".into(),
-        "Flat triangle normals derived; creaseAngle is retained but smooth shading is not reproduced.".into(),
+        "Bounded VRML triangle/polygon profile with Group/Transform/DEF/USE scene support; local model geometry is not PCB placement or a complete CAD solid.".into(),
+        "VRML97 Coordinate and Normal DEF/USE nodes are expanded within vertex/vector budgets; authored normalIndex mappings are preserved. Generated normals honor creaseAngle across manifold shared edges when authored normals are absent. Textures and external resources remain unsupported.".into(),
     ];
     Ok(ModelMesh {
         source_units: units,
@@ -362,10 +390,178 @@ struct Parser<'a> {
     units: ModelUnits,
     limits: MeshLimits,
     materials: BTreeMap<String, MeshMaterial>,
+    coordinate_nodes: BTreeMap<String, Vec<[f64; 3]>>,
+    normal_nodes: BTreeMap<String, Vec<[f64; 3]>>,
+    reserved_definition_names: BTreeSet<String>,
+    scene_definitions: BTreeMap<String, SceneDefinition>,
+    scene_definition_count: usize,
     vertices: usize,
+    normal_vectors: usize,
     triangles: usize,
+    remaining_polygon_work: usize,
     topology_only: bool,
 }
+
+#[derive(Clone)]
+struct SceneDefinition {
+    shape_start_ordinal: usize,
+    shape_count: usize,
+    parts: Vec<ModelMeshPart>,
+}
+
+/// Affine transform in millimetres. `compose` returns `self * inner`, so the
+/// inner node is applied first, matching nested VRML Transform semantics.
+#[derive(Clone, Copy)]
+struct MeshTransform {
+    linear: [[f64; 3]; 3],
+    translation: [f64; 3],
+    reverses_winding: bool,
+}
+impl MeshTransform {
+    fn identity() -> Self {
+        Self {
+            linear: [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+            translation: [0.0; 3],
+            reverses_winding: false,
+        }
+    }
+    fn is_identity(self) -> bool {
+        self.linear == Self::identity().linear
+            && self.translation == [0.0; 3]
+            && !self.reverses_winding
+    }
+    fn apply(self, point: [f64; 3]) -> [f64; 3] {
+        let mut result = self.translation;
+        for (row, value) in result.iter_mut().enumerate() {
+            for (column, coordinate) in point.iter().enumerate() {
+                *value += self.linear[row][column] * coordinate;
+            }
+        }
+        result
+    }
+    fn compose(self, inner: Self) -> Self {
+        let mut linear = [[0.0; 3]; 3];
+        for (row, values) in linear.iter_mut().enumerate() {
+            for (column, value) in values.iter_mut().enumerate() {
+                for middle in 0..3 {
+                    *value += self.linear[row][middle] * inner.linear[middle][column];
+                }
+            }
+        }
+        let mut translation = self.translation;
+        for (row, value) in translation.iter_mut().enumerate() {
+            for column in 0..3 {
+                *value += self.linear[row][column] * inner.translation[column];
+            }
+        }
+        Self {
+            linear,
+            translation,
+            reverses_winding: self.reverses_winding ^ inner.reverses_winding,
+        }
+    }
+    fn from_vrml(
+        translation: [f64; 3],
+        rotation: [f64; 4],
+        scale: [f64; 3],
+        scale_orientation: [f64; 4],
+        center: [f64; 3],
+    ) -> Result<Self, EngineError> {
+        if scale.contains(&0.0) {
+            return Err(fail("Transform scale components must be nonzero"));
+        }
+        // ISO/IEC 14772-1:1997 defines T * C * R * SR * S * -SR * -C.
+        // Rotations are active column-vector matrices; the inverse of a valid
+        // rotation matrix is its transpose.
+        let base_rotation = rotation_matrix(rotation, "rotation")?;
+        let scale_orientation_matrix = rotation_matrix(scale_orientation, "scaleOrientation")?;
+        let scale_orientation_inverse = transpose_matrix(scale_orientation_matrix);
+        let scale_matrix = [
+            [scale[0], 0.0, 0.0],
+            [0.0, scale[1], 0.0],
+            [0.0, 0.0, scale[2]],
+        ];
+        let oriented_scale = multiply_matrices(
+            multiply_matrices(scale_orientation_matrix, scale_matrix)?,
+            scale_orientation_inverse,
+        )?;
+        let linear = multiply_matrices(base_rotation, oriented_scale)?;
+        let mut offset = translation;
+        for row in 0..3 {
+            offset[row] += center[row];
+            for column in 0..3 {
+                offset[row] -= linear[row][column] * center[column];
+            }
+        }
+        if offset.iter().any(|value| !value.is_finite()) {
+            return Err(fail("Transform translation overflow"));
+        }
+        Ok(Self {
+            linear,
+            translation: offset,
+            reverses_winding: scale.iter().filter(|axis| axis.is_sign_negative()).count() % 2 == 1,
+        })
+    }
+}
+
+fn rotation_matrix(rotation: [f64; 4], name: &str) -> Result<[[f64; 3]; 3], EngineError> {
+    let [axis_x, axis_y, axis_z, angle] = rotation;
+    let axis_length = axis_x.hypot(axis_y).hypot(axis_z);
+    if !axis_length.is_finite() || axis_length == 0.0 {
+        return Err(fail(format!("Transform {name} axis must be nonzero")));
+    }
+    let [x, y, z] = [
+        axis_x / axis_length,
+        axis_y / axis_length,
+        axis_z / axis_length,
+    ];
+    let (sin, cos) = angle.sin_cos();
+    let one_minus_cos = 1.0 - cos;
+    let matrix = [
+        [
+            cos + x * x * one_minus_cos,
+            x * y * one_minus_cos - z * sin,
+            x * z * one_minus_cos + y * sin,
+        ],
+        [
+            y * x * one_minus_cos + z * sin,
+            cos + y * y * one_minus_cos,
+            y * z * one_minus_cos - x * sin,
+        ],
+        [
+            z * x * one_minus_cos - y * sin,
+            z * y * one_minus_cos + x * sin,
+            cos + z * z * one_minus_cos,
+        ],
+    ];
+    if matrix.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(fail("Transform rotation matrix overflow"));
+    }
+    Ok(matrix)
+}
+
+fn multiply_matrices(
+    left: [[f64; 3]; 3],
+    right: [[f64; 3]; 3],
+) -> Result<[[f64; 3]; 3], EngineError> {
+    let mut result = [[0.0; 3]; 3];
+    for (row, values) in result.iter_mut().enumerate() {
+        for (column, value) in values.iter_mut().enumerate() {
+            for middle in 0..3 {
+                *value += left[row][middle] * right[middle][column];
+            }
+            if !value.is_finite() {
+                return Err(fail("Transform matrix overflow"));
+            }
+        }
+    }
+    Ok(result)
+}
+
+fn transpose_matrix(matrix: [[f64; 3]; 3]) -> [[f64; 3]; 3] {
+    std::array::from_fn(|row| std::array::from_fn(|column| matrix[column][row]))
+}
+
 impl<'a> Parser<'a> {
     fn take(&mut self) -> Result<&'a str, EngineError> {
         let value = self
@@ -420,6 +616,205 @@ impl<'a> Parser<'a> {
             _ => Err(fail("expected TRUE or FALSE")),
         }
     }
+    fn vector3(&mut self) -> Result<[f64; 3], EngineError> {
+        let values = [self.number()?, self.number()?, self.number()?];
+        let values = values.map(|value| value * self.units.scale());
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(fail("Transform unit conversion overflow"));
+        }
+        Ok(values)
+    }
+    fn scene_node(
+        &mut self,
+        depth: usize,
+        transform: MeshTransform,
+        parts: &mut Vec<ModelMeshPart>,
+        shape_count: &mut usize,
+    ) -> Result<(), EngineError> {
+        if depth > self.limits.max_depth {
+            return Err(fail("scene node depth budget exceeded"));
+        }
+        let node = self.take()?;
+        if node == "DEF" {
+            let name = self.take()?.to_owned();
+            if !valid_def_identifier(&name) {
+                return Err(fail("unsupported scene DEF identifier"));
+            }
+            if !self.reserved_definition_names.insert(name.clone()) {
+                return Err(fail("duplicate VRML DEF identifier"));
+            }
+            if self.scene_definition_count >= self.limits.max_shapes {
+                return Err(fail("scene definition budget exceeded"));
+            }
+            let shape_start_ordinal = *shape_count;
+            let mut definition_parts = Vec::new();
+            self.scene_node(
+                depth + 1,
+                MeshTransform::identity(),
+                &mut definition_parts,
+                shape_count,
+            )?;
+            let definition_shape_count = shape_count
+                .checked_sub(shape_start_ordinal)
+                .ok_or_else(|| fail("invalid scene definition shape accounting"))?;
+            self.scene_definitions.insert(
+                name,
+                SceneDefinition {
+                    shape_start_ordinal,
+                    shape_count: definition_shape_count,
+                    parts: definition_parts.clone(),
+                },
+            );
+            self.scene_definition_count += 1;
+            for mut part in definition_parts {
+                transform_part(&mut part, transform, self.topology_only)?;
+                parts.push(part);
+            }
+            return Ok(());
+        }
+        if node == "USE" {
+            let name = self.take()?;
+            let definition = self
+                .scene_definitions
+                .get(name)
+                .cloned()
+                .ok_or_else(|| fail("undefined scene USE"))?;
+            let additional_vertices = definition
+                .parts
+                .iter()
+                .try_fold(0usize, |total, part| {
+                    total.checked_add(part.positions_mm.len())
+                })
+                .ok_or_else(|| fail("scene USE vertex count overflow"))?;
+            self.vertices = self
+                .vertices
+                .checked_add(additional_vertices)
+                .filter(|total| *total <= self.limits.max_vertices)
+                .ok_or_else(|| fail("vertex budget exceeded by scene USE"))?;
+            let additional_triangles = definition
+                .parts
+                .iter()
+                .try_fold(0usize, |total, part| {
+                    total.checked_add(part.triangles.len())
+                })
+                .ok_or_else(|| fail("scene USE triangle count overflow"))?;
+            self.triangles = self
+                .triangles
+                .checked_add(additional_triangles)
+                .filter(|total| *total <= self.limits.max_triangles)
+                .ok_or_else(|| fail("triangle budget exceeded by scene USE"))?;
+            let instance_shape_start = *shape_count;
+            let next_shape_count = shape_count
+                .checked_add(definition.shape_count)
+                .filter(|total| *total <= self.limits.max_shapes)
+                .ok_or_else(|| fail("shape budget exceeded by scene USE"))?;
+            for mut part in definition.parts {
+                let relative_ordinal = part
+                    .source_shape_ordinal
+                    .checked_sub(definition.shape_start_ordinal)
+                    .ok_or_else(|| fail("invalid scene USE shape accounting"))?;
+                part.source_shape_ordinal = instance_shape_start
+                    .checked_add(relative_ordinal)
+                    .ok_or_else(|| fail("scene USE shape ordinal overflow"))?;
+                transform_part(&mut part, transform, self.topology_only)?;
+                parts.push(part);
+            }
+            *shape_count = next_shape_count;
+            return Ok(());
+        }
+        match node {
+            "Shape" => {
+                if *shape_count >= self.limits.max_shapes {
+                    return Err(fail("shape budget exceeded"));
+                }
+                let ordinal = *shape_count;
+                *shape_count += 1;
+                if let Some(mut part) = self.shape(ordinal)? {
+                    transform_part(&mut part, transform, self.topology_only)?;
+                    parts.push(part);
+                }
+                Ok(())
+            }
+            "Group" => {
+                self.expect("{")?;
+                let mut seen = BTreeSet::new();
+                while !self.closing("}") {
+                    match self.field(&mut seen)? {
+                        "children" => self.children(depth, transform, parts, shape_count)?,
+                        _ => return Err(fail("unsupported Group field")),
+                    }
+                }
+                Ok(())
+            }
+            "Transform" => {
+                self.expect("{")?;
+                let mut seen = BTreeSet::new();
+                let mut translation = [0.0; 3];
+                let mut rotation = [0.0, 0.0, 1.0, 0.0];
+                let mut scale = [1.0; 3];
+                let mut scale_orientation = [0.0, 0.0, 1.0, 0.0];
+                let mut center = [0.0; 3];
+                let mut child_parts = Vec::new();
+                while !self.closing("}") {
+                    match self.field(&mut seen)? {
+                        "translation" => translation = self.vector3()?,
+                        "rotation" => {
+                            rotation = [
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                            ]
+                        }
+                        "scale" => scale = [self.number()?, self.number()?, self.number()?],
+                        "scaleOrientation" => {
+                            scale_orientation = [
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                                self.number()?,
+                            ]
+                        }
+                        "center" => center = self.vector3()?,
+                        "children" => self.children(
+                            depth,
+                            MeshTransform::identity(),
+                            &mut child_parts,
+                            shape_count,
+                        )?,
+                        _ => return Err(fail("unsupported Transform field")),
+                    }
+                }
+                let local = MeshTransform::from_vrml(
+                    translation,
+                    rotation,
+                    scale,
+                    scale_orientation,
+                    center,
+                )?;
+                let composed = transform.compose(local);
+                for mut part in child_parts {
+                    transform_part(&mut part, composed, self.topology_only)?;
+                    parts.push(part);
+                }
+                Ok(())
+            }
+            _ => Err(fail("unsupported scene node")),
+        }
+    }
+    fn children(
+        &mut self,
+        parent_depth: usize,
+        transform: MeshTransform,
+        parts: &mut Vec<ModelMeshPart>,
+        shape_count: &mut usize,
+    ) -> Result<(), EngineError> {
+        self.expect("[")?;
+        while !self.closing("]") {
+            self.scene_node(parent_depth + 1, transform, parts, shape_count)?;
+        }
+        Ok(())
+    }
     fn field(&mut self, seen: &mut BTreeSet<String>) -> Result<&'a str, EngineError> {
         let field = self.take()?;
         if !seen.insert(field.to_string()) {
@@ -471,16 +866,14 @@ impl<'a> Parser<'a> {
         }
         let definition = if node == "DEF" {
             let name = self.take()?;
-            if name.is_empty()
-                || !name.as_bytes()[0].is_ascii_alphabetic()
-                || !name
-                    .bytes()
-                    .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'-'))
-            {
+            if !valid_def_identifier(name) {
                 return Err(fail("unsupported material DEF identifier"));
             }
             if self.materials.contains_key(name) {
                 return Err(fail("duplicate material DEF"));
+            }
+            if !self.reserved_definition_names.insert(name.to_owned()) {
+                return Err(fail("duplicate VRML DEF identifier"));
             }
             if self.materials.len() >= self.limits.max_material_definitions {
                 return Err(fail("material definition budget exceeded"));
@@ -512,7 +905,31 @@ impl<'a> Parser<'a> {
         Ok(material)
     }
     fn coordinates(&mut self) -> Result<Vec<[f64; 3]>, EngineError> {
-        self.expect("Coordinate")?;
+        let node = self.take()?;
+        if node == "USE" {
+            let name = self.take()?;
+            let points = self
+                .coordinate_nodes
+                .get(name)
+                .cloned()
+                .ok_or_else(|| fail("undefined Coordinate USE"))?;
+            self.vertices = self
+                .vertices
+                .checked_add(points.len())
+                .filter(|total| *total <= self.limits.max_vertices)
+                .ok_or_else(|| fail("vertex budget exceeded by Coordinate USE"))?;
+            return Ok(points);
+        }
+        let definition = if node == "DEF" {
+            let name = self.take()?.to_owned();
+            self.reserve_geometry_definition(&name)?;
+            self.expect("Coordinate")?;
+            Some(name)
+        } else if node == "Coordinate" {
+            None
+        } else {
+            return Err(fail("coord must be Coordinate, DEF Coordinate, or USE"));
+        };
         self.expect("{")?;
         self.expect("point")?;
         self.expect("[")?;
@@ -533,11 +950,14 @@ impl<'a> Parser<'a> {
             self.vertices += 1;
         }
         self.expect("}")?;
+        if let Some(name) = definition {
+            self.coordinate_nodes.insert(name, positions.clone());
+        }
         Ok(positions)
     }
-    fn indices(&mut self) -> Result<Vec<[u32; 3]>, EngineError> {
+    fn indices(&mut self) -> Result<Vec<Vec<u32>>, EngineError> {
         self.expect("[")?;
-        let mut triangles = Vec::new();
+        let mut faces = Vec::new();
         let mut face = Vec::new();
         while !self.closing("]") {
             let token = self.take()?;
@@ -545,21 +965,18 @@ impl<'a> Parser<'a> {
                 .parse()
                 .map_err(|_| fail("coordIndex must contain integers"))?;
             if index == -1 {
-                if face.len() != 3 {
-                    return Err(fail("only triangular faces supported"));
+                if face.len() < 3 {
+                    return Err(fail(
+                        "IndexedFaceSet face must contain at least three vertices (triangular minimum)",
+                    ));
                 }
-                if self.triangles >= self.limits.max_triangles {
-                    return Err(fail("triangle budget exceeded"));
-                }
-                triangles.push([face[0], face[1], face[2]]);
-                self.triangles += 1;
-                face.clear();
+                faces.push(std::mem::take(&mut face));
             } else {
                 if index < 0 || index > u32::MAX as i64 {
                     return Err(fail("invalid coordinate index"));
                 }
-                if face.len() >= 3 {
-                    return Err(fail("only triangular faces supported"));
+                if face.len() >= MAX_FACE_VERTICES {
+                    return Err(fail("polygon face vertex budget exceeded"));
                 }
                 face.push(index as u32);
             }
@@ -567,21 +984,123 @@ impl<'a> Parser<'a> {
         if !face.is_empty() {
             return Err(fail("face missing -1 terminator"));
         }
-        Ok(triangles)
+        Ok(faces)
+    }
+    fn integer_values(&mut self, field: &str) -> Result<Vec<i64>, EngineError> {
+        self.expect("[")?;
+        let mut values = Vec::new();
+        while !self.closing("]") {
+            let token = self.take()?;
+            values.push(
+                token
+                    .parse()
+                    .map_err(|_| fail(format!("{field} must contain integers")))?,
+            );
+        }
+        Ok(values)
+    }
+    fn normal_node(&mut self) -> Result<Option<Vec<[f64; 3]>>, EngineError> {
+        let node = self.take()?;
+        if node == "NULL" {
+            return Ok(None);
+        }
+        if node == "USE" {
+            let name = self.take()?;
+            let vectors = self
+                .normal_nodes
+                .get(name)
+                .cloned()
+                .ok_or_else(|| fail("undefined Normal USE"))?;
+            self.normal_vectors = self
+                .normal_vectors
+                .checked_add(vectors.len())
+                .filter(|total| *total <= MAX_NORMAL_VECTORS)
+                .ok_or_else(|| fail("normal vector budget exceeded by Normal USE"))?;
+            return Ok(Some(vectors));
+        }
+        let definition = if node == "DEF" {
+            let name = self.take()?.to_owned();
+            self.reserve_geometry_definition(&name)?;
+            self.expect("Normal")?;
+            Some(name)
+        } else if node == "Normal" {
+            None
+        } else {
+            return Err(fail("normal must be NULL, Normal, DEF Normal, or USE"));
+        };
+        self.expect("{")?;
+        let mut seen = BTreeSet::new();
+        let mut vectors = None;
+        while !self.closing("}") {
+            match self.field(&mut seen)? {
+                "vector" => {
+                    self.expect("[")?;
+                    let mut values = Vec::new();
+                    while !self.closing("]") {
+                        if self.normal_vectors >= MAX_NORMAL_VECTORS {
+                            return Err(fail("normal vector budget exceeded"));
+                        }
+                        let source = [self.number()?, self.number()?, self.number()?];
+                        let length = source[0].hypot(source[1]).hypot(source[2]);
+                        // VRML97 requires unit normals. A small tolerance admits
+                        // decimal rounding while refusing silently repaired data.
+                        if !length.is_finite() || (length - 1.0).abs() > 1e-3 {
+                            return Err(fail("Normal vector must have unit length"));
+                        }
+                        values.push(normalize_vector(source)?);
+                        self.normal_vectors += 1;
+                    }
+                    vectors = Some(values);
+                }
+                _ => return Err(fail("unsupported Normal field")),
+            }
+        }
+        let vectors = vectors.ok_or_else(|| fail("missing Normal vector field"))?;
+        if vectors.is_empty() {
+            return Err(fail("Normal vector field is empty"));
+        }
+        if let Some(name) = definition {
+            self.normal_nodes.insert(name, vectors.clone());
+        }
+        Ok(Some(vectors))
+    }
+    fn reserve_geometry_definition(&mut self, name: &str) -> Result<(), EngineError> {
+        if !valid_def_identifier(name) {
+            return Err(fail("unsupported geometry DEF identifier"));
+        }
+        if self.reserved_definition_names.contains(name) {
+            return Err(fail("duplicate VRML DEF identifier"));
+        }
+        if self
+            .coordinate_nodes
+            .len()
+            .checked_add(self.normal_nodes.len())
+            .is_none_or(|count| count >= self.limits.max_shapes)
+        {
+            return Err(fail("geometry node definition budget exceeded"));
+        }
+        self.reserved_definition_names.insert(name.to_owned());
+        Ok(())
     }
     fn geometry(&mut self, ordinal: usize) -> Result<ModelMeshPart, EngineError> {
         self.expect("IndexedFaceSet")?;
         self.expect("{")?;
         let mut seen = BTreeSet::new();
         let mut positions = None;
-        let mut triangles = None;
+        let mut faces = None;
+        let mut normal_vectors = None;
+        let mut normal_indices = None;
+        let mut normal_per_vertex = true;
         let mut crease_angle = 0.0;
         let mut ccw = true;
         let mut solid = true;
         while !self.closing("}") {
             match self.field(&mut seen)? {
                 "coord" => positions = Some(self.coordinates()?),
-                "coordIndex" => triangles = Some(self.indices()?),
+                "coordIndex" => faces = Some(self.indices()?),
+                "normal" => normal_vectors = self.normal_node()?,
+                "normalIndex" => normal_indices = Some(self.integer_values("normalIndex")?),
+                "normalPerVertex" => normal_per_vertex = self.boolean()?,
                 "creaseAngle" => {
                     crease_angle = self.number()?;
                     if crease_angle < 0.0 {
@@ -594,7 +1113,24 @@ impl<'a> Parser<'a> {
             }
         }
         let positions = positions.ok_or_else(|| fail("missing Coordinate points"))?;
-        let mut triangles = triangles.ok_or_else(|| fail("missing coordIndex"))?;
+        let faces = faces.ok_or_else(|| fail("missing coordIndex"))?;
+        let triangle_budget = self
+            .limits
+            .max_triangles
+            .checked_sub(self.triangles)
+            .ok_or_else(|| fail("triangle budget exceeded"))?;
+        let triangulated = triangulate_indexed_faces(
+            &faces,
+            &positions,
+            triangle_budget,
+            &mut self.remaining_polygon_work,
+        )?;
+        let mut triangles = triangulated.triangles;
+        self.triangles = self
+            .triangles
+            .checked_add(triangles.len())
+            .filter(|total| *total <= self.limits.max_triangles)
+            .ok_or_else(|| fail("triangle budget exceeded"))?;
         if positions.is_empty() || triangles.is_empty() {
             return Err(fail("empty mesh geometry"));
         }
@@ -619,17 +1155,740 @@ impl<'a> Parser<'a> {
                 )?
             });
         }
+        let corner_normals = if let Some(normal_vectors) = normal_vectors {
+            explicit_corner_normals(
+                &normal_vectors,
+                normal_per_vertex,
+                normal_indices.as_deref(),
+                &faces,
+                &triangles,
+                &triangulated.source_faces,
+            )?
+        } else if normal_indices
+            .as_ref()
+            .is_some_and(|indices| !indices.is_empty())
+        {
+            return Err(fail("normalIndex requires a Normal node"));
+        } else if self.topology_only {
+            triangles
+                .iter()
+                .zip(&normals)
+                .map(|(_, normal)| [*normal; 3])
+                .collect()
+        } else {
+            generate_corner_normals(&positions, &triangles, &normals, crease_angle)?
+        };
         Ok(ModelMeshPart {
             source_shape_ordinal: ordinal,
             positions_mm: positions,
             triangles,
             flat_normals: normals,
+            corner_normals,
             material: None,
             source_crease_angle_radians: crease_angle,
             solid,
         })
     }
 }
+
+/// Triangulate each VRML IndexedFaceSet polygon independently. The earcut
+/// output is admitted only when it preserves the projected source area and
+/// every source polygon is planar within a scale-relative bound.
+struct TriangulatedFaces {
+    triangles: Vec<[u32; 3]>,
+    source_faces: Vec<usize>,
+}
+
+fn explicit_corner_normals(
+    normals: &[[f64; 3]],
+    per_vertex: bool,
+    indices: Option<&[i64]>,
+    faces: &[Vec<u32>],
+    triangles: &[[u32; 3]],
+    triangle_faces: &[usize],
+) -> Result<Vec<[[f64; 3]; 3]>, EngineError> {
+    if triangles.len() != triangle_faces.len() {
+        return Err(fail(
+            "explicit normal mapping received inconsistent triangle faces",
+        ));
+    }
+    let corner_count = triangles
+        .len()
+        .checked_mul(3)
+        .filter(|count| *count <= MAX_NORMAL_CORNERS)
+        .ok_or_else(|| fail("explicit normal corner budget exceeded"))?;
+    if normals.is_empty() {
+        return Err(fail("Normal vector field is empty"));
+    }
+
+    let supplied = indices.unwrap_or_default();
+    let (normal_faces_per_vertex, normal_faces_per_face) = if per_vertex {
+        if supplied.is_empty() {
+            (Some(faces.to_vec()), None)
+        } else {
+            let mut result = Vec::with_capacity(faces.len());
+            let mut cursor = 0usize;
+            for face in faces {
+                let end = cursor
+                    .checked_add(face.len())
+                    .ok_or_else(|| fail("normalIndex length overflow"))?;
+                let raw = supplied
+                    .get(cursor..end)
+                    .ok_or_else(|| fail("normalIndex has fewer vertex entries than coordIndex"))?;
+                let mapped = raw
+                    .iter()
+                    .map(|index| {
+                        u32::try_from(*index).map_err(|_| fail("invalid normalIndex entry"))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                if supplied.get(end) != Some(&-1) {
+                    return Err(fail(
+                        "normalIndex face markers must match coordIndex exactly",
+                    ));
+                }
+                cursor = end + 1;
+                result.push(mapped);
+            }
+            if cursor != supplied.len() {
+                return Err(fail("normalIndex face count does not match coordIndex"));
+            }
+            (Some(result), None)
+        }
+    } else if supplied.is_empty() {
+        let values = (0..faces.len())
+            .map(|face| {
+                u32::try_from(face).map_err(|_| fail("normal face index exceeds u32 range"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        (None, Some(values))
+    } else {
+        if supplied.len() != faces.len() {
+            return Err(fail(
+                "normalIndex must contain exactly one entry per source face",
+            ));
+        }
+        let values = supplied
+            .iter()
+            .map(|index| u32::try_from(*index).map_err(|_| fail("invalid normalIndex entry")))
+            .collect::<Result<Vec<_>, _>>()?;
+        if values.iter().any(|index| *index as usize >= normals.len()) {
+            return Err(fail("normalIndex is out of range"));
+        }
+        (None, Some(values))
+    };
+
+    let mut output = Vec::with_capacity(corner_count / 3);
+    for (triangle, &face_ordinal) in triangles.iter().zip(triangle_faces) {
+        let face = faces
+            .get(face_ordinal)
+            .ok_or_else(|| fail("triangle references an absent source face"))?;
+        let mut triangle_normals = [[0.0; 3]; 3];
+        for (corner, &coordinate_index) in triangle.iter().enumerate() {
+            let normal_index = if per_vertex {
+                let vertex_ordinal = face
+                    .iter()
+                    .position(|&index| index == coordinate_index)
+                    .ok_or_else(|| fail("triangle corner is absent from its source face"))?;
+                *normal_faces_per_vertex
+                    .as_ref()
+                    .ok_or_else(|| fail("missing per-vertex normal mapping"))?[face_ordinal]
+                    .get(vertex_ordinal)
+                    .ok_or_else(|| fail("normalIndex face has too few entries"))?
+            } else {
+                *normal_faces_per_face
+                    .as_ref()
+                    .ok_or_else(|| fail("missing per-face normal mapping"))?
+                    .get(face_ordinal)
+                    .ok_or_else(|| fail("missing per-face normal mapping"))?
+            };
+            triangle_normals[corner] = *normals
+                .get(normal_index as usize)
+                .ok_or_else(|| fail("normalIndex is out of range"))?;
+        }
+        output.push(triangle_normals);
+    }
+    Ok(output)
+}
+
+fn triangulate_indexed_faces(
+    faces: &[Vec<u32>],
+    positions: &[[f64; 3]],
+    max_triangles: usize,
+    remaining_polygon_work: &mut usize,
+) -> Result<TriangulatedFaces, EngineError> {
+    let mut triangles = Vec::new();
+    let mut source_faces = Vec::new();
+    for (face_ordinal, face) in faces.iter().enumerate() {
+        if face.len() < 3 || face.len() > MAX_FACE_VERTICES {
+            return Err(fail("polygon face vertex budget exceeded"));
+        }
+        let required = face
+            .len()
+            .checked_sub(2)
+            .ok_or_else(|| fail("invalid polygon face size"))?;
+        if triangles
+            .len()
+            .checked_add(required)
+            .is_none_or(|count| count > max_triangles)
+        {
+            return Err(fail("triangle budget exceeded"));
+        }
+        if face.len() == 3 {
+            let triangle = [face[0], face[1], face[2]];
+            if triangle[0] == triangle[1]
+                || triangle[1] == triangle[2]
+                || triangle[2] == triangle[0]
+            {
+                return Err(fail(
+                    "polygon face repeats a coordinate index; triangular/polygon topology must use distinct indices",
+                ));
+            }
+            if triangle
+                .iter()
+                .any(|index| *index as usize >= positions.len())
+            {
+                return Err(fail("coordinate index out of range"));
+            }
+            triangles.push(triangle);
+            source_faces.push(face_ordinal);
+            continue;
+        }
+        // Account for both the non-adjacent edge intersection scan and the
+        // triangulator's quadratic worst-case work before doing either.
+        let polygon_work = face
+            .len()
+            .checked_mul(face.len())
+            .and_then(|work| work.checked_mul(2))
+            .ok_or_else(|| fail("polygon triangulation work budget exceeded"))?;
+        *remaining_polygon_work = remaining_polygon_work
+            .checked_sub(polygon_work)
+            .ok_or_else(|| fail("polygon triangulation work budget exceeded"))?;
+
+        let mut seen = BTreeSet::new();
+        let points = face
+            .iter()
+            .map(|&index| {
+                if !seen.insert(index) {
+                    return Err(fail(
+                        "polygon face repeats a coordinate index; triangular/polygon topology must use distinct indices",
+                    ));
+                }
+                positions
+                    .get(index as usize)
+                    .copied()
+                    .ok_or_else(|| fail("coordinate index out of range"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        let normal = polygon_plane_normal(&points)?;
+        let anchor = points[0];
+        let mut local_scale = 0.0_f64;
+        let relative_points = points
+            .iter()
+            .map(|point| {
+                let delta = [
+                    point[0] - anchor[0],
+                    point[1] - anchor[1],
+                    point[2] - anchor[2],
+                ];
+                if delta.iter().any(|value| !value.is_finite()) {
+                    return Err(fail("polygon coordinate difference overflow"));
+                }
+                local_scale =
+                    local_scale.max(delta.iter().map(|value| value.abs()).fold(0.0, f64::max));
+                Ok(delta)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if !local_scale.is_finite() || local_scale == 0.0 {
+            return Err(fail("degenerate polygon face"));
+        }
+        let planarity_tolerance = (local_scale * POLYGON_PLANAR_REL_TOLERANCE).max(1e-10);
+        for delta in &relative_points {
+            let distance = delta[0] * normal[0] + delta[1] * normal[1] + delta[2] * normal[2];
+            if !distance.is_finite() || distance.abs() > planarity_tolerance {
+                return Err(fail("non-planar IndexedFaceSet polygon"));
+            }
+        }
+
+        let drop_axis = (0..3)
+            .max_by(|left, right| normal[*left].abs().total_cmp(&normal[*right].abs()))
+            .ok_or_else(|| fail("cannot select polygon projection plane"))?;
+        let axes = match drop_axis {
+            0 => [1, 2],
+            1 => [0, 2],
+            _ => [0, 1],
+        };
+        let projected = relative_points
+            .iter()
+            .map(|point| [point[axes[0]] / local_scale, point[axes[1]] / local_scale])
+            .collect::<Vec<_>>();
+        validate_simple_polygon(&projected)?;
+        let mut signed_area = 0.0;
+        for index in 0..projected.len() {
+            let current = projected[index];
+            let next = projected[(index + 1) % projected.len()];
+            if current == next {
+                return Err(fail("polygon face has a repeated projected point"));
+            }
+            signed_area += current[0] * next[1] - current[1] * next[0];
+        }
+        signed_area *= 0.5;
+        if !signed_area.is_finite() || signed_area.abs() <= f64::EPSILON {
+            return Err(fail("degenerate projected polygon face"));
+        }
+
+        let mut local_triangles = Vec::<u32>::new();
+        Earcut::<f64>::new().earcut(projected.iter().copied(), &[], &mut local_triangles);
+        if local_triangles.len() != required * 3 {
+            return Err(fail("polygon triangulation did not preserve face topology"));
+        }
+        let mut triangulated_area = 0.0;
+        for triangle in local_triangles.chunks_exact_mut(3) {
+            let indices = [
+                triangle[0] as usize,
+                triangle[1] as usize,
+                triangle[2] as usize,
+            ];
+            if indices.iter().any(|index| *index >= projected.len())
+                || indices[0] == indices[1]
+                || indices[1] == indices[2]
+                || indices[2] == indices[0]
+            {
+                return Err(fail("polygon triangulator returned an invalid index"));
+            }
+            let a = projected[indices[0]];
+            let b = projected[indices[1]];
+            let c = projected[indices[2]];
+            let twice_area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+            if !twice_area.is_finite() || twice_area.abs() <= f64::EPSILON {
+                return Err(fail("polygon triangulator returned a degenerate triangle"));
+            }
+            triangulated_area += twice_area.abs() * 0.5;
+            if twice_area.is_sign_positive() != signed_area.is_sign_positive() {
+                triangle.swap(1, 2);
+            }
+            triangles.push([face[indices[0]], face[indices[1]], face[indices[2]]]);
+            source_faces.push(face_ordinal);
+        }
+        let area_tolerance = (signed_area.abs() * POLYGON_AREA_REL_TOLERANCE).max(1e-12);
+        if (triangulated_area - signed_area.abs()).abs() > area_tolerance {
+            return Err(fail(
+                "polygon triangulation area does not match source face",
+            ));
+        }
+    }
+    Ok(TriangulatedFaces {
+        triangles,
+        source_faces,
+    })
+}
+
+/// Refuse non-simple polygon rings before tessellation. Non-adjacent edges may
+/// not cross or touch; adjacent collinear edges may meet at their shared
+/// vertex, but may not overlap beyond it.
+fn validate_simple_polygon(points: &[[f64; 2]]) -> Result<(), EngineError> {
+    if points.len() < 3 {
+        return Err(fail("polygon face must contain at least three points"));
+    }
+    for (left, a) in points.iter().enumerate() {
+        let left_next = (left + 1) % points.len();
+        let b = points[left_next];
+        for right in left + 1..points.len() {
+            let right_next = (right + 1) % points.len();
+            let c = points[right];
+            let d = points[right_next];
+            let adjacent = left_next == right || right_next == left;
+            if adjacent {
+                let (shared, first_other, second_other) = if left_next == right {
+                    (b, *a, d)
+                } else {
+                    (*a, c, b)
+                };
+                let first = [first_other[0] - shared[0], first_other[1] - shared[1]];
+                let second = [second_other[0] - shared[0], second_other[1] - shared[1]];
+                let cross = first[0] * second[1] - first[1] * second[0];
+                let dot = first[0] * second[0] + first[1] * second[1];
+                if cross.abs() <= POLYGON_INTERSECTION_EPSILON && dot > 0.0 {
+                    return Err(fail("polygon ring has overlapping adjacent edges"));
+                }
+                continue;
+            }
+            if segments_intersect_or_touch(*a, b, c, d) {
+                return Err(fail("self-intersecting or self-touching polygon ring"));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn segments_intersect_or_touch(a: [f64; 2], b: [f64; 2], c: [f64; 2], d: [f64; 2]) -> bool {
+    let ab_c = orient2(a, b, c);
+    let ab_d = orient2(a, b, d);
+    let cd_a = orient2(c, d, a);
+    let cd_b = orient2(c, d, b);
+    let sign = |value: f64| {
+        if value > POLYGON_INTERSECTION_EPSILON {
+            1
+        } else if value < -POLYGON_INTERSECTION_EPSILON {
+            -1
+        } else {
+            0
+        }
+    };
+    let (ab_c, ab_d, cd_a, cd_b) = (sign(ab_c), sign(ab_d), sign(cd_a), sign(cd_b));
+    if ab_c * ab_d < 0 && cd_a * cd_b < 0 {
+        return true;
+    }
+    (ab_c == 0 && point_on_segment(c, a, b))
+        || (ab_d == 0 && point_on_segment(d, a, b))
+        || (cd_a == 0 && point_on_segment(a, c, d))
+        || (cd_b == 0 && point_on_segment(b, c, d))
+}
+
+fn orient2(a: [f64; 2], b: [f64; 2], c: [f64; 2]) -> f64 {
+    (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+}
+
+fn point_on_segment(point: [f64; 2], start: [f64; 2], end: [f64; 2]) -> bool {
+    point[0] >= start[0].min(end[0]) - POLYGON_INTERSECTION_EPSILON
+        && point[0] <= start[0].max(end[0]) + POLYGON_INTERSECTION_EPSILON
+        && point[1] >= start[1].min(end[1]) - POLYGON_INTERSECTION_EPSILON
+        && point[1] <= start[1].max(end[1]) + POLYGON_INTERSECTION_EPSILON
+}
+
+fn polygon_plane_normal(points: &[[f64; 3]]) -> Result<[f64; 3], EngineError> {
+    let origin = *points.first().ok_or_else(|| fail("empty polygon face"))?;
+    for first in 1..points.len().saturating_sub(1) {
+        let u = [
+            points[first][0] - origin[0],
+            points[first][1] - origin[1],
+            points[first][2] - origin[2],
+        ];
+        if u.iter().any(|value| !value.is_finite()) {
+            return Err(fail("polygon coordinate difference overflow"));
+        }
+        for point in points.iter().skip(first + 1) {
+            let v = [
+                point[0] - origin[0],
+                point[1] - origin[1],
+                point[2] - origin[2],
+            ];
+            if v.iter().any(|value| !value.is_finite()) {
+                return Err(fail("polygon coordinate difference overflow"));
+            }
+            let scale = u
+                .iter()
+                .chain(&v)
+                .map(|value| value.abs())
+                .fold(0.0, f64::max);
+            if scale == 0.0 {
+                continue;
+            }
+            let u = u.map(|value| value / scale);
+            let v = v.map(|value| value / scale);
+            let cross = [
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0],
+            ];
+            let length = cross[0].hypot(cross[1]).hypot(cross[2]);
+            if length.is_finite() && length > 0.0 {
+                return Ok([cross[0] / length, cross[1] / length, cross[2] / length]);
+            }
+        }
+    }
+    Err(fail("degenerate polygon face"))
+}
+
+fn transform_part(
+    part: &mut ModelMeshPart,
+    transform: MeshTransform,
+    topology_only: bool,
+) -> Result<(), EngineError> {
+    if transform.is_identity() {
+        return Ok(());
+    }
+    for position in &mut part.positions_mm {
+        *position = transform.apply(*position);
+        if position.iter().any(|value| !value.is_finite()) {
+            return Err(fail("transformed coordinate overflow"));
+        }
+    }
+    if transform.reverses_winding {
+        for triangle in &mut part.triangles {
+            triangle.swap(1, 2);
+        }
+        for normals in &mut part.corner_normals {
+            normals.swap(1, 2);
+        }
+    }
+    for normals in &mut part.corner_normals {
+        for value in normals {
+            *value = transform_normal(transform.linear, *value)?;
+        }
+    }
+    part.flat_normals.clear();
+    for triangle in &part.triangles {
+        part.flat_normals.push(if topology_only {
+            [0.0, 0.0, 1.0]
+        } else {
+            normal(
+                part.positions_mm[triangle[0] as usize],
+                part.positions_mm[triangle[1] as usize],
+                part.positions_mm[triangle[2] as usize],
+            )?
+        });
+    }
+    Ok(())
+}
+
+/// Generate VRML97 default normals. Adjacent triangle corners are joined only
+/// through a two-use, oppositely oriented edge whose geometric-normal angle is
+/// strictly below `crease_angle`. Corner-angle weighting avoids making the
+/// result depend on how an otherwise planar polygon was triangulated.
+fn generate_corner_normals(
+    positions: &[[f64; 3]],
+    triangles: &[[u32; 3]],
+    flat_normals: &[[f64; 3]],
+    crease_angle: f64,
+) -> Result<Vec<[[f64; 3]; 3]>, EngineError> {
+    const MAX_NORMAL_CORNERS: usize = 600_000;
+    if triangles.len() != flat_normals.len() {
+        return Err(fail(
+            "normal generation received inconsistent triangle geometry",
+        ));
+    }
+    let corner_count = triangles
+        .len()
+        .checked_mul(3)
+        .filter(|count| *count <= MAX_NORMAL_CORNERS)
+        .ok_or_else(|| fail("normal generation corner budget exceeded"))?;
+    if !crease_angle.is_finite() || crease_angle < 0.0 {
+        return Err(fail("invalid IndexedFaceSet creaseAngle"));
+    }
+    let mut corner_normals = triangles
+        .iter()
+        .zip(flat_normals)
+        .map(|(_, normal)| [*normal; 3])
+        .collect::<Vec<_>>();
+    if crease_angle == 0.0 || triangles.len() < 2 {
+        return Ok(corner_normals);
+    }
+
+    #[derive(Clone, Copy)]
+    struct EdgeUse {
+        low: u32,
+        high: u32,
+        triangle: usize,
+        low_corner: usize,
+        high_corner: usize,
+        forward: bool,
+    }
+    let edge_count = triangles
+        .len()
+        .checked_mul(3)
+        .ok_or_else(|| fail("normal edge count overflow"))?;
+    let mut edges = Vec::with_capacity(edge_count);
+    for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for corner in 0..3 {
+            let next = (corner + 1) % 3;
+            let start = triangle[corner];
+            let end = triangle[next];
+            if start as usize >= positions.len() || end as usize >= positions.len() {
+                return Err(fail("normal generation coordinate index is out of range"));
+            }
+            let forward = start < end;
+            edges.push(EdgeUse {
+                low: start.min(end),
+                high: start.max(end),
+                triangle: triangle_index,
+                low_corner: triangle_index * 3 + if forward { corner } else { next },
+                high_corner: triangle_index * 3 + if forward { next } else { corner },
+                forward,
+            });
+        }
+    }
+    edges.sort_unstable_by_key(|edge| (edge.low, edge.high, edge.triangle));
+
+    let mut parent = (0..corner_count).collect::<Vec<_>>();
+    let mut rank = vec![0u8; corner_count];
+    let mut begin = 0;
+    while begin < edges.len() {
+        let mut end = begin + 1;
+        while end < edges.len()
+            && (edges[end].low, edges[end].high) == (edges[begin].low, edges[begin].high)
+        {
+            end += 1;
+        }
+        if end - begin == 2 {
+            let a = edges[begin];
+            let b = edges[begin + 1];
+            if a.triangle != b.triangle && a.forward != b.forward {
+                let dot = flat_normals[a.triangle]
+                    .iter()
+                    .zip(flat_normals[b.triangle])
+                    .map(|(left, right)| left * right)
+                    .sum::<f64>()
+                    .clamp(-1.0, 1.0);
+                if dot.acos() < crease_angle {
+                    disjoint_join(&mut parent, &mut rank, a.low_corner, b.low_corner);
+                    disjoint_join(&mut parent, &mut rank, a.high_corner, b.high_corner);
+                }
+            }
+        }
+        // Non-manifold edges are intentionally left hard; they do not provide
+        // an unambiguous pair of adjacent faces for generated smooth normals.
+        begin = end;
+    }
+
+    let mut sums = vec![[0.0f64; 3]; corner_count];
+    for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for corner in 0..3 {
+            let previous = positions[triangle[(corner + 2) % 3] as usize];
+            let current = positions[triangle[corner] as usize];
+            let next = positions[triangle[(corner + 1) % 3] as usize];
+            let weight = corner_angle(previous, current, next)?;
+            let root = disjoint_root(&mut parent, triangle_index * 3 + corner);
+            for axis in 0..3 {
+                sums[root][axis] += flat_normals[triangle_index][axis] * weight;
+            }
+        }
+    }
+    let mut generated = vec![[0.0; 3]; corner_count];
+    for (index, normal) in generated.iter_mut().enumerate() {
+        let root = disjoint_root(&mut parent, index);
+        *normal = normalize_vector(sums[root])?;
+    }
+    for (triangle_index, normals) in corner_normals.iter_mut().enumerate() {
+        for (corner, normal) in normals.iter_mut().enumerate() {
+            *normal = generated[triangle_index * 3 + corner];
+        }
+    }
+    Ok(corner_normals)
+}
+
+fn disjoint_root(parent: &mut [usize], index: usize) -> usize {
+    if parent[index] != index {
+        parent[index] = disjoint_root(parent, parent[index]);
+    }
+    parent[index]
+}
+
+fn disjoint_join(parent: &mut [usize], rank: &mut [u8], left: usize, right: usize) {
+    let left = disjoint_root(parent, left);
+    let right = disjoint_root(parent, right);
+    if left == right {
+        return;
+    }
+    if rank[left] < rank[right] {
+        parent[left] = right;
+    } else if rank[left] > rank[right] {
+        parent[right] = left;
+    } else {
+        parent[right] = left;
+        rank[left] = rank[left].saturating_add(1);
+    }
+}
+
+fn corner_angle(previous: [f64; 3], current: [f64; 3], next: [f64; 3]) -> Result<f64, EngineError> {
+    let mut left: [f64; 3] = std::array::from_fn(|axis| previous[axis] - current[axis]);
+    let mut right: [f64; 3] = std::array::from_fn(|axis| next[axis] - current[axis]);
+    if left.iter().chain(&right).any(|value| !value.is_finite()) {
+        return Err(fail("normal generation coordinate difference overflow"));
+    }
+    let scale = left
+        .iter()
+        .chain(&right)
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if scale == 0.0 || !scale.is_finite() {
+        return Err(fail("normal generation encountered a zero-length edge"));
+    }
+    for axis in 0..3 {
+        left[axis] /= scale;
+        right[axis] /= scale;
+    }
+    let cross = [
+        left[1] * right[2] - left[2] * right[1],
+        left[2] * right[0] - left[0] * right[2],
+        left[0] * right[1] - left[1] * right[0],
+    ];
+    let cross_length = cross[0].hypot(cross[1]).hypot(cross[2]);
+    let dot = left
+        .iter()
+        .zip(right)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    let angle = cross_length.atan2(dot);
+    if !angle.is_finite() || angle <= 0.0 {
+        return Err(fail(
+            "normal generation encountered an invalid corner angle",
+        ));
+    }
+    Ok(angle)
+}
+
+fn normalize_vector(vector: [f64; 3]) -> Result<[f64; 3], EngineError> {
+    if vector.iter().any(|value| !value.is_finite()) {
+        return Err(fail("generated normal contains a non-finite value"));
+    }
+    let scale = vector
+        .iter()
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if scale == 0.0 {
+        return Err(fail("generated normal is degenerate"));
+    }
+    let scaled = vector.map(|value| value / scale);
+    let length = scaled[0].hypot(scaled[1]).hypot(scaled[2]);
+    if !length.is_finite() || length == 0.0 {
+        return Err(fail("generated normal is degenerate"));
+    }
+    Ok(scaled.map(|value| value / length))
+}
+
+/// Apply the inverse-transpose affine linear transform required for normals.
+fn transform_normal(matrix: [[f64; 3]; 3], vector: [f64; 3]) -> Result<[f64; 3], EngineError> {
+    let scale = matrix
+        .iter()
+        .flatten()
+        .map(|value| value.abs())
+        .fold(0.0f64, f64::max);
+    if !scale.is_finite() || scale == 0.0 || vector.iter().any(|value| !value.is_finite()) {
+        return Err(fail("normal transform is invalid"));
+    }
+    let m = matrix.map(|row| row.map(|value| value / scale));
+    let cofactor = [
+        [
+            m[1][1] * m[2][2] - m[1][2] * m[2][1],
+            m[1][2] * m[2][0] - m[1][0] * m[2][2],
+            m[1][0] * m[2][1] - m[1][1] * m[2][0],
+        ],
+        [
+            m[0][2] * m[2][1] - m[0][1] * m[2][2],
+            m[0][0] * m[2][2] - m[0][2] * m[2][0],
+            m[0][1] * m[2][0] - m[0][0] * m[2][1],
+        ],
+        [
+            m[0][1] * m[1][2] - m[0][2] * m[1][1],
+            m[0][2] * m[1][0] - m[0][0] * m[1][2],
+            m[0][0] * m[1][1] - m[0][1] * m[1][0],
+        ],
+    ];
+    let det = m[0][0] * cofactor[0][0] + m[0][1] * cofactor[0][1] + m[0][2] * cofactor[0][2];
+    if !det.is_finite() || det == 0.0 {
+        return Err(fail("normal transform matrix is singular"));
+    }
+    let transformed = std::array::from_fn(|row| {
+        cofactor[row]
+            .iter()
+            .zip(vector)
+            .map(|(cofactor, value)| cofactor * value)
+            .sum::<f64>()
+            / det
+    });
+    normalize_vector(transformed)
+}
+
 fn normal(a: [f64; 3], b: [f64; 3], c: [f64; 3]) -> Result<[f64; 3], EngineError> {
     let mut u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
     let mut v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
@@ -662,6 +1921,27 @@ mod derivation_tests {
     use super::*;
 
     const TRIANGLE: &str = "Shape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0, 1 0 0, 0 1 0] } coordIndex [0, 1, 2, -1] solid TRUE } }";
+
+    #[test]
+    fn polygon_work_budget_is_shared_across_indexed_face_sets() {
+        let positions = [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ];
+        let face = vec![vec![0, 1, 2, 3]];
+        let mut remaining_work = 63;
+
+        let first = triangulate_indexed_faces(&face, &positions, 2, &mut remaining_work).unwrap();
+        assert_eq!(first.triangles.len(), 2);
+        assert_eq!(remaining_work, 31);
+
+        // A second individually affordable face set is rejected because both
+        // sets share the parser's one input-wide quadratic-work budget.
+        assert!(triangulate_indexed_faces(&face, &positions, 2, &mut remaining_work).is_err());
+    }
+
     fn sample(invalid: &str, uses: &str) -> Vec<u8> {
         format!("#VRML V2.0 utf8\nShape {{ appearance Appearance {{ material DEF VALID Material {{ diffuseColor 0.2 0.3 0.4 }} }} geometry IndexedFaceSet {{ coord Coordinate {{ point [0 0 0, 1 0 0, 0 1 0] }} coordIndex [0, 1, 2, -1] solid TRUE }} }}\nShape {{ appearance Appearance {{ material DEF UNUSED Material {{ diffuseColor 0.2 0.3 0.4 }} }} }}\nShape {{ appearance Appearance {{ material DEF BAD Material {{ ambientIntensity {invalid} }} }} }}\n{uses}\n{TRIANGLE}\n").into_bytes()
     }

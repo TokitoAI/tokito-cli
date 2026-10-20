@@ -7,6 +7,10 @@ Cargo.toml text eol=lf
 Cargo.lock text eol=lf
 # Preserve byte-identical upstream fixtures, including original whitespace/notices.
 tests/fixtures/open-source/** -text -whitespace
+# KiCad source-format reference files are hashed against pinned upstream bytes.
+tests/fixtures/kicad-10.0.5/** -text -whitespace
+# Pin upstream footprint-library snapshots without newline normalization.
+tests/fixtures/kicad-footprint-libraries/** -text -whitespace
 # Historical compatibility snapshots are compared byte-for-byte; preserve their
 # working-tree bytes on Windows as well as on Unix-like systems.
 tests/fixtures/compat-v0/** -text -whitespace
@@ -16,4 +20,13 @@ docs/evidence/nxp-refined-local-verification-20261011.json -text -whitespace
 # Captured KiCad CLI help preserves exact upstream stdout padding for hash comparison.
 docs/evidence/kicad-pcb-export-glb-help-10.0.5.txt -text -whitespace
 docs/evidence/kicad-pcb-export-glb-help-10.0.7.txt -text -whitespace
+docs/evidence/kicad-pcb-export-*-help-10.0.7.txt -text -whitespace
+# Native KiCad SVG/help captures retain upstream trailing spaces for exact
+# reference hashes and structural comparisons.
+tests/reference/kicad-cli-10.0.7/svg/** -text -whitespace
 docs/evidence/kicad-dnp-local-verification-2026-10-14.json -text -whitespace !eol
+# Geometry audit receipts and reports preserve independently recorded byte hashes.
+docs/evidence/model16-projection-audit-20261018.json -text -whitespace !eol
+docs/evidence/model16-projection-audit-20261018.receipt.json -text -whitespace !eol
+experiments/step-evaluation/references/audit_model16_projection.FCMacro text eol=lf
+experiments/step-evaluation/references/audit_model16_physical_refinement.FCMacro text eol=lf

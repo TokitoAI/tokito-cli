@@ -1,0 +1,366 @@
+"""Independent development oracle for an explicitly unqualified open two-face mesh."""
+import collections
+import hashlib
+import json
+import math
+import sys
+import tempfile
+from pathlib import Path
+
+import FreeCAD
+import Part
+
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+EXPECTED_VERSION = ["1", "1", "4", "20260928 (Git shallow)", "Unknown", "2026/09/28 13:46:34", "(HEAD detached at 4fd3bf320)", "4fd3bf320d9566a27e60069fc8387448aaa3a094"]
+EXPECTED_EDGES = {3400: 791, 3478: 10828, 5409: 607, 9149: 2687, 7239: 9005, 4818: 4186}
+FACE_EDGES = {2875: [3400, 3478, 5409, 9149], 10475: [3478, 7239, 9149, 4818]}
+
+
+def read(path, cap):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("regular input required")
+    with path.open("rb") as stream:
+        data = stream.read(cap + 1)
+    if len(data) > cap:
+        raise ValueError("input byte cap exceeded")
+    return data
+
+
+def xyz(p):
+    return [float(p.x), float(p.y), float(p.z)]
+
+
+def finite(p, n):
+    if not isinstance(p, list) or len(p) != n or any(type(x) not in (float, int) or not math.isfinite(x) for x in p):
+        raise ValueError("invalid finite coordinates")
+    return p
+
+
+def close(a, b, absolute=1e-10):
+    return math.isclose(a, b, rel_tol=1e-6, abs_tol=absolute)
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION or Part.OCC_VERSION != "7.8.1":
+        raise ValueError("FreeCAD or OCCT version mismatch")
+    i = sys.argv.index("--pass")
+    if len(sys.argv) != i + 2:
+        raise ValueError("one config required")
+    cfg = json.loads(read(sys.argv[i + 1], 32768))
+    if set(cfg) != {"source", "diagnostic", "output"}:
+        raise ValueError("invalid config")
+    output = Path(cfg["output"])
+    if output.exists() or output.is_symlink():
+        raise ValueError("refusing to overwrite output")
+    source = read(cfg["source"], 32 * 1024 * 1024)
+    raw = read(cfg["diagnostic"], 32 * 1024 * 1024)
+    r = json.loads(raw)
+    if hashlib.sha256(source).hexdigest() != SOURCE_SHA256 or r.get("sourceSha256") != SOURCE_SHA256:
+        raise ValueError("pinned source mismatch")
+    for flag in ("geometryQualified", "admitted", "completeSolidVerified", "completeTrimCoverageVerified", "certifiedDeviationBound", "selfIntersectionVerified", "sourceCurveSupportGapResolved"):
+        if r.get(flag) is not False:
+            raise ValueError("unqualified scope missing")
+    if r.get("exportsProduced") != []:
+        raise ValueError("research must not export")
+    policy = r["policy"]
+    tolerance = policy["chordToleranceSourceUnits"]
+    allowance = policy["boundaryDisplacementAllowanceSourceUnits"]
+    if not 0 < allowance <= tolerance * 0.5 or policy["sourceUnchanged"] is not True or policy["sourceUncertaintyUsedAsAllowance"] is not False:
+        raise ValueError("explicit independent displacement policy missing")
+    vertices = r["globalVertices"]
+    if not 3 <= len(vertices) <= 50000 or [v["id"] for v in vertices] != list(range(len(vertices))):
+        raise ValueError("bounded global vertex inventory invalid")
+    points = [finite(v["pointSourceUnits"], 3) for v in vertices]
+    edge_rows = {e["edgeCurveId"]: e for e in r["edges"]}
+    face_rows = {f["faceId"]: f for f in r["faces"]}
+    if len(r["edges"]) != 6 or {k: e["curveGeometryId"] for k, e in edge_rows.items()} != EXPECTED_EDGES or set(face_rows) != set(FACE_EDGES):
+        raise ValueError("source curve or face inventory mismatch")
+    if sum(len(e["samples"]) for e in edge_rows.values()) > 8192 or sum(len(e["leafIntervals"]) for e in edge_rows.values()) > 8192:
+        raise ValueError("canonical source interval cap exceeded")
+    with tempfile.TemporaryDirectory(prefix="tokito-shared-patch-oracle-", dir=output.parent) as temporary:
+        frozen = Path(temporary) / "source.step"
+        frozen.write_bytes(source)
+        shape = Part.read(str(frozen))
+    if shape.isNull() or not shape.isValid() or not 1 <= len(shape.Faces) <= 4096 or sum(len(f.Edges) for f in shape.Faces) > 32768:
+        raise ValueError("bounded native shape required")
+    signature_work = 0
+
+    def matches(native, row):
+        nonlocal signature_work
+        samples = row["samples"]
+        for j in (0, len(samples) // 2, len(samples) - 1):
+            signature_work += 1
+            if signature_work > 800000:
+                raise ValueError("signature work cap exceeded")
+            s = samples[j]
+            try:
+                p = xyz(native.Curve.value(s["curveParameter"]))
+            except (RuntimeError, Part.OCCError):
+                return False
+            if math.dist(p, points[s["globalVertexId"]]) > 1e-8:
+                return False
+        return True
+
+    face_bindings = {}
+    edge_bindings = {}
+    for fid, eids in FACE_EDGES.items():
+        candidates = []
+        for fi, face in enumerate(shape.Faces):
+            if len(face.Edges) != 4:
+                continue
+            matched = []
+            for eid in eids:
+                found = [i for i, edge in enumerate(face.Edges) if matches(edge, edge_rows[eid])]
+                if len(found) != 1:
+                    break
+                matched.append(found[0])
+            if len(matched) == 4 and len(set(matched)) == 4:
+                candidates.append((fi, matched))
+        if len(candidates) != 1:
+            raise ValueError("no unique four-curve face binding")
+        fi, matched = candidates[0]
+        face_bindings[fid] = fi
+        for eid, edge_index in zip(eids, matched):
+            native_edge = shape.Faces[fi].Edges[edge_index]
+            if eid in edge_bindings and not edge_bindings[eid].isSame(native_edge):
+                raise ValueError("shared source edge native adjacency mismatch")
+            edge_bindings[eid] = native_edge
+    if len(set(face_bindings.values())) != 2:
+        raise ValueError("complementary faces collapsed")
+    max_curve_gap = 0.0
+    interval_evidence = []
+    quarter_probes = 0
+    leaf_maximum = 0.0
+    source_vertex_ids = {}
+    canonical_ids = set()
+    for eid, row in edge_rows.items():
+        native = edge_bindings[eid]
+        samples = row["samples"]
+        # Curve.value(t) alone is insufficient: the underlying curve can extend
+        # beyond this native topological edge. Native parameter limits are an
+        # ascending interval independently of the edge's traversal orientation.
+        native_interval = [float(native.FirstParameter), float(native.LastParameter)]
+        claimed_interval = finite(row["nativeCurveDomain"], 2)
+        sample_interval = [samples[0]["curveParameter"], samples[-1]["curveParameter"]]
+        if (not all(math.isfinite(t) for t in native_interval + sample_interval)
+                or native_interval[0] >= native_interval[1]
+                or claimed_interval[0] >= claimed_interval[1]
+                or sample_interval[0] >= sample_interval[1]):
+            raise ValueError("independent native topological edge interval mismatch")
+        parameter_tolerance = 1e-13 * max(1.0, *(abs(t) for t in native_interval))
+        differences = [abs(a-b) for interval in (claimed_interval, sample_interval)
+                       for a,b in zip(interval,native_interval)]
+        if max(differences) > parameter_tolerance:
+            raise ValueError("independent native topological edge interval mismatch")
+        interval_evidence.append({"edgeCurveId":eid,"curveGeometryId":row["curveGeometryId"],
+                                  "nativeTopologicalParameterRange":native_interval,
+                                  "reportedNativeCurveDomain":claimed_interval,
+                                  "reportedSampleEndpointParameters":sample_interval,
+                                  "maximumAbsoluteParameterDifference":max(differences),
+                                  "absoluteParameterComparisonTolerance":parameter_tolerance,
+                                  "nativeEdgeOrientation":str(native.Orientation),
+                                  "rangeConvention":"ascending_native_edge_limits_independent_of_traversal",
+                                  "toleranceScope":"floating_parameter_comparison_only_not_physical_geometry_acceptance"})
+        for index, sample in enumerate(samples):
+            gid = sample["globalVertexId"]
+            canonical_ids.add(gid)
+            gap = math.dist(xyz(native.Curve.value(sample["curveParameter"])), points[gid])
+            if gap > 1e-9:
+                raise ValueError("independent canonical source curve point mismatch")
+            max_curve_gap = max(max_curve_gap, gap)
+            origin = vertices[gid]["origin"]
+            if index in (0, len(samples) - 1):
+                start, end = (row["startVertexId"], row["endVertexId"]) if row["edgeSameSense"] else (row["endVertexId"], row["startVertexId"])
+                source_id = start if index == 0 else end
+                if origin != {"sourceVertexId": source_id} or source_vertex_ids.setdefault(source_id, gid) != gid:
+                    raise ValueError("source vertex identity or canonical mapping changed")
+            elif origin != {"edgeCurveId": eid, "curveParameter": sample["curveParameter"]}:
+                raise ValueError("source curve parameter identity changed")
+        if len(row["leafIntervals"]) != len(samples) - 1:
+            raise ValueError("canonical source interval inventory mismatch")
+        for leaf, a, b in zip(row["leafIntervals"], samples, samples[1:]):
+            ta, tb = a["curveParameter"], b["curveParameter"]
+            if [leaf["startParameter"], leaf["endParameter"]] != [ta, tb]:
+                raise ValueError("source interval parameter mapping mismatch")
+            pa, pb = points[a["globalVertexId"]], points[b["globalVertexId"]]
+            error = 0.0
+            for fraction in (0.25, 0.5, 0.75):
+                quarter_probes += 1
+                t = ta * (1 - fraction) + tb * fraction
+                expected = xyz(native.Curve.value(t))
+                linear = [pa[k] * (1 - fraction) + pb[k] * fraction for k in range(3)]
+                error = max(error, math.dist(expected, linear))
+            if not close(error, leaf["maximumQuarterChordErrorSourceUnits"]) or error > row["sampledChordTargetSourceUnits"] + 1e-10:
+                raise ValueError("independent canonical source leaf chord mismatch")
+            leaf_maximum = max(leaf_maximum, error)
+    if len(canonical_ids) != r["canonicalBoundaryVertexCount"]:
+        raise ValueError("canonical boundary identity count mismatch")
+    incidence = collections.defaultdict(list)
+    used = set()
+    face_results = []
+    total_triangles = 0
+    max_interior_gap = 0.0
+    seam_segments = {tuple(sorted((a["globalVertexId"], b["globalVertexId"]))) for eid in (3478, 9149)
+                     for a, b in zip(edge_rows[eid]["samples"], edge_rows[eid]["samples"][1:])}
+    expected_outer = {tuple(sorted((a["globalVertexId"], b["globalVertexId"]))) for eid in EXPECTED_EDGES if eid not in (3478, 9149)
+                      for a, b in zip(edge_rows[eid]["samples"], edge_rows[eid]["samples"][1:])}
+    for fid, f in face_rows.items():
+        native = shape.Faces[face_bindings[fid]]
+        if f["surfaceId"] != {2875: 10410, 10475: 7558}[fid] or f["faceSameSense"] is not True:
+            raise ValueError("source surface or face mapping mismatch")
+        uv = [finite(q, 2) for q in f["uvVertices"]]
+        gids = f["globalVertexIds"]
+        if len(uv) != len(gids) or len(set(gids)) != len(gids) or len(uv) != f["vertexCount"] or len(uv) > 25000:
+            raise ValueError("face local-to-global vertex inventory invalid")
+        local = {gid: i for i, gid in enumerate(gids)}
+        boundary = f["boundaryGlobalVertexIds"]
+        if not 3 <= len(boundary) <= 4096 or len(set(boundary)) != len(boundary):
+            raise ValueError("boundary identity inventory invalid")
+        expected_views = FACE_EDGES[fid]
+        if [v["edgeCurveId"] for v in f["edgeViews"]] != expected_views:
+            raise ValueError("ordered source edge views changed")
+        reconstructed = []
+        for view in f["edgeViews"]:
+            eid = view["edgeCurveId"]
+            natural = [s["globalVertexId"] for s in edge_rows[eid]["samples"]]
+            reversed_use = (fid, eid) in ((2875, 9149), (10475, 3478))
+            expected = list(reversed(natural)) if reversed_use else natural
+            if view["globalVertexIds"] != expected:
+                raise ValueError("canonical shared seam IDs or ordered edge views changed")
+            reconstructed.extend(expected if not reconstructed else expected[1:])
+        if reconstructed[-1] != reconstructed[0] or reconstructed[:-1] != boundary:
+            raise ValueError("boundary source vertex maps changed")
+        bound_edges = {tuple(sorted((a, b))) for a, b in zip(boundary, boundary[1:] + boundary[:1])}
+        surface = native.Surface
+        if not surface.isVClosed() or surface.isUClosed():
+            raise ValueError("native closed chart profile changed")
+        vknots = surface.getVKnots()
+        v0, v1 = vknots[0], vknots[-1]
+        period = v1 - v0
+
+        def canonical(q):
+            return [q[0], (q[1] - v0) % period + v0]
+
+        def support(q):
+            return xyz(surface.value(*canonical(q)))
+
+        displacement = 0.0
+        for i, gid in enumerate(gids):
+            gap = math.dist(support(uv[i]), points[gid])
+            if gid in canonical_ids:
+                if gid not in boundary:
+                    raise ValueError("foreign canonical boundary identity inserted")
+                displacement = max(displacement, gap)
+            else:
+                if vertices[gid]["origin"] != {"sourceFaceId": fid, "localMeshVertexIndex": i} or gap > 1e-9:
+                    raise ValueError("independent interior surface point or UV mapping mismatch")
+                max_interior_gap = max(max_interior_gap, gap)
+        if displacement > allowance + 1e-10 or not close(displacement, f["maximumBoundaryDisplacementSourceUnits"]):
+            raise ValueError("independent boundary displacement mismatch")
+        triangle_rows = f["triangles"]
+        if len(triangle_rows) != f["triangleCount"] or not 1 <= len(triangle_rows) <= 50000:
+            raise ValueError("face triangle inventory limit")
+        max_interior = max_boundary = 0.0
+        min_normal = 1.0
+        failures = nonpositive = 0
+        measured_edges = {}
+        trim_inside = trim_outside = 0
+        trim_indices = set(range(0, len(triangle_rows), max(1, len(triangle_rows) // 256)))
+        trim_indices = set(sorted(trim_indices)[:256])
+        for ti, triangle in enumerate(triangle_rows):
+            if len(triangle) != 3 or len(set(triangle)) != 3 or any(gid not in local for gid in triangle):
+                raise ValueError("invalid global triangle")
+            total_triangles += 1
+            if total_triangles > 100000:
+                raise ValueError("total triangle work cap exceeded")
+            used.update(triangle)
+            q = [uv[local[gid]] for gid in triangle]
+            p = [points[gid] for gid in triangle]
+            if (q[1][0]-q[0][0])*(q[2][1]-q[0][1])-(q[1][1]-q[0][1])*(q[2][0]-q[0][0]) <= 0:
+                raise ValueError("reversed or degenerate UV triangle")
+            center = [sum(x[k] for x in q)/3 for k in range(2)]
+            cp = support(center)
+            linear = [sum(x[k] for x in p)/3 for k in range(3)]
+            max_interior = max(max_interior, math.dist(cp, linear))
+            a, b, c = [FreeCAD.Vector(*x) for x in p]
+            normal = (b-a).cross(c-a)
+            expected = native.normalAt(*canonical(center))
+            alignment = normal.dot(expected)/(normal.Length*expected.Length) if normal.Length*expected.Length > 0 else 0.0
+            min_normal = min(min_normal, alignment)
+            nonpositive += alignment <= 0
+            failures += alignment < math.cos(math.radians(5))
+            if ti in trim_indices:
+                inside = native.isInside(FreeCAD.Vector(*cp), 1e-7, True)
+                trim_inside += inside
+                trim_outside += not inside
+            for ia, ib in ((0,1),(1,2),(2,0)):
+                ga, gb = triangle[ia], triangle[ib]
+                key = tuple(sorted((ga,gb)))
+                incidence[key].append((fid, ga < gb))
+                if key not in measured_edges:
+                    midpoint = [(q[ia][k]+q[ib][k])*0.5 for k in range(2)]
+                    chord = [(p[ia][k]+p[ib][k])*0.5 for k in range(3)]
+                    measured_edges[key] = math.dist(support(midpoint),chord)
+                if key in bound_edges:
+                    max_boundary=max(max_boundary,measured_edges[key])
+                else:
+                    max_interior=max(max_interior,measured_edges[key])
+        quality=f["quality"]
+        if (not close(max_interior,quality["maximumSampledInteriorChordErrorSourceUnits"])
+                or not close(max_boundary,quality["maximumSampledFixedBoundaryChordErrorSourceUnits"])
+                or not close(min_normal,quality["minimumSampledNormalAlignment"],1e-6)
+                or nonpositive!=quality["nonpositiveNormalCount"] or failures!=quality["normalThresholdFailureCount"]):
+            raise ValueError("independent final canonical triangle quality mismatch")
+        if max(max_interior,max_boundary)>tolerance+1e-10 or nonpositive or failures or trim_outside:
+            raise ValueError("independent sampled patch target failed")
+        face_results.append({"faceId":fid,"freecadFaceIndex":face_bindings[fid]+1,"verticesAudited":len(gids),"trianglesAudited":len(triangle_rows),
+                             "uniqueEdgesAudited":len(measured_edges),"maximumBoundaryDisplacementMm":displacement,
+                             "maximumSampledInteriorChordErrorMm":max_interior,"maximumSampledBoundaryChordErrorMm":max_boundary,
+                             "minimumAnalyticNormalAlignment":min_normal,"analyticNonpositiveNormalCount":nonpositive,"analyticNormalTargetFailureCount":failures,
+                             "trimCentroidsSampled":len(trim_indices),"trimCentroidsInside":trim_inside,"trimCentroidsOutside":trim_outside,"completeTrimCoverageVerified":False})
+    if used != set(range(len(vertices))) or any(len(v)>2 or (len(v)==2 and v[0][1]==v[1][1]) for v in incidence.values()):
+        raise ValueError("global topology unused vertices or inconsistent incidence")
+    for edge in seam_segments:
+        uses = incidence.get(edge,[])
+        if len(uses)!=2 or uses[0][0]==uses[1][0] or uses[0][1]==uses[1][1]:
+            raise ValueError("shared canonical seam incidence mismatch")
+    outer={e for e,uses in incidence.items() if len(uses)==1}
+    if outer!=expected_outer:
+        raise ValueError("open source boundary segment inventory mismatch")
+    adjacency=collections.defaultdict(set)
+    for a,b in outer:
+        adjacency[a].add(b);adjacency[b].add(a)
+    if any(len(n)!=2 for n in adjacency.values()):
+        raise ValueError("open boundaries must be simple disjoint cycles")
+    seen=set();cycles=0
+    for start in adjacency:
+        if start in seen:continue
+        cycles+=1;stack=[start]
+        while stack:
+            vertex=stack.pop()
+            if vertex not in seen:
+                seen.add(vertex);stack.extend(adjacency[vertex]-seen)
+    euler=len(vertices)-len(incidence)+total_triangles
+    if euler!=0 or cycles!=2 or len(seam_segments)!=64:
+        raise ValueError("independent annulus topology mismatch")
+    first,second=face_rows[2875]["uvRange"],face_rows[10475]["uvRange"]
+    if not first[1][0]<-0.7 or abs(first[1][1])>1e-9 or abs(second[1][0])>1e-9 or not second[1][1]>0.7:
+        raise ValueError("complementary periodic charts not retained")
+    result={"schema":"tokito.freecad-shared-patch-audit.v1","sourceSha256":SOURCE_SHA256,"diagnosticSha256":hashlib.sha256(raw).hexdigest(),
+            "auditScriptSha256":hashlib.sha256(read(__file__,128*1024)).hexdigest(),"freecadVersion":list(FreeCAD.Version()),"occtVersion":Part.OCC_VERSION,
+            "signaturePointComparisons":signature_work,"independentFaceBindings":[{"sourceFaceId":fid,"freecadFaceIndex":i+1} for fid,i in sorted(face_bindings.items())],
+            "sourceCurveCount":len(edge_rows),"nativeTopologicalEdgeIntervals":interval_evidence,
+            "retainedCanonicalVerticesAudited":len(canonical_ids),"leafQuarterProbesAudited":quarter_probes,
+            "maximumIndependentCurvePointGapMm":max_curve_gap,"maximumIndependentInteriorSurfacePointGapMm":max_interior_gap,
+            "maximumIndependentLeafChordErrorMm":leaf_maximum,"faces":face_results,"vertices":len(vertices),"edges":len(incidence),"triangles":total_triangles,
+            "eulerCharacteristic":euler,"openBoundaryCycles":cycles,"openBoundarySegments":len(outer),"sharedOppositeSegments":len(seam_segments),
+            "complementaryPeriodicChartsVerified":True,"completeTrimCoverageVerified":False,"completeSolidVerified":False,"certifiedDeviationBound":False,
+            "geometryQualified":False,"admitted":False,"exportsProduced":[],"globalClosestPointMinimumProven":False,
+            "scope":"sampled open patch approximation using immutable canonical source boundaries; not a repaired or qualified solid"}
+    with output.open("x",encoding="utf-8") as stream:
+        json.dump(result,stream,indent=2,allow_nan=False)
+    print(json.dumps(result),flush=True)
+
+
+main()

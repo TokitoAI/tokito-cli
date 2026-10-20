@@ -23,6 +23,8 @@ pub struct PlacedModelMeshPart {
     pub triangles: Vec<[u32; 3]>,
     /// Recomputed flat unit normals, one per placed triangle.
     pub flat_normals: Vec<[f64; 3]>,
+    /// Per-corner unit normals after the source/model/board transforms.
+    pub corner_normals: Vec<[[f64; 3]; 3]>,
     pub material: Option<MeshMaterial>,
     pub source_crease_angle_radians: f64,
     pub solid: bool,
@@ -151,6 +153,7 @@ pub fn place_model_mesh_in_glb_m(
         if part.positions_mm.is_empty()
             || part.triangles.is_empty()
             || part.flat_normals.len() != part.triangles.len()
+            || part.corner_normals.len() != part.triangles.len()
         {
             return Err(fail("model part has inconsistent triangle geometry"));
         }
@@ -162,8 +165,10 @@ pub fn place_model_mesh_in_glb_m(
             .collect::<Result<Vec<_>, _>>()?;
         let mut triangles = Vec::with_capacity(part.triangles.len());
         let mut flat_normals = Vec::with_capacity(part.triangles.len());
-        for source_triangle in &part.triangles {
+        let mut corner_normals = Vec::with_capacity(part.triangles.len());
+        for (triangle_index, source_triangle) in part.triangles.iter().enumerate() {
             let mut triangle = *source_triangle;
+            let mut normals = part.corner_normals[triangle_index];
             if triangle
                 .iter()
                 .any(|index| *index as usize >= positions_m.len())
@@ -172,12 +177,17 @@ pub fn place_model_mesh_in_glb_m(
             }
             if reverse_winding {
                 triangle.swap(1, 2);
+                normals.swap(1, 2);
+            }
+            for normal in &mut normals {
+                *normal = place_model_normal_in_glb(*normal, placement)?;
             }
             let a = positions_m[triangle[0] as usize];
             let b = positions_m[triangle[1] as usize];
             let c = positions_m[triangle[2] as usize];
             flat_normals.push(triangle_normal(a, b, c)?);
             triangles.push(triangle);
+            corner_normals.push(normals);
         }
 
         parts.push(PlacedModelMeshPart {
@@ -185,6 +195,7 @@ pub fn place_model_mesh_in_glb_m(
             positions_m,
             triangles,
             flat_normals,
+            corner_normals,
             material: part.material.clone(),
             source_crease_angle_radians: part.source_crease_angle_radians,
             solid: part.solid,
@@ -195,6 +206,49 @@ pub fn place_model_mesh_in_glb_m(
         parts,
         diagnostics: mesh.diagnostics.clone(),
     })
+}
+
+/// Transform a local VRML normal by the inverse transpose of the KiCad-to-GLB
+/// linear map. Translations do not apply to normals; the basis reflection is
+/// retained while triangle winding is corrected separately.
+fn place_model_normal_in_glb(
+    normal: [f64; 3],
+    placement: KicadStepPlacement,
+) -> Result<[f64; 3], EngineError> {
+    if normal.iter().any(|value| !value.is_finite()) {
+        return Err(fail("source model normal contains a non-finite value"));
+    }
+    let mut vector = [
+        normal[0] / placement.model.scale[0],
+        normal[1] / placement.model.scale[1],
+        normal[2] / placement.model.scale[2],
+    ];
+    vector = rotate_x(vector, -placement.model.rotation_deg[0]);
+    vector = rotate_y(vector, -placement.model.rotation_deg[1]);
+    vector = rotate_z(vector, -placement.model.rotation_deg[2]);
+    if placement.side == BoardSide::Back {
+        vector = rotate_x(vector, 180.0);
+    }
+    vector = rotate_z(vector, placement.footprint_rotation_deg);
+    // STEP/model XYZ -> Tokito GLB XYZ is the same Y/Z swap as for points.
+    normalize(vector[0], vector[2], vector[1])
+}
+
+fn normalize(x: f64, y: f64, z: f64) -> Result<[f64; 3], EngineError> {
+    let vector = [x, y, z];
+    if vector.iter().any(|value| !value.is_finite()) {
+        return Err(fail("transformed model normal overflowed"));
+    }
+    let scale = vector.iter().map(|value| value.abs()).fold(0.0, f64::max);
+    if scale == 0.0 {
+        return Err(fail("transformed model normal is degenerate"));
+    }
+    let scaled = vector.map(|value| value / scale);
+    let length = scaled[0].hypot(scaled[1]).hypot(scaled[2]);
+    if !length.is_finite() || length == 0.0 {
+        return Err(fail("transformed model normal is degenerate"));
+    }
+    Ok(scaled.map(|value| value / length))
 }
 
 /// Validate the full placement and report whether its linear transform is a

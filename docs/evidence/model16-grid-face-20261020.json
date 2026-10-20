@@ -1,0 +1,59 @@
+{
+  "schema": "tokito.step-face-research-evidence.v1",
+  "checkedDateUtc": "2026-10-20",
+  "status": "research-only-unqualified",
+  "source": {
+    "datasetRepository": "TokitoAI/tokito-app-dataset",
+    "datasetCommit": "5283bc059e30e51f4d3a81a674425936fc213214",
+    "relativePath": "data/board-sources/esp8266-nodemcu-reference/structured-source/embedded-models/16.step",
+    "sha256": "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+  },
+  "tools": {
+    "freecadVersion": "1.1.4",
+    "freecadCommit": "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+    "opencascadeVersion": "7.8.1",
+    "stepEvaluationBinarySha256": "2ca420294e16d2c3eee1e0accef085ec310294ca856db69c81dc8c8aa599b246",
+    "e2eScriptSha256": "131c65dfc2d04ca1a10f4ca2d7cfe2e1294688620726c95accf528b0bbcfffaa",
+    "independentAuditMacroSha256": "c9019c01fa2fa1485f0d014f8049f121e4ae2b7dbf04f67260ebf51da07deeab",
+    "surfaceReferenceHelperSha256": "dfc4d795933eaf4cc5babf77c08c91bd96fe7111cc71dc0bdf94da2e44f9b184"
+  },
+  "reproduction": {
+    "mode": "directional-grid face refinement with independent FreeCAD surface audit",
+    "receiptRelativePath": "target/research/model16-grid-refinement-e2e-20261020-v4/receipt.json",
+    "receiptSha256": "c9da90f2acc5f532d71710acf7a3cf722a5c545dfcd3e280c0eeeb1dce376abc",
+    "diagnosticSha256": "3208b6fec2798b3d2ae5748d525570a22dfc827ca1f9dce445d30f290f7749a8",
+    "passedChecks": 10,
+    "pythonAreaClassifierSelfTestCases": 11
+  },
+  "candidate": {
+    "sourceStepFaceId": 2875,
+    "independentFreecadFaceIndex": 231,
+    "vertices": 16260,
+    "triangles": 31942,
+    "edges": 48201,
+    "eulerCharacteristic": 1,
+    "boundaryEdges": 576,
+    "nearZeroAreaTriangles": 0,
+    "nearZeroAreaCriterion": "crossSquared <= longestEdgeSquared^2 * 1e-24 after uniform edge normalization",
+    "maximumSampledInteriorChordErrorMm": 0.00000874914583734515,
+    "maximumSampledBoundaryChordErrorMm": 0.000004617251771241803,
+    "minimumAnalyticNormalAlignment": 0.9998499022957288,
+    "trimContainmentSamplesInside": 256,
+    "trimContainmentSampleCount": 256,
+    "maximumObservedSourceCurveSupportGapMm": 0.000001080837279767591
+  },
+  "qualification": {
+    "certifiedSurfaceDeviationBound": false,
+    "sourceCurveSupportGapResolved": false,
+    "completeSolidVerified": false,
+    "geometryQualified": false,
+    "admitted": false,
+    "exportsProduced": []
+  },
+  "limitations": [
+    "This is one face patch from one component STEP asset, not a complete component or board model.",
+    "The bounded chord and normal measurements are sampled observations, not certified geometric error bounds.",
+    "The raw STEP reader's emitted triangles still contain defects; this research candidate does not repair the production reader.",
+    "No STEP or GLB model was exported or admitted by this experiment."
+  ]
+}

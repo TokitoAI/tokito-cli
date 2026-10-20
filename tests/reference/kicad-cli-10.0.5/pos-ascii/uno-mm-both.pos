@@ -1,0 +1,60 @@
+### Footprint positions - created on 2026-10-18T14:13:16 ###
+### Printed by KiCad version 10.0.5
+## Unit = mm, Angle = deg.
+## Side : All
+# Ref     Val                          Package                                                       PosX       PosY       Rot  Side
+C1        47u                          CAP_EEHZA1E470P                                           132.6261  -122.5296  -90.0000  top
+C2        47u                          CAP_EEHZA1E470P                                           139.7381  -122.5296  -90.0000  top
+C3        100n                         C_0603_1608Metric                                         132.6261  -116.3066  -90.0000  top
+C4        100n                         C_0603_1608Metric                                         126.2761  -101.8286    0.0000  top
+C5        1u                           C_0603_1608Metric                                         139.7381  -116.3066   90.0000  top
+C6        100n                         C_0603_1608Metric                                         142.1511   -87.2236    0.0000  top
+C7        100n                         C_0603_1608Metric                                         142.1511  -101.8286    0.0000  top
+C8        100n                         C_0603_1608Metric                                         159.9311  -108.8136    0.0000  top
+C9        100n                         C_0603_1608Metric                                         142.1511  -100.1776    0.0000  top
+C10       1u                           C_0603_1608Metric                                         126.9111   -89.7636    0.0000  top
+C11       22p                          C_0603_1608Metric                                         130.2131  -102.0826  180.0000  top
+C12       100n                         C_0603_1608Metric                                         158.5341  -121.4120    0.0000  top
+C13       22p                          C_0603_1608Metric                                         136.4361  -102.0826    0.0000  top
+D1        CGRB307-G                    D_SMB                                                     135.8011  -129.1590  180.0000  top
+D2        CD1206-S01575                D_1206_3216Metric                                         173.6471  -103.7336  -90.0000  top
+D3        CD1206-S01575                D_1206_3216Metric                                         127.2921   -85.4456   90.0000  top
+D4        YELLOW                       LED_0805_2012Metric                                       142.1511   -89.4080  180.0000  top
+D5        YELLOW                       LED_0805_2012Metric                                       142.1384   -95.1484    0.0000  top
+D6        YELLOW                       LED_0805_2012Metric                                       142.1511   -97.3836    0.0000  top
+D7        GREEN                        LED_0805_2012Metric                                       172.6184   -95.0468  180.0000  top
+F2        MF-MSMF050-2                 Fuse_1812_4532Metric_Pad1.30x3.40mm_HandSolder            118.2116  -105.1306  -90.0000  top
+FB1       1kΩ@100MHz                   L_0805_2012Metric                                         121.8311   -86.9950    0.0000  top
+FB2       10uH                         L_0805_2012Metric                                         153.3271  -123.5456    0.0000  top
+FID1      Fiducial                     Fiducial_1mm_Mask3mm                                      120.5611   -81.7626    0.0000  top
+FID2      Fiducial                     Fiducial_1mm_Mask3mm                                      168.0511  -114.9326    0.0000  top
+FID3      Fiducial                     Fiducial_1mm_Mask3mm                                      117.9411  -128.2636    0.0000  top
+J1        M20-9980345                  PinHeader_2x03_P2.54mm_Vertical                           135.0391   -84.1756  -90.0000  top
+J2        M20-9980245                  CONN_M20-9980245_HRW                                      135.0390   -91.7960   90.0000  top
+J3        M20-9980345                  PinHeader_2x03_P2.54mm_Vertical                           177.8381  -101.1936    0.0000  top
+J4        PPTC101LFBN-RC               PinSocket_1x10_P2.54mm_Vertical                           155.8671   -80.8736  -90.0000  top
+J5        PPTC081LFBN-RC               PinSocket_1x08_P2.54mm_Vertical                           177.7111   -80.8736  -90.0000  top
+J6        PPTC061LFBN-RC               PinSocket_1x06_P2.54mm_Vertical                           165.0110  -129.1336   90.0000  top
+J7        PPTC081LFBN-RC               PinSocket_1x08_P2.54mm_Vertical                           142.1511  -129.1336   90.0000  top
+J8        USB_C_Receptacle_USB2.0_16P  USB_C_Receptacle_GCT_USB4105-xx-A_16P_TopMnt_Horizontal   117.8500   -93.5736  -90.0000  top
+J9        PJ-102AH                     BarrelJack_Kycon_KLDX-0202-xC_Horizontal                  126.1200  -123.3600    0.0000  top
+Q1        FDN340P                      SC-59                                                     122.4104  -105.1306  180.0000  top
+R1        1M                           R_0603_1608Metric                                         133.2611  -102.0826  180.0000  top
+R2        1M                           R_0603_1608Metric                                         155.4861  -108.9406    0.0000  top
+R3        5k1                          R_0603_1608Metric                                         123.6980   -91.4908   90.0000  top
+R4        5k1                          R_0603_1608Metric                                         123.6980   -96.1136  -90.0000  top
+RN1       10k                          R_Array_Convex_4x0603                                     142.1511  -107.7976  180.0000  top
+RN2       1k                           R_Array_Convex_4x0603                                     142.1511   -92.3036    0.0000  top
+RN3       22R                          R_Array_Convex_4x0603                                     127.0381   -94.8436  180.0000  top
+RN4       1k                           R_Array_Convex_4x0603                                     172.6311   -97.8916  180.0000  top
+S1        TS06-667-30-BK-100-G-SMT-TR  SW_TS06-667-30-BK-100-G-SMT-TR                            120.5611   -82.2706    0.0000  top
+U1        NCP1117-5.0_SOT223           SOT-223-3_TabPin2                                         121.9581  -114.2746  180.0000  top
+U2        LP2985-3.3                   SOT-23-5                                                  136.1821  -116.4336    0.0000  top
+U3        ATMEGA16U2-MU                VQFN-32-1EP_5x5mm_P0.5mm_EP3.1x3.1mm                      134.1501   -97.0026   90.0000  top
+U4        ATMEGA328P-PU                DIP-28_W7.62mm_Socket                                     177.0761  -111.4806  -90.0000  top
+U5        LMV358IDGKR                  MSOP-8_3x3mm_P0.65mm                                      133.2611  -111.3536  180.0000  top
+Y1        CSTNE16M0V530000R0           Resonator_SMD_Murata_CSTxExxV-3Pin_3.0x1.1mm              155.4861  -106.7816    0.0000  top
+Y2        LFXTAL003240BULK             Crystal_HC49-4H_Vertical                                  135.5741  -105.5116  180.0000  top
+Z1        5pF@1MHz                     R_0603_1608Metric                                         126.9111   -92.0336  180.0000  top
+Z2        5pF@1MHz                     R_0603_1608Metric                                         126.9111   -98.0186  180.0000  top
+## End

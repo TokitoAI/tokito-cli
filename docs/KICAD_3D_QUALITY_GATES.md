@@ -78,9 +78,23 @@ its released example does not prove dataset units/materials/assembly placement.
 `oxideav-step` 0.0.1 is another candidate with units/occurrences/B-rep support;
 its skip/default behavior must not be mistaken for complete CAD. See the
 [format-adapter research](GLB_EXPORT_ARCHITECTURE.md#format-adapter-research-candidates-not-dependencies).
-The new STEP probe is an isolated qualification experiment. Production STEP
-admission remains unavailable until real dataset assets, face completeness,
-units, transforms, resource limits and independent reference comparisons pass.
+The isolated STEP probe remains a research experiment. The CLI now also supports
+an explicitly assigned, bounded STEP tessellation candidate through the normal
+component reference/UUID selector path. This does not import or certify STEP
+B-rep solids: production STEP qualification still requires real dataset asset
+associations, face/trim completeness, assembly transforms, units, resource limits
+and independent reference comparisons.
+
+### ESP8266 STEP filter evidence — 2026-10-15
+
+The pinned multi-model comparison sampled one asset (`0.step`) within the
+0.02 mm criterion; it rejected `14.step` and `16.step` for four and 1,102
+degenerate triangles, respectively. Removing those triangles in an isolated
+diagnostic did not qualify them: both filtered reader meshes failed closed-edge
+and winding checks, and `16.step` also had a 0.0840 mm reader-to-reference
+sampled distance. This is evidence to keep the production path fail-closed,
+not a proposal to silently filter degenerate geometry. The exact method and
+receipts are in [dataset STEP qualification](DATASET_STEP_QUALIFICATION.md#esp8266-multi-solid-source-model-surface-probe--2026-10-15).
 
 ## Required quality gates
 
@@ -89,8 +103,8 @@ units, transforms, resource limits and independent reference comparisons pass.
 | Target source identity | Pinned dataset commit and ESP32 source hash | Materialize/hash every required LFS asset; match exact physical revisions |
 | Outline/cutouts | Analytic Tokito gate and measured ESP32 refusal | Differential closure policy, contour/area/bounds comparisons and disclosed tolerances |
 | Board body | Current sourced shell extrusion | Compare substrate/copper/mask thickness, holes/slots and layer geometry against references |
-| Component bodies | Bounded flat-triangle VRML assembly | Real dataset STEP solids/faces, assembly transforms, units and materials; explicit unsupported entities |
-| Component placement | Synthetic top/back, signed scale and stackup tests | Independent asymmetric mesh/landmark comparisons with nonzero model transforms |
+| Component bodies | Bounded VRML assembly and explicitly assigned STEP mesh candidates | Real dataset STEP solids/faces, complete assembly transform/color fidelity and independent references; explicit unsupported entities |
+| Component placement | Synthetic top/back and assigned STEP fixture placement tests | Independent asymmetric dataset mesh/landmark comparisons with nonzero model transforms |
 | Selection | CLI exact-name simulation and UUID provenance | Real App importer/renderer journey on a device |
 | Production dependency | Pure Rust; no KiCad runtime invocation | Preserve this boundary as CAD adapters are added |
 

@@ -48,12 +48,25 @@ def run(binary, pcb, meshes, output, cli_binary=None):
     names = [n['name'] for n in document['nodes']]
     assert len(set(names)) == len(names)
     assert len(mapping['components']) == 34
+    omitted_by_ref = {c['reference']:c['degenerate_triangles_omitted']
+                      for c in mapping['components'] if c['degenerate_triangles_omitted'] > 0}
+    assert len(omitted_by_ref) == 6
+    assert sum(omitted_by_ref.values()) == 1292
+    assert omitted_by_ref['U2'] == 1277
     expected = {c['sourceIdentity']['uniqueId']: c for c in source['candidateAssociations']['components']}
+    assert mapping['sourceEvidence'] == {'format':'altium_pcb','sha256':source['sourceSha256']}
     body_ordinals = []
     total = 0
     for component in mapping['components']:
         original = expected[component['component_id']]
         assert component['reference'] == original['sourceIdentity']['reference']
+        claims = component['sourceDesignClaims']
+        assert claims['status'] == 'unverified_source_design_claim'
+        assert claims['sourceFormat'] == 'altium_pcb'
+        assert claims['sourceSha256'] == source['sourceSha256']
+        assert claims['sourceIdentity'] == original['sourceIdentity']
+        assert claims['properties'] == {key:original['sourceProperties'].get(key)
+                                        for key in ('SOURCEDESCRIPTION','PATTERN','SOURCELIBREFERENCE','COMMENT')}
         node = document['nodes'][component['glb_node_index']]
         assert node['name'] == component['glb_selector'] == 'ref:' + component['reference']
         assert node['extras']['componentId'] == component['component_id']
@@ -100,6 +113,18 @@ def run(binary, pcb, meshes, output, cli_binary=None):
         assert inspect.returncode == 0, inspect.stdout.decode(errors='replace')
         cli_inspection = json.loads(inspect.stdout)
         assert cli_inspection['directRenderableSelectors'] == 34
+        inspected_by_ref = {c['reference']:c for c in cli_inspection['components']}
+        assert len(inspected_by_ref) == 34
+        for original in expected.values():
+            inspected = inspected_by_ref[original['sourceIdentity']['reference']]
+            assert inspected['componentClassClaim'] is None
+            assert inspected['componentClassHint']['verified'] is False
+            assert inspected['sourceDesignClaims']['sourceSha256'] == source['sourceSha256']
+            assert inspected['sourceDesignClaims']['sourceIdentity'] == original['sourceIdentity']
+            assert inspected['sourceDesignClaims']['properties']['SOURCEDESCRIPTION'] == original['sourceProperties'].get('SOURCEDESCRIPTION')
+        assert inspected_by_ref['C4']['componentClassHint']['value'] == 'capacitor'
+        assert inspected_by_ref['C4']['componentClassHint']['basis'] == 'unverified_source_text'
+        assert inspected_by_ref['U2']['degenerateTrianglesOmitted'] == 1277
         prototype = output / 'prototype'
         prepare = subprocess.run([str(cli_binary), 'twin', 'prototype', *common, '--output', str(prototype),
                                   '--allow-partial'], capture_output=True, timeout=120)
@@ -114,6 +139,8 @@ def run(binary, pcb, meshes, output, cli_binary=None):
                    components=34, bodies=62, componentTriangles=total,
                    qualification=False, mainCliInspection=cli_inspection,
                    checks=['partial consent', 'no overwrite', 'actual source identities',
+                           'source design claims bound to source SHA and component identity',
+                           'source descriptions remain unverified and never become classes',
                                                 'STEP hash joins', 'all body coverage', 'selectable direct meshes',
                                                 'finite positions', 'unit normals', 'source colors', 'exact bounds'])
     (output / 'e2e-receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')

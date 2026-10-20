@@ -56,8 +56,22 @@ dependencies are cached. Inspect or select the packaged assets:
 
 ## Evidence boundary
 
-`demo/bundle-manifest.json` binds every packaged artifact to its original local
-prototype path, byte size and SHA-256. Copies were compared byte-for-byte. The
+Current presentation refresh: all six packaged viewers use the versioned
+[Ultimaker standard](THREED_PRESENTATION_STANDARD.md). Real Edge browser checks
+passed 4K PNG encoding/download, state restoration, both lighting modes and
+offline selection. See [the browser receipt](evidence/ultimaker-presentation-browser-20261016.json)
+and [migration receipt](../demo/presentation-standard-verification.json).
+GLB, map and manifest bytes and existing component-field values are unchanged;
+indexes gain current explicit diagnostic metadata. New `standard-4k.png`
+images are actual model captures. Earlier screenshots and results below retain
+their historical scope. Refreshed manifest entries use portable logical
+generation IDs (`presentation-refresh/v1/...`); previous prototype paths are
+retained as historical provenance. Exact local builder identity is recorded in
+the migration receipt rather than used as a package link.
+
+`demo/bundle-manifest.json` binds each packaged artifact to its historical
+prototype path or logical generation ID, byte size and SHA-256. Copies were
+compared byte-for-byte. The
 current verified release CLI successfully inspected all three packaged boards
 and selected ESP32 U1, Ultimaker C74 and NXP U11.
 

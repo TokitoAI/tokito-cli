@@ -1,0 +1,232 @@
+{
+  "schema": "tokito.kicad-footprint-type-filter-reference.v1",
+  "capturedAtUtc": "2026-10-15T17:21:58.238183+00:00",
+  "version": "10.0.7",
+  "executableSha256": "cbd8197dd1f46b9a956f3d7973edc9a6a97960298731448ae9142dffe47abc7a",
+  "fixtureSha256": "ae83986b3d0ba972629f46fa60b9393b5fc8d8802806cd5d7b9a17e2ad74c4f9",
+  "wrlSha256": "eadfec9e71c67b1dd3910c72b45d811a06f0ab5397d0609354b10e9a3a4c1fdd",
+  "substitutedStepSha256": "1875571c326d0d9e96f36b4efeb8094068ef7619f0a449c781caf0b49c2e5861",
+  "nativeCommand": [
+    "kicad-cli",
+    "pcb",
+    "export",
+    "glb",
+    "<fixture>",
+    "--subst-models",
+    "--output",
+    "<output>",
+    "<case options>"
+  ],
+  "logPathNormalization": "Capture output root is replaced with <capture-root>; output file digests refer to unchanged native bytes.",
+  "limitation": "Synthetic metadata fixture with a real resistor asset, not a physical design. Native GLB uses explicit --subst-models and the recorded STEP companion; Tokito uses the pinned WRL. Named component selection is compared; geometry equivalence, STEP import, footprint fit and real-board qualification are not claimed.",
+  "cases": [
+    {
+      "name": "default",
+      "options": [],
+      "selectedReferences": [
+        "R1",
+        "R10",
+        "R11",
+        "R12",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "glbSha256": "2f41672dbaa80428c266d4a065e9892c2db8cbdc3303a8941988aa7403468d69",
+      "glbBytes": 48388,
+      "nativeNodeNames": [
+        "",
+        "R1",
+        "=>[0:1:1:3]",
+        "R2",
+        "=>[0:1:1:3]",
+        "R3",
+        "=>[0:1:1:3]",
+        "R4",
+        "=>[0:1:1:3]",
+        "R5",
+        "=>[0:1:1:3]",
+        "R6",
+        "=>[0:1:1:3]",
+        "R7",
+        "=>[0:1:1:3]",
+        "R8",
+        "=>[0:1:1:3]",
+        "R9",
+        "=>[0:1:1:3]",
+        "R10",
+        "=>[0:1:1:3]",
+        "R11",
+        "=>[0:1:1:3]",
+        "R12",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/default.glb' created.\n\nExport time 0.378 s\n",
+      "stderr": ""
+    },
+    {
+      "name": "no-unspecified",
+      "options": [
+        "--no-unspecified"
+      ],
+      "selectedReferences": [
+        "R1",
+        "R11",
+        "R12",
+        "R2",
+        "R5"
+      ],
+      "glbSha256": "dbcec82e9529b164ffae97655a61c16b09603ead0257d0f15e7d9dc4bf3fea57",
+      "glbBytes": 33160,
+      "nativeNodeNames": [
+        "",
+        "R1",
+        "=>[0:1:1:3]",
+        "R2",
+        "=>[0:1:1:3]",
+        "R5",
+        "=>[0:1:1:3]",
+        "R11",
+        "=>[0:1:1:3]",
+        "R12",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/no-unspecified.glb' created.\n\nExport time 0.176 s\n",
+      "stderr": ""
+    },
+    {
+      "name": "no-dnp",
+      "options": [
+        "--no-dnp"
+      ],
+      "selectedReferences": [
+        "R1",
+        "R10",
+        "R11",
+        "R2",
+        "R3",
+        "R4",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "glbSha256": "429dacc6b5f84e3ab94bb5da1b35df452f78e1b9497e7aa06ac1946f8ce1e354",
+      "glbBytes": 41836,
+      "nativeNodeNames": [
+        "",
+        "R1",
+        "=>[0:1:1:3]",
+        "R2",
+        "=>[0:1:1:3]",
+        "R3",
+        "=>[0:1:1:3]",
+        "R4",
+        "=>[0:1:1:3]",
+        "R7",
+        "=>[0:1:1:3]",
+        "R8",
+        "=>[0:1:1:3]",
+        "R9",
+        "=>[0:1:1:3]",
+        "R10",
+        "=>[0:1:1:3]",
+        "R11",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/no-dnp.glb' created.\n\nExport time 0.208 s\n",
+      "stderr": ""
+    },
+    {
+      "name": "both",
+      "options": [
+        "--no-dnp",
+        "--no-unspecified"
+      ],
+      "selectedReferences": [
+        "R1",
+        "R11",
+        "R2"
+      ],
+      "glbSha256": "6a950e8688c8ac59a673dfca9b98d4eeefa3a92f660eb6a559eca5d16b9d17c3",
+      "glbBytes": 28772,
+      "nativeNodeNames": [
+        "",
+        "R1",
+        "=>[0:1:1:3]",
+        "R2",
+        "=>[0:1:1:3]",
+        "R11",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/both.glb' created.\n\nExport time 0.190 s\n",
+      "stderr": ""
+    },
+    {
+      "name": "pattern-type",
+      "options": [
+        "--component-filter",
+        "R3,R5,R6,R11",
+        "--no-unspecified"
+      ],
+      "selectedReferences": [
+        "R11",
+        "R5"
+      ],
+      "glbSha256": "edac3fb20442387142c9166417def43637cf13954300cdefe609f0d63937bf20",
+      "glbBytes": 26704,
+      "nativeNodeNames": [
+        "",
+        "R5",
+        "=>[0:1:1:3]",
+        "R11",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/pattern-type.glb' created.\n\nExport time 0.153 s\n",
+      "stderr": ""
+    },
+    {
+      "name": "pattern-both",
+      "options": [
+        "--component-filter",
+        "R3,R5,R6,R11",
+        "--no-unspecified",
+        "--no-dnp"
+      ],
+      "selectedReferences": [
+        "R11"
+      ],
+      "glbSha256": "351085a03c6c754544802a59e0e7840f6898c84031f2c58787c53af06c93aab4",
+      "glbBytes": 24516,
+      "nativeNodeNames": [
+        "",
+        "R11",
+        "=>[0:1:1:3]",
+        "=>[0:1:1:4]"
+      ],
+      "stdout": "Binary GLTF file '<capture-root>/pattern-both.glb' created.\n\nExport time 0.173 s\n",
+      "stderr": ""
+    }
+  ],
+  "quotedTypeRefusal": {
+    "fixtureSha256": "5f7826b7ad09371719f5ece646f9c1bbb0d40739db2b9d3a3bfe821747fb56a5",
+    "exitCode": 3,
+    "stdout": "",
+    "stderr": "Failed to load board: Expecting through_hole, smd, virtual, board_only, exclude_from_pos_files, exclude_from_bom or allow_solder_mask_bridges. Got ''quoted string'' in '<capture-root>\\quoted-type.kicad_pcb', line 11, offset 58.\n"
+  },
+  "tokitoDefaultBaseline": {
+    "binarySha256": "42e80ea9198b05366ff27e1e837b7f6eab7e518f760ff2a612d10df3d319c7a3",
+    "glbSha256": "21fe51d26e90c97f6611892c606641301981e32b1e710dac8ffda8e8d91f648f",
+    "reportSha256": "734be42448944e3cb78e37c9f4900d3f07a743313ff2f362c414752be4449c40",
+    "scope": "Tokito current-release baseline refreshed 2026-10-20 after intentional VRML source-material projection (optional specular extension and approximate shininess roughness); default assembly output only. This is not a KiCad geometry comparison."
+  }
+}

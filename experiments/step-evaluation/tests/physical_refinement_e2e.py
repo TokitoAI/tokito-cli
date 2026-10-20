@@ -1,0 +1,516 @@
+"""Real pinned-source physical refinement journey and independent CAD audit."""
+import argparse
+import collections
+import hashlib
+import json
+import math
+from pathlib import Path
+
+from surface_reference_e2e import bounded_read, capture_bounded
+
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+NEAR_ZERO_AREA_RELATIVE_SQUARED = 1e-24
+
+
+def digest(path, maximum):
+    return hashlib.sha256(bounded_read(path, maximum)).hexdigest()
+
+
+def count_3d_near_zero_area_triangles(points, triangles):
+    """Apply the STEP reader's scale-relative 3D area threshold to a mesh."""
+    if not isinstance(points, list) or not isinstance(triangles, list):
+        raise ValueError("3D area audit requires point and triangle arrays")
+    if not points or not triangles or len(points) > 500_000 or len(triangles) > 1_000_000:
+        raise ValueError("3D area audit inventory exceeds its bounded input limits")
+    checked_points = []
+    for point in points:
+        if (not isinstance(point, list) or len(point) != 3
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       or abs(value) > 1e12 for value in point)):
+            raise ValueError("3D area audit encountered an invalid point")
+        checked_points.append(tuple(float(value) for value in point))
+
+    near_zero = 0
+    for triangle in triangles:
+        if (not isinstance(triangle, list) or len(triangle) != 3
+                or any(type(index) is not int or index < 0 or index >= len(checked_points)
+                       for index in triangle)):
+            raise ValueError("3D area audit encountered an invalid triangle")
+        a, b, c = (checked_points[index] for index in triangle)
+        ab = [b[axis] - a[axis] for axis in range(3)]
+        ac = [c[axis] - a[axis] for axis in range(3)]
+        bc = [c[axis] - b[axis] for axis in range(3)]
+        scale = max(abs(value) for vector in (ab, ac, bc) for value in vector)
+        if scale > 0.0:
+            ab = [value / scale for value in ab]
+            ac = [value / scale for value in ac]
+            bc = [value / scale for value in bc]
+        cross = [
+            ab[1] * ac[2] - ab[2] * ac[1],
+            ab[2] * ac[0] - ab[0] * ac[2],
+            ab[0] * ac[1] - ab[1] * ac[0],
+        ]
+        cross_squared = sum(value * value for value in cross)
+        longest_edge_squared = max(
+            sum(value * value for value in vector) for vector in (ab, ac, bc)
+        )
+        if cross_squared <= longest_edge_squared * longest_edge_squared * NEAR_ZERO_AREA_RELATIVE_SQUARED:
+            near_zero += 1
+    return near_zero
+
+
+def self_test_3d_area_classifier():
+    cases = [
+        ("unit right triangle", [[0, 0, 0], [1, 0, 0], [0, 1, 0]], [0, 1, 2], 0),
+        ("exactly collinear", [[0, 0, 0], [1, 0, 0], [2, 0, 0]], [0, 1, 2], 1),
+        ("repeated mesh index", [[0, 0, 0], [1, 0, 0]], [0, 1, 0], 1),
+        ("coincident positions with distinct indices", [[0, 0, 0], [1, 0, 0], [0, 0, 0]], [0, 1, 2], 1),
+        ("tiny right triangle", [[0, 0, 0], [1e-20, 0, 0], [0, 1e-20, 0]], [0, 1, 2], 0),
+        ("large right triangle", [[0, 0, 0], [1e12, 0, 0], [0, 1e12, 0]], [0, 1, 2], 0),
+        ("translated triangle", [[1e9, -1e9, 5e8], [1e9 + 1, -1e9, 5e8], [1e9, -1e9 + 1, 5e8]], [0, 1, 2], 0),
+        ("tilted 3D triangle", [[3, 4, 5], [4, 4, 6], [3, 5, 6]], [0, 1, 2], 0),
+        ("below relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-13, 0]], [0, 1, 2], 1),
+        ("at relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-12, 0]], [0, 1, 2], 1),
+        ("above relative threshold", [[0, 0, 0], [1, 0, 0], [1, 1e-11, 0]], [0, 1, 2], 0),
+    ]
+    for name, points, triangle, expected in cases:
+        actual = count_3d_near_zero_area_triangles(points, [triangle])
+        if actual != expected:
+            raise AssertionError(f"{name}: expected {expected} near-zero triangles, got {actual}")
+
+
+def validate_mesh(report, metric=False, retriangulate=False, adaptive=False, grid=False):
+    p = report["physicalRefinementCandidate"]
+    if p.get("admitted") is not False or p.get("geometryQualified") is not False or p.get("exportsProduced") != []:
+        raise ValueError("research mesh must stay unqualified")
+    expected_termination="interior_retriangulation_incomplete" if retriangulate else "mesh_budget_exhausted"
+    if adaptive:
+        q=p["quality"]
+        met=(q["maximumSampledInteriorChordErrorSourceUnits"]<=p["chordToleranceSourceUnits"]
+             and q["maximumSampledFixedBoundaryChordErrorSourceUnits"]<=p["chordToleranceSourceUnits"]
+             and q["normalThresholdFailureCount"]==0)
+        if (p.get("status")!=("sampled_targets_met_unqualified" if met else "incomplete")
+            or p.get("termination")!=("interior_retriangulation_sampled_targets_met" if met else "interior_retriangulation_incomplete")):
+            raise ValueError("adaptive status contradicts measured quality")
+    elif p.get("status") != "incomplete" or p.get("termination") != expected_termination:
+        raise ValueError("pinned incomplete outcome changed; re-evaluate fixture evidence")
+    if retriangulate:
+        flips=p.get("interiorRetriangulation",{})
+        accepted=flips.get("acceptedFlips",[])
+        if ((not accepted and not adaptive) or len(accepted)!=flips.get("acceptedFlipCount")
+            or flips.get("verticesMoved")!=0 or flips.get("boundaryEdgesChanged")!=0
+            or flips.get("attempts",129)>128 or flips.get("passes",4)>3
+            or flips.get("sampleEvaluationCount",400001)>400000
+            or p.get("interiorRetriangulationControlPointEvaluationCount",50000001)>50000000
+            or (not adaptive and p.get("beforeInteriorRetriangulationTermination")!="mesh_budget_exhausted")
+            or (not adaptive and p["quality"]["nonpositiveNormalCount"]>=p["beforeInteriorRetriangulationQuality"]["nonpositiveNormalCount"])):
+            raise ValueError("interior flip preservation/budget/improvement evidence invalid")
+        for flip in accepted:
+            if (flip["newMinimumNormalAlignment"]<=0
+                or flip["newMinimumNormalAlignment"]<=flip["oldMinimumNormalAlignment"]
+                or flip["newMaximumSampledPairChordErrorSourceUnits"]>flip["oldMaximumSampledPairChordErrorSourceUnits"]):
+                raise ValueError("accepted flip did not meet pair quality requirements")
+    chart=p.get("initialChartMetric")
+    if metric:
+        if not isinstance(chart,dict) or chart.get("originalUvCoordinatesRetainedByIdentity") is not True:
+            raise ValueError("metric chart source identity evidence missing")
+        matrix=chart["normalizedCholeskyMatrix"]
+        if not 0.02<matrix[0][0]<0.04 or matrix[1][0]!=0 or not 0.99<matrix[1][1]<=1.000001:
+            raise ValueError("pinned metric scale changed")
+        if not adaptive and not 0<p["quality"]["nonpositiveNormalCount"]<=10:
+            raise ValueError("metric remaining orientation count changed")
+    elif chart is not None:
+        raise ValueError("baseline unexpectedly uses a metric chart")
+    uv = p["uvVertices"]
+    points = p["surfacePointsSourceUnits"]
+    triangles = p["triangles"]
+    near_zero_area_count = count_3d_near_zero_area_triangles(points, triangles)
+    if grid and near_zero_area_count != 0:
+        raise ValueError(f"directional-grid candidate contains {near_zero_area_count} scale-relative 3D near-zero-area triangles")
+    count = p["boundaryVertexCount"]
+    if len(uv) != len(points) or len(uv) != p["vertexCount"] or len(triangles) != p["triangleCount"]:
+        raise ValueError("mesh inventory mismatch")
+    expanded=report["adaptiveBoundaryCandidate"]["expandedInputSampleCount"] if adaptive else 100
+    if count != expanded-4 or p.get("originalInputSampleCount") != expanded or p.get("removedExactDuplicateCount") != 4 or p.get("additionalBoundaryVertexCount") != 0:
+        raise ValueError("source boundary inventory changed")
+    mapping = p["inputSampleVertexIndices"]
+    source = report["adaptiveBoundaryCandidate"]["samples"] if adaptive else report["trimCandidate"]["boundarySamples"]
+    if len(mapping) != len(source) or any(uv[k] != row["candidateUv"] for row, k in zip(source, mapping)):
+        raise ValueError("source boundary coordinate changed")
+    boundary = {tuple(sorted((i, (i + 1) % count))) for i in range(count)}
+    edges = collections.Counter()
+    senses = collections.Counter()
+    for t in triangles:
+        if len(t) != 3 or len(set(t)) != 3 or any(type(k) is not int or not 0 <= k < len(uv) for k in t):
+            raise ValueError("invalid triangle")
+        a, b, c = [uv[k] for k in t]
+        area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+        if not math.isfinite(area) or area <= 0:
+            raise ValueError("degenerate or reversed UV face")
+        for x, y in [(t[0], t[1]), (t[1], t[2]), (t[2], t[0])]:
+            key = tuple(sorted((x, y)))
+            edges[key] += 1
+            senses[key] += 1 if x < y else -1
+    if {e for e, uses in edges.items() if uses == 1} != boundary or any(uses != 1 if e in boundary else uses != 2 or senses[e] != 0 for e, uses in edges.items()):
+        raise ValueError("nonconforming or altered constraints")
+    if len(uv) - len(edges) + len(triangles) != 1:
+        raise ValueError("Euler disk invariant failed")
+    quality = p["quality"]
+    if not 0 < quality["maximumSampledInteriorChordErrorSourceUnits"] < p["history"][0]["quality"]["maximumSampledInteriorChordErrorSourceUnits"]:
+        raise ValueError("physical interior error did not decrease")
+    if not adaptive and (quality["maximumSampledFixedBoundaryChordErrorSourceUnits"] <= p["chordToleranceSourceUnits"] or quality["nonpositiveNormalCount"] <= 0):
+        raise ValueError("pinned remaining quality blockers changed")
+    return {"vertices": len(uv), "triangles": len(triangles), "edges": len(edges), "eulerCharacteristic": 1,
+            "fixedBoundaryEdges": len(boundary), "nonconformingEdges": 0,
+            "threeDimensionalNearZeroAreaTriangleCount": near_zero_area_count,
+            "threeDimensionalAreaThreshold": "crossSquared <= longestEdgeSquared^2 * 1e-24 after uniform edge normalization",
+            "firstQuality": p["history"][0]["quality"], "lastQuality": quality,
+            "interiorRetriangulation":p.get("interiorRetriangulation")}
+
+
+def validate_adaptive_boundary(report):
+    a=report["adaptiveBoundaryCandidate"]
+    p=report["physicalRefinementCandidate"]
+    originals=report["trimCandidate"]["boundarySamples"]
+    samples=a["samples"]
+    mapping=a["originalSampleExpandedInputIndices"]
+    if (a.get("geometryQualified") is not False or a.get("admitted") is not False or a.get("exportsProduced")!=[]
+        or a.get("sharedAcrossFaces") is not False or a.get("certifiedCurveDeviationBound") is not False
+        or a.get("projectionAdmissionToleranceChanged") is not False or a.get("sourceCurveToSupportSurfaceGapResolved") is not False
+        or a["sourceEdges"]!=report["edges"] or len(mapping)!=len(originals)
+        or a["expandedInputSampleCount"]!=len(samples) or not len(originals)<len(samples)<=4096
+        or len(samples)!=len(originals)+a["addedSampleCount"]
+        or a["curveProjectionEvaluationCount"]!=len(a["observations"])*3
+        or a["curveProjectionEvaluationCount"]>16384 or a["maximumDepth"]>16
+        or a["controlPointEvaluationCount"]>50000000 or a["curveControlPointEvaluationCount"]>20000000):
+        raise ValueError("adaptive scope, inventory or budget mismatch")
+    if any(type(i) is not int or not 0<=i<len(samples) for i in mapping) or mapping!=sorted(set(mapping)):
+        raise ValueError("adaptive original sample mapping invalid")
+    for i,k in enumerate(mapping):
+        original=originals[i]; retained=samples[k]
+        for key in ["loopIndex","curveParameter","candidateUv","sourcePointSourceUnits","surfacePointSourceUnits","projectionConverged","projectionSolver"]:
+            if original[key]!=retained[key]:raise ValueError("original boundary observation changed")
+        if retained["originalInputIndex"]!=i or p["sourceOriginalSampleVertexIndices"][i]!=p["inputSampleVertexIndices"][k]:
+            raise ValueError("original to expanded to mesh mapping invalid")
+    if [i for i,s in enumerate(samples) if s["originalInputIndex"] is not None]!=mapping:
+        raise ValueError("extra original identity claimed")
+    roots=[(samples[mapping[i]],samples[mapping[i+1]],0) for i in range(len(originals)-1)
+           if originals[i]["loopIndex"]==originals[i+1]["loopIndex"]]
+    stack=list(reversed(roots)); leaves=[]
+    for observation in a["observations"]:
+        if not stack:raise ValueError("extra adaptive observation")
+        start,end,depth=stack.pop()
+        if observation["start"]!=start or observation["end"]!=end or observation["depth"]!=depth:
+            raise ValueError("adaptive recursion replay mismatch")
+        probes=observation["probes"]
+        if len(probes)!=3:raise ValueError("adaptive probe fractions missing")
+        for probe,fraction in zip(probes,[0.25,0.5,0.75]):
+            s=probe["sample"]
+            solver=s.get("projectionSolver",{})
+            if (not isinstance(solver.get("termination"),str)
+                or solver.get("residualToleranceMet") is not s.get("projectionConverged")
+                or not isinstance(solver.get("stationarityObservation"),str)
+                or solver.get("authorizesGeometryAdmission") is not False):
+                raise ValueError("adaptive projection solver observations missing")
+            t=start["curveParameter"]*(1-fraction)+end["curveParameter"]*fraction
+            if (probe["fraction"]!=fraction or s["loopIndex"]!=start["loopIndex"] or s["curveParameter"]!=t
+                or s["originalInputIndex"] is not None):raise ValueError("adaptive probe identity mismatch")
+        errors=[observation[k] for k in ["maximumSampledSourceCurveChordErrorSourceUnits","maximumSampledSupportChordErrorSourceUnits"]]
+        if any(not math.isfinite(v) or v<0 for v in errors):raise ValueError("invalid adaptive chord observation")
+        if observation["split"]!=(max(errors)>a["toleranceSourceUnits"]):raise ValueError("adaptive split decision mismatch")
+        if observation["split"]:
+            middle=probes[1]["sample"]
+            stack.append((middle,end,depth+1));stack.append((start,middle,depth+1))
+        else:leaves.append((start,end,depth,errors))
+    if stack or len(leaves)!=len(a["intervals"]):raise ValueError("missing adaptive recursion or leaves")
+    expected_pairs=[(i,i+1) for i in range(len(samples)-1) if samples[i]["loopIndex"]==samples[i+1]["loopIndex"]]
+    if [(v["startInputIndex"],v["endInputIndex"]) for v in a["intervals"]]!=expected_pairs:
+        raise ValueError("expanded boundary interval coverage mismatch")
+    for interval,leaf in zip(a["intervals"],leaves):
+        start,end,depth,errors=leaf
+        if (samples[interval["startInputIndex"]]!=start or samples[interval["endInputIndex"]]!=end
+            or interval["depth"]!=depth or errors!=[interval["maximumSampledSourceCurveChordErrorSourceUnits"],interval["maximumSampledSupportChordErrorSourceUnits"]]):
+            raise ValueError("adaptive leaf sample or measurement changed")
+    if p["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]>a["toleranceSourceUnits"]:
+        raise ValueError("expanded support boundary misses sampled chord target")
+
+
+def validate_prioritized(report, seeded=False):
+    p=report["physicalRefinementCandidate"]
+    trace=p["prioritizedInteriorRefinement"]
+    if (trace.get("lastMeshFullyMeasured") is not True or trace.get("usesActualRemainingAdapterSurfaceAndControlBudgets") is not True
+        or trace.get("normalEvaluationSurfaceCallUpperBoundPerTriangle")!=4):
+        raise ValueError("priority measurement/reservation scope missing")
+    boundary=p["boundaryVertexCount"]
+    uv=[list(q) for q in (trace["initialUvVertices"] if seeded else p["uvVertices"][:boundary])]
+    triangles=[list(t) for t in trace["initialTriangles"]]
+    if len(triangles)!=2*len(uv)-boundary-2:raise ValueError("priority initial disk inventory invalid")
+    if seeded:
+        grid=p["surfaceGridInitialization"];sampler=grid["sampling"];domain=grid["domain"]
+        axes=[sampler[k] for k in ["u_axis","v_axis"]]
+        for axis,knots in zip(axes,[sampler["preserved_u_breaks"],sampler["preserved_v_breaks"]]):
+            if (len(axis)>257 or any(not math.isfinite(v) for v in axis)
+                or any(a>=b for a,b in zip(axis,axis[1:])) or any(k not in axis for k in knots)):
+                raise ValueError("grid axis/knot preservation invalid")
+        proposals=[[u,v] for u in axes[0][1:-1] for v in axes[1][1:-1]]
+        ids=domain["acceptedProposalIndices"]
+        if (sampler.get("grid_tested") is not True or sampler.get("qualified") is not False
+            or len(proposals)!=sampler["interior_proposals"] or len(proposals)>8192
+            or ids!=sorted(set(ids)) or any(type(i) is not int or not 0<=i<len(proposals) for i in ids)
+            or domain["acceptedCount"]!=len(ids) or len(uv)!=boundary+len(ids)
+            or uv[boundary:]!=[proposals[i] for i in ids]
+            or sum(domain[k] for k in ["acceptedCount","duplicateProposalCount","nearConstraintProposalCount","exteriorProposalCount"])!=len(proposals)
+            or sampler["unique_evaluations"]>60000 or domain["predicateCount"]>8000000):
+            raise ValueError("grid proposal identity/filter/budget replay failed")
+        last=sampler["rounds"][-1]
+        if (last["errors"]!=sampler["final_errors"] or last["u_count"]!=len(axes[0])
+            or last["v_count"]!=len(axes[1]) or last["unique_evaluations"]!=sampler["unique_evaluations"]):
+            raise ValueError("grid retained stale last-pass measurements")
+    partial=False
+    for d in trace["decisions"]:
+        edges=collections.Counter()
+        senses=collections.Counter()
+        for t in triangles:
+            if len(t)!=3 or len(set(t))!=3 or any(type(i) is not int or not 0<=i<len(uv) for i in t):
+                raise ValueError("priority trace triangle invalid")
+            for a,b in zip(t,t[1:]+t[:1]):
+                key=tuple(sorted((a,b)));edges[key]+=1;senses[key]+=1 if a<b else -1
+        fixed={tuple(sorted((i,(i+1)%boundary))) for i in range(boundary)}
+        if {e for e,n in edges.items() if n==1}!=fixed or any(n!=1 if e in fixed else n!=2 or senses[e]!=0 for e,n in edges.items()):
+            raise ValueError("priority intermediate mesh is not conforming")
+        b=d["budgetBefore"]
+        if [b[k] for k in ["vertices","triangles","edges"]]!=[len(uv),len(triangles),len(edges)]:
+            raise ValueError("priority trace budget mesh inventory mismatch")
+        chosen=[tuple(e) for e in d["selectedEdges"]]
+        if chosen!=sorted(set(chosen)) or len(chosen)!=d["selectedEdgeCount"] or any(e not in edges or edges[e]!=2 or e in fixed for e in chosen):
+            raise ValueError("priority selected edges invalid or constrained")
+        n=len(chosen)
+        if n==0:continue
+        partial|=n<d["markedEdgeCount"]
+        q=d["transitionQualityPreflight"]
+        if (q.get("complete") is not True or q.get("budgetStopped") is not False
+            or q.get("protectsPassingParentsFromNewNormalFailures") is not True
+            or q["passes"]>16 or q["childNormalEvaluationCount"]>200000):
+            raise ValueError("priority transition preflight incomplete")
+        chord=len(triangles)+len(edges)+5*n
+        surface=5*len(triangles)+len(edges)+13*n
+        if (d["reservedNextChordSamples"]!=chord or chord>b["remainingChordSamples"]
+            or d["reservedNextSurfaceEvaluations"]!=surface or surface>q["surfaceEvaluationsRemainingAfterPreflight"]
+            or len(uv)+n>25000 or len(triangles)+2*n>50000):
+            raise ValueError("priority next-pass reservation invalid")
+        midpoints={}
+        for a,b in chosen:
+            midpoints[(a,b)]=len(uv)
+            uv.append([(uv[a][j]+uv[b][j])*0.5 for j in range(2)])
+        alternatives=set(q["alternateParents"])
+        if any(type(i) is not int or not 0<=i<len(triangles) for i in alternatives):raise ValueError("priority alternative parent invalid")
+        out=[]
+        for index,t in enumerate(triangles):
+            m=[midpoints.get(tuple(sorted((t[i],t[(i+1)%3])))) for i in range(3)]
+            count=sum(i is not None for i in m)
+            if count==0:children=[t]
+            elif count==3:
+                a,b,c=t;x,y,z=m;children=[[a,x,z],[x,b,y],[z,y,c],[x,y,z]]
+            else:
+                start=next(i for i in range(3) if m[i] is not None and m[(i+2)%3] is None)
+                a,b,c=[t[(start+j)%3] for j in range(3)];x=m[start];y=m[(start+1)%3]
+                if count==1:children=[[a,x,c],[x,b,c]]
+                elif index in alternatives:children=[[a,x,y],[a,y,c],[x,b,y]]
+                else:children=[[a,x,c],[x,y,c],[x,b,y]]
+            if index in alternatives and count!=2:raise ValueError("priority alternative requires two split edges")
+            def area(row):
+                a,b,c=[uv[i] for i in row]
+                return (b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0])
+            areas=[area(child) for child in children]
+            if any(not math.isfinite(v) or v<=0 for v in areas) or not math.isclose(sum(areas),area(t),rel_tol=1e-8,abs_tol=1e-20):
+                raise ValueError("priority child orientation or parent area not preserved")
+            out+=children
+        triangles=out
+        if [len(uv),len(triangles),len(uv)+len(triangles)-1]!=[d[k] for k in ["expectedNextVertices","expectedNextTriangles","expectedNextEdges"]]:
+            raise ValueError("priority growth accounting mismatch")
+    for flip in p["interiorRetriangulation"]["acceptedFlips"]:
+        indices=flip["triangleIndices"]
+        if len(indices)!=2 or len(set(indices))!=2 or any(type(i) is not int or not 0<=i<len(triangles) for i in indices):
+            raise ValueError("priority flip index invalid")
+        if [triangles[i] for i in indices]!=flip["oldTriangles"]:raise ValueError("priority cleanup flip cannot be replayed")
+        if len(flip["newTriangles"])!=2:raise ValueError("priority cleanup flip pair missing")
+        for i,t in zip(indices,flip["newTriangles"]):triangles[i]=t
+    if (not seeded and not partial) or uv!=p["uvVertices"] or triangles!=p["triangles"]:
+        raise ValueError("priority refinement/cleanup replay differs from measured final mesh")
+    if p["controlPointEvaluationCount"]>50000000 or p["sampleEvaluationCount"]>400000:
+        raise ValueError("priority actual evaluator cap exceeded")
+
+
+def run(args):
+    source = args.source.resolve(strict=True)
+    binary = args.binary.resolve(strict=True)
+    freecad = args.freecad.resolve(strict=True)
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    macro = Path(__file__).parents[1] / "references" / "audit_model16_physical_refinement.FCMacro"
+    root = Path(__file__).parents[1]
+    inputs = [source, binary, freecad, macro, Path(__file__), Path(__file__).with_name("surface_reference_e2e.py")]
+    inputs += sorted((root / "src").rglob("*.rs")) + [root / "Cargo.toml", root / "Cargo.lock"]
+    hashes = {str(p): digest(p, 128 * 1024 * 1024) for p in inputs}
+    receipt = {"schema": "tokito.physical-refinement-e2e.v1", "passed": False, "checks": [],
+               "inputSha256": hashes, "geometryQualified": False, "admitted": False, "exportsProduced": []}
+    try:
+        adaptive=args.adaptive_boundary or args.prioritized or args.grid
+        if hashes[str(source)] != SOURCE_SHA256:
+            raise ValueError("wrong materialized source")
+
+        def cli(name, tolerance="0.00001", face="2875", mode=None):
+            mode=mode or ("--research-grid-source-face" if args.grid else ("--research-prioritized-source-face" if args.prioritized else ("--research-adaptive-boundary-source-face" if adaptive else ("--research-retriangulated-source-face" if args.retriangulate else ("--research-metric-source-face" if args.metric else "--research-physical-source-face")))))
+            code, stdout, stderr = capture_bounded([str(binary), mode, face,
+                "--chord-tolerance", tolerance, "--source-representation", "5957", str(source)],
+                300, 32 * 1024 * 1024, 128 * 1024)
+            (output / (name + ".json")).write_bytes(stdout)
+            if code != 2 or stderr:
+                raise ValueError("research CLI must return structured exit2 without stderr")
+            return json.loads(stdout)
+
+        report = cli("diagnostic")
+        if report.get("sourceSha256") != SOURCE_SHA256 or report.get("admitted") is not False:
+            raise ValueError("CLI provenance/qualification mismatch")
+        receipt["metricPreconditioning"]=args.metric or args.retriangulate or adaptive
+        receipt["interiorRetriangulation"]=args.retriangulate or adaptive
+        receipt["adaptiveSourceBoundary"]=adaptive
+        receipt["prioritizedInterior"]=args.prioritized or args.grid
+        receipt["directionalSurfaceGrid"]=args.grid
+        receipt["mesh"] = validate_mesh(
+            report,
+            args.metric or args.retriangulate or adaptive,
+            args.retriangulate or adaptive,
+            adaptive,
+            args.grid,
+        )
+        if args.grid:
+            receipt["checks"].append({"name": "three-dimensional-near-zero-area-triangle-gate", "passed": True})
+        if adaptive:
+            validate_adaptive_boundary(report)
+            baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
+            if report["physicalRefinementCandidate"]["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]>=baseline["quality"]["maximumSampledFixedBoundaryChordErrorSourceUnits"]:
+                raise ValueError("expanded boundary did not improve measured support chord error")
+            receipt["baselineQuality"]=baseline["quality"]
+            receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"adaptive-native-curve-inventory-source-mapping-and-chord-targets","passed":True})
+        if args.prioritized or args.grid:
+            validate_prioritized(report,seeded=args.grid)
+            before=cli("adaptive-baseline",mode="--research-adaptive-boundary-source-face")
+            if before["adaptiveBoundaryCandidate"]!=report["adaptiveBoundaryCandidate"]:
+                raise ValueError("priority mode changed source boundary sampling")
+            old=before["physicalRefinementCandidate"]["quality"];new=report["physicalRefinementCandidate"]["quality"]
+            if (new["nonpositiveNormalCount"]>old["nonpositiveNormalCount"]
+                or new["normalThresholdFailureCount"]>old["normalThresholdFailureCount"]
+                or new["maximumSampledInteriorChordErrorSourceUnits"]>=old["maximumSampledInteriorChordErrorSourceUnits"]):
+                raise ValueError("priority candidate regressed baseline orientation or failed to improve interior error")
+            receipt["adaptiveBaselineQuality"]=old
+            receipt["adaptiveBaselineDiagnosticSha256"]=digest(output/"adaptive-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"priority-reservation-transition-area-and-subdivision-replay","passed":True})
+        if args.retriangulate:
+            baseline=cli("metric-baseline",mode="--research-metric-source-face")["physicalRefinementCandidate"]
+            final=report["physicalRefinementCandidate"]
+            for key in ["uvVertices","surfacePointsSourceUnits","inputSampleVertexIndices","boundaryVertexCount","originalInputSampleCount"]:
+                if baseline[key]!=final[key]:
+                    raise ValueError("interior flips changed source/mesh vertex identity")
+            replay=[list(t) for t in baseline["triangles"]]
+            for flip in final["interiorRetriangulation"]["acceptedFlips"]:
+                indices=flip["triangleIndices"]
+                if len(indices)!=2 or any(replay[i]!=t for i,t in zip(indices,flip["oldTriangles"])):
+                    raise ValueError("flip log does not replay against actual baseline")
+                for i,t in zip(indices,flip["newTriangles"]):replay[i]=t
+            if replay!=final["triangles"]:
+                raise ValueError("replayed flips differ from final mesh")
+            receipt["baselineDiagnosticSha256"]=digest(output/"metric-baseline.json",32*1024*1024)
+            receipt["checks"].append({"name":"actual-metric-baseline-identity-and-flip-replay","passed":True})
+        receipt["diagnosticSha256"] = digest(output / "diagnostic.json", 32 * 1024 * 1024)
+        receipt["checks"].append({"name": "real-source-physical-refinement-and-topology", "passed": True})
+        for name, tolerance, face, error in [
+            ("invalid-tolerance", "nan", "2875", "invalid_physical_chord_tolerance"),
+            ("wrong-face", "0.00001", "2876", "physical_research_requires_pinned_model16_face_and_representation"),
+        ]:
+            bad = cli(name, tolerance, face)
+            if bad.get("error") != error or "physicalRefinementCandidate" in bad:
+                raise ValueError("expected clean CLI refusal")
+            receipt["checks"].append({"name": name + "-refusal", "passed": True})
+        config = {"source": str(source), "diagnostic": str(output / "diagnostic.json"), "output": str(output / "audit.json")}
+
+        def audit(name, cfg):
+            path = output / (name + ".config.json")
+            path.write_text(json.dumps(cfg), encoding="utf-8")
+            code, stdout, stderr = capture_bounded([str(freecad), str(macro), "--pass", str(path)], 180, 128 * 1024, 128 * 1024)
+            (output / (name + ".stdout.txt")).write_bytes(stdout)
+            (output / (name + ".stderr.txt")).write_bytes(stderr)
+            return code, stderr.decode("utf-8")
+
+        code, error = audit("independent", config)
+        if code != 0 or not (output / "audit.json").exists():
+            raise ValueError("independent audit failed: " + error[-1024:])
+        independent = json.loads(bounded_read(output / "audit.json", 128 * 1024))
+        if independent.get("diagnosticSha256") != receipt["diagnosticSha256"] or independent.get("maximumIndependentVertexGapMm", math.inf) > 1e-10:
+            raise ValueError("independent surface/provenance mismatch")
+        for native, oracle in [("maximumSampledInteriorChordErrorSourceUnits", "maximumSampledInteriorChordErrorMm"),
+                               ("maximumSampledFixedBoundaryChordErrorSourceUnits", "maximumSampledFixedBoundaryChordErrorMm")]:
+            if not math.isclose(report["physicalRefinementCandidate"]["quality"][native], independent[oracle], rel_tol=1e-6, abs_tol=1e-10):
+                raise ValueError("independent chord measurements disagree")
+        if (not adaptive and independent.get("analyticNonpositiveNormalCount", 0) <= 0) or independent.get("admitted") is not False:
+            raise ValueError("independent remaining orientation blocker missing")
+        if (args.retriangulate or adaptive) and len(independent.get("independentAcceptedFlipAudits",[]))!=report["physicalRefinementCandidate"]["interiorRetriangulation"]["acceptedFlipCount"]:
+            raise ValueError("independent accepted-flip audit incomplete")
+        quality = report["physicalRefinementCandidate"]["quality"]
+        if (independent["analyticNonpositiveNormalCount"] != quality["nonpositiveNormalCount"]
+                or not math.isclose(independent["minimumAnalyticNormalAlignment"], quality["minimumSampledNormalAlignment"], rel_tol=1e-6, abs_tol=1e-8)):
+            raise ValueError("finite-difference and independent analytic orientation observations disagree")
+        receipt["independentAudit"] = independent
+        receipt["checks"].append({"name": "independent-surface-chord-normal-audit", "passed": True})
+        if adaptive:
+            boundary=independent.get("independentAdaptiveBoundaryAudit",{})
+            if (boundary.get("retainedSamplesAudited")!=report["adaptiveBoundaryCandidate"]["expandedInputSampleCount"]
+                or boundary.get("quarterProbesAudited")!=report["adaptiveBoundaryCandidate"]["curveProjectionEvaluationCount"]):
+                raise ValueError("independent boundary audit incomplete")
+            corrupted=json.loads(json.dumps(report))
+            corrupted["adaptiveBoundaryCandidate"]["samples"][1]["sourcePointSourceUnits"][0]+=0.01
+            path=output/"wrong-boundary.json"
+            path.write_text(json.dumps(corrupted),encoding="utf-8")
+            _,error=audit("wrong-boundary",{**config,"diagnostic":str(path),"output":str(output/"wrong-boundary-must-not-exist.json")})
+            if "independent adaptive sample mismatch" not in error or (output/"wrong-boundary-must-not-exist.json").exists():
+                raise ValueError("independent adaptive source tamper refusal failed")
+            receipt["checks"].append({"name":"independent-adaptive-source-tamper-refusal","passed":True})
+        h = digest(output / "audit.json", 128 * 1024)
+        _, error = audit("no-overwrite", config)
+        if "refusing to overwrite output" not in error or digest(output / "audit.json", 128 * 1024) != h:
+            raise ValueError("independent no-overwrite refusal failed")
+        receipt["checks"].append({"name": "oracle-no-overwrite-refusal", "passed": True})
+        bad = dict(report)
+        bad["sourceSha256"] = "0" * 64
+        bad_path = output / "wrong-source.json"
+        bad_path.write_text(json.dumps(bad), encoding="utf-8")
+        bad_config = {**config, "diagnostic": str(bad_path), "output": str(output / "must-not-exist.json")}
+        _, error = audit("wrong-source", bad_config)
+        if "pinned source mismatch" not in error or Path(bad_config["output"]).exists():
+            raise ValueError("independent wrong-source refusal failed")
+        receipt["checks"].append({"name": "oracle-source-mismatch-refusal", "passed": True})
+        if any(digest(Path(p), 128 * 1024 * 1024) != h for p, h in hashes.items()):
+            raise ValueError("audit input changed")
+        receipt["passed"] = True
+    except Exception as error:
+        receipt["error"] = str(error)
+    (output / "receipt.json").write_text(json.dumps(receipt, indent=2, allow_nan=False), encoding="utf-8")
+    print(json.dumps({"passed": receipt["passed"], "error": receipt.get("error"), "checks": receipt["checks"], "mesh": receipt.get("mesh"), "independent": receipt.get("independentAudit")}))
+    return 0 if receipt["passed"] else 2
+
+
+if __name__ == "__main__":
+    self_test_3d_area_classifier()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--binary", type=Path, required=True)
+    parser.add_argument("--freecad", type=Path, required=True)
+    parser.add_argument("--source", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    modes=parser.add_mutually_exclusive_group()
+    modes.add_argument("--metric", action="store_true", help="Exercise the isolated single-anchor metric-preconditioned mode")
+    modes.add_argument("--retriangulate", action="store_true", help="Exercise bounded interior flips after metric refinement")
+    modes.add_argument("--adaptive-boundary", action="store_true", help="Exercise source-parameter adaptive boundary sampling before metric refinement")
+    modes.add_argument("--prioritized", action="store_true", help="Exercise resource-reserved, transition-checked priority refinement")
+    modes.add_argument("--grid", action="store_true", help="Exercise bounded knot-preserving directional surface-grid initialization")
+    raise SystemExit(run(parser.parse_args()))

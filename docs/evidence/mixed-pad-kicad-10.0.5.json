@@ -1,0 +1,70 @@
+{
+  "schema": "tokito.footprint-through-hole-kicad-readback.v1",
+  "passed": true,
+  "kicadCliVersion": "10.0.5",
+  "kicadCliSha256": "393525236969434e24bc710334efe244fb285ef6596a1aea8e74353ef4db5477",
+  "tokitoBinarySha256": "13271b586dee1d41c2c8a6eaaaef5eacd938546317425e38ac80efa9b6b50ef7",
+  "specSha256": "e92201315392fa64cea706c8078fa32aa5d15b8cf4be820c72a5dbb954262e12",
+  "footprintSha256": "00b5882496ff216fd6ca0b13b41690d53de84224198abb1d6c9b4bc4c176df6a",
+  "svgSha256": "13f0f75e1d387f2413b9f2b5d770e08ea87d553a5b024e6f1053a6eb089669f6",
+  "svgBytes": 12993,
+  "footprintSemanticsQualified": false,
+  "manufacturerLandPatternQualified": false,
+  "scope": "KiCad format/plot acceptance only; no independent pad-dimension or land-pattern qualification",
+  "nonPlatedHole": {
+    "reportStatus": "explicit-non-plated-hole-library-candidate",
+    "footprintSha256": "81c00834f9222082f483ca7ec3d45f403d5137323c3df207de0ebf77ec2f39d8",
+    "svgSha256": "f6fc1ec94d7565aa72f82bd43e7f1ade443f7d23dbc913ed0af25d9c1bb36dc3",
+    "svgBytes": 11305,
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  },
+  "ovalOffsetThroughHole": {
+    "reportStatus": "explicit-through-hole-geometry-candidate",
+    "footprintSha256": "cc8005d7339b05144bc253c8e5e40dfe04ebcee35246732705e6d4408e9af200",
+    "svgSha256": "c94a37543322045f7d7f042bedad3bcaa3acfd1d302a3df921993d7e56c64310",
+    "svgBytes": 17434,
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  },
+  "roundOffsetThroughHole": {
+    "reportStatus": "explicit-through-hole-geometry-candidate",
+    "footprintSha256": "dee29e6f75d5d4e5ccd058b5f63c3dba0fbd26f2f86faad436558462a076eb60",
+    "svgSha256": "31798e730dbdb755087efba0c710d886da1ad7e08e34df759f2deda6b7679a0a",
+    "svgBytes": 12993,
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  },
+  "roundrectOvalDrillThroughHole": {
+    "reportStatus": "explicit-through-hole-geometry-candidate",
+    "footprintSha256": "2ae205296dc405406e52615ed52ed6efcdb85385a348a3cb6231be11b589a13e",
+    "svgSha256": "1a697839a28226d6c61d86c6b8a241fe7e9a83057bdba1027d66ce3e6020c6e6",
+    "svgBytes": 14236,
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  },
+  "sot23FootprintPlotAcceptance": {
+    "reportStatus": "explicit-smd-geometry-candidate",
+    "footprintSha256": "9f60f96aea6cf712886c4722b2f9b7de8336784d30cc878385653692263516f9",
+    "svgSha256": "42c9c38c16bf172499c1211783cc5318c60f915b54d25ea41f5fa514bb152208",
+    "svgBytes": 8931,
+    "svgPathCountWithPolygons": 102,
+    "svgPathCountWithoutPolygons": 99,
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  },
+  "mixedPadTechnologyFormatAcceptance": {
+    "reportStatus": "explicit-mixed-pad-geometry-candidate",
+    "specSha256": "94e854dc856a62894cd1cc47d6af6f7b8fcbed4572dd765d449640c21adf276b",
+    "footprintSha256": "957f29e099cedc61cba47f85266bb497487896e995ffb6e6a76a9c1caa7eece3",
+    "svgSha256": "1d5865441128d65a271f3c30f29b4946267ada09d22395eb8be4c75400a0ce21",
+    "svgBytes": 10814,
+    "padTypes": [
+      "smd",
+      "thru_hole",
+      "np_thru_hole"
+    ],
+    "footprintSemanticsQualified": false,
+    "manufacturerLandPatternQualified": false
+  }
+}

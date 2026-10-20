@@ -3,9 +3,11 @@
   "files": [
     {
       "path": "esp32/index.html",
-      "bytes": 6267148,
-      "sha256": "275e97fbe0f2aa203df23ee13ca851f40d8fe2a576653377b47cb90aba391314",
-      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/index.html"
+      "bytes": 6278738,
+      "sha256": "5a5ce86020d9194cc2393c40dae1e8909e1202847d5d6531c7747f35fc611c73",
+      "sourceArtifact": "presentation-refresh/v1/esp32/index.html",
+      "previousSourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp32/active.digital-twin.glb",
@@ -27,9 +29,11 @@
     },
     {
       "path": "esp32/component-index.json",
-      "bytes": 14045,
-      "sha256": "3fd4f67cc6d39cf4a828f1158b4d762c914bbbefb08f21441ee9e75ecc8c86d5",
-      "sourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/component-index.json"
+      "bytes": 18543,
+      "sha256": "58ed6bba634d21e5c937e9030e51ff7d3f0e7efc3e06727f0766030f56a152e1",
+      "sourceArtifact": "presentation-refresh/v1/esp32/component-index.json",
+      "previousSourceArtifact": "target/prototypes/esp32-usb-led-e2e-v2/prototype/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp32/prepare-report.json",
@@ -51,9 +55,11 @@
     },
     {
       "path": "ultimaker/index.html",
-      "bytes": 30562267,
-      "sha256": "297472e40f81eac22d506fcdb6a7a3890bc62b93b5ace5959bd3e9f3acd2d451",
-      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/index.html"
+      "bytes": 30717334,
+      "sha256": "32e0644025f999af2731e21f05616f5d33a5d1a5c63ec8cdd678ef34941913af",
+      "sourceArtifact": "presentation-refresh/v1/ultimaker/index.html",
+      "previousSourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "ultimaker/active.digital-twin.glb",
@@ -75,9 +81,11 @@
     },
     {
       "path": "ultimaker/component-index.json",
-      "bytes": 186170,
-      "sha256": "b4963e5b94b0eee3ded8af8dcc438df309f8034d7a8feba195c12cc7b0514f64",
-      "sourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/component-index.json"
+      "bytes": 384180,
+      "sha256": "7e25f55e46cc16d94b84200a5913d945ce20c90bb40d31de1930fdfc7f058d5c",
+      "sourceArtifact": "presentation-refresh/v1/ultimaker/component-index.json",
+      "previousSourceArtifact": "target/prototypes/ultimaker-source-e2e-v2/prototype/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "ultimaker/prepare-report.json",
@@ -99,9 +107,11 @@
     },
     {
       "path": "nxp-reference/index.html",
-      "bytes": 7114556,
-      "sha256": "60068bc3768cdd28f71671c664dfce226f5b351409f82ba58b8d8b227fa99465",
-      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/index.html"
+      "bytes": 7186015,
+      "sha256": "d95152e5e8975f392d958906746b2a18f21aff0a049e904022e60da2dac89c26",
+      "sourceArtifact": "presentation-refresh/v1/nxp-reference/index.html",
+      "previousSourceArtifact": "target/prototypes/nxp-revc-selectable-v3/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "nxp-reference/active.digital-twin.glb",
@@ -123,9 +133,11 @@
     },
     {
       "path": "nxp-reference/component-index.json",
-      "bytes": 132960,
-      "sha256": "a5b5b7c32cdda813b8628427122ad385a600128ac8de78261942134e22aca549",
-      "sourceArtifact": "target/prototypes/nxp-revc-selectable-v3/component-index.json"
+      "bytes": 207894,
+      "sha256": "88803b6f23e6880840be92f8de073d13f71d626e2772f347ece92e3b39da00fb",
+      "sourceArtifact": "presentation-refresh/v1/nxp-reference/component-index.json",
+      "previousSourceArtifact": "target/prototypes/nxp-revc-selectable-v3/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "nxp-reference/prepare-report.json",
@@ -165,9 +177,11 @@
     },
     {
       "path": "esp8266/component-index.json",
-      "bytes": 13088,
-      "sha256": "8377f07a35aa7e7533d5ff3b6b2df8f5c38f2ad2a00c371b75ce1076c86c77ea",
-      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/component-index.json"
+      "bytes": 24429,
+      "sha256": "f9ca0e2968684a62686eb09d7ab2af9eae13b38d2f2e830a0f2dbf396ef163fc",
+      "sourceArtifact": "presentation-refresh/v1/esp8266/component-index.json",
+      "previousSourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp8266/prepare-report.json",
@@ -177,9 +191,11 @@
     },
     {
       "path": "esp8266/index.html",
-      "bytes": 64964366,
-      "sha256": "fbcaae31d2118f4939b4b1cc3fe996e2bd95ca29323ed02232d85f88f4a56b7a",
-      "sourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/index.html"
+      "bytes": 64979993,
+      "sha256": "c04f7c4fcf62437e29ea0205d1754637c12d64fde3e979618f286697c8154f37",
+      "sourceArtifact": "presentation-refresh/v1/esp8266/index.html",
+      "previousSourceArtifact": "target/prototypes/esp8266-source-assembly-e2e-v5/prototype/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp8266/esp8266-selected-module-4k.png",
@@ -237,15 +253,19 @@
     },
     {
       "path": "nxp-refined/component-index.json",
-      "bytes": 164041,
-      "sha256": "40d25ad2d6b890837eb9f0df721076939d07b298180161996c98b362301513c6",
-      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/component-index.json"
+      "bytes": 207901,
+      "sha256": "8bac06cc062fd0f1f6cc87853ec4bdc176ce42a57eae927b54ddcc58643fa435",
+      "sourceArtifact": "presentation-refresh/v1/nxp-refined/component-index.json",
+      "previousSourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "nxp-refined/index.html",
-      "bytes": 34008771,
-      "sha256": "bab0e1c814cf3fe5657e3ff9dfac99a6f0133c6c410566dc9b735527f355fb47",
-      "sourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/index.html"
+      "bytes": 34048938,
+      "sha256": "9699c5558fd9f08ec0c90c5f242a076918be36800dfdc969740d248f78e012ed",
+      "sourceArtifact": "presentation-refresh/v1/nxp-refined/index.html",
+      "previousSourceArtifact": "target/prototypes/nxp-source-refined-e2e-v3/prototype/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "nxp-refined/prepare-report.json",
@@ -321,9 +341,11 @@
     },
     {
       "path": "esp32-natural/component-index.json",
-      "bytes": 15683,
-      "sha256": "d9c1da689b05ac73d51e19173ae68fd5d9e3549f5535079bbed15821c579356a",
-      "sourceArtifact": "target/prototypes/esp32-detailed-natural-e2e-v1/prototype/component-index.json"
+      "bytes": 18543,
+      "sha256": "aebbef761d4bbe18c2778ced6154ece20698a198fde153fad5ebd5e109f968c2",
+      "sourceArtifact": "presentation-refresh/v1/esp32-natural/component-index.json",
+      "previousSourceArtifact": "target/prototypes/esp32-detailed-natural-e2e-v1/prototype/component-index.json",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp32-natural/component-map.json",
@@ -339,9 +361,11 @@
     },
     {
       "path": "esp32-natural/index.html",
-      "bytes": 6270438,
-      "sha256": "b7cedcb9e142cc6e8063def38c8ed26da0ccb513567f04ed130d3a84cf0dd0a2",
-      "sourceArtifact": "target/prototypes/esp32-detailed-natural-e2e-v1/prototype/index.html"
+      "bytes": 6278650,
+      "sha256": "a06bcd788a37e68ffeb9f072cd7467dd26aa9e2764e354bcb3fe9b5aec5c29e0",
+      "sourceArtifact": "presentation-refresh/v1/esp32-natural/index.html",
+      "previousSourceArtifact": "target/prototypes/esp32-detailed-natural-e2e-v1/prototype/index.html",
+      "sourceArtifactKind": "logical-generation-id"
     },
     {
       "path": "esp32-natural/material-acceptance.json",
@@ -378,6 +402,96 @@
       "bytes": 599,
       "sha256": "243462bc35f19f34f52c8cd8711ce617e3b3c7a0875a6367cfb865a716e2fadb",
       "sourceArtifact": "Actual browser acceptance recorded for esp32-detailed-natural-e2e-v1/prototype"
+    },
+    {
+      "path": "esp32/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/esp32/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "esp32/standard-4k.png",
+      "bytes": 603545,
+      "sha256": "505e13d01d0f24da5ea78d099bc68c7fc681ef94aa8266d13a1e496d4621239e",
+      "sourceArtifact": "presentation-refresh/v1/esp32/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "esp32-natural/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/esp32-natural/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "esp32-natural/standard-4k.png",
+      "bytes": 595796,
+      "sha256": "9710625a6e676aee13779926193295409d8b605d95489cc27e4404a1c2966a59",
+      "sourceArtifact": "presentation-refresh/v1/esp32-natural/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "esp8266/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/esp8266/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "esp8266/standard-4k.png",
+      "bytes": 637609,
+      "sha256": "788f7107bd6a3d14efe0f235719fc3f8f6f076ea8f87f3b5b04e25ad21fa6edf",
+      "sourceArtifact": "presentation-refresh/v1/esp8266/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "nxp-reference/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/nxp-reference/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "nxp-reference/standard-4k.png",
+      "bytes": 414247,
+      "sha256": "73fdcf9688f2e146392dad70c181248caad9a28aa4afc0f94a82f6f8aa0a2a04",
+      "sourceArtifact": "presentation-refresh/v1/nxp-reference/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "nxp-refined/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/nxp-refined/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "nxp-refined/standard-4k.png",
+      "bytes": 397143,
+      "sha256": "af5832fd443b6d63997a414a510eae9f16912eb40668a1401aa4040f85d1f555",
+      "sourceArtifact": "presentation-refresh/v1/nxp-refined/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "ultimaker/presentation-profile.json",
+      "bytes": 636,
+      "sha256": "f87204d524d91dd0cae759ec42c6b8eddf587fdf295fae932be69b525c59b0ff",
+      "sourceArtifact": "presentation-refresh/v1/ultimaker/presentation-profile.json",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "ultimaker/standard-4k.png",
+      "bytes": 705397,
+      "sha256": "7b683195ffd2571f1fc9a1af950d40acf0df8d8f829e74dec96a2cdd96a15580",
+      "sourceArtifact": "presentation-refresh/v1/ultimaker/standard-4k.png",
+      "sourceArtifactKind": "logical-generation-id"
+    },
+    {
+      "path": "presentation-standard-verification.json",
+      "bytes": 6243,
+      "sha256": "7b8751a7c3f0232d84c63c89640b759ee487820d420cf81b0c80260342ca05d3",
+      "sourceArtifact": "six-board CLI regeneration and browser verification"
     }
   ],
   "bytes": 78804176,
@@ -385,5 +499,6 @@
   "arRegistrationVerified": false,
   "productionReady": false,
   "esp8266AssembledBoardIncluded": false,
-  "scope": "Byte-identical frozen CLI prototype outputs; historical browser evidence retained, no new browser run claimed."
+  "scope": "Byte-identical frozen CLI prototype outputs; historical browser evidence retained, no new browser run claimed.",
+  "presentationProfileId": "tokito.ultimaker-studio.v1"
 }

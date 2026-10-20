@@ -187,6 +187,33 @@ fn odd_negative_scale_cancels_frame_reflection_and_keeps_winding() {
 }
 
 #[test]
+fn vrml_reflection_keeps_solid_winding_through_model_placement() {
+    let shape = TRIANGLE.split_once('\n').unwrap().1;
+    let source = format!("#VRML V2.0 utf8\nTransform {{ children [ {shape} ] scale -1 1 1 }}");
+    let mesh = parse_vrml_mesh(
+        source.as_bytes(),
+        ModelUnits::Millimetres,
+        MeshLimits::default(),
+    )
+    .unwrap();
+    assert!(mesh.parts[0].solid);
+    assert_eq!(mesh.parts[0].triangles, vec![[0, 2, 1]]);
+    assert_point(mesh.parts[0].flat_normals[0], [0.0, 0.0, 1.0]);
+
+    let placement = KicadStepPlacement {
+        model: ModelTransformMm {
+            scale: [-1.0, 1.0, 1.0],
+            ..identity_model()
+        },
+        ..placement(BoardSide::Front)
+    };
+    let placed = place_model_mesh_in_glb_m(&mesh, placement).unwrap();
+    assert!(placed.parts[0].solid);
+    assert_eq!(placed.parts[0].triangles, vec![[0, 2, 1]]);
+    assert_point(placed.parts[0].flat_normals[0], [0.0, 1.0, 0.0]);
+}
+
+#[test]
 fn even_negative_scale_preserves_frame_reflection_and_reverses_winding() {
     let mesh = triangle_mesh();
     let placement = KicadStepPlacement {
@@ -203,6 +230,58 @@ fn even_negative_scale_preserves_frame_reflection_and_reverses_winding() {
 }
 
 #[test]
+fn placed_smooth_normals_use_inverse_transpose_for_component_scale_and_glb_basis() {
+    let source = "#VRML V2.0 utf8\nShape { geometry IndexedFaceSet { coord Coordinate { point [0 0 0,1 0 0,0 1 0,0 0 1] } coordIndex [0 1 2 -1,1 0 3 -1] creaseAngle 2.0 } }";
+    let mesh = parse_vrml_mesh(
+        source.as_bytes(),
+        ModelUnits::Millimetres,
+        MeshLimits::default(),
+    )
+    .unwrap();
+    let placement = KicadStepPlacement {
+        model: ModelTransformMm {
+            scale: [1.0, 2.0, 1.0],
+            ..identity_model()
+        },
+        ..placement(BoardSide::Front)
+    };
+    let placed = place_model_mesh_in_glb_m(&mesh, placement).unwrap();
+    let expected = [0.0, 2.0 / 5.0f64.sqrt(), 1.0 / 5.0f64.sqrt()];
+    assert_point(placed.parts[0].corner_normals[0][0], expected);
+    assert_point(placed.parts[0].corner_normals[1][0], expected);
+}
+
+#[test]
+fn placed_explicit_vrml_normals_use_inverse_transpose_for_component_scale() {
+    let authored_normal = 1.0 / 2.0_f64.sqrt();
+    let source = format!(
+        "#VRML V2.0 utf8\nShape {{ geometry IndexedFaceSet {{ coord Coordinate {{ point [0 0 0,1 0 0,0 1 0,0 0 1] }} coordIndex [0 1 2 -1,1 0 3 -1] normalPerVertex TRUE normal Normal {{ vector [0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal},0 {authored_normal} {authored_normal}] }} }} }}"
+    );
+    let mesh = parse_vrml_mesh(
+        source.as_bytes(),
+        ModelUnits::Millimetres,
+        MeshLimits::default(),
+    )
+    .unwrap();
+    let placement = KicadStepPlacement {
+        model: ModelTransformMm {
+            scale: [1.0, 2.0, 1.0],
+            ..identity_model()
+        },
+        ..placement(BoardSide::Front)
+    };
+    let placed = place_model_mesh_in_glb_m(&mesh, placement).unwrap();
+    let expected = [0.0, 2.0 / 5.0_f64.sqrt(), 1.0 / 5.0_f64.sqrt()];
+    for part in &placed.parts {
+        for triangle in &part.corner_normals {
+            for normal in triangle {
+                assert_point(*normal, expected);
+            }
+        }
+    }
+}
+
+#[test]
 fn mesh_placement_rejects_invalid_triangle_indices_and_degenerate_results() {
     let mut mesh = triangle_mesh();
     mesh.parts[0].triangles[0][2] = 3;
@@ -215,6 +294,15 @@ fn mesh_placement_rejects_invalid_triangle_indices_and_degenerate_results() {
 
     let mut mesh = triangle_mesh();
     mesh.parts[0].flat_normals.clear();
+    assert!(
+        place_model_mesh_in_glb_m(&mesh, placement(BoardSide::Front))
+            .unwrap_err()
+            .to_string()
+            .contains("inconsistent triangle geometry")
+    );
+
+    let mut mesh = triangle_mesh();
+    mesh.parts[0].corner_normals.clear();
     assert!(
         place_model_mesh_in_glb_m(&mesh, placement(BoardSide::Front))
             .unwrap_err()

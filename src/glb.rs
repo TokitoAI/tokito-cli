@@ -3,11 +3,14 @@
 //! right-handed, Y-up, with the board plane in XZ and its slab centered at Y=0.
 //! GLB container alignment follows Khronos glTF 2.0:
 //! https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc
-//! General VRML, STEP, glTF and GLB component models remain unsupported; neither
-//! export scope claims a complete digital twin or a verified phone import.
+//! General VRML and glTF/GLB component imports remain unsupported. STEP is
+//! accepted only as an explicitly assigned, bounded mesh candidate; neither
+//! export scope claims a complete digital twin or verified phone import.
 
 use super::document::Point2;
-use super::model_assembly::{ModelAssembly, assemble_supported_vrml_models_excluding};
+use super::model_assembly::{
+    ModelAssembly, ModelAssemblyFilter, assemble_supported_vrml_models_for_components,
+};
 use super::model_resolver::ModelResolver;
 use super::topology::{ContourRole, OutlineContour, OutlineShape};
 use super::{EngineError, PhysicalBoardDocument};
@@ -19,6 +22,7 @@ use std::collections::BTreeMap;
 use std::f64::consts::{PI, TAU};
 
 const MM_TO_M: f64 = 0.001;
+const GLB_REPORT_VERSION: &str = "1.2.0";
 const MAX_THICKNESS_MM: f64 = 1_000.0;
 const MAX_POLYGON_POINTS: usize = 50_000;
 const MAX_GLTF_VERTICES: usize = 1_000_000;
@@ -46,6 +50,26 @@ pub struct DnpFilterCoverage {
     pub model_references_excluded: usize,
 }
 
+/// Intentional native footprint-type exclusions. These counts may overlap DNP
+/// exclusions; the ordinary selected/filtered counters describe their union.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct FootprintTypeFilterCoverage {
+    pub components_excluded: usize,
+    pub model_references_excluded: usize,
+    pub overlap_with_dnp_components: usize,
+}
+
+impl FootprintTypeFilterCoverage {
+    fn as_json(&self) -> Value {
+        json!({
+            "enabled": true,
+            "componentsExcluded": self.components_excluded,
+            "modelReferencesExcluded": self.model_references_excluded,
+            "overlapWithDnpComponents": self.overlap_with_dnp_components
+        })
+    }
+}
+
 /// Model assembly output with variant-specific exclusion metadata.
 #[derive(Clone, Debug)]
 pub struct GlbModelExport {
@@ -60,11 +84,7 @@ impl GlbModelExport {
         let mut value: Value = serde_json::from_str(&self.report.report_json())
             .expect("serialized GLB coverage report is valid JSON");
         if self.dnp_filter.applied {
-            value["coverage"]["componentsIncluded"] = json!(
-                self.report
-                    .component_count
-                    .saturating_sub(self.dnp_filter.components_excluded)
-            );
+            value["coverage"]["componentsIncluded"] = json!(self.report.selected_component_count);
             value["coverage"]["dnpFilter"] = json!({
                 "enabled": true,
                 "componentsExcluded": self.dnp_filter.components_excluded,
@@ -91,10 +111,24 @@ pub struct GlbCoverageReport {
     pub shell_geometry_complete: bool,
     pub whole_board_digital_twin_complete: bool,
     pub partial_export: bool,
+    /// Total source-board component population; retained for compatibility.
     pub component_count: usize,
+    /// Components admitted by the active model filters.
+    pub selected_component_count: usize,
+    pub source_component_count: usize,
+    pub filtered_component_count: usize,
+    pub component_filter: Option<Vec<String>>,
+    pub no_dnp: bool,
+    pub excluded_dnp_component_count: usize,
+    /// Present only when the caller explicitly enabled native type filtering.
+    pub unspecified_filter: Option<FootprintTypeFilterCoverage>,
     pub component_models_emitted: usize,
     pub component_models_unresolved: usize,
     pub model_references: usize,
+    /// Model references remaining after component/DNP selection.
+    pub selected_model_references: usize,
+    pub source_model_references: usize,
+    pub filtered_model_references: usize,
     pub model_references_emitted: usize,
     pub model_references_unresolved: usize,
     pub polygonized_vertices: usize,
@@ -142,17 +176,26 @@ pub struct UnresolvedModelCoverage {
 impl GlbCoverageReport {
     /// Stable machine-readable receipt. It omits the local PCB file path but preserves bounded model paths read from the board.
     pub fn report_json(&self) -> String {
-        let value = json!({
-            "reportVersion": "1.0.0",
+        let mut value = json!({
+            "reportVersion": GLB_REPORT_VERSION,
             "scope": self.scope,
             "shellGeometryComplete": self.shell_geometry_complete,
             "wholeBoardDigitalTwinComplete": self.whole_board_digital_twin_complete,
             "partialExport": self.partial_export,
             "coverage": {
                 "componentCount": self.component_count,
+                "selectedComponentCount": self.selected_component_count,
+                "sourceComponentCount": self.source_component_count,
+                "filteredComponentCount": self.filtered_component_count,
+                "componentFilter": &self.component_filter,
+                "noDnp": self.no_dnp,
+                "excludedDnpComponentCount": self.excluded_dnp_component_count,
                 "componentModelsEmitted": self.component_models_emitted,
                 "componentModelsUnresolved": self.component_models_unresolved,
                 "modelReferences": self.model_references,
+                "selectedModelReferences": self.selected_model_references,
+                "sourceModelReferences": self.source_model_references,
+                "filteredModelReferences": self.filtered_model_references,
                 "modelReferencesEmitted": self.model_references_emitted,
                 "modelReferencesUnresolved": self.model_references_unresolved,
                 "unresolvedComponentsTotal": self.unresolved_components_total,
@@ -191,6 +234,9 @@ impl GlbCoverageReport {
                 "sourceGeometryEdited":false
             }
         });
+        if let Some(filter) = &self.unspecified_filter {
+            value["coverage"]["unspecifiedFilter"] = filter.as_json();
+        }
         format!(
             "{}\n",
             serde_json::to_string_pretty(&value).expect("finite GLB coverage report")
@@ -254,9 +300,19 @@ pub(crate) fn export_board_shell(
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        selected_component_count: component_count,
+        source_component_count: component_count,
+        filtered_component_count: 0,
+        component_filter: None,
+        no_dnp: false,
+        excluded_dnp_component_count: 0,
+        unspecified_filter: None,
         component_models_emitted: 0,
         component_models_unresolved: component_count,
         model_references,
+        selected_model_references: model_references,
+        source_model_references: model_references,
+        filtered_model_references: 0,
         model_references_emitted: 0,
         model_references_unresolved: model_references,
         unresolved_components,
@@ -314,7 +370,7 @@ pub(crate) fn export_board_assembly(
     board: &PhysicalBoardDocument,
     resolver: &ModelResolver,
     allow_partial: bool,
-    exclude_dnp: bool,
+    filter: &ModelAssemblyFilter,
 ) -> Result<GlbModelExport, EngineError> {
     if !board.outline.is_valid() {
         return Err(EngineError::new(
@@ -336,31 +392,15 @@ pub(crate) fn export_board_assembly(
         thickness,
         board,
     )?;
-    let excluded_dnp_ordinals = if exclude_dnp {
-        board.dnp_component_ordinals()?
-    } else {
-        std::collections::BTreeSet::new()
-    };
-    let dnp_model_references_excluded = board
-        .engineering()
-        .models
-        .iter()
-        .filter(|model| {
-            model
-                .source
-                .component_ordinal
-                .is_some_and(|ordinal| excluded_dnp_ordinals.contains(&ordinal))
-        })
-        .count();
+    // `selection` validates source DNP markers against canonical UUIDs and
+    // returns those source ordinals as the authoritative exclusion set.
+    let selection = filter.selection(board)?;
+    let selected_ordinals = &selection.selected_component_ordinals;
     let assembly =
-        assemble_supported_vrml_models_excluding(board, resolver, &excluded_dnp_ordinals);
+        assemble_supported_vrml_models_for_components(board, resolver, selected_ordinals);
     let (component_meshes, emitted_components) = component_meshes(&assembly)?;
-    let incomplete = incomplete_components(
-        board,
-        &assembly,
-        &emitted_components,
-        &excluded_dnp_ordinals,
-    );
+    let incomplete =
+        incomplete_components(board, &assembly, &emitted_components, selected_ordinals);
     let (unresolved_components, unresolved_components_truncated) =
         unresolved_component_coverage_for(
             board,
@@ -368,12 +408,32 @@ pub(crate) fn export_board_assembly(
             "component_model_geometry_not_emitted_by_assembly_export",
         );
     let unresolved_models = unresolved_models_for_assembly(board, &assembly);
-    let model_references = board.engineering().models.len();
+    let source_model_references = board.engineering().models.len();
+    let filtered_model_references = board
+        .engineering()
+        .models
+        .iter()
+        .filter(|model| {
+            model.source.component_ordinal.is_some_and(|ordinal| {
+                board
+                    .engineering()
+                    .components
+                    .iter()
+                    .find(|component| component.source.ordinal == ordinal)
+                    .is_some_and(|_| !selected_ordinals.contains(&ordinal))
+            })
+        })
+        .count();
+    // Unowned/invalid-owner model records stay in selected-scope coverage as
+    // unresolved. They are never treated as intentionally filtered away.
+    let selected_model_references = source_model_references - filtered_model_references;
     let model_references_emitted = assembly.emitted.len();
-    let model_references_unresolved = model_references
-        .saturating_sub(model_references_emitted)
-        .saturating_sub(dnp_model_references_excluded);
-    let component_count = board.engineering().components.len();
+    let source_component_count = board.engineering().components.len();
+    let component_count = source_component_count;
+    let selected_component_count = selected_ordinals.len();
+    let filtered_component_count = source_component_count.saturating_sub(selected_component_count);
+    let model_references_unresolved =
+        selected_model_references.saturating_sub(model_references_emitted);
     let component_models_emitted = emitted_components.len();
     let component_models_unresolved = incomplete.len();
     let partial = component_models_unresolved != 0 || model_references_unresolved != 0;
@@ -391,16 +451,50 @@ pub(crate) fn export_board_assembly(
         (bounds.min_y + bounds.max_y) / 2.0,
     );
     let report = GlbCoverageReport {
-        scope: "board_shell_and_supported_vrml_models",
+        scope: if filter.is_active() {
+            "board_shell_and_selected_supported_vrml_models"
+        } else {
+            "board_shell_and_supported_vrml_models"
+        },
         shell_geometry_complete: true,
         // A complete source-model coverage set does not certify artwork,
         // copper, manufacturing, physical fit, or optical registration.
         whole_board_digital_twin_complete: false,
         partial_export: partial,
         component_count,
+        selected_component_count,
+        source_component_count,
+        filtered_component_count,
+        component_filter: filter.requested_patterns(),
+        no_dnp: filter.excludes_dnp(),
+        excluded_dnp_component_count: selection.excluded_dnp_component_count,
+        unspecified_filter: filter
+            .excludes_unspecified()
+            .then(|| FootprintTypeFilterCoverage {
+                components_excluded: selection.excluded_unspecified_component_ordinals.len(),
+                model_references_excluded: board
+                    .engineering()
+                    .models
+                    .iter()
+                    .filter(|model| {
+                        model.source.component_ordinal.is_some_and(|ordinal| {
+                            selection
+                                .excluded_unspecified_component_ordinals
+                                .contains(&ordinal)
+                        })
+                    })
+                    .count(),
+                overlap_with_dnp_components: selection
+                    .excluded_unspecified_component_ordinals
+                    .intersection(&selection.excluded_dnp_component_ordinals)
+                    .count(),
+            }),
         component_models_emitted,
         component_models_unresolved,
-        model_references,
+        model_references: source_model_references,
+        selected_model_references,
+        source_model_references,
+        filtered_model_references,
         model_references_emitted,
         model_references_unresolved,
         unresolved_components,
@@ -420,9 +514,18 @@ pub(crate) fn export_board_assembly(
         outline_chaining_tolerance_mm: board.outline.join_tolerance_mm,
     };
     let dnp_filter = DnpFilterCoverage {
-        applied: exclude_dnp,
-        components_excluded: excluded_dnp_ordinals.len(),
-        model_references_excluded: dnp_model_references_excluded,
+        applied: filter.excludes_dnp(),
+        components_excluded: selection.excluded_dnp_component_count,
+        model_references_excluded: board
+            .engineering()
+            .models
+            .iter()
+            .filter(|model| {
+                model.source.component_ordinal.is_some_and(|ordinal| {
+                    selection.excluded_dnp_component_ordinals.contains(&ordinal)
+                })
+            })
+            .count(),
     };
     let document = gltf_assembly_document(
         &shell,
@@ -476,6 +579,10 @@ pub(crate) fn export_assigned_board_assembly(
     // Reuse the validated shell metrics, never silently repair invalid contours.
     let mut report = export_board_shell(board, true)?.report;
     let assembly = crate::assigned_assembly::assemble_assigned_models(board, assignments)?;
+    let includes_step_candidates = assembly
+        .emitted
+        .iter()
+        .any(|item| item.source_asset_format == "step");
     let mut components = Vec::new();
     let mut emitted = std::collections::BTreeSet::new();
     for item in &assembly.emitted {
@@ -488,6 +595,10 @@ pub(crate) fn export_assigned_board_assembly(
                 uuid: item.component_uuid.clone(),
                 source_ordinal: item.component_source.ordinal,
                 source_asset_sha256: item.source_asset_sha256.clone(),
+                source_asset_format: item.source_asset_format.clone(),
+                translation_m: item.translation_m,
+                step_precision_dropped_triangle_count: item.step_precision_dropped_triangle_count,
+                geometry_diagnostics: item.mesh.diagnostics.clone(),
                 model_source_ordinal: item.manifest_entry_index,
                 assignment_origin: Some((
                     assignments.manifest_sha256().to_owned(),
@@ -517,9 +628,13 @@ pub(crate) fn export_assigned_board_assembly(
         Some(&incomplete),
         "component_body_not_emitted_by_assignment_export",
     );
-    report.scope = "board_shell_and_explicitly_assigned_wrl_models";
+    report.scope = if includes_step_candidates {
+        "board_shell_and_explicitly_assigned_models"
+    } else {
+        "board_shell_and_explicitly_assigned_wrl_models"
+    };
     report.component_models_emitted = emitted.len();
-    report.component_models_unresolved = report.component_count - emitted.len();
+    report.component_models_unresolved = report.selected_component_count - emitted.len();
     report.unresolved_components = unresolved;
     report.unresolved_components_total = report.component_models_unresolved;
     report.unresolved_components_truncated = truncated;
@@ -598,6 +713,10 @@ struct ComponentMesh {
     uuid: Option<String>,
     source_ordinal: usize,
     source_asset_sha256: String,
+    source_asset_format: String,
+    translation_m: Option<[f64; 3]>,
+    step_precision_dropped_triangle_count: usize,
+    geometry_diagnostics: Vec<String>,
     model_source_ordinal: usize,
     assignment_origin: Option<(String, usize)>,
     part_ordinal: usize,
@@ -618,6 +737,10 @@ fn component_meshes(
                 uuid: emitted.component_uuid.clone(),
                 source_ordinal: emitted.component_source.ordinal,
                 source_asset_sha256: emitted.source_asset_sha256.clone(),
+                source_asset_format: "wrl".to_owned(),
+                translation_m: None,
+                step_precision_dropped_triangle_count: 0,
+                geometry_diagnostics: Vec::new(),
                 model_source_ordinal: emitted.model_source.ordinal,
                 assignment_origin: None,
                 part_ordinal: part.source_shape_ordinal,
@@ -641,16 +764,26 @@ fn component_meshes(
 fn mesh_from_component_part(
     part: &crate::component_pose::PlacedModelMeshPart,
 ) -> Result<Mesh, EngineError> {
+    if part.corner_normals.len() != part.triangles.len() {
+        return Err(EngineError::new(
+            "placed component mesh has inconsistent corner normals",
+        ));
+    }
     let mut positions = Vec::with_capacity(part.triangles.len() * 9);
     let mut normals = Vec::with_capacity(part.triangles.len() * 9);
-    for (triangle, normal) in part.triangles.iter().zip(&part.flat_normals) {
+    for (triangle_index, triangle) in part.triangles.iter().enumerate() {
+        let face_normal = part
+            .flat_normals
+            .get(triangle_index)
+            .copied()
+            .ok_or_else(|| EngineError::new("placed component mesh has inconsistent normals"))?;
         let point = |index: u32| {
             part.positions_m
                 .get(index as usize)
                 .copied()
                 .ok_or_else(|| EngineError::new("placed component triangle index is out of range"))
         };
-        push_face(
+        push_face_with_corner_normals(
             &mut positions,
             &mut normals,
             [
@@ -658,14 +791,98 @@ fn mesh_from_component_part(
                 point(triangle[1])?,
                 point(triangle[2])?,
             ],
-            *normal,
-        )?;
+            part.corner_normals[triangle_index],
+            face_normal,
+        )
+        .map_err(|error| {
+            EngineError::new(format!(
+                "shape {} triangle {triangle_index}: {error}",
+                part.source_shape_ordinal
+            ))
+        })?;
     }
     mesh_from_vectors(positions, normals)
 }
 
+fn push_face_with_corner_normals(
+    positions: &mut Vec<f32>,
+    normals: &mut Vec<f32>,
+    points: [[f64; 3]; 3],
+    mut corner_normals: [[f64; 3]; 3],
+    expected_face_normal: [f64; 3],
+) -> Result<(), EngineError> {
+    if positions.len() / 3 + 3 > MAX_GLTF_VERTICES {
+        return Err(EngineError::new("mesh exceeds vertex budget"));
+    }
+    let cross = cross3(sub3(points[1], points[0]), sub3(points[2], points[0]));
+    let face_dot = cross
+        .iter()
+        .zip(expected_face_normal)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    if !face_dot.is_finite() || face_dot <= 0.0 {
+        return Err(EngineError::new(
+            "mesh contains a degenerate or misoriented face",
+        ));
+    }
+    let mut quantized = [[0.0f64; 3]; 3];
+    for (corner, point) in points.iter().enumerate() {
+        for axis in 0..3 {
+            let value = point[axis] as f32;
+            let delta = (value as f64 - point[axis]).abs();
+            if !value.is_finite() || delta > MAX_FLOAT_POSITION_ERROR_M {
+                return Err(EngineError::new(format!(
+                    "f32 position error {delta:.9e} m exceeds {:.9e} m at corner {corner} axis {axis}",
+                    MAX_FLOAT_POSITION_ERROR_M
+                )));
+            }
+            quantized[corner][axis] = value as f64;
+        }
+    }
+    let emitted_cross = cross3(
+        sub3(quantized[1], quantized[0]),
+        sub3(quantized[2], quantized[0]),
+    );
+    let emitted_dot = emitted_cross
+        .iter()
+        .zip(expected_face_normal)
+        .map(|(left, right)| left * right)
+        .sum::<f64>();
+    if !emitted_dot.is_finite() || emitted_dot <= 0.0 {
+        return Err(EngineError::new(format!(
+            "f32 quantization collapsed or inverted a face (source dot {:.9e}, emitted dot {:.9e})",
+            face_dot, emitted_dot
+        )));
+    }
+    for normal in &mut corner_normals {
+        let length = normal[0].hypot(normal[1]).hypot(normal[2]);
+        if !length.is_finite() || length <= 0.0 {
+            return Err(EngineError::new("mesh contains an invalid corner normal"));
+        }
+        *normal = normal.map(|value| value / length);
+        if normal
+            .iter()
+            .any(|value| !value.is_finite() || (*value as f32).is_infinite())
+        {
+            return Err(EngineError::new(
+                "corner normal cannot be represented as f32",
+            ));
+        }
+    }
+    for corner_position in &quantized {
+        positions.extend(corner_position.iter().map(|value| *value as f32));
+    }
+    for corner_normal in corner_normals {
+        normals.extend(corner_normal.map(|value| value as f32));
+    }
+    Ok(())
+}
+
 fn mesh_from_vectors(positions: Vec<f32>, normals: Vec<f32>) -> Result<Mesh, EngineError> {
-    if positions.is_empty() || positions.len() != normals.len() || positions.len() % 9 != 0 {
+    if positions.is_empty()
+        || positions.len() != normals.len()
+        || !positions.len().is_multiple_of(9)
+    {
         return Err(EngineError::new(
             "component mesh has invalid flattened geometry",
         ));
@@ -698,14 +915,14 @@ fn incomplete_components(
     board: &PhysicalBoardDocument,
     assembly: &ModelAssembly,
     emitted: &std::collections::BTreeSet<usize>,
-    excluded: &std::collections::BTreeSet<usize>,
+    selected_ordinals: &std::collections::BTreeSet<usize>,
 ) -> std::collections::BTreeSet<usize> {
     board
         .engineering()
         .components
         .iter()
         .filter(|component| {
-            !excluded.contains(&component.source.ordinal)
+            selected_ordinals.contains(&component.source.ordinal)
                 && (!emitted.contains(&component.source.ordinal)
                     || assembly
                         .incomplete_component_ordinals
@@ -1250,7 +1467,7 @@ fn triangulate(
 
     let mut indices = Vec::<u32>::new();
     Earcut::<f64>::new().earcut(points.iter().copied(), &holes, &mut indices);
-    if indices.is_empty() || indices.len() % 3 != 0 {
+    if indices.is_empty() || !indices.len().is_multiple_of(3) {
         return Err(EngineError::new(
             "Earcut returned an empty or malformed triangulation",
         ));
@@ -1439,7 +1656,10 @@ fn extrude_shell(
             push_face(&mut positions, &mut normals, [a0, b1, a1], normal)?;
         }
     }
-    if positions.is_empty() || positions.len() % 9 != 0 || positions.len() / 3 > MAX_GLTF_VERTICES {
+    if positions.is_empty()
+        || !positions.len().is_multiple_of(9)
+        || positions.len() / 3 > MAX_GLTF_VERTICES
+    {
         return Err(EngineError::new(
             "extruded mesh is empty or exceeds vertex budget",
         ));
@@ -1482,6 +1702,140 @@ pub(crate) fn validate_component_mesh_for_glb(
         mesh_from_component_part(part)?;
     }
     Ok(())
+}
+
+/// Drop only STEP tessellation faces that become degenerate in GLB float32
+/// after component-local vertices and node translation are quantized and
+/// composed. Only faces whose minimum altitude is at most twice the declared
+/// per-axis position-error budget may be omitted; larger collapsed faces fail
+/// closed. The caller records the returned count in export provenance.
+pub(crate) fn filter_step_faces_below_glb_precision(
+    mesh: &mut crate::component_pose::PlacedModelMesh,
+    node_translation_m: [f64; 3],
+) -> Result<usize, EngineError> {
+    let node_translation_f32 = node_translation_m.map(|value| value as f32);
+    for axis in 0..3 {
+        let source = node_translation_m[axis];
+        let emitted = node_translation_f32[axis];
+        let error = (emitted as f64 - source).abs();
+        if !source.is_finite() || !emitted.is_finite() || error > MAX_FLOAT_POSITION_ERROR_M {
+            return Err(EngineError::new(format!(
+                "STEP node translation error {error:.9e} m exceeds the GLB f32 budget on axis {axis}"
+            )));
+        }
+    }
+    let mut dropped_total = 0usize;
+    for part in &mut mesh.parts {
+        if part.corner_normals.len() != part.triangles.len()
+            || part.flat_normals.len() != part.triangles.len()
+        {
+            return Err(EngineError::new(
+                "STEP mesh has inconsistent per-triangle normal data",
+            ));
+        }
+        let mut triangles = Vec::with_capacity(part.triangles.len());
+        let mut flat_normals = Vec::with_capacity(part.flat_normals.len());
+        let mut corner_normals = Vec::with_capacity(part.corner_normals.len());
+        for (triangle_index, triangle) in part.triangles.iter().copied().enumerate() {
+            let point = |index: u32| {
+                part.positions_m
+                    .get(index as usize)
+                    .copied()
+                    .ok_or_else(|| {
+                        EngineError::new("STEP mesh triangle index is outside its vertex array")
+                    })
+            };
+            let points = [
+                point(triangle[0])?,
+                point(triangle[1])?,
+                point(triangle[2])?,
+            ];
+            let source_cross = cross3(sub3(points[1], points[0]), sub3(points[2], points[0]));
+            let expected = part.flat_normals[triangle_index];
+            let source_dot = source_cross
+                .iter()
+                .zip(expected)
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            if !source_dot.is_finite() || source_dot <= 0.0 {
+                return Err(EngineError::new(format!(
+                    "STEP shape {} triangle {triangle_index} is degenerate or misoriented before GLB quantization",
+                    part.source_shape_ordinal
+                )));
+            }
+            let mut quantized_world = [[0.0f64; 3]; 3];
+            for (corner, point) in points.iter().enumerate() {
+                for axis in 0..3 {
+                    let value = point[axis] as f32;
+                    let delta = (value as f64 - point[axis]).abs();
+                    if !value.is_finite() || delta > MAX_FLOAT_POSITION_ERROR_M {
+                        return Err(EngineError::new(format!(
+                            "STEP shape {} triangle {triangle_index} f32 position error {delta:.9e} m exceeds the GLB budget",
+                            part.source_shape_ordinal
+                        )));
+                    }
+                    let world_emitted = value + node_translation_f32[axis];
+                    quantized_world[corner][axis] = world_emitted as f64;
+                    let world_source = point[axis] + node_translation_m[axis];
+                    let world_error = (world_emitted as f64 - world_source).abs();
+                    if !world_error.is_finite() || world_error > MAX_FLOAT_POSITION_ERROR_M {
+                        return Err(EngineError::new(format!(
+                            "STEP composed world-space f32 error {world_error:.9e} m exceeds {:.9e} m at triangle {triangle_index} corner {corner} axis {axis}",
+                            MAX_FLOAT_POSITION_ERROR_M
+                        )));
+                    }
+                }
+            }
+            let quantized_cross = cross3(
+                sub3(quantized_world[1], quantized_world[0]),
+                sub3(quantized_world[2], quantized_world[0]),
+            );
+            let quantized_dot = quantized_cross
+                .iter()
+                .zip(expected)
+                .map(|(left, right)| left * right)
+                .sum::<f64>();
+            if !quantized_dot.is_finite() || quantized_dot <= 0.0 {
+                let edge_lengths = [
+                    distance3(points[0], points[1]),
+                    distance3(points[1], points[2]),
+                    distance3(points[2], points[0]),
+                ];
+                let longest_edge = edge_lengths.into_iter().fold(0.0, f64::max);
+                let cross_length = source_cross
+                    .iter()
+                    .map(|value| value * value)
+                    .sum::<f64>()
+                    .sqrt();
+                let minimum_altitude = cross_length / longest_edge;
+                if !minimum_altitude.is_finite()
+                    || minimum_altitude > 2.0 * MAX_FLOAT_POSITION_ERROR_M
+                {
+                    return Err(EngineError::new(format!(
+                        "STEP shape {} triangle {triangle_index} collapses in GLB float32 but its minimum altitude {minimum_altitude:.9e} m exceeds the bounded omission threshold",
+                        part.source_shape_ordinal
+                    )));
+                }
+                dropped_total = dropped_total
+                    .checked_add(1)
+                    .ok_or_else(|| EngineError::new("STEP dropped-face counter overflow"))?;
+                continue;
+            }
+            triangles.push(triangle);
+            flat_normals.push(expected);
+            corner_normals.push(part.corner_normals[triangle_index]);
+        }
+        if triangles.is_empty() {
+            return Err(EngineError::new(format!(
+                "STEP shape {} has no faces representable in GLB float32",
+                part.source_shape_ordinal
+            )));
+        }
+        part.triangles = triangles;
+        part.flat_normals = flat_normals;
+        part.corner_normals = corner_normals;
+    }
+    Ok(dropped_total)
 }
 
 fn push_face(
@@ -1554,6 +1908,10 @@ fn cross3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
 fn sub3(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 }
+fn distance3(a: [f64; 3], b: [f64; 3]) -> f64 {
+    let delta = sub3(a, b);
+    delta[0].hypot(delta[1]).hypot(delta[2])
+}
 
 fn gltf_document(
     mesh: &Mesh,
@@ -1592,9 +1950,20 @@ fn gltf_document(
                 "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm": board.outline.join_tolerance_mm,
                     "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2.,"sourceGeometryEdited":false },
                 "coverage": {
-                    "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
+                    "componentCount": report.component_count,
+                    "selectedComponentCount": report.selected_component_count,
+                    "sourceComponentCount": report.source_component_count,
+                    "filteredComponentCount": report.filtered_component_count,
+                    "componentFilter": &report.component_filter,
+                    "noDnp": report.no_dnp,
+                    "excludedDnpComponentCount": report.excluded_dnp_component_count,
+                    "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
-                    "modelReferences": report.model_references, "modelReferencesEmitted": report.model_references_emitted,
+                    "modelReferences": report.model_references,
+                    "selectedModelReferences": report.selected_model_references,
+                    "sourceModelReferences": report.source_model_references,
+                    "filteredModelReferences": report.filtered_model_references,
+                    "modelReferencesEmitted": report.model_references_emitted,
                     "modelReferencesUnresolved": report.model_references_unresolved,
                     "unresolvedComponentsTotal": report.unresolved_components_total,
                     "unresolvedComponentsTruncated": report.unresolved_components_truncated,
@@ -1650,19 +2019,60 @@ fn gltf_document(
     Ok(document)
 }
 
+/// Approximate the exponent of the VRML97 Phong highlight with glTF perceptual
+/// roughness. VRML defines its exponent as `shininess * 128`; the mapping below
+/// is a display-oriented lobe-width approximation, not a physical material fit.
+fn vrml_shininess_to_roughness(shininess: f64) -> f64 {
+    let phong_exponent = shininess.clamp(0.0, 1.0) * 128.0;
+    (2.0 / (phong_exponent + 2.0)).sqrt()
+}
+
 fn projected_vrml_material(source: Option<&crate::model_mesh::MeshMaterial>, solid: bool) -> Value {
     let fallback = crate::model_mesh::MeshMaterial::default();
     let m = source.unwrap_or(&fallback);
-    json!({"name":"VRML diffuse/opacity projection",
+    json!({"name":"VRML Phong display projection",
         "pbrMetallicRoughness":{"baseColorFactor":[m.diffuse_color[0],m.diffuse_color[1],m.diffuse_color[2],1.0-m.transparency],
-            "metallicFactor":0.0,"roughnessFactor":1.0},
+            "metallicFactor":0.0,"roughnessFactor":vrml_shininess_to_roughness(m.shininess)},
+        "extensions":{"KHR_materials_specular":{"specularFactor":1.0,"specularColorFactor":m.specular_color}},
         "emissiveFactor":m.emissive_color,
         "alphaMode":if m.transparency > 0.0 {"BLEND"} else {"OPAQUE"},
         "doubleSided":!solid,
-        "extras":{"tokito":{"materialProjection":"diffuse-alpha-emissive; neutral PBR factors; not Phong/PBR equivalence",
+        "extras":{"tokito":{"materialProjection":"diffuse-alpha-emissive plus optional specular color; approximate Phong-exponent-to-perceptual-roughness; not lighting or physical-material equivalence",
+            "roughnessProjection":{"source":"VRML97 Material.shininess","sourcePhongExponent":m.shininess*128.0,
+                "formula":"sqrt(2 / (sourcePhongExponent + 2))","approximation":"display lobe-width mapping; not a recovered physical roughness"},
             "authoredMaterialPresent":source.is_some(),"sourceVrmlMaterial":{"diffuseColor":m.diffuse_color,
                 "specularColor":m.specular_color,"emissiveColor":m.emissive_color,"ambientIntensity":m.ambient_intensity,
                 "shininess":m.shininess,"transparency":m.transparency},"sourceSolid":solid}}})
+}
+
+fn projected_source_material(
+    source: Option<&crate::model_mesh::MeshMaterial>,
+    solid: bool,
+    source_format: &str,
+) -> Value {
+    if source_format != "step" {
+        return projected_vrml_material(source, solid);
+    }
+    let fallback = crate::model_mesh::MeshMaterial::default();
+    let material = source.unwrap_or(&fallback);
+    json!({
+        "name": "STEP source-color display projection",
+        "pbrMetallicRoughness": {
+            "baseColorFactor": [material.diffuse_color[0], material.diffuse_color[1], material.diffuse_color[2], 1.0-material.transparency],
+            "metallicFactor": 0.0,
+            "roughnessFactor": 0.72
+        },
+        "alphaMode": if material.transparency > 0.0 { "BLEND" } else { "OPAQUE" },
+        "doubleSided": !solid,
+        "extras": { "tokito": {
+            "sourceFormat": "STEP",
+            "materialProjection": "source RGB/alpha with neutral display roughness; not recovered physical material properties",
+            "authoredSourceColorPresent": source.is_some(),
+            "sourceRgb": material.diffuse_color,
+            "sourceAlpha": 1.0-material.transparency,
+            "sourceSolid": solid
+        }}
+    })
 }
 
 fn gltf_assembly_document(
@@ -1724,9 +2134,19 @@ fn gltf_assembly_document(
                 "component mesh group contains conflicting source identities",
             ));
         }
+        let translation_m = first.translation_m;
+        if parts.iter().any(|part| part.translation_m != translation_m) {
+            return Err(EngineError::new(
+                "component mesh parts have conflicting node translations",
+            ));
+        }
         let mut primitives = Vec::with_capacity(parts.len());
         for component in parts.iter().copied() {
-            let material = projected_vrml_material(component.material.as_ref(), component.solid);
+            let material = projected_source_material(
+                component.material.as_ref(),
+                component.solid,
+                &component.source_asset_format,
+            );
             let key =
                 serde_json::to_string(&material).map_err(|e| EngineError::new(e.to_string()))?;
             let material_index = if let Some(&index) = material_indices.get(&key) {
@@ -1755,7 +2175,7 @@ fn gltf_assembly_document(
             "primitives": primitives
         }));
         let selector_node = nodes.len();
-        nodes.push(json!({
+        let mut selector = json!({
             "name": format!("ref:{reference}"),
             "mesh": mesh_index,
             "extras": { "tokito": {
@@ -1765,7 +2185,19 @@ fn gltf_assembly_document(
                 "componentSourceOrdinal": source_ordinal,
                 "selectable": true
             }}
-        }));
+        });
+        if let Some(translation) = translation_m {
+            let quantized = translation.map(|value| value as f32);
+            if translation.iter().zip(quantized).any(|(source, output)| {
+                !output.is_finite() || (output as f64 - source).abs() > MAX_FLOAT_POSITION_ERROR_M
+            }) {
+                return Err(EngineError::new(
+                    "component node translation exceeds the GLB f32 error budget",
+                ));
+            }
+            selector["translation"] = json!(quantized);
+        }
+        nodes.push(selector);
         scene_nodes.push(selector_node);
     }
     let bin_len = byte_offset;
@@ -1790,9 +2222,20 @@ fn gltf_assembly_document(
                 "physicalLayerGeometryComplete":false,
                 "tessellation": { "maxCurveChordErrorMm": report.max_curve_chord_error_mm, "outlineJoinToleranceMm":board.outline.join_tolerance_mm, "maxJoinDisplacementMm":board.outline.join_tolerance_mm/2., "sourceGeometryEdited":false },
                 "coverage": {
-                    "componentCount": report.component_count, "componentModelsEmitted": report.component_models_emitted,
+                    "componentCount": report.component_count,
+                    "selectedComponentCount": report.selected_component_count,
+                    "sourceComponentCount": report.source_component_count,
+                    "filteredComponentCount": report.filtered_component_count,
+                    "componentFilter": &report.component_filter,
+                    "noDnp": report.no_dnp,
+                    "excludedDnpComponentCount": report.excluded_dnp_component_count,
+                    "componentModelsEmitted": report.component_models_emitted,
                     "componentModelsUnresolved": report.component_models_unresolved,
-                    "modelReferences": report.model_references, "modelReferencesEmitted": report.model_references_emitted,
+                    "modelReferences": report.model_references,
+                    "selectedModelReferences": report.selected_model_references,
+                    "sourceModelReferences": report.source_model_references,
+                    "filteredModelReferences": report.filtered_model_references,
+                    "modelReferencesEmitted": report.model_references_emitted,
                     "modelReferencesUnresolved": report.model_references_unresolved,
                     "unresolvedComponentsTotal": report.unresolved_components_total,
                     "unresolvedComponentsTruncated": report.unresolved_components_truncated,
@@ -1811,6 +2254,7 @@ fn gltf_assembly_document(
             }}
         },
         "scene": 0,
+        "extensionsUsed": ["KHR_materials_specular"],
         "scenes": [{ "name": "Tokito board assembly", "nodes": scene_nodes }],
         "nodes": nodes,
         "meshes": meshes,
@@ -1820,16 +2264,16 @@ fn gltf_assembly_document(
         "accessors": accessors
     });
     if dnp_filter.applied {
-        document["asset"]["extras"]["tokito"]["coverage"]["componentsIncluded"] = json!(
-            report
-                .component_count
-                .saturating_sub(dnp_filter.components_excluded)
-        );
+        document["asset"]["extras"]["tokito"]["coverage"]["componentsIncluded"] =
+            json!(report.selected_component_count);
         document["asset"]["extras"]["tokito"]["coverage"]["dnpFilter"] = json!({
             "enabled": true,
             "componentsExcluded": dnp_filter.components_excluded,
             "modelReferencesExcluded": dnp_filter.model_references_excluded
         });
+    }
+    if let Some(filter) = &report.unspecified_filter {
+        document["asset"]["extras"]["tokito"]["coverage"]["unspecifiedFilter"] = filter.as_json();
     }
     Ok(document)
 }
@@ -1843,6 +2287,19 @@ fn component_primitive_provenance(component: &ComponentMesh) -> Value {
         "partOrdinal": component.part_ordinal,
         "selectable": false
     }});
+    // Keep the established VRML assembly bytes stable. Additional format and
+    // qualification metadata is emitted for the newer assignment path only.
+    if component.source_asset_format != "wrl" {
+        value["tokito"]["sourceAssetFormat"] = json!(component.source_asset_format);
+        value["tokito"]["geometryDiagnostics"] = json!(component.geometry_diagnostics);
+    }
+    if component.translation_m.is_some() {
+        value["tokito"]["meshCoordinateFrame"] = json!("component_local_glb_metres");
+    }
+    if component.step_precision_dropped_triangle_count > 0 {
+        value["tokito"]["stepPrecisionDroppedTriangleCount"] =
+            json!(component.step_precision_dropped_triangle_count);
+    }
     if let Some((manifest, index)) = &component.assignment_origin {
         value["tokito"]["manifestSha256"] = json!(manifest);
         value["tokito"]["manifestEntryIndex"] = json!(index);
@@ -1881,7 +2338,7 @@ fn append_gltf_primitive(
 ) -> Result<Value, EngineError> {
     if mesh.positions.is_empty()
         || mesh.positions.len() != mesh.normals.len()
-        || mesh.positions.len() % 9 != 0
+        || !mesh.positions.len().is_multiple_of(9)
     {
         return Err(EngineError::new(
             "GLB primitive has invalid triangle geometry",
@@ -1964,6 +2421,7 @@ fn distance(a: Point2, b: Point2) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::GlbExportOptions;
     use std::fs;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicU64, Ordering};
@@ -1988,6 +2446,24 @@ mod tests {
         assert_eq!(projected["emissiveFactor"], json!([0.02, 0.03, 0.04]));
         assert_eq!(projected["alphaMode"], "BLEND");
         assert_eq!(projected["doubleSided"], true);
+        let exponent = 0.8_f64 * 128.0;
+        let expected_roughness = (2.0 / (exponent + 2.0)).sqrt();
+        assert!(
+            (projected["pbrMetallicRoughness"]["roughnessFactor"]
+                .as_f64()
+                .unwrap()
+                - expected_roughness)
+                .abs()
+                < 1e-15
+        );
+        assert_eq!(
+            projected["extensions"]["KHR_materials_specular"]["specularColorFactor"],
+            json!([0.7, 0.6, 0.5])
+        );
+        assert_eq!(
+            projected["extras"]["tokito"]["roughnessProjection"]["sourcePhongExponent"],
+            json!(102.4)
+        );
         assert_eq!(
             projected["extras"]["tokito"]["sourceVrmlMaterial"]["shininess"],
             0.8
@@ -2006,6 +2482,25 @@ mod tests {
             false
         );
         assert_eq!(fallback["doubleSided"], false);
+        assert_eq!(
+            fallback["extensions"]["KHR_materials_specular"]["specularColorFactor"],
+            json!([0.0, 0.0, 0.0])
+        );
+        assert_eq!(
+            fallback["pbrMetallicRoughness"]["roughnessFactor"],
+            json!(vrml_shininess_to_roughness(
+                crate::model_mesh::MeshMaterial::default().shininess
+            ))
+        );
+    }
+
+    #[test]
+    fn vrml_shininess_maps_to_bounded_monotonic_display_roughness() {
+        let levels = [0.0, 0.25, 0.7, 1.0].map(vrml_shininess_to_roughness);
+        assert_eq!(levels[0], 1.0);
+        assert!(levels.iter().all(|value| (0.0..=1.0).contains(value)));
+        assert!(levels.windows(2).all(|pair| pair[0] > pair[1]));
+        assert!((levels[3] - (2.0_f64 / 130.0).sqrt()).abs() < 1e-15);
     }
 
     #[test]
@@ -2141,6 +2636,43 @@ mod tests {
     }
 
     #[test]
+    fn component_glb_serialization_preserves_three_distinct_corner_normals() {
+        let part = crate::component_pose::PlacedModelMeshPart {
+            source_shape_ordinal: 0,
+            positions_m: vec![[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            triangles: vec![[0, 1, 2]],
+            flat_normals: vec![[0.0, 0.0, 1.0]],
+            corner_normals: vec![[
+                [0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 2.0f64.sqrt().recip(), 2.0f64.sqrt().recip()],
+            ]],
+            material: None,
+            source_crease_angle_radians: 0.5,
+            solid: true,
+        };
+        let mesh = mesh_from_component_part(&part).expect("smoothed triangle mesh");
+        assert_eq!(
+            mesh.positions,
+            vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0]
+        );
+        assert_eq!(
+            mesh.normals,
+            vec![
+                0.0,
+                0.0,
+                1.0,
+                0.0,
+                1.0,
+                0.0,
+                0.0,
+                2.0f32.sqrt().recip(),
+                2.0f32.sqrt().recip(),
+            ]
+        );
+    }
+
+    #[test]
     fn rectangle_shell_is_self_contained_metre_y_up_glb() {
         let b = board(&rect(0.0, 0.0, 10.0, 20.0, "outer"), "");
         assert!(
@@ -2210,6 +2742,125 @@ mod tests {
         let error =
             export_board_shell(&b, true).expect_err("large coordinates lose mesh precision");
         assert!(error.to_string().contains("f32 position-error budget"));
+    }
+
+    #[test]
+    fn step_precision_filter_omits_only_subresolution_collapsed_faces() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 3,
+                positions_m: vec![
+                    [0.0, 0.0, 0.0],
+                    [0.001, 0.0, 0.0],
+                    [0.0, 0.001, 0.0],
+                    [0.001, 0.001, 0.0],
+                    [0.001 + 1e-12, 0.001, 0.0],
+                    [0.001, 0.001 + 1e-12, 0.0],
+                ],
+                triangles: vec![[0, 1, 2], [3, 4, 5]],
+                flat_normals: vec![[0.0, 0.0, 1.0]; 2],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]; 2],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: true,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        assert_eq!(
+            filter_step_faces_below_glb_precision(&mut mesh, [0.0; 3])
+                .expect("only the collapsed micro-face is omitted"),
+            1
+        );
+        assert_eq!(mesh.parts[0].triangles, vec![[0, 1, 2]]);
+        assert_eq!(mesh.parts[0].flat_normals.len(), 1);
+        assert_eq!(mesh.parts[0].corner_normals.len(), 1);
+        validate_component_mesh_for_glb(&mesh)
+            .expect("remaining STEP faces meet GLB float32 checks");
+    }
+
+    #[test]
+    fn step_precision_filter_rejects_faces_outside_position_error_budget() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 8,
+                positions_m: vec![
+                    [1000.0, 0.0, 0.0],
+                    [1000.001, 0.0, 0.0],
+                    [1000.0, 0.001, 0.0],
+                ],
+                triangles: vec![[0, 1, 2]],
+                flat_normals: vec![[0.0, 0.0, 1.0]],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: true,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        let error = filter_step_faces_below_glb_precision(&mut mesh, [0.0; 3])
+            .expect_err("a measurable f32 position loss must fail closed");
+        assert!(error.to_string().contains("f32 position error"));
+        assert_eq!(mesh.parts[0].triangles.len(), 1);
+    }
+
+    #[test]
+    fn step_precision_filter_bounds_composed_world_space_error() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 9,
+                positions_m: vec![
+                    [16.0000008, 0.0, 0.0],
+                    [16.002, 0.0, 0.0],
+                    [16.0000008, 0.002, 0.0],
+                ],
+                triangles: vec![[0, 1, 2]],
+                flat_normals: vec![[0.0, 0.0, 1.0]],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: false,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        let error = filter_step_faces_below_glb_precision(&mut mesh, [16.0000008, 0.0, 0.0])
+            .expect_err(
+                "combined local-position and node rounding must stay within the world budget",
+            );
+        assert!(error.to_string().contains("composed world-space f32 error"));
+    }
+
+    #[test]
+    fn step_precision_filter_omits_faces_that_collapse_after_node_translation() {
+        let mut mesh = crate::component_pose::PlacedModelMesh {
+            parts: vec![crate::component_pose::PlacedModelMeshPart {
+                source_shape_ordinal: 10,
+                positions_m: vec![
+                    [0.0, 0.0, 0.0],
+                    [0.0000005, 0.0, 0.0],
+                    [0.0, 0.001, 0.0],
+                    [0.002, 0.002, 0.0],
+                    [0.003, 0.002, 0.0],
+                    [0.002, 0.003, 0.0],
+                ],
+                triangles: vec![[0, 1, 2], [3, 4, 5]],
+                flat_normals: vec![[0.0, 0.0, 1.0]; 2],
+                corner_normals: vec![[[0.0, 0.0, 1.0]; 3]; 2],
+                material: None,
+                source_crease_angle_radians: 0.0,
+                solid: false,
+            }],
+            diagnostics: Vec::new(),
+        };
+
+        assert_eq!(
+            filter_step_faces_below_glb_precision(&mut mesh, [16.0000002, 0.0, 0.0])
+                .expect("only the face collapsed by the composed node transform is omitted"),
+            1
+        );
+        assert_eq!(mesh.parts[0].triangles, vec![[3, 4, 5]]);
     }
 
     #[test]
@@ -2312,6 +2963,44 @@ mod tests {
             false
         );
         gltf::Gltf::from_slice(&out.bytes).expect("partial GLB validates");
+    }
+
+    #[test]
+    fn selected_export_keeps_unknown_owner_model_in_unresolved_coverage() {
+        let mut b = board(&rect(0.0, 0.0, 10.0, 10.0, "outer"), footprint());
+        b.engineering.models[0].source.component_ordinal = Some(usize::MAX);
+        let filter = ModelAssemblyFilter::exact_component_references(&b, &["R1".to_owned()])
+            .expect("known unique reference");
+        let resolver = crate::model_resolver::ModelResolver::new(
+            crate::model_resolver::ModelResolverConfig::new(std::env::temp_dir()),
+        )
+        .expect("resolver config");
+
+        let refused = b
+            .export_glb_with_models_filtered(&resolver, GlbExportOptions::default(), &filter)
+            .expect_err("unknown model ownership must make filtered export partial");
+        assert!(refused.to_string().contains("1 model reference(s)"));
+
+        let export = b
+            .export_glb_with_models_filtered(
+                &resolver,
+                GlbExportOptions {
+                    allow_partial: true,
+                },
+                &filter,
+            )
+            .expect("explicit partial export");
+        assert!(export.report.partial_export);
+        assert_eq!(export.report.source_model_references, 1);
+        assert_eq!(export.report.model_references, 1);
+        assert_eq!(export.report.filtered_model_references, 0);
+        assert_eq!(export.report.model_references_unresolved, 1);
+        let coverage = extras(&export.bytes)["asset"]["extras"]["tokito"]["coverage"].clone();
+        assert_eq!(coverage["unresolvedModelsTotal"], 1);
+        assert_eq!(
+            coverage["unresolvedModels"][0]["status"],
+            "missing_owning_component"
+        );
     }
 
     #[test]

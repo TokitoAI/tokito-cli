@@ -1,0 +1,297 @@
+"""Independent development audit; no CAD repair or production admission."""
+import hashlib
+import json
+import math
+import sys
+import tempfile
+from pathlib import Path
+
+import FreeCAD
+import Part
+
+EXPECTED_VERSION = ["1", "1", "4", "20260928 (Git shallow)", "Unknown", "2026/09/28 13:46:34", "(HEAD detached at 4fd3bf320)", "4fd3bf320d9566a27e60069fc8387448aaa3a094"]
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+
+
+def read(path, cap):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("regular input required")
+    with path.open("rb") as stream:
+        data = stream.read(cap + 1)
+    if len(data) > cap:
+        raise ValueError("input byte cap exceeded")
+    return data
+
+
+def xyz(p):
+    return [float(p.x), float(p.y), float(p.z)]
+
+
+def distance(a, b):
+    return math.hypot(*(a[i] - b[i] for i in range(3)))
+
+
+def audit_boundary(face, report, support):
+    candidate = report.get("adaptiveBoundaryCandidate")
+    if candidate is None:
+        return None
+    original = report["trimCandidate"]["boundarySamples"]
+    grouped = {}
+    for row in original:
+        grouped.setdefault(row["loopIndex"], []).append(row)
+    if len(grouped) != 4 or len(face.Edges) != 4:
+        raise ValueError("adaptive boundary edge inventory changed")
+    bindings = {}
+    maximum_curve_gap = 0.0
+    for loop_index, rows in grouped.items():
+        matches = []
+        for index, edge in enumerate(face.Edges):
+            gap = max(float(Part.Vertex(FreeCAD.Vector(*s["sourcePointSourceUnits"])).distToShape(edge)[0]) for s in rows)
+            if gap < 1e-8:
+                matches.append(index)
+        if len(matches) != 1 or matches[0] in [i for i, _ in bindings.values()]:
+            raise ValueError("source curve has no unique independent edge binding")
+        index = matches[0]
+        curve = face.Edges[index].Curve
+        # Do not assume parameter equivalence merely from edge membership.
+        for row in rows:
+            gap = distance(xyz(curve.value(row["curveParameter"])), row["sourcePointSourceUnits"])
+            if gap > 1e-9:
+                raise ValueError("imported curve parameterization differs from STEP")
+            maximum_curve_gap = max(maximum_curve_gap, gap)
+        bindings[loop_index] = (index, curve)
+    samples = candidate["samples"]
+    observations = candidate["observations"]
+    if len(samples) > 4096 or len(observations) * 3 > 16384:
+        raise ValueError("adaptive boundary audit cap exceeded")
+    maximum_support_gap = 0.0
+    maximum_residual = 0.0
+
+    def check_sample(row):
+        nonlocal maximum_curve_gap, maximum_support_gap, maximum_residual
+        curve = bindings[row["loopIndex"]][1]
+        point = xyz(curve.value(row["curveParameter"]))
+        surface = support(row["candidateUv"])
+        cg = distance(point, row["sourcePointSourceUnits"])
+        sg = distance(surface, row["surfacePointSourceUnits"])
+        residual = distance(point, surface)
+        if cg > 1e-9 or sg > 1e-10 or not math.isclose(residual, row["surfaceResidualSourceUnits"], rel_tol=1e-6, abs_tol=1e-10):
+            raise ValueError("independent adaptive sample mismatch")
+        maximum_curve_gap = max(maximum_curve_gap, cg)
+        maximum_support_gap = max(maximum_support_gap, sg)
+        maximum_residual = max(maximum_residual, residual)
+        return point, surface
+
+    for row in samples:
+        check_sample(row)
+    measured_leaves = []
+    for observation in observations:
+        a = observation["start"]
+        b = observation["end"]
+        ap, asp = check_sample(a)
+        bp, bsp = check_sample(b)
+        if a["loopIndex"] != b["loopIndex"] or len(observation["probes"]) != 3:
+            raise ValueError("adaptive observation edge/fraction inventory invalid")
+        ce = se = 0.0
+        for probe, fraction in zip(observation["probes"], [0.25, 0.5, 0.75]):
+            row = probe["sample"]
+            expected_parameter = a["curveParameter"] * (1 - fraction) + b["curveParameter"] * fraction
+            uv = [a["candidateUv"][j] * (1 - fraction) + b["candidateUv"][j] * fraction for j in range(2)]
+            if (probe["fraction"] != fraction or row["loopIndex"] != a["loopIndex"]
+                    or row["curveParameter"] != expected_parameter or probe["linearUv"] != uv):
+                raise ValueError("adaptive parameter interpolation mismatch")
+            point, _ = check_sample(row)
+            on_support = support(uv)
+            if distance(on_support, probe["supportAtLinearUvSourceUnits"]) > 1e-10:
+                raise ValueError("adaptive linear-UV support mismatch")
+            ce = max(ce, distance(point, [ap[j] * (1 - fraction) + bp[j] * fraction for j in range(3)]))
+            se = max(se, distance(on_support, [asp[j] * (1 - fraction) + bsp[j] * fraction for j in range(3)]))
+        for measured, key in [(ce, "maximumSampledSourceCurveChordErrorSourceUnits"),
+                              (se, "maximumSampledSupportChordErrorSourceUnits")]:
+            if not math.isclose(measured, observation[key], rel_tol=1e-6, abs_tol=1e-10):
+                raise ValueError("adaptive observed chord measurement mismatch")
+        tolerance = candidate["toleranceSourceUnits"]
+        if observation["split"] != (ce > tolerance or se > tolerance):
+            raise ValueError("adaptive subdivision decision mismatch")
+        if not observation["split"]:
+            measured_leaves.append((ce, se))
+    if len(measured_leaves) != len(candidate["intervals"]):
+        raise ValueError("adaptive leaf inventory mismatch")
+    return {"edgeBindings": [{"loopIndex":k,"freecadEdgeIndex":v[0]} for k,v in bindings.items()],
+            "directParameterCorrespondenceOriginalSamples":len(original), "retainedSamplesAudited":len(samples),
+            "quarterProbesAudited":len(observations)*3, "leafIntervalsAudited":len(measured_leaves),
+            "maximumIndependentCurvePointGapMm":maximum_curve_gap,
+            "maximumIndependentSupportPointGapMm":maximum_support_gap,
+            "maximumObservedCurveSupportResidualMm":maximum_residual,
+            "maximumLeafSourceCurveChordErrorMm":max(e[0] for e in measured_leaves),
+            "maximumLeafSupportChordErrorMm":max(e[1] for e in measured_leaves),
+            "certifiedDeviationBound":False,"geometryQualified":False}
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION:
+        raise ValueError("FreeCAD version mismatch")
+    i = sys.argv.index("--pass")
+    if len(sys.argv) != i + 2:
+        raise ValueError("one config required")
+    cfg = json.loads(read(sys.argv[i + 1], 32768))
+    if set(cfg) != {"source", "diagnostic", "output"}:
+        raise ValueError("invalid config")
+    output = Path(cfg["output"])
+    if output.exists() or output.is_symlink():
+        raise ValueError("refusing to overwrite output")
+    source = read(cfg["source"], 32 * 1024 * 1024)
+    raw = read(cfg["diagnostic"], 32 * 1024 * 1024)
+    r = json.loads(raw)
+    if hashlib.sha256(source).hexdigest() != SOURCE_SHA256 or r.get("sourceSha256") != SOURCE_SHA256 or r.get("faceId") != 2875:
+        raise ValueError("pinned source mismatch")
+    units = r["selectedSourceRepresentation"]["selectedRepresentationLengthUnits"]
+    if units.get("contextId") != 206 or units.get("metresPerUnit") != 0.001:
+        raise ValueError("millimetre context missing")
+    p = r["physicalRefinementCandidate"]
+    if p.get("geometryQualified") is not False or p.get("admitted") is not False or p.get("exportsProduced") != []:
+        raise ValueError("research qualification flags invalid")
+    uv = p["uvVertices"]
+    points = p["surfacePointsSourceUnits"]
+    triangles = p["triangles"]
+    if not 3 <= len(uv) <= 25000 or len(points) != len(uv) or not 1 <= len(triangles) <= 50000:
+        raise ValueError("mesh bounds exceeded")
+    for q, point in zip(uv, points):
+        if len(q) != 2 or len(point) != 3 or not all(type(v) in (int, float) and math.isfinite(v) for v in q + point):
+            raise ValueError("invalid mesh point")
+    for t in triangles:
+        if len(t) != 3 or len(set(t)) != 3 or any(type(k) is not int or not 0 <= k < len(uv) for k in t):
+            raise ValueError("invalid mesh triangle")
+    with tempfile.TemporaryDirectory(prefix="tokito-physical-audit-", dir=output.parent) as temp:
+        frozen = Path(temp) / "source.step"
+        frozen.write_bytes(source)
+        shape = Part.read(str(frozen))
+    if shape.isNull() or not shape.isValid() or len(shape.Faces) < 231:
+        raise ValueError("invalid reference solid")
+    face = shape.Faces[230]
+    signatures = r["trimProjection"]["sampleDetails"]
+    if len(signatures) != 100 or len(face.Edges) > 128:
+        raise ValueError("face signature inventory mismatch")
+    signature_gap = max(min(float(Part.Vertex(FreeCAD.Vector(*s["sourcePoint"])).distToShape(e)[0]) for e in face.Edges) for s in signatures)
+    if signature_gap > 1e-7:
+        raise ValueError("independent face boundary signature mismatch")
+    domains = [r["surface"]["uDomain"], r["surface"]["vDomain"]]
+    periods = [r["surface"]["uPeriod"], r["surface"]["vPeriod"]]
+
+    def canonical(q):
+        return [q[k] if periods[k] is None else domains[k][0] + (q[k] - domains[k][0]) % periods[k] for k in range(2)]
+
+    def sample(q):
+        u, v = canonical(q)
+        return xyz(face.valueAt(u, v))
+
+    maximum_vertex_gap = max(distance(sample(q), point) for q, point in zip(uv, points))
+    if maximum_vertex_gap > 1e-10:
+        raise ValueError("independent surface evaluation mismatch")
+    boundary_audit = audit_boundary(face, r, sample)
+    boundary = {tuple(sorted((i, (i + 1) % p["boundaryVertexCount"]))) for i in range(p["boundaryVertexCount"])}
+    maximum_interior_error = 0.0
+    maximum_boundary_error = 0.0
+    minimum_normal = 1.0
+    nonpositive = 0
+    edges = set()
+    stride = max(1, math.ceil(len(triangles) / 256))
+    inside_count = 0
+    outside_count = 0
+    for index, t in enumerate(triangles):
+        a, b, c = [FreeCAD.Vector(*points[k]) for k in t]
+        q = [sum(uv[k][j] for k in t) / 3 for j in range(2)]
+        center = [(points[t[0]][j] + points[t[1]][j] + points[t[2]][j]) / 3 for j in range(3)]
+        maximum_interior_error = max(maximum_interior_error, distance(sample(q), center))
+        u, v = canonical(q)
+        normal = (b - a).cross(c - a)
+        expected = face.normalAt(u, v)
+        denominator = normal.Length * expected.Length
+        alignment = normal.dot(expected) / denominator if denominator > 0 else 0.0
+        minimum_normal = min(minimum_normal, alignment)
+        nonpositive += int(alignment <= 0)
+        if index % stride == 0:
+            if face.isInside(FreeCAD.Vector(*sample(q)), 1e-7, True):
+                inside_count += 1
+            else:
+                outside_count += 1
+        for x, y in [(t[0], t[1]), (t[1], t[2]), (t[2], t[0])]:
+            key = tuple(sorted((x, y)))
+            if key in edges:
+                continue
+            edges.add(key)
+            middle = [(uv[x][j] + uv[y][j]) * 0.5 for j in range(2)]
+            linear = [(points[x][j] + points[y][j]) * 0.5 for j in range(3)]
+            error = distance(sample(middle), linear)
+            if key in boundary:
+                maximum_boundary_error = max(maximum_boundary_error, error)
+            else:
+                maximum_interior_error = max(maximum_interior_error, error)
+    flip_audits=[]
+    flips=p.get("interiorRetriangulation",{}).get("acceptedFlips",[])
+    flip_target=p.get("interiorRetriangulation",{}).get("normalTargetSelectionThreshold")
+    if flip_target is not None and (type(flip_target) not in (int,float) or not math.isfinite(flip_target)
+            or not 0<flip_target<=1 or flip_target!=p["minimumNormalAlignmentTarget"]):
+        raise ValueError("normal-target flip threshold invalid")
+    if not isinstance(flips,list) or len(flips)>128:
+        raise ValueError("flip audit inventory exceeded")
+
+    def triangle_measure(t):
+        if not isinstance(t,list) or len(t)!=3 or len(set(t))!=3 or any(type(k) is not int or not 0<=k<len(uv) for k in t):
+            raise ValueError("invalid flip triangle")
+        center=[sum(uv[k][j] for k in t)/3 for j in range(2)]
+        linear=[sum(points[k][j] for k in t)/3 for j in range(3)]
+        error=distance(sample(center),linear)
+        for x,y in [(t[0],t[1]),(t[1],t[2]),(t[2],t[0])]:
+            q=[(uv[x][j]+uv[y][j])*0.5 for j in range(2)]
+            linear=[(points[x][j]+points[y][j])*0.5 for j in range(3)]
+            error=max(error,distance(sample(q),linear))
+        a,b,c=[FreeCAD.Vector(*points[k]) for k in t]
+        normal=(b-a).cross(c-a)
+        u,v=canonical(center)
+        expected=face.normalAt(u,v)
+        divisor=normal.Length*expected.Length
+        alignment=normal.dot(expected)/divisor if divisor>0 else 0.0
+        return error,alignment
+
+    for index,flip in enumerate(flips):
+        old=flip["oldTriangles"];new=flip["newTriangles"]
+        if len(old)!=2 or len(new)!=2:
+            raise ValueError("flip requires triangle pair")
+        old_measures=[triangle_measure(t) for t in old]
+        new_measures=[triangle_measure(t) for t in new]
+        old_error=max(v[0] for v in old_measures);new_error=max(v[0] for v in new_measures)
+        old_normal=min(v[1] for v in old_measures);new_normal=min(v[1] for v in new_measures)
+        if new_normal<=0 or new_normal<=old_normal or new_error>old_error:
+            raise ValueError("independent flip quality acceptance failed")
+        if flip_target is not None and sum(v[1]<flip_target for v in new_measures)>sum(v[1]<flip_target for v in old_measures):
+            raise ValueError("independent flip increased target-normal failures")
+        for measured,key in [(old_error,"oldMaximumSampledPairChordErrorSourceUnits"),(new_error,"newMaximumSampledPairChordErrorSourceUnits"),
+                             (old_normal,"oldMinimumNormalAlignment"),(new_normal,"newMinimumNormalAlignment")]:
+            if not math.isclose(measured,flip[key],rel_tol=1e-6,abs_tol=1e-8):
+                raise ValueError("independent flip log measurement mismatch")
+        flip_audits.append({"flipIndex":index,"oldMaximumSampledPairChordErrorMm":old_error,"newMaximumSampledPairChordErrorMm":new_error,
+                            "oldMinimumAnalyticNormalAlignment":old_normal,"newMinimumAnalyticNormalAlignment":new_normal})
+    result = {"schema": "tokito.freecad-physical-refinement-audit.v1", "sourceSha256": SOURCE_SHA256,
+              "diagnosticSha256": hashlib.sha256(raw).hexdigest(), "auditScriptSha256": hashlib.sha256(read(__file__, 128 * 1024)).hexdigest(),
+              "freecadVersion": list(FreeCAD.Version()), "occtVersion": Part.OCC_VERSION, "freecadFaceIndex": 231,
+              "sourceBoundarySignatureCount": 100, "maximumBoundarySignatureGapMm": signature_gap,
+              "vertexCount": len(uv), "triangleCount": len(triangles), "maximumIndependentVertexGapMm": maximum_vertex_gap,
+              "maximumSampledInteriorChordErrorMm": maximum_interior_error, "maximumSampledFixedBoundaryChordErrorMm": maximum_boundary_error,
+              "minimumAnalyticNormalAlignment": minimum_normal, "analyticNonpositiveNormalCount": nonpositive,
+              "independentAcceptedFlipAudits":flip_audits,
+              "independentAdaptiveBoundaryAudit":boundary_audit,
+              "trimContainmentSampleCount": inside_count + outside_count, "trimContainmentInsideCount": inside_count,
+              "trimContainmentOutsideCount": outside_count, "trimContainmentToleranceMm": 1e-7,
+              "parameterWrappingUsesRustReportedPeriods": True,
+              "occtSurfaceUPeriodic": bool(face.Surface.isUPeriodic()), "occtSurfaceVPeriodic": bool(face.Surface.isVPeriodic()),
+              "occtSurfaceUClosed": bool(face.Surface.isUClosed()), "occtSurfaceVClosed": bool(face.Surface.isVClosed()),
+              "sourceCurveSupportGapResolved": False, "certifiedDeviationBound": False, "completeSolidVerified": False,
+              "geometryQualified": False, "admitted": False, "exportsProduced": []}
+    with output.open("x", encoding="utf-8") as stream:
+        json.dump(result, stream, indent=2, allow_nan=False)
+    print(json.dumps(result), flush=True)
+
+
+main()

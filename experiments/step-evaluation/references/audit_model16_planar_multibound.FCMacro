@@ -1,0 +1,257 @@
+"""Independent FreeCAD comparison for one sampled planar multi-bound face."""
+import hashlib
+import json
+import math
+import sys
+import tempfile
+from pathlib import Path
+
+import FreeCAD
+import Part
+
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+EXPECTED_VERSION = ["1", "1", "4", "20260928 (Git shallow)", "Unknown", "2026/09/28 13:46:34", "(HEAD detached at 4fd3bf320)", "4fd3bf320d9566a27e60069fc8387448aaa3a094"]
+
+
+def read(path, cap):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("regular audit input required")
+    with path.open("rb") as stream:
+        data = stream.read(cap + 1)
+    if len(data) > cap:
+        raise ValueError("audit input byte cap exceeded")
+    return data
+
+
+def xyz(point):
+    return [float(point.x), float(point.y), float(point.z)]
+
+
+def distance(a, b):
+    return math.dist(a, b)
+
+
+def bind_report_rings_to_source_wires(face, rings):
+    def unique_injective_assignment(candidates):
+        solutions = []
+
+        def assign(index, used, chosen):
+            if len(solutions) > 1:
+                return
+            if index == len(candidates):
+                solutions.append(list(chosen))
+                return
+            for candidate in candidates[index]:
+                key = candidate["index"]
+                if key in used:
+                    continue
+                used.add(key)
+                chosen.append(candidate)
+                assign(index + 1, used, chosen)
+                chosen.pop()
+                used.remove(key)
+
+        assign(0, set(), [])
+        return solutions[0] if len(solutions) == 1 else None
+
+    candidates = []
+    for ring in rings:
+        ring_points = [sample["pointSourceUnits"] for sample in ring["sampleProvenance"]]
+        matches = []
+        for wire_index, wire in enumerate(face.Wires):
+            if len(wire.Edges) != ring["sourceEdgeCount"]:
+                continue
+            gaps = [float(wire.distToShape(Part.Vertex(FreeCAD.Vector(*point)))[0]) for point in ring_points]
+            maximum_gap = max(gaps, default=math.inf)
+            if not all(math.isfinite(gap) for gap in gaps) or maximum_gap > 1e-7:
+                continue
+            edge_candidates = []
+            for source_edge in ring["sourceEdges"]:
+                source_points = source_edge["samplePointsSourceUnits"]
+                edge_matches = []
+                for edge_index, edge in enumerate(wire.Edges):
+                    edge_gaps = [float(edge.distToShape(Part.Vertex(FreeCAD.Vector(*point)))[0]) for point in source_points]
+                    edge_maximum_gap = max(edge_gaps, default=math.inf)
+                    imported_endpoints = [xyz(vertex.Point) for vertex in edge.Vertexes]
+                    endpoint_gap = math.inf
+                    if len(source_points) >= 2 and len(imported_endpoints) == 2:
+                        source_endpoints = [source_points[0], source_points[-1]]
+                        direct_gap = max(distance(source_endpoints[i], imported_endpoints[i]) for i in range(2))
+                        reverse_gap = max(distance(source_endpoints[i], imported_endpoints[1 - i]) for i in range(2))
+                        endpoint_gap = min(direct_gap, reverse_gap)
+                    if (all(math.isfinite(gap) for gap in edge_gaps) and edge_maximum_gap <= 1e-7
+                            and math.isfinite(endpoint_gap) and endpoint_gap <= 1e-7):
+                        edge_matches.append({"index": edge_index, "maximumGap": edge_maximum_gap,
+                                             "maximumEndpointGap": endpoint_gap})
+                if not edge_matches:
+                    edge_candidates = []
+                    break
+                edge_candidates.append(edge_matches)
+            edge_assignment = unique_injective_assignment(edge_candidates) if edge_candidates else None
+            if edge_assignment is not None:
+                matches.append({
+                    "index": wire_index,
+                    "maximumGap": maximum_gap,
+                    "edgeBindings": [
+                        {"sourceEdgeCurveId": source_edge["sourceEdgeCurveId"],
+                         "freecadEdgeIndex": binding["index"],
+                         "maximumSampleToEdgeGapSourceUnits": binding["maximumGap"],
+                         "maximumEndpointGapSourceUnits": binding["maximumEndpointGap"]}
+                        for source_edge, binding in zip(ring["sourceEdges"], edge_assignment)
+                    ],
+                })
+        if not matches:
+            return None
+        candidates.append(matches)
+    return unique_injective_assignment(candidates)
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION or Part.OCC_VERSION != "7.8.1":
+        raise ValueError("FreeCAD or OCCT pin mismatch")
+    i = sys.argv.index("--pass")
+    if len(sys.argv) != i + 2:
+        raise ValueError("one audit config required")
+    cfg = json.loads(read(sys.argv[i + 1], 32768))
+    if set(cfg) != {"source", "diagnostic", "output"}:
+        raise ValueError("invalid audit config")
+    output = Path(cfg["output"])
+    if output.exists() or output.is_symlink():
+        raise ValueError("refusing to overwrite audit output")
+    source = read(cfg["source"], 32 * 1024 * 1024)
+    diagnostic_bytes = read(cfg["diagnostic"], 16 * 1024 * 1024)
+    diagnostic = json.loads(diagnostic_bytes)
+    source_hash = hashlib.sha256(source).hexdigest()
+    if source_hash != SOURCE_SHA256 or diagnostic.get("sourceSha256") != source_hash:
+        raise ValueError("pinned source mismatch")
+    if [diagnostic.get(k) for k in ("sourceFaceId", "sourceRepresentationId", "sourceOwnerId")] != [8127, 5957, 6218]:
+        raise ValueError("source face/representation/owner identity mismatch")
+    if diagnostic.get("geometryQualified") is not False or diagnostic.get("completeSolidVerified") is not False or diagnostic.get("admitted") is not False or diagnostic.get("exportsProduced") != []:
+        raise ValueError("candidate must remain unqualified and non-exporting")
+    mesh = diagnostic["mesh"]
+    vertices = mesh.get("verticesSourceUnits")
+    triangles = mesh.get("triangles")
+    if not isinstance(vertices, list) or not 4 <= len(vertices) <= 16384 or not isinstance(triangles, list) or not triangles or len(triangles) > 32768:
+        raise ValueError("candidate mesh inventory invalid or over budget")
+    if (len(diagnostic.get("rings", [])) != 2
+            or [r.get("sourceRole") for r in diagnostic["rings"]] != ["outer", "inner"]
+            or [r.get("sourceEntityType") for r in diagnostic["rings"]] != ["FACE_OUTER_BOUND", "FACE_BOUND"]
+            or [r.get("triangulationTreatment") for r in diagnostic["rings"]] != ["outer", "interior_hole"]):
+        raise ValueError("expected one declared outer bound and one STEP-semantic inner bound")
+    target = float(diagnostic["sampling"]["requestedQuarterMidpointChordTargetSourceUnits"])
+    if not math.isfinite(target) or target <= 0.0 or not diagnostic["sampling"].get("certifiedContinuousCurveErrorBound") is False:
+        raise ValueError("sampled target or certification scope invalid")
+    total_perimeter = 0.0
+    for ring in diagnostic["rings"]:
+        points = ring["projectedBoundarySourceUnits"]
+        provenance = ring.get("sampleProvenance")
+        if not isinstance(points, list) or len(points) != ring.get("sampleCount") or len(provenance) != len(points):
+            raise ValueError("source ring/provenance counts mismatch")
+        for i, p in enumerate(points):
+            if not isinstance(p, list) or len(p) != 2 or any(not math.isfinite(float(v)) for v in p):
+                raise ValueError("non-finite projected ring point")
+            total_perimeter += math.dist(p, points[(i + 1) % len(points)])
+            sample = provenance[i]
+            if not isinstance(sample.get("sourceEdgeCurveId"), int) or not isinstance(sample.get("pointSourceUnits"), list) or len(sample["pointSourceUnits"]) != 3:
+                raise ValueError("source sample provenance missing")
+        if not math.isclose(float(ring["signedAreaSourceUnitsSquared"]), sum(
+            points[i][0] * points[(i + 1) % len(points)][1] - points[(i + 1) % len(points)][0] * points[i][1]
+            for i in range(len(points))) * 0.5, rel_tol=1e-10, abs_tol=1e-12):
+            raise ValueError("reported ring area does not independently recompute")
+    if len(vertices) != sum(r["sampleCount"] for r in diagnostic["rings"]):
+        raise ValueError("mesh source vertex/ring counts mismatch")
+    polygon_area = abs(diagnostic["rings"][0]["signedAreaSourceUnitsSquared"]) - sum(abs(r["signedAreaSourceUnitsSquared"]) for r in diagnostic["rings"][1:])
+    if not math.isclose(polygon_area, float(diagnostic["sampledPolygonMaterialAreaSourceUnitsSquared"]), rel_tol=1e-10, abs_tol=1e-12):
+        raise ValueError("reported sampled material area does not independently recompute")
+    triangle_area = 0.0
+    for tri in triangles:
+        if not isinstance(tri, list) or len(tri) != 3 or any(type(i) is not int or i < 0 or i >= len(vertices) for i in tri) or len(set(tri)) != 3:
+            raise ValueError("invalid triangle indices")
+        a, b, c = [vertices[i] for i in tri]
+        ab = [b[i] - a[i] for i in range(3)]
+        ac = [c[i] - a[i] for i in range(3)]
+        cross = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]]
+        area = 0.5 * math.sqrt(sum(v * v for v in cross))
+        if not math.isfinite(area) or area <= 0.0:
+            raise ValueError("degenerate candidate triangle")
+        triangle_area += area
+    if not math.isclose(triangle_area, float(mesh["triangleAreaSourceUnitsSquared"]), rel_tol=1e-10, abs_tol=1e-12):
+        raise ValueError("Rust triangle area does not match independent recomputation")
+    area_allowance = target * total_perimeter * 2.0 + 1e-10
+    with tempfile.TemporaryDirectory(prefix="tokito-planar-face-oracle-", dir=output.parent) as temporary:
+        frozen = Path(temporary) / "source.step"
+        frozen.write_bytes(source)
+        shape = Part.read(str(frozen))
+    if shape.isNull() or not shape.isValid() or not 1 <= len(shape.Faces) <= 4096:
+        raise ValueError("FreeCAD source shape invalid")
+    matches = []
+    for index, face in enumerate(shape.Faces, 1):
+        if len(face.Wires) != len(diagnostic["rings"]):
+            continue
+        ring_bindings = bind_report_rings_to_source_wires(face, diagnostic["rings"])
+        if ring_bindings is None:
+            continue
+        if not math.isfinite(float(face.Area)) or abs(float(face.Area) - polygon_area) > area_allowance:
+            continue
+        distances = [float(face.distToShape(Part.Vertex(FreeCAD.Vector(*p)))[0]) for p in vertices]
+        maximum = max(distances, default=math.inf)
+        if maximum <= 1e-7:
+            matches.append((index, face, maximum, ring_bindings))
+    if len(matches) != 1:
+        raise ValueError("source-wire samples and area did not uniquely bind a FreeCAD face")
+    face_index, face, face_gap, ring_bindings = matches[0]
+    centroid_count = 0
+    normal_alignments = []
+    for tri in triangles:
+        centroid = [sum(vertices[i][axis] for i in tri) / 3.0 for axis in range(3)]
+        point = FreeCAD.Vector(*centroid)
+        if not face.isInside(point, 1e-7, True):
+            raise ValueError("triangle centroid falls outside independent trimmed face")
+        if float(face.distToShape(Part.Vertex(point))[0]) > 1e-7:
+            raise ValueError("triangle centroid is not on the independently imported planar support")
+        a, b, c = [vertices[i] for i in tri]
+        ab = [b[axis] - a[axis] for axis in range(3)]
+        ac = [c[axis] - a[axis] for axis in range(3)]
+        triangle_normal = [ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0]]
+        uv = face.Surface.parameter(point)
+        native_normal = face.normalAt(float(uv[0]), float(uv[1]))
+        native_normal_xyz = xyz(native_normal)
+        denominator = math.sqrt(sum(v * v for v in triangle_normal) * sum(v * v for v in native_normal_xyz))
+        alignment = sum(triangle_normal[i] * native_normal_xyz[i] for i in range(3)) / denominator if denominator > 0.0 else -1.0
+        if not math.isfinite(alignment) or alignment < 0.999999:
+            raise ValueError("candidate triangle orientation disagrees with imported trimmed-face normal")
+        normal_alignments.append(alignment)
+        centroid_count += 1
+    result = {
+        "schema": "tokito.freecad-planar-multibound-audit.v1",
+        "sourceSha256": source_hash,
+        "diagnosticSha256": hashlib.sha256(diagnostic_bytes).hexdigest(),
+        "auditScriptSha256": hashlib.sha256(read(__file__, 128 * 1024)).hexdigest(),
+        "freecadVersion": list(FreeCAD.Version()),
+        "occtVersion": Part.OCC_VERSION,
+        "sourceFaceBinding": {"sourceFaceId": 8127, "freecadFaceOrdinal": face_index, "freecadWireCount": len(face.Wires), "candidateBoundaryPointCount": len(vertices),
+            "ringToSourceWireBindings": [{"ringIndex": ring_index, "freecadWireIndex": binding["index"], "sourceEdgeCount": diagnostic["rings"][ring_index]["sourceEdgeCount"],
+                "maximumBoundaryPointToSourceWireGapSourceUnits": binding["maximumGap"], "sourceEdgeBindings": binding["edgeBindings"]}
+                for ring_index, binding in enumerate(ring_bindings)]},
+        "maximumBoundaryPointToTrimmedFaceGapSourceUnits": face_gap,
+        "maximumBoundaryPointToSourceWireGapSourceUnits": max(binding["maximumGap"] for binding in ring_bindings),
+        "maximumSourceEdgeSampleToImportedEdgeGapSourceUnits": max(edge["maximumSampleToEdgeGapSourceUnits"] for ring in ring_bindings for edge in ring["edgeBindings"]),
+        "freecadTrimmedFaceAreaSourceUnitsSquared": float(face.Area),
+        "candidateSampledPolygonAreaSourceUnitsSquared": polygon_area,
+        "areaAllowanceSourceUnitsSquared": area_allowance,
+        "independentTriangleAreaSourceUnitsSquared": triangle_area,
+        "triangleCentroidsInsideTrimmedFace": centroid_count,
+        "minimumTriangleToNativeFaceNormalAlignment": min(normal_alignments),
+        "geometryQualified": False,
+        "completeSolidVerified": False,
+        "admitted": False,
+        "exportsProduced": [],
+        "scope": "independent FreeCAD sampled face binding by source boundary points, unique wire assignment, source-edge sample and endpoint correspondence, and area; triangle centroids checked against imported trimmed face; sampled correspondence is not continuous curve identity or complete component/solid qualification"
+    }
+    with output.open("x", encoding="utf-8") as stream:
+        json.dump(result, stream, indent=2, allow_nan=False)
+    print(json.dumps(result), flush=True)
+
+
+main()

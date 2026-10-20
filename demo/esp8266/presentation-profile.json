@@ -1,0 +1,32 @@
+{
+  "background": [
+    0.065,
+    0.094,
+    0.125
+  ],
+  "camera": {
+    "distanceInRadii": 3.8,
+    "pitch": 0.6,
+    "yaw": 0.65
+  },
+  "defaultLighting": "ultimaker-reference",
+  "geometryModified": false,
+  "id": "tokito.ultimaker-studio.v1",
+  "physicalAccuracyQualified": false,
+  "preserveSourceMaterials": true,
+  "referenceAssetSha256": "b005375032a454d04fd9bc75071c37c93e1999bf2285f8a189af33db0737b712",
+  "referenceLighting": {
+    "ambient": 0.34,
+    "diffuse": 0.66,
+    "direction": [
+      0.4,
+      0.8,
+      0.6
+    ]
+  },
+  "schema": "tokito.viewer-presentation.v1",
+  "snapshotPixels": [
+    3840,
+    2160
+  ]
+}

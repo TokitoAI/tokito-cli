@@ -1,0 +1,90 @@
+{
+  "schema": "tokito.cli.research.step-model14-repaired-diagnostic-glb-evidence.v1",
+  "status": "research-only; not production STEP export",
+  "dataset": {
+    "commit": "5283bc059e30e51f4d3a81a674425936fc213214",
+    "source": "ESP8266 model 14.step",
+    "sourceSha256": "78db318947fa4d67e3d1f5ad9e7fbe3c44c9b0ffca621a8b8a0bb6dd93282b2b"
+  },
+  "repair": {
+    "sourceRepresentationId": 58073,
+    "sourceItemId": 46427,
+    "sourceFaceId": 51071,
+    "sourceTolerance": 0.000001,
+    "oldFaceTriangles": 146,
+    "newFaceTriangles": 146,
+    "reusedBoundaryVertices": 148,
+    "positionsChanged": false,
+    "occurrenceTransformsChanged": false,
+    "unrelatedTrianglesChanged": false
+  },
+  "glb": {
+    "localPath": "target/research/model14-repaired-glb-e2e-final-77da7e319b4e47c18abddd13bd475391/esp8266-model-14-repaired-diagnostic.glb",
+    "sha256": "f5d99b0ee65fdfbb3ad3e6a945f6e244c6ed855bfb7b7cae111bed14cf834084",
+    "bytes": 13104412,
+    "occurrenceSelectors": 36,
+    "primitives": 61,
+    "triangles": 137652,
+    "degenerateTriangles": 0,
+    "targetFaceTrianglesWithProvenance": 146,
+    "selectorScope": "STEP assembly occurrence; not PCB reference designator or footprint UUID"
+  },
+  "validation": {
+    "realSourceGlbE2e": {
+      "passed": true,
+      "receiptPath": "target/research/model14-repaired-glb-e2e-final-77da7e319b4e47c18abddd13bd475391/receipt.json",
+      "receiptSha256": "16b952fc74455caea775aac9931027819e0a8cc0e48f7758726cd5a85c2a9367",
+      "evaluatorSha256": "5d633888c1be4a65567ac2266a0a4998662f3494e6c674251a43ecad77c345ff",
+      "e2eSha256": "722752b0f0fd700209e49b69852e4891c8c8e920c46d45f1c2e46a9a63d39e02",
+      "decoderSha256": "15e1b5eacadeb7863b8e674aa549200b1f412f2cf816e994b37527eb9b880d2a",
+      "checked": [
+        "source digest and dataset commit pins",
+        "repair and source-face provenance retained through GLB serialization",
+        "decoded positions, normals, accessor/material structure, selector metadata and triangle counts",
+        "explicit unqualified and non-component-selectable status",
+        "refusal of wrong source and existing output"
+      ]
+    },
+    "independentFreecadSampledReference": {
+      "passed": true,
+      "receiptPath": "target/research/model14-repair-reference-e2e-20261020-v2/receipt.json",
+      "receiptSha256": "082f369e2aa2436ccf875551ecaf2cf73ce3577390b57e32d66d31e3727263cf",
+      "candidateEvaluatorSha256": "935eea6929e99839145ec666706b2f4beaba4b1e14445c6c34c4329c164b19cb",
+      "freecadReferenceSolids": 41,
+      "samplesPerDirection": 300000,
+      "forwardMaximumDistanceMm": 0.001315621010023705,
+      "reverseMaximumDistanceMm": 0.0014101133940020597,
+      "triangleDistanceEvaluations": 17385289,
+      "scope": "sampled surface comparison only; not a continuous surface-error bound or proof of semantic solid identity"
+    },
+    "fullLocalWindowsVerification": {
+      "passed": true,
+      "passedGates": 48,
+      "failedGates": 0,
+      "receiptPath": "target/delivery/local/20261019T222735Z-5307ef03b42d46ce9ce2169ef7b0ac86/verification.json",
+      "receiptSha256": "bd885907292be81269012347dd6af4fb37ad6baaef0b5b187065de80a6b2ee32",
+      "platform": "Windows 10.0.26200 x64",
+      "rustc": "1.94.1"
+    },
+    "independentReview": {
+      "passed": true,
+      "reviewScope": "writer provenance, exact repair parameter/counter pins, command flow and E2E refusals",
+      "finding": "No concrete remaining blocker found in the scoped experimental exporter."
+    }
+  },
+  "qualification": {
+    "geometryQualified": false,
+    "completeSolidVerified": false,
+    "pcbPlacementQualified": false,
+    "componentReferenceMappingAvailable": false,
+    "componentUuidMappingAvailable": false,
+    "admitted": false,
+    "productionExport": false
+  },
+  "limitations": [
+    "Only the exact pinned STEP source and one planar face repair are supported.",
+    "The GLB selects STEP assembly occurrences, not individual PCB components.",
+    "The serialization E2E compares against a fresh candidate from the same Rust reader; the FreeCAD sampled comparison is separate evidence.",
+    "General STEP import/export, complete KiCad parity, full board component geometry coverage and Tokito CLI V1 completion are not established."
+  ]
+}

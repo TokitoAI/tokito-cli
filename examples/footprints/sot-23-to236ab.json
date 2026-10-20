@@ -1,0 +1,452 @@
+{
+  "schema": "tokito.footprint-definition.v1",
+  "name": "SOT-23",
+  "description": "SOT, 3 Pin (JEDEC TO-236 Var AB https://www.jedec.org/document_search?search_api_views_fulltext=TO-236)",
+  "tags": [
+    "SOT",
+    "TO_SOT_SMD"
+  ],
+  "side": "front",
+  "reference": {
+    "text": "REF**",
+    "atMm": [
+      0.0,
+      -2.4,
+      0.0
+    ],
+    "sizeMm": [
+      1.0,
+      1.0
+    ],
+    "thicknessMm": 0.15
+  },
+  "value": {
+    "text": "SOT-23",
+    "atMm": [
+      0.0,
+      2.4,
+      0.0
+    ],
+    "sizeMm": [
+      1.0,
+      1.0
+    ],
+    "thicknessMm": 0.15
+  },
+  "pads": [
+    {
+      "number": "1",
+      "shape": "roundrect",
+      "atMm": [
+        -0.9375,
+        -0.95,
+        0.0
+      ],
+      "sizeMm": [
+        1.475,
+        0.6
+      ],
+      "layers": [
+        "F.Cu",
+        "F.Mask",
+        "F.Paste"
+      ],
+      "roundrectRatio": 0.25
+    },
+    {
+      "number": "2",
+      "shape": "roundrect",
+      "atMm": [
+        -0.9375,
+        0.95,
+        0.0
+      ],
+      "sizeMm": [
+        1.475,
+        0.6
+      ],
+      "layers": [
+        "F.Cu",
+        "F.Mask",
+        "F.Paste"
+      ],
+      "roundrectRatio": 0.25
+    },
+    {
+      "number": "3",
+      "shape": "roundrect",
+      "atMm": [
+        0.9375,
+        0.0,
+        0.0
+      ],
+      "sizeMm": [
+        1.475,
+        0.6
+      ],
+      "layers": [
+        "F.Cu",
+        "F.Mask",
+        "F.Paste"
+      ],
+      "roundrectRatio": 0.25
+    }
+  ],
+  "graphics": [
+    {
+      "kind": "line",
+      "startMm": [
+        -0.76,
+        -1.56
+      ],
+      "endMm": [
+        0.76,
+        -1.56
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.76,
+        -1.51
+      ],
+      "endMm": [
+        -0.76,
+        -1.56
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.76,
+        0.39
+      ],
+      "endMm": [
+        -0.76,
+        -0.39
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.76,
+        1.56
+      ],
+      "endMm": [
+        -0.76,
+        1.51
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.76,
+        -1.56
+      ],
+      "endMm": [
+        0.76,
+        -0.56
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.76,
+        0.56
+      ],
+      "endMm": [
+        0.76,
+        1.56
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.76,
+        1.56
+      ],
+      "endMm": [
+        -0.76,
+        1.56
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS"
+    },
+    {
+      "kind": "polygon",
+      "pointsMm": [
+        [
+          -1.3,
+          -0.38
+        ],
+        [
+          -1.06,
+          -0.05
+        ],
+        [
+          -1.54,
+          -0.05
+        ]
+      ],
+      "widthMm": 0.12,
+      "layer": "F.SilkS",
+      "filled": true
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -1.93,
+        -1.5
+      ],
+      "endMm": [
+        -0.9,
+        -1.5
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -1.93,
+        -0.39
+      ],
+      "endMm": [
+        -1.93,
+        -1.5
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -1.93,
+        0.39
+      ],
+      "endMm": [
+        -0.9,
+        0.39
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -1.93,
+        1.5
+      ],
+      "endMm": [
+        -1.93,
+        0.39
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        -1.7
+      ],
+      "endMm": [
+        0.9,
+        -1.7
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        -1.5
+      ],
+      "endMm": [
+        -0.9,
+        -1.7
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        -0.39
+      ],
+      "endMm": [
+        -1.93,
+        -0.39
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        0.39
+      ],
+      "endMm": [
+        -0.9,
+        -0.39
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        1.5
+      ],
+      "endMm": [
+        -1.93,
+        1.5
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        -0.9,
+        1.7
+      ],
+      "endMm": [
+        -0.9,
+        1.5
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.9,
+        -1.7
+      ],
+      "endMm": [
+        0.9,
+        -0.55
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.9,
+        -0.55
+      ],
+      "endMm": [
+        1.93,
+        -0.55
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.9,
+        0.55
+      ],
+      "endMm": [
+        0.9,
+        1.7
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        0.9,
+        1.7
+      ],
+      "endMm": [
+        -0.9,
+        1.7
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        1.93,
+        -0.55
+      ],
+      "endMm": [
+        1.93,
+        0.55
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "line",
+      "startMm": [
+        1.93,
+        0.55
+      ],
+      "endMm": [
+        0.9,
+        0.55
+      ],
+      "widthMm": 0.05,
+      "layer": "F.CrtYd"
+    },
+    {
+      "kind": "polygon",
+      "pointsMm": [
+        [
+          -0.325,
+          -1.45
+        ],
+        [
+          0.65,
+          -1.45
+        ],
+        [
+          0.65,
+          1.45
+        ],
+        [
+          -0.65,
+          1.45
+        ],
+        [
+          -0.65,
+          -1.125
+        ]
+      ],
+      "widthMm": 0.1,
+      "layer": "F.Fab",
+      "filled": false
+    }
+  ],
+  "sourceEvidence": [
+    {
+      "label": "Pinned KiCad footprint-library SOT-23 source (LF bytes)",
+      "uri": "https://gitlab.com/kicad/libraries/kicad-footprints/-/raw/f8a45b4665c28a6280e46eefe9fd4df81d2cd17b/Package_TO_SOT_SMD.pretty/SOT-23.kicad_mod",
+      "sha256": "0d88c86c1b6d8c1aae4aa8c09386264c089d4451a128b6ccd63ed253f4300b15",
+      "claim": "library_geometry"
+    }
+  ]
+}

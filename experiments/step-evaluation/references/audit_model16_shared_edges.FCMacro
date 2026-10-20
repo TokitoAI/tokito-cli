@@ -1,0 +1,198 @@
+"""Independent source-curve / untrimmed-support comparison; no sewing or admission."""
+import hashlib
+import json
+import math
+import sys
+import tempfile
+from pathlib import Path
+
+import FreeCAD
+import Part
+
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+EXPECTED_VERSION = ["1", "1", "4", "20260928 (Git shallow)", "Unknown", "2026/09/28 13:46:34", "(HEAD detached at 4fd3bf320)", "4fd3bf320d9566a27e60069fc8387448aaa3a094"]
+
+
+def read(path, cap):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("regular input required")
+    with path.open("rb") as stream:
+        data = stream.read(cap + 1)
+    if len(data) > cap:
+        raise ValueError("input byte cap exceeded")
+    return data
+
+
+def xyz(p):
+    return [float(p.x), float(p.y), float(p.z)]
+
+
+def point(p, dimensions=3):
+    if not isinstance(p, list) or len(p) != dimensions or any(type(x) not in (float, int) or not math.isfinite(x) for x in p):
+        raise ValueError("invalid finite point")
+    return p
+
+
+def distance(a, b):
+    return math.dist(a, b)
+
+
+def close(a, b):
+    return math.isclose(a, b, rel_tol=1e-6, abs_tol=1e-10)
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION or Part.OCC_VERSION != "7.8.1":
+        raise ValueError("FreeCAD or OCCT version mismatch")
+    i = sys.argv.index("--pass")
+    if len(sys.argv) != i + 2:
+        raise ValueError("one config required")
+    cfg = json.loads(read(sys.argv[i + 1], 32768))
+    if set(cfg) != {"source", "diagnostic", "output"}:
+        raise ValueError("invalid config")
+    output = Path(cfg["output"])
+    if output.exists() or output.is_symlink():
+        raise ValueError("refusing to overwrite output")
+    source = read(cfg["source"], 32 * 1024 * 1024)
+    raw = read(cfg["diagnostic"], 16 * 1024 * 1024)
+    r = json.loads(raw)
+    if hashlib.sha256(source).hexdigest() != SOURCE_SHA256 or r.get("sourceSha256") != SOURCE_SHA256:
+        raise ValueError("pinned source mismatch")
+    topology = r["topology"]
+    if [topology.get(k) for k in ("selectedFaceId", "representationId", "ownerId")] != [2875, 5957, 6218]:
+        raise ValueError("selected source identity mismatch")
+    units = topology["ownership"]["selectedRepresentationLengthUnits"]
+    if units.get("contextId") != 206 or units.get("metresPerUnit") != 0.001:
+        raise ValueError("millimetre context missing")
+    if r.get("admitted") is not False or r.get("geometryQualified") is not False or r.get("exportsProduced") != []:
+        raise ValueError("unqualified scope missing")
+    edges = r["edges"]
+    if len(edges) != 4 or len({e["edgeCurveId"] for e in edges}) != 4:
+        raise ValueError("four distinct source edge signatures required")
+    if sum(len(e["samples"]) for e in edges) > 8192:
+        raise ValueError("sample work cap exceeded")
+    for e in edges:
+        if not 3 <= len(e["samples"]) <= 8192:
+            raise ValueError("invalid source edge sample count")
+        for s in e["samples"]:
+            point(s["sourceCurvePointSourceUnits"])
+            if not math.isfinite(s["curveParameter"]):
+                raise ValueError("nonfinite curve parameter")
+    with tempfile.TemporaryDirectory(prefix="tokito-shared-edge-oracle-", dir=output.parent) as temporary:
+        frozen = Path(temporary) / "source.step"
+        frozen.write_bytes(source)
+        shape = Part.read(str(frozen))
+    if shape.isNull() or not shape.isValid() or not 1 <= len(shape.Faces) <= 4096:
+        raise ValueError("invalid reference shape")
+    if sum(len(f.Edges) for f in shape.Faces) > 32768:
+        raise ValueError("native face-edge inventory cap exceeded")
+    signature_work = 0
+
+    def matches(native, row):
+        nonlocal signature_work
+        samples = row["samples"]
+        try:
+            for index in (0, len(samples) // 2, len(samples) - 1):
+                signature_work += 1
+                if signature_work > 400000:
+                    raise ValueError("signature comparison work cap exceeded")
+                s = samples[index]
+                if distance(xyz(native.Curve.value(s["curveParameter"])), s["sourceCurvePointSourceUnits"]) > 1e-8:
+                    return False
+        except (RuntimeError, Part.OCCError):
+            return False
+        return True
+
+    # Bind using all four source curve signatures, not a remembered face index.
+    candidates = []
+    for index, face in enumerate(shape.Faces):
+        if len(face.Edges) != 4:
+            continue
+        bindings = []
+        for row in edges:
+            matching = [j for j, edge in enumerate(face.Edges) if matches(edge, row)]
+            if len(matching) != 1:
+                break
+            bindings.append(matching[0])
+        if len(bindings) == 4 and len(set(bindings)) == 4:
+            candidates.append((index, bindings))
+    if len(candidates) != 1:
+        raise ValueError("no unique all-four-curve selected face binding")
+    selected_index, bound_indices = candidates[0]
+    selected_face = shape.Faces[selected_index]
+    face_bindings = {2875: selected_index}
+    audited_edges = []
+    max_curve_gap = max_support_gap = 0.0
+    total_samples = 0
+    source_rows = {e["edgeCurveId"]: e for e in topology["selectedEdges"]}
+    for row, edge_index in zip(edges, bound_indices):
+        native_edge = selected_face.Edges[edge_index]
+        adjacent = [i for i, f in enumerate(shape.Faces) if i != selected_index and any(native_edge.isSame(e) for e in f.Edges)]
+        if len(adjacent) != 1:
+            raise ValueError("shared native edge requires unique other incident face")
+        source_uses = source_rows[row["edgeCurveId"]]["uses"]
+        if len(source_uses) != 2:
+            raise ValueError("expected exactly two source uses")
+        for use in source_uses:
+            source_face = use["faceId"]
+            native_index = selected_index if source_face == 2875 else adjacent[0]
+            if source_face in face_bindings and face_bindings[source_face] != native_index:
+                raise ValueError("source face identity inconsistent across shared edges")
+            face_bindings[source_face] = native_index
+        maxima = [0.0, 0.0, 0.0]
+        for sample in row["samples"]:
+            total_samples += 1
+            cp = xyz(native_edge.Curve.value(sample["curveParameter"]))
+            cg = distance(cp, sample["sourceCurvePointSourceUnits"])
+            if cg > 1e-9:
+                raise ValueError("independent canonical curve point mismatch")
+            max_curve_gap = max(max_curve_gap, cg)
+            projections = sample["supportProjections"]
+            if len(projections) != 2:
+                raise ValueError("two support projections required")
+            actual = []
+            for use_index, (projection, use) in enumerate(zip(projections, source_uses)):
+                if projection["faceId"] != use["faceId"] or projection["surfaceId"] != use["surfaceId"]:
+                    raise ValueError("projection use identity mismatch")
+                uv = point(projection["uv"], 2)
+                support = xyz(shape.Faces[face_bindings[use["faceId"]]].Surface.value(*uv))
+                gap = distance(support, point(projection["supportPointSourceUnits"]))
+                residual = distance(cp, support)
+                if gap > 1e-9 or not close(residual, projection["curveToSupportResidualSourceUnits"]):
+                    raise ValueError("independent support point or residual mismatch")
+                max_support_gap = max(max_support_gap, gap)
+                maxima[use_index] = max(maxima[use_index], residual)
+                actual.append(support)
+            gap = distance(*actual)
+            if not close(gap, sample["supportToSupportGapSourceUnits"]):
+                raise ValueError("independent support gap mismatch")
+            maxima[2] = max(maxima[2], gap)
+        names = ["maximumCurveToFirstSupportResidualSourceUnits", "maximumCurveToSecondSupportResidualSourceUnits", "maximumSupportToSupportGapSourceUnits"]
+        if any(not close(maxima[i], row[name]) for i, name in enumerate(names)):
+            raise ValueError("independent edge maximum mismatch")
+        audited_edges.append({"edgeCurveId": row["edgeCurveId"], "curveGeometryId": row["curveGeometryId"],
+                              "freecadSelectedFaceEdgeIndex": edge_index + 1, "freecadAdjacentFaceIndex": adjacent[0] + 1,
+                              "sampleCount": len(row["samples"]), "independentMaximumCurveSupportResidualsMm": maxima[:2],
+                              "independentMaximumSupportGapMm": maxima[2]})
+    pair = [e for e in audited_edges if e["edgeCurveId"] in (3478, 9149)]
+    if len(pair) != 2 or pair[0]["freecadAdjacentFaceIndex"] != pair[1]["freecadAdjacentFaceIndex"]:
+        raise ValueError("distinct shared edges must retain same neighboring face")
+    result = {"schema": "tokito.freecad-shared-edge-audit.v1", "sourceSha256": SOURCE_SHA256,
+              "diagnosticSha256": hashlib.sha256(raw).hexdigest(),
+              "auditScriptSha256": hashlib.sha256(read(__file__, 128 * 1024)).hexdigest(),
+              "freecadVersion": list(FreeCAD.Version()), "occtVersion": Part.OCC_VERSION,
+              "selectedFaceBinding": {"freecadFaceIndex": selected_index + 1, "sourceFaceId": 2875, "sourceCurveSignatures": 4},
+              "faceBindings": [{"sourceFaceId": k, "freecadFaceIndex": v + 1} for k, v in sorted(face_bindings.items())],
+              "signaturePointComparisons": signature_work, "canonicalSamplesAudited": total_samples,
+              "maximumIndependentCurvePointGapMm": max_curve_gap, "maximumIndependentSupportPointGapMm": max_support_gap,
+              "edges": audited_edges, "geometryQualified": False, "admitted": False, "exportsProduced": [],
+              "completeSolidVerified": False, "sourceCurveSupportGapResolved": False,
+              "globalClosestPointMinimumProven": False, "toleranceAcceptancePolicyDefined": False,
+              "scope": "direct native curve parameter and untrimmed support evaluation only; adjacency via shared topological edges"}
+    with output.open("x", encoding="utf-8") as stream:
+        json.dump(result, stream, indent=2, allow_nan=False)
+    print(json.dumps(result), flush=True)
+
+
+main()

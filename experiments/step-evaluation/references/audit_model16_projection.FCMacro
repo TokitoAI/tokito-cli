@@ -1,0 +1,222 @@
+"""Independent, development-only OCCT audit of pinned Rust projection probes.
+
+Run with FreeCADCmd audit_model16_projection.FCMacro --pass CONFIG.json.
+This never changes the STEP file or admits geometry to the production exporter.
+"""
+import hashlib
+import json
+import math
+import sys
+import tempfile
+from pathlib import Path
+
+import FreeCAD
+import Part
+
+EXPECTED_VERSION = [
+    "1", "1", "4", "20260928 (Git shallow)", "Unknown",
+    "2026/09/28 13:46:34", "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+]
+SOURCE_SHA256 = "7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f"
+FACE_INDEX = 231  # Verified again against all 100 source boundary samples below.
+
+
+def read_bounded(path, maximum):
+    path = Path(path)
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("input must be a regular non-symlink file")
+    with path.open("rb") as stream:
+        data = stream.read(maximum + 1)
+    if len(data) > maximum:
+        raise ValueError("input byte limit exceeded")
+    return data
+
+
+def xyz(vector):
+    result = [float(vector.x), float(vector.y), float(vector.z)]
+    if not all(math.isfinite(value) for value in result):
+        raise ValueError("nonfinite OCCT point")
+    return result
+
+
+def vector(values):
+    if not isinstance(values, list) or len(values) != 3 or not all(
+        type(value) in (int, float) and math.isfinite(value) for value in values
+    ):
+        raise ValueError("invalid point")
+    return FreeCAD.Vector(*values)
+
+
+def uv_pair(values):
+    values = list(values)
+    if len(values) != 2 or not all(math.isfinite(float(value)) for value in values):
+        raise ValueError("invalid surface parameters")
+    return [float(value) for value in values]
+
+
+def metric_observation(face, uv, target, surface_point):
+    u0, u1, v0, v1 = face.ParameterRange
+    hu, hv = (u1 - u0) * 1e-6, (v1 - v0) * 1e-6
+    um, up = max(u0, uv[0] - hu), min(u1, uv[0] + hu)
+    # This audit profile uses periodic V; wrapping is performed by OCCT.
+    vm, vp = uv[1] - hv, uv[1] + hv
+    if up <= um or vp <= vm:
+        raise ValueError("invalid finite difference interval")
+    du = (face.valueAt(up, uv[1]) - face.valueAt(um, uv[1])) / (up - um)
+    dv = (face.valueAt(uv[0], vp) - face.valueAt(uv[0], vm)) / (vp - vm)
+    a, b, c = du.dot(du), du.dot(dv), dv.dot(dv)
+    largest = (a + c + math.hypot(a - c, 2 * b)) / 2
+    determinant = a * c - b * b
+    smallest = determinant / largest if largest > 0 else 0.0
+    residual = surface_point - target
+    # Tangent/residual angles at round-off-sized residuals are meaningless.
+    residual_angle_floor = 1e-12
+    denominator_u = du.Length * residual.Length if residual.Length > residual_angle_floor else 0.0
+    denominator_v = dv.Length * residual.Length if residual.Length > residual_angle_floor else 0.0
+    return {
+        "method": "bounded finite differences in source parameters, one-sided at U domain endpoints; diagnostic only",
+        "firstFundamentalFormMm2": [[a, b], [b, c]],
+        "jacobianAnisotropy": math.sqrt(largest / smallest) if smallest > 0 else None,
+        "residualAngleObservationFloorMm": residual_angle_floor,
+        "residualTangentCosines": [
+            du.dot(residual) / denominator_u if denominator_u > 0 else None,
+            dv.dot(residual) / denominator_v if denominator_v > 0 else None,
+        ],
+    }
+
+
+def audit_probe(face, support_face, probe):
+    target = vector(probe["sourcePointSourceUnits"])
+    rust_uv = uv_pair(probe["candidateUv"])
+    rust_surface = vector(probe["surfacePointSourceUnits"])
+    independent_at_rust_uv = face.valueAt(*rust_uv)
+    evaluator_delta = (independent_at_rust_uv - rust_surface).Length
+    if evaluator_delta > 1e-7:
+        raise ValueError("source/Rust/OCCT parameter correspondence mismatch")
+    distance, pairs, _ = Part.Vertex(target).distToShape(face)
+    if not math.isfinite(distance) or distance < 0 or not pairs or len(pairs) > 32:
+        raise ValueError("invalid or over-limit closest-point result")
+    nearest = min((pair[1] for pair in pairs), key=lambda point: (point - target).Length)
+    nearest_uv = uv_pair(face.Surface.parameter(nearest))
+    surface_projected = face.valueAt(*nearest_uv)
+    support_distance, support_pairs, _ = Part.Vertex(target).distToShape(support_face)
+    if not math.isfinite(support_distance) or support_distance < 0 or not support_pairs or len(support_pairs) > 32:
+        raise ValueError("invalid support-surface closest-point result")
+    support_nearest = min((pair[1] for pair in support_pairs), key=lambda point: (point - target).Length)
+    boundary_observations = [
+        {
+            "importedFaceEdgeIndex": index,
+            "distanceMm": float(Part.Vertex(target).distToShape(edge)[0]),
+            "importedEdgeToleranceMm": float(edge.Tolerance),
+        }
+        for index, edge in enumerate(face.Edges, 1)
+    ]
+    boundary_distance = min(row["distanceMm"] for row in boundary_observations)
+    return {
+        "qualityProbeIndex": probe["qualityProbeIndex"],
+        "orientedEdgeId": probe["orientedEdgeId"],
+        "edgeCurveId": probe["edgeCurveId"],
+        "curveParameter": probe["curveParameter"],
+        "rustProjectionConverged": probe["projectionConverged"],
+        "rustResidualMm": probe["projectionResidualSourceUnits"],
+        "sourcePointMm": xyz(target),
+        "rustCandidateUv": rust_uv,
+        "occtAtRustUvMm": xyz(independent_at_rust_uv),
+        "occtVsRustSurfaceEvaluatorDistanceMm": evaluator_delta,
+        "occtTrimmedFaceDistanceMm": float(distance),
+        "occtNaturalSupportFaceDistanceMm": float(support_distance),
+        "occtNaturalSupportFaceNearestPointMm": xyz(support_nearest),
+        "occtFaceBoundaryDistanceMm": boundary_distance,
+        "occtFaceBoundaryObservations": boundary_observations,
+        "occtNearestPointMm": xyz(nearest),
+        "occtNearestPointUv": nearest_uv,
+        "occtNearestPointSurfaceResidualMm": (surface_projected - target).Length,
+        "occtParameterRoundtripDistanceMm": (surface_projected - nearest).Length,
+        "metricAtRustUv": metric_observation(face, rust_uv, target, independent_at_rust_uv),
+    }
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION:
+        raise ValueError("FreeCAD version mismatch")
+    marker = sys.argv.index("--pass")
+    if len(sys.argv) != marker + 2:
+        raise ValueError("expected one configuration path")
+    config = json.loads(read_bounded(sys.argv[marker + 1], 32768))
+    if not isinstance(config, dict) or set(config) != {"source", "diagnostic", "probeIndices", "output"}:
+        raise ValueError("invalid configuration fields")
+    indices = config["probeIndices"]
+    if not isinstance(indices, list) or not 1 <= len(indices) <= 8 or any(
+        type(index) is not int or index < 0 for index in indices
+    ) or len(set(indices)) != len(indices):
+        raise ValueError("expected one to eight unique probe indices")
+    output = Path(config["output"])
+    if output.exists() or output.is_symlink():
+        raise FileExistsError("refusing to overwrite output")
+    source = read_bounded(config["source"], 32 * 1024 * 1024)
+    diagnostic_bytes = read_bounded(config["diagnostic"], 32 * 1024 * 1024)
+    source_digest = hashlib.sha256(source).hexdigest()
+    diagnostic = json.loads(diagnostic_bytes)
+    if source_digest != SOURCE_SHA256 or diagnostic.get("sourceSha256") != SOURCE_SHA256:
+        raise ValueError("pinned source digest mismatch")
+    if diagnostic.get("schema") != "tokito.step-spline-face-trim-diagnostic.v1" or diagnostic.get("faceId") != 2875:
+        raise ValueError("unsupported diagnostic profile")
+    units = diagnostic["selectedSourceRepresentation"]["selectedRepresentationLengthUnits"]
+    if units.get("metresPerUnit") != 0.001 or units.get("contextId") != 206:
+        raise ValueError("source millimetre context not established")
+    # Import exactly the hashed bytes, rather than reopening a mutable source.
+    with tempfile.TemporaryDirectory(prefix="tokito-projection-", dir=output.parent) as temporary:
+        frozen_source = Path(temporary) / "source.step"
+        frozen_source.write_bytes(source)
+        shape = Part.read(str(frozen_source))
+    if shape.isNull() or not shape.isValid() or len(shape.Faces) < FACE_INDEX:
+        raise ValueError("invalid source B-rep")
+    face = shape.Faces[FACE_INDEX - 1]
+    support_face = face.Surface.toShape()
+    if support_face.isNull() or not support_face.isValid() or len(support_face.Faces) != 1:
+        raise ValueError("invalid independently reconstructed natural support face")
+    samples = diagnostic["trimProjection"]["sampleDetails"]
+    if len(samples) != 100 or len(face.Edges) > 128:
+        raise ValueError("source face signature limit or count mismatch")
+    boundary_distances = [
+        min(float(Part.Vertex(vector(row["sourcePoint"])).distToShape(edge)[0]) for edge in face.Edges)
+        for row in samples
+    ]
+    if max(boundary_distances) > 1e-7:
+        raise ValueError("independent face boundary signature mismatch")
+    probes = diagnostic["trimCandidate"]["boundaryQualityProbes"]
+    if not isinstance(probes, list) or len(probes) > 8192 or any(index >= len(probes) for index in indices):
+        raise ValueError("probe inventory limit or index mismatch")
+    rows = []
+    for index in indices:
+        if probes[index].get("qualityProbeIndex") != index:
+            raise ValueError("probe identity mismatch")
+        rows.append(audit_probe(face, support_face, probes[index]))
+    result = {
+        "schema": "tokito.freecad-source-projection-audit.v1",
+        "sourceSha256": source_digest,
+        "diagnosticSha256": hashlib.sha256(diagnostic_bytes).hexdigest(),
+        "auditScriptSha256": hashlib.sha256(read_bounded(__file__, 128 * 1024)).hexdigest(),
+        "freecadVersion": list(FreeCAD.Version()),
+        "occtVersion": Part.OCC_VERSION,
+        "sourceFaceId": 2875,
+        "freecadFaceIndex": FACE_INDEX,
+        "freecadFaceToleranceMm": float(face.Tolerance),
+        "freecadEdgeTolerancesMm": [float(edge.Tolerance) for edge in face.Edges],
+        "freecadVertexTolerancesMm": [float(vertex.Tolerance) for vertex in face.Vertexes],
+        "sourceBoundarySignatureCount": len(samples),
+        "maximumBoundarySignatureDistanceMm": max(boundary_distances),
+        "probes": rows,
+        "globalClosestPointProven": False,
+        "geometryQualified": False,
+        "admitted": False,
+        "exportsProduced": [],
+        "scope": "independent numerical source-point/trimmed-face and local metric audit only; not a repair, global minimization proof, or whole-solid qualification",
+    }
+    with output.open("x", encoding="utf-8") as stream:
+        json.dump(result, stream, indent=2, allow_nan=False)
+    print(json.dumps({"output": str(output), "probeCount": len(rows)}), flush=True)
+
+
+main()

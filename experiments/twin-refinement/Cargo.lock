@@ -1403,6 +1403,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "oxideav-ifc"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9a5745e03e1745cb0ebe646986be3fe4c51f0a2e83334da18af46c731038a56"
+
+[[package]]
+name = "oxideav-step"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84188754d3978d3dd92977c88604400ef7f0dc405a88230ef8fa50b87f0197cb"
+dependencies = [
+ "oxideav-ifc",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1512,6 +1527,15 @@ name = "rustversion"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
+
+[[package]]
+name = "ruzstd"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69e4ce4a039f42bf25920b95667e4d789e98749ab11bbb8d2c2936f788421bb5"
+dependencies = [
+ "twox-hash",
+]
 
 [[package]]
 name = "same-file"
@@ -1701,8 +1725,12 @@ dependencies = [
  "earcut",
  "gix",
  "gltf",
+ "oxideav-ifc",
+ "oxideav-step",
+ "ruzstd",
  "serde",
  "serde_json",
+ "sha2",
 ]
 
 [[package]]
@@ -1715,6 +1743,12 @@ dependencies = [
  "sha2",
  "tokito-cli",
 ]
+
+[[package]]
+name = "twox-hash"
+version = "2.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "86a801b3cea342a06d468c8710662aa29e5e05e4f5c0d62f00bbb7f2ad7941c2"
 
 [[package]]
 name = "typenum"

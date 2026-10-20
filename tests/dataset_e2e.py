@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 from glb_e2e import invoke as process_invoke
+from e2e_temp import e2e_temp_root
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,7 +20,7 @@ def invoke(binary, *args, success=True):
 
 
 def run(binary):
-    with tempfile.TemporaryDirectory(prefix="dataset-lock-", dir=ROOT / "target") as temp:
+    with tempfile.TemporaryDirectory(prefix="dataset-lock-", dir=e2e_temp_root(ROOT / "target")) as temp:
         root = Path(temp)
         snapshot = root / "snapshot"
         snapshot.mkdir()

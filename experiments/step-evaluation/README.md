@@ -1,5 +1,80 @@
 # Experimental STEP reader qualification probe
 
+## Diagnostic STEP-to-GLB occurrence export
+
+The research evaluator has an explicit output mode for inspecting a STEP
+assembly mesh in a GLB viewer:
+
+```powershell
+cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- `
+  --research-export-diagnostic-glb '<materialized-board>/embedded-models/16.step' `
+  target/research/esp8266-step-candidate.glb
+```
+
+The output path must be new. The writer syncs a uniquely named sibling
+temporary file and publishes it with a no-replace hard link; it fails closed if
+the filesystem cannot do that. The receipt reports whether the temporary link
+was removed after publication. A successful command emits a GLB with one stable
+selector per STEP occurrence path and separate geometry primitives retaining
+source shape, triangle and STEP face provenance. Millimetres are converted to
+metres once; normals are generated per triangle; reader colors are projected to
+neutral glTF materials only when the triangle color inventory is aligned. The
+command exits zero when the diagnostic artifact is written, while its JSON
+receipt and embedded GLB metadata still say `admitted: false` and
+`productionExport: false`. Its selector identifies a STEP occurrence only; it
+does not identify a PCB reference/UUID or establish board placement.
+
+This GLB is useful for visual inspection and renderer integration tests, not as
+a qualified digital twin. The reader-derived tessellation can omit or misread
+STEP surfaces, and source-face completeness, material semantics and solid
+validity remain unverified. Degenerate source triangles are retained and marked;
+the pinned ESP8266 model-16 sample contains 520 among 8,270 triangles. Those
+triangles receive a display-only +Y normal fallback, which does not repair their
+geometry. The source axis is preserved without assuming its up direction.
+
+The local E2E decodes the GLB container and every triangle/accessor, checks
+positions/normals/materials, shape and occurrence IDs, and face provenance
+against the same pinned reader-derived candidate, verifies that selector IDs
+encode their occurrence paths, and exercises malformed-input and no-overwrite
+refusal. That comparison proves serialization
+consistency with the reader output, not independent engineering accuracy.
+The captured hashes, counts and generated local artifact path are in the
+[2026-10-19 evidence receipt](../../docs/evidence/step-diagnostic-glb-20261019.json):
+
+```powershell
+python experiments/step-evaluation/tests/diagnostic_glb_e2e.py `
+  --binary experiments/step-evaluation/target/debug/tokito-step-evaluation.exe `
+  --source '<materialized-board>/embedded-models/16.step' `
+  --output target/research/step-diagnostic-glb-e2e-unique-run
+```
+
+For the pinned ESP8266 `14.step` sample, a second research command applies only
+the existing planar repair (`#51071`, representation `#58073`, tolerance
+`0.000001`) before writing the occurrence GLB:
+
+```powershell
+experiments\step-evaluation\target\debug\tokito-step-evaluation.exe `
+  --research-export-model14-repaired-diagnostic-glb `
+  '<materialized-board>\embedded-models\14.step' `
+  target\research\esp8266-model-14-repaired.glb
+
+python experiments/step-evaluation/tests/repaired_diagnostic_glb_e2e.py `
+  --binary experiments/step-evaluation/target/debug/tokito-step-evaluation.exe `
+  --source '<materialized-board>\embedded-models\14.step' `
+  --output target/research/model-14-repaired-glb-e2e-unique-run
+```
+
+This mode refuses any other source digest and marks the repair in GLB asset
+extras. Its node selectors remain STEP occurrence paths, not PCB designators or
+footprint UUIDs. The E2E compares the decoded artifact to a fresh candidate
+from the same reader and separately checks admission stays false. It does not
+rerun the external FreeCAD comparison, qualify complete solids, or enable the
+production CLI's STEP export path. See the [repair contract and evidence](../../docs/STEP_PLANAR_REPAIR.md#repaired-model-14-diagnostic-glb).
+
+The output directory must be new. The production `tokito-cli` STEP resolver
+and board GLB exporter are unchanged by this experiment; production STEP-to-
+selectable-component export remains open.
+
 The explicit `--negative-torus-compat` research option retains original warnings,
 records cloned-AST edits/fingerprints and remains unqualified. Its face-count
 recovery on `57.step` is contradicted by large nearest-reference surface
@@ -11,6 +86,133 @@ This isolated pure-Rust experiment evaluates the exact crates.io reader `oxideav
 
 ```powershell
 cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- "explicit/materialized/model.step"
+```
+
+The digest-pinned ESP8266 model-16 investigation also has a read-only source
+face command. It traces one `ADVANCED_FACE` through its rational B-spline
+surface, bound, oriented 3D edge curves, and bounded inverse-projection
+diagnostics:
+
+```powershell
+cargo run --locked --manifest-path experiments/step-evaluation/Cargo.toml -- `
+  --diagnose-source-face 2875 `
+  --source-representation 5957 path\to\embedded-models\16.step
+
+python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
+  --binary path\to\tokito-step-evaluation.exe `
+  --source path\to\embedded-models\16.step `
+  --output target\model16-source-face-trim-e2e
+```
+
+This diagnostic always exits **2**, produces no export, and leaves admission
+false. Its shared-kernel inverse scan has a separate aggregate work budget.
+When an explicit shape representation is supplied, the probe verifies that
+the representation contains the selected face and reports the context's
+declared length uncertainty after unit conversion. This is provenance and
+diagnostic metadata only; it does not relax numerical projection status or
+serve as an acceptance tolerance.
+The optional triangulation is a research candidate only. On pinned ESP8266
+model 16, the current bounded run builds 12,801 vertices and 24,064 triangles;
+sampled chord error is within tolerance, but the per-triangle centroid normal
+gate still finds 3,995 nonpositive alignments. FreeCAD 1.1.4 independently
+reproduces that count and minimum alignment. The diagnostic exits **2**, keeps
+geometry unqualified, and produces no export. Centroid sampling is not a proof
+of orientation across every point on a curved facet, and this single-face result
+does not qualify a complete STEP solid. The E2E receipt confirms bounded
+evidence and refusal behavior, not geometry quality.
+The current evidence and the independent FreeCAD comparison macro are described
+in [the face #2875 analysis](../../docs/STEP_FACE_2875_ANALYSIS.md).
+
+The latest bounded FreeCAD audit samples the 32 candidate triangles with the
+most negative centroid-normal alignment at each vertex, edge midpoint, and
+centroid. All 224 sampled face normals remain nonpositive against their
+candidate triangle normals. The lowest-U bin has 3,130 failures among 8,981
+triangles (34.85%); the worst triangle's seven samples remain near -1
+alignment. This localizes a stable orientation conflict but does not identify
+whether the cause is UV connectivity, a singular parameterization,
+triangulation, or source geometry. FreeCAD evaluates the Tokito triangles; it
+has not produced an independent triangulation. The candidate stays refused and
+unexported.
+
+### Source-curve midpoint Spade remesh (2026-10-18)
+
+A separate research candidate uses a constrained Spade remesh of the same
+hash-pinned model-16 face. It starts with source-backed boundary samples, lets a
+quality pass identify four needed boundary splits, and associates each split
+with a unique source interval using its UV chord midpoint. For each matched
+source edge, the STEP curve is evaluated at the interval's arithmetic parameter
+midpoint, projected to UV, and used as the constrained boundary point. The final
+remesh preserves constrained edges. The E2E independently rebuilds the source
+boundary inventory and recomputes mesh incidence and trim containment; source
+curve and surface evaluations themselves still come from the Rust diagnostic,
+not an independent STEP evaluator. Of the four selected source-curve midpoint projections, one is marked non-converged at a residual of `1.07888315327835e-6` source units, below the `1e-5` probe-selection ceiling. That ceiling is not an admission tolerance or proof that the projection converged.
+
+Dataset source revision: `5283bc059e30e51f4d3a81a674425936fc213214`; STEP
+SHA-256: `7234dff19581f670dd0f65f1b3c5d76abb6054004ffea8627bf0ef505f66138f`.
+The local E2E receipt is
+`output/model16-source-curve-quality-e2e-v8-20261018/receipt.json` (SHA-256
+`56840b9e6ccd461e7402a16a708638ff82d795589535639890bb4a97cf4797fe`); the
+candidate SHA-256 is
+`99b666928b6a0952c5669a419b35c59776ce2264b4a9e6b07db0012acc7a496a`.
+The independent UV checks passed: 20,069 vertices, 57,128 edges, 37,060
+triangles, 3,076 source-provenanced boundary vertices, Euler characteristic 1,
+no non-manifold edges, no inconsistent interior edge winding, and no tested
+vertices or edge midpoints outside the trim. UV area was
+`0.9869575847275533` versus `0.9869575847275449` for the source trim, and the
+minimum UV angle was `20.00227905484014` degrees. The optimized containment
+oracle was checked against the original predicate on 1,089 points over the
+actual trim plus 20 endpoint, sloped-edge, horizontal-edge, and bucket-seam
+regression points. This is differential evidence for this normalized fixture
+and these cases, not a proof over every finite floating-point input.
+
+This is still only UV-domain/topology evidence for one face. Full 3D surface
+deviation was not performed; the preceding source-surface candidate's normal
+orientation failure remains unresolved; and this is not whole-solid
+qualification. The candidate reports `geometryQualified=false`, `admitted=false`,
+and `exportsProduced=[]`. It does not change production STEP/GLB
+export.
+
+The v8 receipt above is historical evidence from before selected projection
+convergence became mandatory. The current generator retains each quality
+probe's `projectionConverged` result and refuses a Spade split if its matched
+source-curve projection did not converge. On the pinned input, the updated E2E
+expects the specific refusal
+`spade_boundary_split_uses_nonconverged_source_curve_projection`, verifies no
+candidate mesh file is emitted, and records `geometryQualified=false`,
+`admitted=false`, and no exports. A passing E2E here means the refusal contract
+worked; it does not mean a candidate mesh was produced or qualified.
+
+The updated receipt is
+`target/local-verification/20261017T201801Z-a804de7faa0c476ea49c0ed90a22ecde/esp8266-model16-source-face-trim-e2e-v13/receipt.json`
+(SHA-256 `96eeaa7ae408e3a5a8b2b7d656a9f0b59e41eff7e1f422ba1a98ce0a47209e04`). The E2E
+confirms the candidate binary embeds the hash of the current Rust source, then
+records the exact selected failed probe: index 1535, edge 470 / curve 3478,
+parameter `1.4035888909095733`, residual `1.07888315327835e-6` source units,
+`projectionConverged=false`. It observed 835 non-converged probes in the full
+quality-probe inventory. The top-level outcome is `expected_safety_refusal` and
+`researchCandidateProduced=false`; this is distinct from the diagnostic trim
+mesh reported elsewhere in the receipt. The E2E includes a negative self-test
+that rejects an unrelated exit-2 message containing the refusal phrase. An
+unexpected failure is recorded as `e2e_failed`, forces `passed=false`, and
+records whether a candidate file was emitted. One self-test starts from a
+previously passing receipt to exercise that reset; another starts with no
+`summary` field and checks that early failures still produce accurate receipts
+for both absent and present candidate files. The earlier four-split mesh is
+retained only as a historical research artifact and must not be treated as
+current accepted output.
+
+To reproduce with a materialized dataset source and local Rust release tools:
+
+```powershell
+$source = 'path\to\embedded-models\16.step'
+cargo build --locked --manifest-path experiments/step-evaluation/Cargo.toml `
+  --release --bin tokito-step-evaluation --bin model16_spade_candidate `
+  --target-dir target\model16-source-curve-quality-probes
+python experiments/step-evaluation/tests/model16_source_face_trim_e2e.py `
+  --binary target\model16-source-curve-quality-probes\release\tokito-step-evaluation.exe `
+  --candidate-generator target\model16-source-curve-quality-probes\release\model16_spade_candidate.exe `
+  --source $source `
+  --output target\model16-source-curve-quality-e2e
 ```
 
 One explicit input path is required. The probe refuses Git LFS pointer text and input beyond 32 MiB before parsing. It caps parser instances at 250,000, parameter depth at 48, individual strings at 1 MiB, triangles at 1,000,000 and curve samples at 16,384. Absolute chordal tolerance requested from the reader is 10 micrometres. These are resource controls, not a hard process timeout or a proven worst-case memory bound.
@@ -37,4 +239,228 @@ One intermediate test relink returned Windows LNK1104 (cannot open the test exec
 
 No materialized dataset STEP was available during the initial validation above. Subsequent runs on three pinned Ultimainboard assets returned meshes and were compared with independent FreeCAD bounds and face counts; see [dataset qualification](../../docs/DATASET_STEP_QUALIFICATION.md). These observations do not establish surface accuracy, complete geometry, KiCad parity or assembly placement. Production admission remains false.
 
-Per-shape provenance summaries now retain stable part/shape indices and representation-item IDs, distinct nonzero face-ID counts, unassigned entries and triangle/provenance count mismatches. At most 128 summaries are retained with explicit total/truncation; aggregate diagnostics cover all shapes. `sourceFaceCompletenessVerified` is always false. The updated scoped run passed five unit tests and two executable integration tests, formatting and warnings-denied Clippy.
+Per-shape provenance summaries now retain stable part/shape indices and representation-item IDs, distinct nonzero face-ID counts, unassigned entries and triangle/provenance count mismatches. At most 128 summaries are retained with explicit total/truncation; aggregate diagnostics cover all shapes. `sourceFaceCompletenessVerified` is always false. The 2026-10-15 current-source run passed 34 unit tests, 5 executable integration tests, formatting, warnings-denied Clippy and the isolated build.
+
+## Pinned sampled-surface comparison
+
+`tests/surface_reference_e2e.py` compares the experimental mesh for one
+hash-pinned ESP8266 model against the checked-in FreeCAD 1.1.4 reference in
+`references/`. The harness validates the source hash, one-occurrence/one-shape
+profile, unit-preflight result and clean reader diagnostics, then samples every
+triangle's vertices, edge midpoints and centroid in both directions. A shifted
+reference is a negative control for the distance threshold.
+
+The reference can be regenerated with the checked-in macro using the pinned
+FreeCAD 1.1.4 installation and the materialized dataset source. It refuses to
+overwrite its output; compare the generated digest with the pinned reference
+before updating the fixture:
+
+```powershell
+$freecadCmd = 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe'
+$macro = 'experiments/step-evaluation/references/generate_reference.FCMacro'
+$source = 'path/to/tokito-app-dataset/data/board-sources/esp8266-nodemcu-reference/structured-source/embedded-models/15.step'
+$output = 'target/esp8266-model-15-freecad-reference.json'
+& $freecadCmd $macro --pass $source $output
+Get-FileHash -Algorithm SHA256 $output
+```
+
+The harness streams child stdout/stderr under separate byte caps and kills an
+over-limit or timed-out child. It rejects degenerate mesh faces, checks closed
+edge incidence and consistent triangle winding, compares signed volume, and
+tests a reversed-face negative control. Its aggregate pairwise work budget
+covers both directed comparisons and the shifted-reference negative control.
+The report records the reference and evaluator-binary SHA-256 digests. It does
+not compare per-face normal vectors.
+
+```powershell
+python experiments/step-evaluation/tests/surface_reference_e2e.py `
+  --binary path\to\tokito-step-evaluation.exe `
+  --source path\to\materialized\embedded-models\15.step `
+  --output target\step-surface-reference.json
+```
+
+The pinned comparison passed on dataset source revision
+`5283bc059e30e51f4d3a81a674425936fc213214`: 40 matching vertices, 76 triangles
+on each mesh, 46 identical triangle coordinate triplets, and a maximum sampled
+distance of `4.59e-15 mm` in either direction. The harness's pass means only
+that these bounded samples match. It is neither a full Hausdorff/trim-coverage
+proof nor component identity/placement verification. The evaluator still exits
+2 with `admitted:false` and emits no GLB. See the [current goal evidence](../../docs/GOAL_TRACKER.md#step-surface-comparison-probe--esp8266-model-15-2026-10-15).
+
+## Multi-model degenerate-triangle diagnostic
+
+`tests/multi_surface_reference_e2e.py` compares three hash-pinned ESP8266
+embedded STEP assets from dataset commit
+`5283bc059e30e51f4d3a81a674425936fc213214` against FreeCAD 1.1.4 meshes. The
+checked-in manifest pins each source SHA-256, FreeCAD build, and reported solid
+and face counts. The evaluator binary and references are captured in an ignored
+`target/` receipt; no generated evidence is silently treated as a fixture.
+
+The actual surface run found:
+
+| Model | Result | Evidence |
+| --- | --- | --- |
+| `0.step` | Bounded sample comparison passed | Reader 460 triangles, FreeCAD 1,932; maximum sampled distance 0.000880 mm; production admission false |
+| `14.step` | Rejected | Four degenerate triangles on source face `#51071`, an `ADVANCED_FACE` over planar surface `#6066`; FreeCAD's index-based reference mesh also fails the closed-edge check |
+| `16.step` | Rejected | 1,102 degenerate triangles on source face `#2875`, an `ADVANCED_FACE` over bounded rational `B_SPLINE_SURFACE` `#10410` (degrees 2 × 9) |
+
+The exact STEP records are retained in the hash-pinned inputs. The planar face
+in `14.step` means these degenerate triangles cannot be attributed only to
+spline surface evaluation; inspect its outer boundary loop (`#26` → `#55436`)
+before changing planar tessellation. For `16.step`, inspect the rational
+surface's parameter-domain samples and boundary correspondence before choosing
+a repair. Removing the reported triangles is not a repair: the candidate stays
+open/inconsistently oriented, and `16.step` also exceeds the sampled-distance
+tolerance. Both inputs remain rejected and no production STEP path is enabled.
+
+`tests/diagnose_degenerate_surface.py` is a non-production experiment that
+removes only triangles meeting the same scale-relative zero-area test, then
+checks closure, winding, signed volume and bounded surface samples. On `14.step`,
+removing four triangles left the candidate open and inconsistently oriented;
+sampled distance was below 0.02 mm and volume was within tolerance, but those
+checks do not repair the topology. On `16.step`, removing 1,102 triangles left
+the candidate open and inconsistently oriented, and the reader-to-reference
+maximum sampled distance was 0.0840 mm, above the 0.02 mm limit. Both filtered
+volumes were within the 0.01% comparison tolerance. Volume agreement alone is
+not a geometry pass.
+
+The exact local receipts were produced under
+`target/step-multi-surface-e2e-20261015j/receipt.json` and
+`target/step-multi-surface-e2e-20261015k/degenerate-removal-diagnostic.json`.
+These ignored outputs are local evidence; the source and tool digests are in
+the receipts. The filter experiment does not modify source geometry, emit a
+GLB, or qualify a component association or PCB pose. **Do not drop these
+triangles in the product exporter.** STEP admission stays fail-closed until the
+reader's per-face tessellation and the multi-solid reference topology are
+understood and independent comparisons pass.
+
+To repeat the diagnostic, first materialize the pinned source files and create
+the three FreeCAD references with `tests/multi_surface_reference_e2e.py`, then
+run:
+
+```powershell
+python experiments/step-evaluation/tests/diagnose_degenerate_surface.py `
+  --binary C:\path\to\tokito-step-evaluation.exe `
+  --models-root target\dataset-intake\...\embedded-models `
+  --references-root target\step-multi-surface-e2e-...\references `
+  --output target\step-degenerate-removal-diagnostic.json
+```
+
+Every run requires a new output path. This is a research diagnostic, not a
+passing release gate or a production STEP adapter.
+
+## Per-solid reference update (2026-10-16)
+
+The v2 reference capture preserves independent solid ownership. All 76 FreeCAD
+reference solids passed strict closure and winding in the first real run,
+including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
+edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
+See [the per-solid contract and evidence](../../docs/STEP_SOLID_REFERENCE.md). Historical failed
+receipts above remain unchanged. This does not enable production STEP or AR.
+
+
+## Isolated physical-source refinement
+
+`--research-physical-source-face 2875 --chord-tolerance 0.00001 --source-representation 5957 SOURCE.step`
+accepts only the digest-pinned model16 fixture. It emits a diagnostic report and
+always exits2 without production admission/export. UV-CDT initialization and
+physical chord/normal-driven shared-edge subdivision keep original constraints
+fixed. Current real-source output is incomplete; it does not repair source
+trims or produce a qualified solid. See
+[the evidence and limits](../../docs/GEOMETRY_RECOVERY_PLAN.md#physical-space-refinement-experiment-2026-10-19)
+and run `tests/physical_refinement_e2e.py` for the bounded development-only
+FreeCAD comparison. Native FreeCAD is not a production dependency.
+
+
+`--research-metric-source-face` accepts the same arguments and pinned fixture
+as the physical-source experiment. It adds a bounded single-anchor affine
+Jacobian-metric preconditioner to the initial CDT, while preserving all original
+UV samples by identity. It remains incomplete and unqualified; use
+`tests/physical_refinement_e2e.py --metric` for the paired independent audit.
+See [current metric evidence and remaining work](../../docs/GEOMETRY_RECOVERY_PLAN.md#single-anchor-metric-preconditioning-2026-10-19).
+
+
+`--research-retriangulated-source-face` uses the same pinned arguments and adds
+bounded physical-quality interior flips after metric refinement. It preserves
+vertices/constraints and remains incomplete. Use
+`tests/physical_refinement_e2e.py --retriangulate` for actual metric-baseline
+replay, independent old/new pair and final-mesh comparisons, and refusal tests.
+See [accepted flips and remaining gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#bounded-interior-edge-flips-2026-10-19).
+
+`--research-adaptive-boundary-source-face` takes the same pinned arguments and
+adds native source-parameter boundary sampling before metric refinement and
+flips. It preserves original samples and records expanded constraints, sampled
+curve/support chord errors, separate projection diagnostics and provenance.
+Run `tests/physical_refinement_e2e.py --adaptive-boundary` for recursion/mapping
+replay and independent source-curve, surface and normal checks. This one-face
+experiment does not qualify a whole solid or enable production STEP exports;
+see the [sampling contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#adaptive-source-parameter-boundary-sampling-2026-10-19).
+
+`--research-prioritized-source-face` adds ranked, resource-reserved conforming
+interior splits, guarded transition templates and bounded normal-target flips.
+Original source samples stay fixed. Incomplete preflight retains the last
+fully measured mesh; sampled-target success still does not qualify a solid.
+Use `tests/physical_refinement_e2e.py --prioritized` for subdivision/topology/
+reservation replay and fresh native-oracle comparisons. See the
+[priority contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#reserved-priority-refinement-and-transition-checks-2026-10-19).
+
+
+`--research-grid-source-face` adds original bounded knot-preserving directional
+interior seeds before priority refinement. Run
+`tests/physical_refinement_e2e.py --grid` to replay seed identities/constraints
+and subdivisions, then independently audit the final face. A truncated
+initializer can be followed by refinement that meets sampled mesh targets;
+neither result qualifies the whole solid.
+See [the grid contract](../../docs/GEOMETRY_RECOVERY_PLAN.md#directional-interior-grid-initialization-2026-10-19).
+
+## Isolated shared-edge support audit
+
+```powershell
+./target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --research-shared-edges 2875 --source-representation 5957 --source-owner 6218 `
+  '<materialized-dataset>/embedded-models/16.step'
+
+python experiments/step-evaluation/tests/shared_edges_e2e.py `
+  --binary target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --freecad 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe' `
+  --source '<materialized-dataset>/embedded-models/16.step' `
+  --output target/research/new-shared-edges-audit
+```
+
+The Rust mode accepts only the pinned source/owner/representation/face and
+exits 2 with an unqualified diagnostic. It shares one 16-interval-per-knot-span
+curve inventory across both incident supports, preserves topology/orientation
+and source warnings, and charges one aggregate preparation/evaluation budget.
+The native oracle binds faces through source-curve signatures and shared edges,
+then compares direct curve/support evaluations. The harness passes only if
+positive comparisons and refusal controls succeed; its exit 0 is not model
+qualification. It requires a fresh output path, bounded process output and
+unchanged source/tool fingerprints. No repair, geometry export, trim-coverage
+or global-nearest-point proof is supplied. See
+[the exact contract and next gates](../../docs/GEOMETRY_RECOVERY_PLAN.md#shared-edge-support-audit-2026-10-19).
+
+## Canonical shared-boundary patch
+
+```powershell
+./target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --research-shared-patch --chord-tolerance 0.00001 --boundary-allowance 0.000005 `
+  --source-representation 5957 --source-owner 6218 `
+  '<materialized-dataset>/embedded-models/16.step'
+
+python experiments/step-evaluation/tests/shared_patch_e2e.py `
+  --binary target/local-verification/priority-20261019/release/tokito-step-evaluation.exe `
+  --freecad 'C:\Program Files\FreeCAD 1.1\bin\freecadcmd.exe' `
+  --source '<materialized-dataset>/embedded-models/16.step' `
+  --output target/research/new-shared-patch-audit
+```
+
+This mode is pinned to faces 2875 / 10475 in the same model16 source. It emits
+an actual two-face research mesh in JSON, always exits 2 and never exports or
+admits a production model. Canonical XYZ is applied before triangle quality is
+measured; surface evaluations remain independent. Separate UV charts preserve
+the complementary trims of identical closed supports. The boundary allowance
+is explicit, positive and limited to half the chord target; it is not inferred
+from source uncertainty. The E2E harness requires a fresh output directory and
+independent native comparisons plus refusal controls. Even a passing open
+patch retains false full-trim, self-intersection and complete-solid flags.
+See [the mathematical contract and limitations](../../docs/GEOMETRY_RECOVERY_PLAN.md#canonical-two-face-patch-2026-10-19).

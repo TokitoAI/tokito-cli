@@ -1,10 +1,12 @@
 //! Explicit assignment assembly, separate from canonical design and qualification.
 use crate::component_pose::{
     BoardSide, KicadStepPlacement, PlacedModelMesh, place_model_mesh_in_glb_m,
+    place_model_point_in_glb_m,
 };
 use crate::document::SourceLocator;
-use crate::model_assignments::{MAX_ASSIGNMENTS, ValidatedModelAssignments};
+use crate::model_assignments::{AssignedModelUnits, MAX_ASSIGNMENTS, ValidatedModelAssignments};
 use crate::model_mesh::{MeshLimits, parse_vrml_mesh};
+use crate::model_resolver::ModelAssetFormat;
 use crate::{EngineError, PhysicalBoardDocument};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -17,6 +19,13 @@ pub struct AssignedComponentMesh {
     pub component_uuid: Option<String>,
     pub manifest_entry_index: usize,
     pub source_asset_sha256: String,
+    pub source_asset_format: String,
+    /// STEP vertices are stored relative to this translation to preserve
+    /// small tessellated features in GLB float32 positions.
+    pub translation_m: Option<[f64; 3]>,
+    /// STEP faces removed only when their minimum altitude is below the
+    /// float32 position-error budget and quantization collapses their area.
+    pub step_precision_dropped_triangle_count: usize,
     pub mesh: PlacedModelMesh,
 }
 #[derive(Clone, Debug)]
@@ -80,6 +89,8 @@ pub fn assemble_assigned_models(
     for component in components {
         let selected = rows.get(&component.source.ordinal).copied();
         let mut placement_snapshot = Value::Null;
+        let mut glb_emission_diagnostic = None;
+        let mut step_precision_dropped_triangle_count = 0usize;
         let status = if let Some((index, validated)) = selected {
             let a = validated.assignment();
             if matches!(a.population(), "not-fitted" | "no-part-to-order") {
@@ -116,11 +127,31 @@ pub fn assemble_assigned_models(
                                     model: model.transform(),
                                 };
                                 placement_snapshot = json!({"boardPositionMm":placement.board_position_mm,"boardOriginMm":placement.board_origin_mm,"footprintRotationDeg":rotation,"side":layer,"frontCopperSurfaceZMm":p.front_copper_surface_z_mm,"backCopperSurfaceZMm":p.back_copper_surface_z_mm,"scale":model.transform().scale,"rotationDeg":model.transform().rotation_deg,"offsetMm":model.transform().offset_mm});
-                                match parse_vrml_mesh(
-                                    asset.bytes(),
-                                    model.units(),
-                                    MeshLimits::default(),
-                                ) {
+                                let parsed = match (asset.format(), model.units()) {
+                                    (ModelAssetFormat::Wrl, AssignedModelUnits::Millimetres) => {
+                                        parse_vrml_mesh(
+                                            asset.bytes(),
+                                            crate::model_mesh::ModelUnits::Millimetres,
+                                            MeshLimits::default(),
+                                        )
+                                    }
+                                    (
+                                        ModelAssetFormat::Wrl,
+                                        AssignedModelUnits::KiCadLegacyWrlDeciinch,
+                                    ) => parse_vrml_mesh(
+                                        asset.bytes(),
+                                        crate::model_mesh::ModelUnits::KiCadLegacyWrlDeciinch,
+                                        MeshLimits::default(),
+                                    ),
+                                    (ModelAssetFormat::Step, AssignedModelUnits::StepDeclared) => {
+                                        crate::step_geometry::parse_step_mesh(asset.bytes())
+                                            .map(|parsed| parsed.mesh)
+                                    }
+                                    _ => Err(EngineError::new(
+                                        "assigned model format and units conflict",
+                                    )),
+                                };
+                                match parsed {
                                     Ok(parsed) => {
                                         let triangles =
                                             parsed.parts.iter().try_fold(0usize, |n, p| {
@@ -131,28 +162,99 @@ pub fn assemble_assigned_models(
                                             .filter(|n| *n <= MAX_TRIANGLES)
                                         {
                                             match place_model_mesh_in_glb_m(&parsed, placement) {
-                                                Ok(mesh) if crate::glb::validate_component_mesh_for_glb(&mesh).is_err() => {
-                                                    "glb_precision_rejected".to_owned()
-                                                }
-                                                Ok(mesh) => {
-                                                    triangle_count = total;
-                                                    emitted.push(AssignedComponentMesh {
-                                                        component_source: component.source.clone(),
-                                                        component_reference: component
-                                                            .reference
-                                                            .clone(),
-                                                        component_uuid: component
-                                                            .source
-                                                            .source_uuid
-                                                            .as_deref()
-                                                            .map(str::to_owned),
-                                                        manifest_entry_index: index,
-                                                        source_asset_sha256: asset
-                                                            .sha256()
-                                                            .to_owned(),
-                                                        mesh,
-                                                    });
-                                                    "emitted_claimed_candidate".to_owned()
+                                                Ok(mut mesh) => {
+                                                    let translation_result = if asset.format()
+                                                        == ModelAssetFormat::Step
+                                                    {
+                                                        place_model_point_in_glb_m(
+                                                            [0.0; 3], placement,
+                                                        )
+                                                        .map(Some)
+                                                        .map_err(|_| ())
+                                                    } else {
+                                                        Ok(None)
+                                                    };
+                                                    match translation_result {
+                                                        Err(()) => "placement_rejected".to_owned(),
+                                                        Ok(translation_m) => {
+                                                            if let Some(translation) = translation_m
+                                                            {
+                                                                for part in &mut mesh.parts {
+                                                                    for position in
+                                                                        &mut part.positions_m
+                                                                    {
+                                                                        for axis in 0..3 {
+                                                                            position[axis] -=
+                                                                                translation[axis];
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                            let filter_result = if asset.format()
+                                                                == ModelAssetFormat::Step
+                                                            {
+                                                                translation_m
+                                                                    .ok_or_else(|| {
+                                                                        EngineError::new(
+                                                                            "STEP component has no local-frame translation",
+                                                                        )
+                                                                    })
+                                                                    .and_then(|translation| {
+                                                                        crate::glb::filter_step_faces_below_glb_precision(
+                                                                            &mut mesh,
+                                                                            translation,
+                                                                        )
+                                                                    })
+                                                            } else {
+                                                                Ok(0)
+                                                            };
+                                                            match filter_result {
+                                                                Err(error) => {
+                                                                    glb_emission_diagnostic = Some(
+                                                                        error
+                                                                            .to_string()
+                                                                            .chars()
+                                                                            .take(256)
+                                                                            .collect::<String>(),
+                                                                    );
+                                                                    "glb_precision_rejected"
+                                                                        .to_owned()
+                                                                }
+                                                                Ok(dropped) => {
+                                                                    step_precision_dropped_triangle_count = dropped;
+                                                                    if dropped > 0 {
+                                                                        mesh.diagnostics.push(format!(
+                                                                            "{dropped} STEP tessellation faces were omitted because their minimum altitude is at most 2 micrometres and GLB float32 collapsed or inverted them; sub-resolution surface gaps may remain"
+                                                                        ));
+                                                                        for part in &mut mesh.parts
+                                                                        {
+                                                                            part.solid = false;
+                                                                        }
+                                                                    }
+                                                                    if let Err(error) = crate::glb::validate_component_mesh_for_glb(&mesh) {
+                                                                        glb_emission_diagnostic = Some(
+                                                                            error.to_string().chars().take(256).collect::<String>(),
+                                                                        );
+                                                                        "glb_precision_rejected".to_owned()
+                                                                    } else {
+                                                                        triangle_count = total.saturating_sub(dropped);
+                                                                        emitted.push(AssignedComponentMesh {
+                                                                            component_source: component.source.clone(),
+                                                                            component_reference: component.reference.clone(),
+                                                                            component_uuid: component.source.source_uuid.as_deref().map(str::to_owned),
+                                                                            manifest_entry_index: index,
+                                                                            source_asset_sha256: asset.sha256().to_owned(),
+                                                                            source_asset_format: asset.format().as_str().to_owned(),
+                                                                            translation_m,
+                                                                            step_precision_dropped_triangle_count: dropped,
+                                                                            mesh,
+                                                                        });
+                                                                        "emitted_claimed_candidate".to_owned()
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 Err(_) => "placement_rejected".to_owned(),
                                             }
@@ -184,7 +286,32 @@ pub fn assemble_assigned_models(
         };
         *counts.entry(status.clone()).or_default() += 1;
         if details.len() < MAX_DETAILS {
-            details.push(json!({"sourceComponentOrdinal":component.source.ordinal,"componentUuid":component.source.source_uuid.as_deref(),"reference":component.reference,"manifestEntryIndex":selected.map(|(i,_)|i),"populationClaim":selected.map(|(_,v)|v.assignment().population()),"evidenceClaim":selected.and_then(|(_,v)|v.assignment().evidence()),"status":status,"placementSnapshot":placement_snapshot,"populationVerified":false,"placementVerified":false,"physicalQualificationVerified":false}));
+            let mut detail = json!({"sourceComponentOrdinal":component.source.ordinal,"componentUuid":component.source.source_uuid.as_deref(),"reference":component.reference,"manifestEntryIndex":selected.map(|(i,_)|i),"populationClaim":selected.map(|(_,v)|v.assignment().population()),"evidenceClaim":selected.and_then(|(_,v)|v.assignment().evidence()),"status":status,"placementSnapshot":placement_snapshot,"populationVerified":false,"placementVerified":false,"physicalQualificationVerified":false});
+            // Keep the established WRL assignment report shape stable. Geometry
+            // diagnostics are additional evidence specific to the STEP adapter.
+            if selected
+                .and_then(|(_, row)| row.asset())
+                .is_some_and(|asset| asset.format() == ModelAssetFormat::Step)
+            {
+                detail["geometryDiagnostics"] =
+                    json!(selected.map(|(_, row)| row.geometry_diagnostics()));
+                if step_precision_dropped_triangle_count > 0 {
+                    detail["stepPrecisionDroppedTriangleCount"] =
+                        json!(step_precision_dropped_triangle_count);
+                    if let Some(diagnostics) = detail
+                        .get_mut("geometryDiagnostics")
+                        .and_then(Value::as_array_mut)
+                    {
+                        diagnostics.push(json!(format!(
+                            "{step_precision_dropped_triangle_count} STEP tessellation faces were omitted because their minimum altitude is at most 2 micrometres and GLB float32 collapsed or inverted them; sub-resolution surface gaps may remain"
+                        )));
+                    }
+                }
+                if let Some(diagnostic) = glb_emission_diagnostic {
+                    detail["glbEmissionDiagnostic"] = json!(diagnostic);
+                }
+            }
+            details.push(detail);
         }
     }
     let report = json!({"schema":"tokito.assigned-assembly.v1","sourceBoardSha256":board.source().sha256,"manifestSha256":assignments.manifest_sha256(),"componentCount":components.len(),"emittedComponentCount":emitted.len(),"aggregateTriangleCount":triangle_count,"classificationCounts":counts,"components":details,"componentDetailsTotal":components.len(),"componentDetailsTruncated":components.len()>MAX_DETAILS,"maxRetainedComponentDetails":MAX_DETAILS,"maxAggregateTriangles":MAX_TRIANGLES,"physicalQualificationVerified":false,"modelPhysicalMatchVerified":false,"placementVerified":false,"populationVerified":false,"boardRevisionMatchVerified":false,"wholeBoardDigitalTwinComplete":false});

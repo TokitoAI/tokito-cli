@@ -1,0 +1,166 @@
+"""Generate hash-bound FreeCAD reference meshes for the pinned STEP manifest.
+
+Run FreeCADCmd.exe generate_multi_reference.FCMacro --pass RUN.json
+where RUN.json contains manifest, model, source and output paths.
+"""
+import hashlib
+import json
+import math
+from pathlib import Path
+import sys
+
+import FreeCAD
+import Part
+
+MAX_SOURCE_BYTES = 32 * 1024 * 1024
+MAX_MANIFEST_BYTES = 64 * 1024
+MAX_VERTICES = 300_000
+MAX_TRIANGLES = 500_000
+MAX_OUTPUT_BYTES = 64 * 1024 * 1024
+EXPECTED_VERSION = [
+    "1",
+    "1",
+    "4",
+    "20260928 (Git shallow)",
+    "Unknown",
+    "2026/09/28 13:46:34",
+    "(HEAD detached at 4fd3bf320)",
+    "4fd3bf320d9566a27e60069fc8387448aaa3a094",
+]
+
+
+def parse_args(argv):
+    if "--pass" not in argv:
+        raise ValueError("FreeCADCmd must invoke the macro with --pass")
+    passed = argv[argv.index("--pass") + 1 :]
+    if len(passed) != 1:
+        raise ValueError("FreeCADCmd --pass must provide exactly one run configuration path")
+    config_path = Path(passed[0]).resolve(strict=True)
+    values = json.loads(read_bounded(config_path, MAX_MANIFEST_BYTES))
+    if not isinstance(values, dict) or set(values) != {"manifest", "model", "source", "output"}:
+        raise ValueError("run configuration must have exactly manifest/model/source/output")
+    if any(not isinstance(value, str) or not value.strip() for value in values.values()):
+        raise ValueError("run configuration paths and model name must be nonblank strings")
+    return values
+
+
+def read_bounded(path, maximum):
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("input is not a regular file")
+    with path.open("rb") as stream:
+        data = stream.read(maximum + 1)
+    if len(data) > maximum:
+        raise ValueError("input exceeds byte limit")
+    return data
+
+
+def capture_mesh(shape):
+    points, triangles = shape.tessellate(0.01)
+    if not points or len(points) > MAX_VERTICES or not triangles or len(triangles) > MAX_TRIANGLES:
+        raise ValueError("FreeCAD tessellation exceeds reference mesh limits")
+    vertices = [[float(point.x), float(point.y), float(point.z)] for point in points]
+    rows = [[int(index) for index in triangle] for triangle in triangles]
+    if any(not math.isfinite(value) for point in vertices for value in point):
+        raise ValueError("FreeCAD emitted a non-finite vertex")
+    if any(len(row) != 3 or any(index < 0 or index >= len(vertices) for index in row) for row in rows):
+        raise ValueError("FreeCAD emitted an invalid triangle index")
+    return vertices, rows
+
+
+def main():
+    if list(FreeCAD.Version()) != EXPECTED_VERSION:
+        raise RuntimeError("FreeCAD build does not match the pinned reference version")
+    args = parse_args(sys.argv)
+    manifest_path = Path(args["manifest"]).resolve(strict=True)
+    source = Path(args["source"]).resolve(strict=True)
+    output = Path(args["output"]).resolve()
+    model_name = args["model"]
+    if Path(model_name).name != model_name or not model_name.lower().endswith(".step"):
+        raise ValueError("model must be one manifest-listed STEP basename")
+    manifest = json.loads(read_bounded(manifest_path, MAX_MANIFEST_BYTES))
+    if (
+        manifest.get("schema") != "tokito.esp8266-step-reference-manifest.v1"
+        or manifest.get("datasetRepository") != "TokitoAI/tokito-app-dataset"
+        or manifest.get("freecadVersion") != EXPECTED_VERSION
+        or manifest.get("tessellationDeflectionMm") != 0.01
+    ):
+        raise ValueError("reference manifest identity/version mismatch")
+    entries = [row for row in manifest.get("models", []) if row.get("file") == model_name]
+    if len(entries) != 1:
+        raise ValueError("model is not unique in the pinned manifest")
+    entry = entries[0]
+    source_bytes = read_bounded(source, MAX_SOURCE_BYTES)
+    if not source_bytes or source_bytes.startswith(b"version https://git-lfs.github.com/spec/v1"):
+        raise ValueError("source is empty or an unmaterialized Git LFS pointer")
+    source_sha256 = hashlib.sha256(source_bytes).hexdigest()
+    if source_sha256 != entry.get("sourceSha256"):
+        raise ValueError("source digest does not match the pinned model entry")
+
+    shape = Part.read(str(source))
+    solids = list(shape.Solids)
+    faces = list(shape.Faces)
+    if (
+        shape.isNull()
+        or not shape.isValid()
+        or len(solids) != entry.get("solidCount")
+        or len(faces) != entry.get("faceCount")
+    ):
+        raise ValueError("FreeCAD shape validity or manifest topology count mismatch")
+    vertices_mm, triangle_rows = capture_mesh(shape)
+    solid_meshes = []
+    total_vertices = total_triangles = 0
+    for index, solid in enumerate(solids):
+        if solid.isNull() or not solid.isValid():
+            raise ValueError(f"FreeCAD solid {index} is null or invalid")
+        vertices, rows = capture_mesh(solid)
+        total_vertices += len(vertices)
+        total_triangles += len(rows)
+        # One fixed budget for ALL solids, not a budget multiplied by solid count.
+        # The diagnostic compound mesh has its own equally bounded representation.
+        if total_vertices > MAX_VERTICES or total_triangles > MAX_TRIANGLES:
+            raise ValueError("FreeCAD per-solid mesh aggregate exceeds reference limits")
+        solid_meshes.append({
+            "solidIndex": index,
+            "valid": True,
+            "faceCount": len(solid.Faces),
+            "verticesMm": vertices,
+            "triangles": rows,
+        })
+    bounds = shape.BoundBox
+    bounds_mm = {
+        "min": [float(bounds.XMin), float(bounds.YMin), float(bounds.ZMin)],
+        "max": [float(bounds.XMax), float(bounds.YMax), float(bounds.ZMax)],
+    }
+    payload = {
+        "schema": "tokito.freecad-reference-mesh.v2",
+        "datasetCommit": manifest["datasetCommit"],
+        "modelFile": model_name,
+        "inputSha256": source_sha256,
+        "freecadVersion": EXPECTED_VERSION,
+        "deflectionMm": manifest["tessellationDeflectionMm"],
+        "verticesMm": vertices_mm,
+        "triangles": triangle_rows,
+        "valid": True,
+        "solidCount": len(solids),
+        "faceCount": len(faces),
+        "boundsMm": bounds_mm,
+        "aggregateMeshScope": "FreeCAD compound tessellation; diagnostic only",
+        "solidIdentityScope": "ordinal in this pinned FreeCAD import; not a STEP entity ID",
+        "solids": solid_meshes,
+    }
+    # Enforce the existing byte cap before creating an output file. Never publish
+    # a truncated reference or silently omit an expensive solid.
+    encoded = json.dumps(payload, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    if len(encoded) > MAX_OUTPUT_BYTES:
+        raise ValueError("FreeCAD reference JSON exceeds byte limit")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("xb") as stream:
+        stream.write(encoded)
+    print(
+        f"Wrote FreeCAD {FreeCAD.Version()[0:3]} reference for {model_name}: "
+        f"{len(solids)} solids, {len(faces)} faces, {len(triangle_rows)} triangles",
+        flush=True,
+    )
+
+
+main()

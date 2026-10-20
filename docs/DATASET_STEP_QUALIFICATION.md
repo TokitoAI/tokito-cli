@@ -97,6 +97,17 @@ assembly occurrence transforms, resource qualification and deterministic exports
 Component assignment and native-Altium-to-extracted-model equivalence remain
 unverified. Keep production STEP admission disabled until these gates pass.
 
+The ESP8266 model-16 QFN fillet has a focused source-boundary and mesh
+comparison in [STEP face #2875 analysis](STEP_FACE_2875_ANALYSIS.md). FreeCAD
+confirms the sampled source boundary, while the existing reader mesh still has
+large triangle-centroid deviation and near-zero-area triangles on that face.
+A bounded UV trim candidate now reduces positional deviation, but independent
+FreeCAD checks find 100 of 3,393 candidate vertices outside the trim and 1,291
+of 6,016 triangles with nonpositive oriented-normal alignment. Uniform
+refinement still leaves nonpositive normals and an area ratio of 1.064× at
+385,024 triangles. The candidate remains research-only: no repair/export is
+admitted, and complete-solid/production gates remain open.
+
 ## Negative-major-radius torus experiment
 
 The eight skipped faces in `57.step` reference tori with negative major radii.
@@ -153,3 +164,48 @@ is mathematical evidence, not a parsed STEP trim fix: source trim domains,
 periodic continuity, pole behavior and face orientation still require an
 original implementation or a suitable supported reader extension. No cached
 dependency source was changed, and no production STEP adapter was enabled.
+
+## ESP8266 multi-solid source-model surface probe — 2026-10-15
+
+This separate experiment uses three embedded STEP files from dataset commit
+`5283bc059e30e51f4d3a81a674425936fc213214`, pinned by source SHA-256 in
+`experiments/step-evaluation/references/esp8266-multi-model-freecad-manifest.json`.
+FreeCAD 1.1.4 commit `4fd3bf320d9566a27e60069fc8387448aaa3a094` generated bounded
+0.01 mm-deflection reference meshes. This dataset revision is the reference
+source for these samples; it is distinct from the dataset-main revision pinned
+at the top of this report.
+
+The bidirectional sampled-surface harness passed `0.step` at a maximum sampled
+distance of 0.000880 mm (reader: 460 triangles; FreeCAD: 1,932). It rejected
+`14.step` because the reader produced four degenerate triangles on source face
+51071, and rejected `16.step` because it produced 1,102 on source face 2875.
+No source asset has been changed.
+
+A separate diagnostic removed those zero-area triangles only in memory. For
+`14.step`, the filtered reader mesh was still open and inconsistently oriented;
+the FreeCAD reference also failed the current index-based closed-edge check.
+The filtered sampled distances were under 0.02 mm and its signed volume was
+within the 0.01% tolerance, but the topology result is a failure and the
+reference topology method needs investigation. For `16.step`, filtering left
+the reader mesh open and inconsistently oriented, and reader-to-reference
+sampled distance was 0.0840 mm, over the 0.02 mm limit (reverse direction:
+0.00845 mm). Both filtered models' volumes were within tolerance. These results
+show why deleting degenerate triangles is not a valid geometry repair.
+
+The run receipts are in ignored local outputs
+`target/step-multi-surface-e2e-20261015j/receipt.json` and
+`target/step-multi-surface-e2e-20261015k/degenerate-removal-diagnostic.json`;
+each contains evaluator, manifest, and/or source digests. The diagnostic is not
+part of the production exporter and creates no GLB. All three STEP sources
+remain unadmitted; component identity, board-space placement and real assembled
+board qualification remain false. See the experiment's
+[procedure and limitations](../experiments/step-evaluation/README.md#multi-model-degenerate-triangle-diagnostic).
+
+## Per-solid reference update (2026-10-16)
+
+The v2 reference capture preserves independent solid ownership. All 76 FreeCAD
+reference solids passed strict closure and winding in the first real run,
+including all 41 in `14.step`; its compound retains 6,625 incidence-four contact
+edges. The reader still rejects `14.step` and `16.step` for degenerate triangles.
+See [the per-solid contract and evidence](STEP_SOLID_REFERENCE.md). Historical failed
+receipts above remain unchanged. This does not enable production STEP or AR.
