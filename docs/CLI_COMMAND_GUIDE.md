@@ -188,6 +188,12 @@ $body = "$models/Resistor_SMD.3dshapes/R_0603_1608Metric.wrl"
 requires explicit model assignments before it can provide resolved model
 coverage. Edit a **new copy** with an exact model hash, units and transform, then:
 
+For a bounded STEP tessellation candidate, declare `step-declared` units in the
+assignment record. The reader requires a single audited length scale and exports
+only with explicit partial consent; this does not certify a closed solid or a
+physical match. See [model assignments](MODEL_ASSIGNMENTS.md) for the complete
+schema boundaries and remaining checks.
+
 ```powershell
 & $cli model assignments verify $testBoard --manifest reviewed-assignments.json --project-root approved-model-root --json
 & $cli export glb $testBoard --model-assignments reviewed-assignments.json --project-root approved-model-root --output new-candidate.glb --allow-partial --json-report

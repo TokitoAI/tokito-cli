@@ -35,7 +35,10 @@ display roughness estimate, and specular colour is carried in the optional
 `KHR_materials_specular` extension. The raw VRML values and conversion are
 retained in GLB metadata. This improves material response for compatible
 viewers; it is not a measured material or an exact Phong-to-PBR conversion.
-Texture nodes and STEP models remain unsupported by the product assembly path.
+Texture nodes and general authored STEP model references remain unsupported by
+the product assembly path. The separate explicit assignment path can decode a
+bounded STEP tessellation candidate; it does not qualify a B-rep solid or board
+model fit.
 
 | Board | References | Selectable bodies/groups | Current boundary |
 |---|---:|---:|---|
@@ -162,8 +165,8 @@ shape is not a declaration of complete KiCad command compatibility.
 | `pcb export pos` | KiCad-reference CSV and ASCII subsets: side, mm/in, bottom X mirror, absolute or auxiliary drill-file origin, SMD/THT and DNP filters; Gerber and variants remain unsupported |
 | `export svg` | Partial top/bottom physical-scale view with layer selection; opt-in `--hide-DNP-footprints-on-fab-layers` hides only DNP-owned text/graphics on `F.Fab`/`B.Fab` ([10.0.5 reference](tests/reference/kicad-cli-10.0.5/svg/manifest.json)) |
 | `resolve models` / `model inspect` | Caller-approved external asset resolution, checksum-verified KiCad embedded payload intake and optional hash-addressed source-byte export (`--extract-dir`), including closed local-resource bundles for JSON glTF; owner UUID/reference diagnostics and bounded VRML inspection with authored normals or generated crease-angle normals; copied STEP/glTF bytes are not decoded geometry or selector qualification |
-| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE`, checked planar polygon `IndexedFaceSet`, explicit inline vertex/face normals, and `creaseAngle` smoothing), reference wildcards, native DNP exclusion, and [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md) with explicit coverage, or candidate assignments |
-| `model assignments template/verify` | Explicit source-bound model assignment records and checks |
+| `export glb` | Validated board shell, bounded VRML97 assembly (`Group`/`Transform` including `scaleOrientation`, `DEF`/`USE`, checked planar polygon `IndexedFaceSet`, explicit inline vertex/face normals, and `creaseAngle` smoothing), reference wildcards, native DNP exclusion, [native unspecified-footprint filtering](docs/KICAD_FOOTPRINT_TYPE_FILTER.md), or explicit source-bound assignments including unqualified STEP mesh candidates; assignment export requires `--allow-partial` |
+| `model assignments template/verify` | Exact board SHA/UUID/reference-bound model records; accepts supported VRML units and bounded STEP `step-declared` candidates, but does not certify physical part fit or solid geometry ([details](docs/MODEL_ASSIGNMENTS.md)) |
 | `model derive-wrl` | Opt-in new VRML candidate with an explicit unused-invalid-material/zero-area-face change report; original source preserved, solid repair not certified |
 | `bom reconcile` | Reviewed NXP JSON / ESP32 CSV identity joins, source hashes and ambiguity |
 | `twin inspect/prepare/prototype/select` | Hash-bound GLB/map/manifest checks, selector preparation, viewer, exact-reference/authored-class queries, and visibly unverified class hints for missing labels |
@@ -248,10 +251,12 @@ ignored and a no-match pattern produces a board-only export. Filter selection
 has a board-wide work budget and happens before model paths are resolved. Tokito
 defines `?` as one Unicode scalar; KiCad parity has only been verified for ASCII
 references. `--no-dnp` excludes components carrying KiCad's native `attr dnp`
-marker. These filters currently apply to VRML-to-GLB assembly only. STEP
-board export and STEP model tessellation are not implemented; skipping a STEP
-reference does not produce a STEP artifact. Unresolved models are reported
-rather than replaced by silent cuboids.
+marker. These filters currently apply to authored VRML-to-GLB assembly only.
+STEP board export and general authored-reference STEP import are not
+implemented. An explicit, hash-bound component assignment can import a bounded
+STEP tessellation candidate, but it remains unqualified and requires
+`--allow-partial`; skipping an authored STEP reference does not produce a STEP
+artifact. Unresolved models are reported rather than replaced by silent cuboids.
 
 `export placements` is the original-source coordinate inventory. `pcb export
 pos` is a separate manufacturing projection with CSV and ASCII formats. The

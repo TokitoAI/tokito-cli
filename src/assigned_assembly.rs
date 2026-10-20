@@ -3,8 +3,9 @@ use crate::component_pose::{
     BoardSide, KicadStepPlacement, PlacedModelMesh, place_model_mesh_in_glb_m,
 };
 use crate::document::SourceLocator;
-use crate::model_assignments::{MAX_ASSIGNMENTS, ValidatedModelAssignments};
+use crate::model_assignments::{AssignedModelUnits, MAX_ASSIGNMENTS, ValidatedModelAssignments};
 use crate::model_mesh::{MeshLimits, parse_vrml_mesh};
+use crate::model_resolver::ModelAssetFormat;
 use crate::{EngineError, PhysicalBoardDocument};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
@@ -17,6 +18,7 @@ pub struct AssignedComponentMesh {
     pub component_uuid: Option<String>,
     pub manifest_entry_index: usize,
     pub source_asset_sha256: String,
+    pub source_asset_format: String,
     pub mesh: PlacedModelMesh,
 }
 #[derive(Clone, Debug)]
@@ -116,11 +118,31 @@ pub fn assemble_assigned_models(
                                     model: model.transform(),
                                 };
                                 placement_snapshot = json!({"boardPositionMm":placement.board_position_mm,"boardOriginMm":placement.board_origin_mm,"footprintRotationDeg":rotation,"side":layer,"frontCopperSurfaceZMm":p.front_copper_surface_z_mm,"backCopperSurfaceZMm":p.back_copper_surface_z_mm,"scale":model.transform().scale,"rotationDeg":model.transform().rotation_deg,"offsetMm":model.transform().offset_mm});
-                                match parse_vrml_mesh(
-                                    asset.bytes(),
-                                    model.units(),
-                                    MeshLimits::default(),
-                                ) {
+                                let parsed = match (asset.format(), model.units()) {
+                                    (ModelAssetFormat::Wrl, AssignedModelUnits::Millimetres) => {
+                                        parse_vrml_mesh(
+                                            asset.bytes(),
+                                            crate::model_mesh::ModelUnits::Millimetres,
+                                            MeshLimits::default(),
+                                        )
+                                    }
+                                    (
+                                        ModelAssetFormat::Wrl,
+                                        AssignedModelUnits::KiCadLegacyWrlDeciinch,
+                                    ) => parse_vrml_mesh(
+                                        asset.bytes(),
+                                        crate::model_mesh::ModelUnits::KiCadLegacyWrlDeciinch,
+                                        MeshLimits::default(),
+                                    ),
+                                    (ModelAssetFormat::Step, AssignedModelUnits::StepDeclared) => {
+                                        crate::step_geometry::parse_step_mesh(asset.bytes())
+                                            .map(|parsed| parsed.mesh)
+                                    }
+                                    _ => Err(EngineError::new(
+                                        "assigned model format and units conflict",
+                                    )),
+                                };
+                                match parsed {
                                     Ok(parsed) => {
                                         let triangles =
                                             parsed.parts.iter().try_fold(0usize, |n, p| {
@@ -150,6 +172,7 @@ pub fn assemble_assigned_models(
                                                         source_asset_sha256: asset
                                                             .sha256()
                                                             .to_owned(),
+                                                        source_asset_format: asset.format().as_str().to_owned(),
                                                         mesh,
                                                     });
                                                     "emitted_claimed_candidate".to_owned()
@@ -184,7 +207,17 @@ pub fn assemble_assigned_models(
         };
         *counts.entry(status.clone()).or_default() += 1;
         if details.len() < MAX_DETAILS {
-            details.push(json!({"sourceComponentOrdinal":component.source.ordinal,"componentUuid":component.source.source_uuid.as_deref(),"reference":component.reference,"manifestEntryIndex":selected.map(|(i,_)|i),"populationClaim":selected.map(|(_,v)|v.assignment().population()),"evidenceClaim":selected.and_then(|(_,v)|v.assignment().evidence()),"status":status,"placementSnapshot":placement_snapshot,"populationVerified":false,"placementVerified":false,"physicalQualificationVerified":false}));
+            let mut detail = json!({"sourceComponentOrdinal":component.source.ordinal,"componentUuid":component.source.source_uuid.as_deref(),"reference":component.reference,"manifestEntryIndex":selected.map(|(i,_)|i),"populationClaim":selected.map(|(_,v)|v.assignment().population()),"evidenceClaim":selected.and_then(|(_,v)|v.assignment().evidence()),"status":status,"placementSnapshot":placement_snapshot,"populationVerified":false,"placementVerified":false,"physicalQualificationVerified":false});
+            // Keep the established WRL assignment report shape stable. Geometry
+            // diagnostics are additional evidence specific to the STEP adapter.
+            if selected
+                .and_then(|(_, row)| row.asset())
+                .is_some_and(|asset| asset.format() == ModelAssetFormat::Step)
+            {
+                detail["geometryDiagnostics"] =
+                    json!(selected.map(|(_, row)| row.geometry_diagnostics()));
+            }
+            details.push(detail);
         }
     }
     let report = json!({"schema":"tokito.assigned-assembly.v1","sourceBoardSha256":board.source().sha256,"manifestSha256":assignments.manifest_sha256(),"componentCount":components.len(),"emittedComponentCount":emitted.len(),"aggregateTriangleCount":triangle_count,"classificationCounts":counts,"components":details,"componentDetailsTotal":components.len(),"componentDetailsTruncated":components.len()>MAX_DETAILS,"maxRetainedComponentDetails":MAX_DETAILS,"maxAggregateTriangles":MAX_TRIANGLES,"physicalQualificationVerified":false,"modelPhysicalMatchVerified":false,"placementVerified":false,"populationVerified":false,"boardRevisionMatchVerified":false,"wholeBoardDigitalTwinComplete":false});

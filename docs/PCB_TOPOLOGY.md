@@ -46,7 +46,9 @@ margin; centerline-only physical bounds are reported separately by the API.
 The topology API itself does not perform DRC, copper connectivity, fabrication
 validation, triangulation, or 3D model resolution. A separate opt-in GLB exporter
 uses a valid report to triangulate/extrude a board shell; it does not add component
-models. STEP is unimplemented. Source inventory and v0.1 packages with a
+models. This board-outline and shell-export path does not import or export STEP;
+the separate assigned-model candidate path is not a board-level STEP exporter.
+Source inventory and v0.1 packages with a
 physically invalid outline can still be imported and integrity-verified; their
 SVG and GLB exports are refused.
 

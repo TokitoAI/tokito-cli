@@ -236,7 +236,8 @@ fn asset_resolution_is_distinct_from_format_and_geometry_acceptance() {
     let result = validate_model_assignments(&f.board, &parse(&t), &f.resolver()).unwrap();
     assert!(!result.assignments()[0].supported_geometry());
     assert!(result.assignments()[0].asset().is_none());
-    // STEP bytes use the same synthetic bytes/hash only to exercise unsupported-format reporting.
+    // STEP bytes use the same synthetic bytes/hash only to exercise strict
+    // extension/unit-policy mismatch reporting.
     fs::write(f.root.join("model.step"), WRL).unwrap();
     t["assignments"][0]["model"]["path"] = json!("model.step");
     let result = validate_model_assignments(&f.board, &parse(&t), &f.resolver()).unwrap();
@@ -244,7 +245,7 @@ fn asset_resolution_is_distinct_from_format_and_geometry_acceptance() {
     assert!(!result.assignments()[0].supported_geometry());
     assert_eq!(
         result.assignments()[0].status(),
-        "resolved_unsupported_production_geometry"
+        "resolved_unit_format_mismatch"
     );
 }
 #[test]
@@ -282,6 +283,11 @@ fn assignment_assembly_places_only_explicit_candidates_and_keeps_real_source_ide
     );
     assert_eq!(output.report["aggregateTriangleCount"], 2);
     assert_eq!(output.report["wholeBoardDigitalTwinComplete"], false);
+    assert!(
+        output.report["components"][0]
+            .get("geometryDiagnostics")
+            .is_none()
+    );
     let other = Fixture::new(&fp("R1", "u1"));
     assert!(
         tokito_cli::assigned_assembly::assemble_assigned_models(&other.board, &validated).is_err()

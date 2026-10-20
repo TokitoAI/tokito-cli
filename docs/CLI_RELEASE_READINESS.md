@@ -4,6 +4,27 @@ Scope: the standalone CLI. AR, YOLO, mobile and desktop integration are outside
 this release decision. No release date or production claim follows from a green
 test suite alone.
 
+## 2026-10-20 explicit STEP assignment candidate — latest scope
+
+The source-bound model-assignment path now accepts a bounded, explicitly
+assigned STEP candidate through the pinned pure-Rust reader. It audits one
+declared length unit, converts to the common millimetre model, preserves source
+hash and PCB UUID/reference identity, and writes individually selectable GLB
+nodes only when `--allow-partial` is supplied. The check suite exercises a
+tessellated STEP surface and a synthetic single-face planar OPEN_SHELL B-rep;
+neither is a closed solid or evidence of a real dataset component match. The
+assignment verification report keeps STEP unit/reader diagnostics exclusive to
+STEP rows so the established WRL report shape remains stable.
+
+This is bounded tessellation import, not general STEP feature parity or a
+qualified CAD pipeline. General face/trim and solid-topology coverage, source
+face completeness, dataset asset-to-reference mapping, dimensions/fit, full
+assembly coverage, CAD-renderer comparison, and independent clean-machine
+Windows installation remain open. No model is marked physically qualified by
+this path. Each local verifier run emits a source-fingerprinted receipt in its
+selected delivery folder; the current PR update records the exact path. Hosted
+Actions remain disabled.
+
 ## 2026-10-20 VRML source-material projection
 
 The bounded VRML-to-GLB adapter now retains authored diffuse colour and
@@ -89,8 +110,10 @@ six-case KiCad type-filter E2E passes with the refreshed Tokito baseline.
 
 This only improves shading of supported VRML meshes. It does not change mesh
 vertices, qualify a component's dimensions or physical fit, generate missing
-bodies, add explicit VRML `Normal`/texture support, or enable STEP import/export.
-This is a bounded shading improvement only. The full local Windows verifier
+bodies, or add explicit VRML `Normal`/texture support. This historical checkpoint
+predates the explicit STEP component-assignment candidate described below; it
+still does not establish general STEP import/export. This is a bounded shading
+improvement only. The full local Windows verifier
 passed 48/48 gates with Rust/Cargo 1.94.1 and Python 3.11.5, using the isolated
 Cargo target recorded by the verifier. The final documentation-inclusive
 receipt is stored under `target/delivery/local` and its exact path and digest
@@ -440,3 +463,55 @@ not PCB reference designators or footprint UUIDs. General STEP import/export,
 complete solid semantics, PCB placement, all-board geometry qualification,
 full KiCad CLI/library parity, imported simulation data, additional views,
 and independent Windows installation/upgrade testing remain open.
+
+## Explicit STEP component-assignment candidate — 2026-10-20
+
+The public assignment flow now decodes a bounded STEP tessellation only after
+the user explicitly binds that file to a source-board component by UUID,
+reference and source SHA-256. `step-declared` requires a complete unit-context
+audit with exactly one positive length scale. The importer expands bounded
+assembly occurrences, composes their internal transforms, converts coordinates
+to millimetres, carries supported source colors as display-only materials, and
+emits UUID-backed `ref:<refdes>` GLB selectors. Assignment export still requires
+`--allow-partial`; reports keep physical qualification false. STEP occurrence
+color overrides are diagnosed but not applied.
+
+Current-source focused Windows checks: formatting passed; Clippy passed with
+warnings denied; 199 library tests and 10 model-assignment API tests passed; the
+Tokito CLI debug binary built; WRL assignment E2E and STEP assignment E2E passed.
+The STEP E2E covers a declared-mm planar tessellation, top/back placement,
+manifest/hash/UUID provenance, explicit partial consent and missing-unit
+refusal. Direct tests cover audited units, nested synthetic transforms, cycle
+refusal and resource limits.
+This is parser and assignment-path evidence only. It does not verify a real
+dataset STEP-to-component association, complete STEP B-rep/tessellation fidelity,
+watertight solids, source occurrence-color overrides, dimensional fit or all
+components on a target board.
+
+The full delivery verifier was attempted with a reused F: Cargo target. Format
+and path-safety tests passed, then Cargo began compiling dependencies changed by
+the current lockfile. The run was interrupted when F: reached 78 MiB free,
+before the Rust test suite completed. Release build, remaining E2Es and final
+receipt were not produced at that earlier checkpoint. The subsequent full
+Windows verifier result is recorded below; the interruption remains a
+historical event, not the latest test result. V1 is not production-ready.
+
+## 2026-10-20 bounded STEP assignment and full local verifier
+
+An explicitly source-bound STEP mesh-candidate path is available through
+`model assignments verify` and `export glb --model-assignments`. It accepts the
+bounded tessellated STEP subset only when units and component identity are
+explicit, and requires `--allow-partial` for GLB output. General/native-reference
+STEP and B-rep import, STEP board export, general VRML, and glTF/GLB model import
+remain unsupported. Existing WRL assignment report scope and node provenance
+remain unchanged; STEP-specific report metadata is emitted only for STEP rows.
+
+The Windows local delivery verifier subsequently reported 49/49 gates,
+including formatting, warnings-denied Clippy, tests, release build,
+command-level E2Es and receipt integrity. The exact historical receipt path was
+not copied into this readiness record or the goal tracker, so that count is not
+evidence for a later PR head. The active PR update records the fresh
+source-matched receipt for its current head. This is repository verification on
+the current Windows host, not independent installation or hardware/renderer
+acceptance. The STEP fixtures do not qualify real board STEP assets, complete
+solids, physical fit, or all-component model coverage. V1 remains unfinished.

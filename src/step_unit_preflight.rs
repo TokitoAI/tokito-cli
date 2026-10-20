@@ -1,7 +1,7 @@
 //! Experimental, strict unit-graph audit. No geometry or production admission.
 use oxideav_ifc::{ParsedInstance, StepFile, Value};
-use oxideav_step::schema::{attribute_order, entity_def, Entity};
-use serde_json::{json, Value as Json};
+use oxideav_step::schema::{Entity, attribute_order, entity_def};
+use serde_json::{Value as Json, json};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -181,12 +181,16 @@ impl<'a> Audit<'a> {
     }
 }
 /// Resolve only the explicitly selected physical context; no assembly inference.
+// Also exercised by the standalone STEP experiment's extended unit-context
+// probes; the production adapter consumes the aggregate inspection report.
+#[allow(dead_code)]
 pub(crate) fn selected_context(step: &StepFile, id: u64) -> Result<Json, String> {
     Audit { step, work: 0 }.context(id)
 }
 
 /// Resolve one explicitly referenced length-unit entity without inferring an
 /// active representation or applying the result to geometry admission.
+#[allow(dead_code)]
 pub(crate) fn length_unit_metres_per_unit(step: &StepFile, id: u64) -> Result<f64, String> {
     Audit { step, work: 0 }.length(id, 0, &mut BTreeSet::new(), &mut Vec::new())
 }
@@ -349,7 +353,9 @@ mod tests {
         oxideav_ifc::parse_step(format!("ISO-10303-21;HEADER;FILE_DESCRIPTION((''),'2;1');FILE_NAME('','',(''),(''),'','','');FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));ENDSEC;DATA;{data}ENDSEC;END-ISO-10303-21;").as_bytes()).unwrap()
     }
     fn context(unit: &str) -> String {
-        format!("#100=SHAPE_REPRESENTATION('',(),#101);#101=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT(({unit})) REPRESENTATION_CONTEXT('','')); ")
+        format!(
+            "#100=SHAPE_REPRESENTATION('',(),#101);#101=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT(({unit})) REPRESENTATION_CONTEXT('','')); "
+        )
     }
     fn resolved(data: &str) -> Json {
         inspect(&file(data))
@@ -357,7 +363,12 @@ mod tests {
     #[test]
     fn si_units_ignore_unassigned_decoy_and_complex_part_order() {
         for (prefix, scale) in [(".MILLI.", 0.001), (".CENTI.", 0.01), ("$", 1.)] {
-            let r=resolved(&(context("#1")+&format!("#1=(SI_UNIT({prefix},.METRE.) LENGTH_UNIT() NAMED_UNIT(*));#2=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.KILO.,.METRE.));")));
+            let r = resolved(
+                &(context("#1")
+                    + &format!(
+                        "#1=(SI_UNIT({prefix},.METRE.) LENGTH_UNIT() NAMED_UNIT(*));#2=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.KILO.,.METRE.));"
+                    )),
+            );
             assert_eq!(r["lengthUnitsResolved"], true);
             assert_eq!(r["records"][0]["metresPerUnit"], scale);
         }
@@ -367,7 +378,11 @@ mod tests {
     }
     #[test]
     fn nested_conversion_graph_resolves_inch_without_name_inference() {
-        let r=resolved(&(context("#6")+&inch()+"#5=MEASURE_WITH_UNIT(LENGTH_MEASURE(2.),#4);#6=(NAMED_UNIT(#2) LENGTH_UNIT() CONVERSION_BASED_UNIT('arbitrary',#5));"));
+        let r = resolved(
+            &(context("#6")
+                + &inch()
+                + "#5=MEASURE_WITH_UNIT(LENGTH_MEASURE(2.),#4);#6=(NAMED_UNIT(#2) LENGTH_UNIT() CONVERSION_BASED_UNIT('arbitrary',#5));"),
+        );
         assert_eq!(r["lengthUnitsResolved"], true);
         assert!((r["records"][0]["metresPerUnit"].as_f64().unwrap() - 0.0508).abs() < 1e-15);
         assert_eq!(
@@ -420,7 +435,8 @@ mod tests {
     }
     #[test]
     fn different_context_units_are_retained_separately() {
-        let data=context("#1")+"#1=SI_UNIT(*,.MILLI.,.METRE.);#2=SI_UNIT(*,.CENTI.,.METRE.);#200=ADVANCED_BREP_SHAPE_REPRESENTATION('',(),#201);#201=(GEOMETRIC_REPRESENTATION_CONTEXT(2) GLOBAL_UNIT_ASSIGNED_CONTEXT((#2)) REPRESENTATION_CONTEXT('',''));";
+        let data = context("#1")
+            + "#1=SI_UNIT(*,.MILLI.,.METRE.);#2=SI_UNIT(*,.CENTI.,.METRE.);#200=ADVANCED_BREP_SHAPE_REPRESENTATION('',(),#201);#201=(GEOMETRIC_REPRESENTATION_CONTEXT(2) GLOBAL_UNIT_ASSIGNED_CONTEXT((#2)) REPRESENTATION_CONTEXT('',''));";
         let report = resolved(&data);
         assert_eq!(report["lengthUnitsResolved"], true);
         assert_eq!(report["geometricContextCount"], 2);
@@ -440,9 +456,11 @@ mod tests {
             step: &step,
             work: 0,
         };
-        assert!(audit
-            .length(4, MAX_DEPTH + 1, &mut BTreeSet::new(), &mut Vec::new())
-            .is_err());
+        assert!(
+            audit
+                .length(4, MAX_DEPTH + 1, &mut BTreeSet::new(), &mut Vec::new())
+                .is_err()
+        );
     }
     #[test]
     fn digest_covers_rows_beyond_details_cap() {
@@ -467,7 +485,8 @@ mod tests {
     }
     #[test]
     fn surface_parameter_spaces_are_not_assigned_physical_scale() {
-        let data=context("#1")+"#1=SI_UNIT(*,.MILLI.,.METRE.);#200=DEFINITIONAL_REPRESENTATION('',(),#201);#201=(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''));";
+        let data = context("#1")
+            + "#1=SI_UNIT(*,.MILLI.,.METRE.);#200=DEFINITIONAL_REPRESENTATION('',(),#201);#201=(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''));";
         let report = resolved(&data);
         assert_eq!(report["lengthUnitsResolved"], true);
         assert_eq!(report["resolvedGeometricRepresentations"], 1);
@@ -496,7 +515,9 @@ mod tests {
     }
     #[test]
     fn parameter_only_file_does_not_claim_resolved_physical_units() {
-        let report=resolved("#1=DEFINITIONAL_REPRESENTATION('',(),#2);#2=(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''));");
+        let report = resolved(
+            "#1=DEFINITIONAL_REPRESENTATION('',(),#2);#2=(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('',''));",
+        );
         assert_eq!(report["lengthUnitsResolved"], false);
         assert_eq!(report["parametricRepresentationsClassified"], 1);
     }

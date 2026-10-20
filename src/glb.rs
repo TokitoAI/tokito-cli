@@ -3,8 +3,9 @@
 //! right-handed, Y-up, with the board plane in XZ and its slab centered at Y=0.
 //! GLB container alignment follows Khronos glTF 2.0:
 //! https://github.com/KhronosGroup/glTF/blob/main/specification/2.0/Specification.adoc
-//! General VRML, STEP, glTF and GLB component models remain unsupported; neither
-//! export scope claims a complete digital twin or a verified phone import.
+//! General VRML and glTF/GLB component imports remain unsupported. STEP is
+//! accepted only as an explicitly assigned, bounded mesh candidate; neither
+//! export scope claims a complete digital twin or verified phone import.
 
 use super::document::Point2;
 use super::model_assembly::{
@@ -578,6 +579,10 @@ pub(crate) fn export_assigned_board_assembly(
     // Reuse the validated shell metrics, never silently repair invalid contours.
     let mut report = export_board_shell(board, true)?.report;
     let assembly = crate::assigned_assembly::assemble_assigned_models(board, assignments)?;
+    let includes_step_candidates = assembly
+        .emitted
+        .iter()
+        .any(|item| item.source_asset_format == "step");
     let mut components = Vec::new();
     let mut emitted = std::collections::BTreeSet::new();
     for item in &assembly.emitted {
@@ -590,6 +595,8 @@ pub(crate) fn export_assigned_board_assembly(
                 uuid: item.component_uuid.clone(),
                 source_ordinal: item.component_source.ordinal,
                 source_asset_sha256: item.source_asset_sha256.clone(),
+                source_asset_format: item.source_asset_format.clone(),
+                geometry_diagnostics: item.mesh.diagnostics.clone(),
                 model_source_ordinal: item.manifest_entry_index,
                 assignment_origin: Some((
                     assignments.manifest_sha256().to_owned(),
@@ -619,7 +626,11 @@ pub(crate) fn export_assigned_board_assembly(
         Some(&incomplete),
         "component_body_not_emitted_by_assignment_export",
     );
-    report.scope = "board_shell_and_explicitly_assigned_wrl_models";
+    report.scope = if includes_step_candidates {
+        "board_shell_and_explicitly_assigned_models"
+    } else {
+        "board_shell_and_explicitly_assigned_wrl_models"
+    };
     report.component_models_emitted = emitted.len();
     report.component_models_unresolved = report.selected_component_count - emitted.len();
     report.unresolved_components = unresolved;
@@ -700,6 +711,8 @@ struct ComponentMesh {
     uuid: Option<String>,
     source_ordinal: usize,
     source_asset_sha256: String,
+    source_asset_format: String,
+    geometry_diagnostics: Vec<String>,
     model_source_ordinal: usize,
     assignment_origin: Option<(String, usize)>,
     part_ordinal: usize,
@@ -720,6 +733,8 @@ fn component_meshes(
                 uuid: emitted.component_uuid.clone(),
                 source_ordinal: emitted.component_source.ordinal,
                 source_asset_sha256: emitted.source_asset_sha256.clone(),
+                source_asset_format: "wrl".to_owned(),
+                geometry_diagnostics: Vec::new(),
                 model_source_ordinal: emitted.model_source.ordinal,
                 assignment_origin: None,
                 part_ordinal: part.source_shape_ordinal,
@@ -1878,6 +1893,36 @@ fn projected_vrml_material(source: Option<&crate::model_mesh::MeshMaterial>, sol
                 "shininess":m.shininess,"transparency":m.transparency},"sourceSolid":solid}}})
 }
 
+fn projected_source_material(
+    source: Option<&crate::model_mesh::MeshMaterial>,
+    solid: bool,
+    source_format: &str,
+) -> Value {
+    if source_format != "step" {
+        return projected_vrml_material(source, solid);
+    }
+    let fallback = crate::model_mesh::MeshMaterial::default();
+    let material = source.unwrap_or(&fallback);
+    json!({
+        "name": "STEP source-color display projection",
+        "pbrMetallicRoughness": {
+            "baseColorFactor": [material.diffuse_color[0], material.diffuse_color[1], material.diffuse_color[2], 1.0-material.transparency],
+            "metallicFactor": 0.0,
+            "roughnessFactor": 0.72
+        },
+        "alphaMode": if material.transparency > 0.0 { "BLEND" } else { "OPAQUE" },
+        "doubleSided": !solid,
+        "extras": { "tokito": {
+            "sourceFormat": "STEP",
+            "materialProjection": "source RGB/alpha with neutral display roughness; not recovered physical material properties",
+            "authoredSourceColorPresent": source.is_some(),
+            "sourceRgb": material.diffuse_color,
+            "sourceAlpha": 1.0-material.transparency,
+            "sourceSolid": solid
+        }}
+    })
+}
+
 fn gltf_assembly_document(
     shell: &Mesh,
     components: &[ComponentMesh],
@@ -1939,7 +1984,11 @@ fn gltf_assembly_document(
         }
         let mut primitives = Vec::with_capacity(parts.len());
         for component in parts.iter().copied() {
-            let material = projected_vrml_material(component.material.as_ref(), component.solid);
+            let material = projected_source_material(
+                component.material.as_ref(),
+                component.solid,
+                &component.source_asset_format,
+            );
             let key =
                 serde_json::to_string(&material).map_err(|e| EngineError::new(e.to_string()))?;
             let material_index = if let Some(&index) = material_indices.get(&key) {
@@ -2068,6 +2117,12 @@ fn component_primitive_provenance(component: &ComponentMesh) -> Value {
         "partOrdinal": component.part_ordinal,
         "selectable": false
     }});
+    // Keep the established VRML assembly bytes stable. Additional format and
+    // qualification metadata is emitted for the newer assignment path only.
+    if component.source_asset_format != "wrl" {
+        value["tokito"]["sourceAssetFormat"] = json!(component.source_asset_format);
+        value["tokito"]["geometryDiagnostics"] = json!(component.geometry_diagnostics);
+    }
     if let Some((manifest, index)) = &component.assignment_origin {
         value["tokito"]["manifestSha256"] = json!(manifest);
         value["tokito"]["manifestEntryIndex"] = json!(index);

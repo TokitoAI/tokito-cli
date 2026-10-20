@@ -95,9 +95,11 @@ This loopback server is for the desktop demo, not a phone transport API.
 
 For supported routed KiCad PCB input, use `help export svg`, `help export glb`,
 `help model` and `help dataset` to obtain the implemented options. GLB assembly
-uses the bounded local VRML subset or explicit model assignments. Partial
-exports require `--allow-partial`; choose new output paths. Native Altium/STEP
-experiments are not a general production PCB/STEP adapter. Do not advertise
+uses the bounded local VRML subset or explicit model assignments. Assignments
+accept supported VRML assets and bounded, unit-audited STEP mesh candidates;
+STEP candidates remain unqualified and require `--allow-partial`. Choose new
+output paths. Native Altium/STEP experiments are not a general production
+PCB/STEP adapter. Do not advertise
 unimplemented `sch`, DRC, routing or universal STEP export as KiCad parity.
 
 ## Responsibilities and connection architecture

@@ -202,7 +202,7 @@ try {
             'Direct local CLI process acceptance only.',
             'No CAD viewer, Android device, AR registration, Desktop integration, or GUI computer-control test was run.',
             'This release-binary acceptance case covers one bounded local VRML model; the full tests/e2e_cli.py suite separately checks one- and two-component selector nodes plus the exact-refdes visibility rule.',
-            'CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; STEP geometry generation, glTF/GLB component-mesh assembly, and general VRML remain unsupported.',
+            'CLI structure and filter tests do not exercise the Tokito App importer, Android renderer/selection, or KiCad geometry parity; general authored-reference STEP/B-rep import and STEP board export remain unsupported. A separate explicit model-assignment path accepts only bounded, unqualified STEP mesh candidates. glTF/GLB component-mesh import and general VRML remain unsupported.',
             'This does not establish KiCad CLI behavior or artifact parity.'
         )
     }

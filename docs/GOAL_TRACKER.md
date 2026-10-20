@@ -1644,9 +1644,4 @@ VRML97/KiCad parity. V1 remains open.
   evidence receipt and qualification limits in
   [`model14-repaired-diagnostic-glb-20261020.json`](evidence/model14-repaired-diagnostic-glb-20261020.json).
 
-Remaining V1/3D gates include general STEP handling, complete-solid
-reconstruction and qualification, evidence-bound PCB reference/UUID placement,
-qualified coverage of every component, missing-model resolution, full agreed
-KiCad CLI and footprint/library parity, simulation-result import and additional
-views, and clean-machine Windows install/upgrade verification. This is
-experimental progress, not V1 completion.
+The identity-bound STEP mesh candidate and planar fixture E2E are implemented. General/native STEP and B-rep, complete solids, dataset identity mapping, fit, full component coverage, KiCad parity, simulation/views and clean-machine Windows installation remain open. A prior verifier summary reported 49/49 gates, but its source-matched receipt path was not captured here; use the current PR's newly generated local receipt for the active head. Neither count qualifies real-board geometry or production v1.

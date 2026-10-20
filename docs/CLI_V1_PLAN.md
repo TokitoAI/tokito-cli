@@ -86,5 +86,20 @@ electrical or thermal correctness is established by a polished visualization.
    requires all advertised v1 capabilities and delivery gates to pass; do not
    bump to 1.0.0 to imply missing work is complete.
 
+### STEP assignment candidate milestone — 2026-10-20
+
+The assignment exporter now admits bounded STEP tessellation as an explicit,
+unqualified component candidate when the manifest declares `step-declared`
+units. The audited unit scale is converted once to millimetres; STEP assembly
+occurrences are flattened through their transforms; GLB selectors retain the
+PCB reference and UUID. Missing/mixed unit declarations and reader warnings
+refuse. The bounded reader can tessellate supported STEP representations,
+including some B-rep surfaces, but this does not establish general surface/trim
+coverage, closed-solid validity, or physical qualification. Current checks
+cover a tessellated planar fixture, a synthetic single-face planar OPEN_SHELL
+B-rep, nested synthetic occurrence transforms, both PCB sides, exact selector
+provenance, WRL report compatibility and failure paths. No target-dataset STEP
+model-to-component mapping or complete-solid comparison has passed yet.
+
 See [release readiness](CLI_RELEASE_READINESS.md), [KiCad completion gates](KICAD_COMPLETION_GATES.md),
 [compatibility matrix](KICAD_CLI_PARITY_MATRIX.md) and [STEP evidence](STEP_SOLID_REFERENCE.md).

@@ -21,6 +21,10 @@ mod spline_face_diagnostic;
 mod surface_grid;
 mod triangle_diagnostics;
 mod trim_polygon_candidate;
+// This module is shared with the edition-2024 CLI crate and is formatted by
+// its own crate's formatter; skip this path import in the 2021 probe formatter.
+#[rustfmt::skip]
+#[path = "../../../src/step_unit_preflight.rs"]
 mod unit_preflight;
 use oxideav_step::{GeometryLimits, ReadOptions, Tolerance};
 use serde_json::{json, Value};

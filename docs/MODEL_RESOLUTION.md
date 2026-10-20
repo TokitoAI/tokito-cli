@@ -81,10 +81,11 @@ The per-asset output limit also bounds decompression. The compressed payload has
 a separate capped allowance for Zstandard framing overhead, and trailing or
 concatenated frames are rejected. Missing, ambiguous, non-model, malformed,
 oversized, unsupported-extension, and checksum failures have explicit statuses.
-This is payload extraction only: `STEP` remains unsupported by the production
-mesh/GLB assembler. A successful embedded STEP lookup is not evidence that its
-geometry, units, placement, or physical correspondence to the owning footprint
-are correct. `.stpz` and
+This is payload extraction only: this embedded-model resolver does not pass STEP
+payloads to the mesh/GLB assembler. A separate explicit assignment path can
+parse bounded STEP tessellation candidates after identity and unit checks, but
+that does not qualify embedded STEP geometry, placement, or physical
+correspondence to the owning footprint. `.stpz` and
 `.wrz` remain unsupported until their nested compression formats have explicit
 bounded decoders; classifying their extensions alone would not make them
 usable geometry inputs.
@@ -232,7 +233,9 @@ non-planar or degenerate polygons, duplicate fields/definitions, invalid indices
 nonfinite coordinates and exceeded byte/token/depth/shape/vertex/triangle/normal
 budgets are rejected. Planar polygons are triangulated only when the result
 preserves source winding and projected area. It is a bounded VRML profile, not
-complete VRML97, STEP, or STEP-export support.
+complete VRML97 or general STEP/B-rep and STEP-export support. The separate
+explicit component-assignment path accepts only bounded, unqualified STEP
+tessellation candidates.
 The [pinned official resistor](../tests/fixtures/open-source/kicad-resistor-models/README.md)
 is the positive fixture; mathematical negative cases are explicitly synthetic.
 
@@ -262,7 +265,7 @@ The source baseline used here is KiCad 10.0.7 commit 69cafb907ebc09e7722a2a464b1
 
 For a model-space point already expressed in millimetres, the Rust point-placement API applies scale, model rotations around X/Y/Z by the negative stored angles, the model offset and selected copper-plane/clearance offset, the back-side 180-degree X rotation when applicable, the footprint Z rotation, then the board translation (x, -y). This operation order follows the pinned exporter and the documented Open CASCADE composition rule; no KiCad or Open CASCADE runtime is linked or invoked.
 
-The point API maps a placed model point to Tokito's shell frame in GLB metres: x=(board_x-origin_x+local_x)/1000, y=local_z/1000, z=(-(board_y-origin_y)+local_y)/1000. This STEP-to-GLB basis has negative determinant. The parsed-mesh placement helper applies that point transform to a bounded triangle mesh, composes reflection parity with negative model scales, adjusts triangle winding, recomputes flat normals, and rejects invalid indices, degenerate triangles, non-finite results, or meshes over their geometry budgets. `EngineeringData::stackup` retains physical source order and exposes strict centred outer-copper planes for supported copper/core/prepreg stacks; missing, malformed, or unsupported outer material refuses. This placement path is integrated into GLB scene assembly for the accepted VRML subset. It does not parse STEP and does not claim equality with a KiCad-generated export. Asymmetric tests verify the declared source-derived contract mathematically, but independent renderer comparison remains pending.
+The point API maps a placed model point to Tokito's shell frame in GLB metres: x=(board_x-origin_x+local_x)/1000, y=local_z/1000, z=(-(board_y-origin_y)+local_y)/1000. This STEP-to-GLB basis has negative determinant. The parsed-mesh placement helper applies that point transform to a bounded triangle mesh, composes reflection parity with negative model scales, adjusts triangle winding, recomputes flat normals, and rejects invalid indices, degenerate triangles, non-finite results, or meshes over their geometry budgets. `EngineeringData::stackup` retains physical source order and exposes strict centred outer-copper planes for supported copper/core/prepreg stacks; missing, malformed, or unsupported outer material refuses. The shared placement helper is format-neutral; GLB assembly now feeds it the accepted VRML subset and a separately gated explicit STEP assignment path. The STEP path decodes bounded tessellated geometry only and does not establish general/native-reference STEP or B-rep import, solid validity, physical fit, or equality with a KiCad-generated export. Asymmetric tests verify the declared source-derived contract mathematically, but independent renderer comparison remains pending.
 
 Primary references:
 - KiCad's pinned STEP exporter inputs and board-origin handling: https://github.com/KiCad/kicad-source-mirror/blob/69cafb907ebc09e7722a2a464b1d466fc2e3608d/pcbnew/exporters/step/exporter_step.cpp

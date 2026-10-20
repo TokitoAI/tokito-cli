@@ -233,6 +233,7 @@ try {
         @{ name = 'compat-v0'; command = $pythonCommand.Source; arguments = @('tests/compat_v0.py', '--binary', $binaryPath, '--output-root', $compatibilityOutputPath) },
         @{ name = 'bom-e2e'; command = $pythonCommand.Source; arguments = @('tests/bom_e2e.py', '--binary', $binaryPath) },
         @{ name = 'model-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/model_assignments_e2e.py', '--binary', $binaryPath) },
+        @{ name = 'step-assignment-e2e'; command = $pythonCommand.Source; arguments = @('tests/step_assignments_e2e.py', '--binary', $binaryPath) },
         @{ name = 'component-envelope-e2e'; command = $pythonCommand.Source; arguments = @('tests/component_envelope_e2e.py', '--binary', $binaryPath) },
         @{ name = 'project-intake-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_intake_e2e.py', '--bin', $binaryPath) },
         @{ name = 'project-bundle-e2e'; command = $pythonCommand.Source; arguments = @('tests/project_bundle_e2e.py', '--binary', $binaryPath) },
@@ -591,7 +592,7 @@ try {
         checks = $results
         inputsSha256 = $inputs
         binary = @{ file = $binaryName; sha256 = $testedBinaryHash; bytes = (Get-Item -LiteralPath $deliveredBinary).Length }
-        limitations = @('Local platform/toolchain only.', 'The release CLI acceptance receipt exercises one bounded local VRML component assembly; the full subprocess suite additionally checks one- and two-component GLBs, exact-refdes selection behavior, unsupported-side diagnostics, and coverage truncation. These CLI tests do not exercise the App importer or Android renderer.', 'General VRML, STEP, glTF and GLB model import, KiCad-export equivalence, physical fit, phone/AR and Desktop acceptance remain unverified.')
+        limitations = @('Local platform/toolchain only.', 'The release CLI acceptance receipt exercises one bounded local VRML component assembly; the full subprocess suite additionally checks one- and two-component GLBs, exact-refdes selection behavior, unsupported-side diagnostics, and coverage truncation. These CLI tests do not exercise the App importer or Android renderer.', 'General STEP B-rep import, glTF/GLB component import, KiCad-export equivalence, physical fit, phone/AR and Desktop acceptance remain unverified. Explicit STEP-assignment E2E covers an unqualified tessellated mesh fixture and one synthetic planar OPEN_SHELL B-rep face; it does not verify a closed solid or a dataset component fit.')
     }
     $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $deliveryPath 'verification.json') -Encoding utf8
     Write-Host "PASS: verified local binary and receipt: $deliveryPath"
